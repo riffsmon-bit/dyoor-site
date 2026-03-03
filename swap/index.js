@@ -1,181 +1,4 @@
-<!doctype html>
-<html lang="en">
-<head>
-<meta charset="utf-8"/>
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"/>
-<title>DYOOR • Swap</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="/style.css"/>
-<style>
-  .swapWrap{max-width:980px;margin:0 auto;padding:22px 16px 72px}
-  .swapHero{position:relative;overflow:hidden;border-radius:22px;border:1px solid var(--stroke);background:rgba(0,0,0,.25);box-shadow:var(--shadow);margin-bottom:16px}
-  .swapHero__img{width:100%;display:block;opacity:.9;filter:saturate(1.15)}
-  .swapHero__tag{position:absolute;left:14px;bottom:12px;background:rgba(0,0,0,.55);border:1px solid rgba(255,255,255,.12);backdrop-filter: blur(10px);-webkit-backdrop-filter: blur(10px);padding:8px 10px;border-radius:999px;font-weight:700;font-size:13px}
-  .swapRow{display:flex;gap:14px;flex-wrap:wrap;align-items:center}
-  .swapCard2{border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.04);border-radius:18px;padding:16px}
-  .sel{appearance:none;background:rgba(10,10,14,.6);color:var(--text);border:1px solid rgba(255,255,255,.14);border-radius:12px;padding:12px 12px;font-weight:800}
-  .inp{width:100%;background:rgba(10,10,14,.6);color:var(--text);border:1px solid rgba(255,255,255,.14);border-radius:12px;padding:14px 12px;font-size:18px;font-weight:800}
-  .btnFull{width:100%;justify-content:center}
-  .mini{opacity:.8;font-size:13px;line-height:1.35}
-  .warn{border:1px solid rgba(255,210,94,.35);background:rgba(255,210,94,.08);padding:10px 12px;border-radius:14px}
-  .err{border:1px solid rgba(255,90,90,.35);background:rgba(255,90,90,.08);padding:10px 12px;border-radius:14px}
-  .ok{border:1px solid rgba(80,255,170,.28);background:rgba(80,255,170,.06);padding:10px 12px;border-radius:14px}
-  .tokSel{display:flex;align-items:center;gap:10px}
-  .tokLogo{width:22px;height:22px;border-radius:999px;flex:0 0 auto;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.14);object-fit:cover}
-  .routeLine{opacity:.8;font-size:12px;margin-top:6px}
-  .amtWrap{position:relative}
-  .maxBtn{position:absolute;right:10px;top:10px;padding:6px 10px;border-radius:999px;font-weight:900;font-size:12px}
-    .swapPair{position:relative;padding:6px 0 2px}
-  .swapPair{position:relative;}
-  .flipSeam{position:relative;height:28px;margin:10px 0;}
-  .flipSeam:before{content:'';position:absolute;left:0;right:0;top:50%;height:1px;background:rgba(255,255,255,.14);}
-  .flipBtn{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:54px;height:54px;border-radius:999px;border:1px solid rgba(255,255,255,.16);background:rgba(0,0,0,.38);color:var(--mint);display:flex;align-items:center;justify-content:center;z-index:6;box-shadow:0 10px 20px rgba(0,0,0,.35);}
-  .flipBtn svg{width:22px;height:22px;display:block}
-  .flipBtn:active{transform:translate(-50%,-50%) scale(.98)}
 
-  .segToggle{display:inline-flex;gap:6px;background:rgba(0,0,0,.28);border:1px solid rgba(255,255,255,.12);padding:6px;border-radius:999px}
-  .segToggle button{border:0;background:transparent;color:var(--text);opacity:.75;font-weight:900;padding:10px 14px;border-radius:999px;cursor:pointer}
-  .segToggle button.is-on{background:rgba(140,90,255,.28);opacity:1;box-shadow:inset 0 0 0 1px rgba(140,90,255,.45)}
-  @media (max-width:560px){.segToggle button{padding:9px 12px;font-size:13px}}
-.addrMono{font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,'Liberation Mono','Courier New',monospace;opacity:.95}
-
-  .switch{position:relative;display:inline-block;width:46px;height:26px;flex:0 0 auto}
-  .switch input{opacity:0;width:0;height:0}
-  .slider{position:absolute;cursor:pointer;top:0;left:0;right:0;bottom:0;background:rgba(255,255,255,.18);transition:.2s;border-radius:999px;border:1px solid rgba(255,255,255,.16)}
-  .slider:before{position:absolute;content:"";height:20px;width:20px;left:3px;top:50%;transform:translateY(-50%);background:rgba(0,0,0,.45);transition:.2s;border-radius:999px;border:1px solid rgba(255,255,255,.18)}
-  .switch input:checked + .slider{background:rgba(0,255,199,.22);border-color:rgba(0,255,199,.35)}
-  .switch input:checked + .slider:before{transform:translate(20px,-50%);background:rgba(0,0,0,.55);border-color:rgba(0,255,199,.35)}
-</style>
-</head>
-<body>
-<div class="bg"></div>
-
-<header class="topbar" id="top">
-  <div class="container topbar__inner">
-    <a class="brand" href="/index.html">DYOOR</a>
-    <nav class="nav" aria-label="Primary">
-      <a href="/whitepaper.html">Whitepaper</a>
-        <a href="/stake.html">Stake</a>
-      <a href="/swap/" class="is-active">Swap</a>
-    </nav>
-  </div>
-</header>
-
-<main class="swapWrap">
-  <div class="swapHero">
-    <img src="/assets/swap_brand.jpg" alt="DYOOR" class="swapHero__img"/>
-    <div class="swapHero__tag">Degen-mode swap • PancakeSwap on Monad</div>
-  </div>
-
-  <div class="swapRow" style="justify-content:space-between;margin-bottom:10px">
-    <div>
-      <h1 style="margin:0;font-size:40px">Swap</h1>
-      <div class="mini">Chain: Monad (143)</div>
-    </div>
-    <button id="connectBtn" class="btn btn--ghost" type="button">Connect Wallet</button>
-  </div>
-
-  <div class="swapCard2">
-    <div class="swapRow" style="justify-content:flex-end;margin-bottom:10px">
-      <div class="segToggle" role="tablist" aria-label="Swap view">
-        <button id="modeBasic" type="button">Basic</button>
-        <button id="modeAdv" type="button" class="is-on">Advanced</button>
-      </div>
-    </div>
-
-    <div class="swapPair">
-<div class="swapRow" style="gap:10px">
-      <div style="flex:1;min-width:220px">
-        <div class="mini" style="margin-bottom:6px">From</div>
-        <div class="tokSel">
-          <img id="fromLogo" class="tokLogo" alt="" />
-          <select id="fromToken" class="sel" style="width:100%"></select>
-        </div>
-        <div class="mini" id="fromBal" style="margin-top:6px">Balance: —</div>
-      </div>
-      <div style="flex:2;min-width:260px">
-        <div class="mini" style="margin-bottom:6px">Amount</div>
-        <div class="amtWrap">
-          <input id="fromAmt" class="inp" inputmode="decimal" placeholder="0.0"/>
-          <button id="maxBtn" class="btn btn--ghost maxBtn" type="button">MAX</button>
-        </div>
-      </div>
-    </div>
-
-    
-<div class="flipSeam"><button id="flipBtn" class="flipBtn" type="button" aria-label="Flip tokens" title="Flip tokens">
-        <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
-          <path d="M8 7h10m0 0-3-3m3 3-3 3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-          <path d="M16 17H6m0 0 3 3m-3-3 3-3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-        </svg>
-      </button></div>
-
-<div class="swapRow" style="gap:10px">
-      <div style="flex:1;min-width:220px">
-        <div class="mini" style="margin-bottom:6px">To</div>
-        <div class="tokSel">
-          <img id="toLogo" class="tokLogo" alt="" />
-          <select id="toToken" class="sel" style="width:100%"></select>
-        </div>
-        <div class="mini" id="toBal" style="margin-top:6px">Balance: —</div>
-      </div>
-      <div style="flex:2;min-width:260px">
-        <div class="mini" style="margin-bottom:6px">You receive (est.)</div>
-        <div id="toAmt" class="inp" style="display:flex;align-items:center">—</div>
-      </div>
-    </div>
-
-    </div>
-
-    <div style="height:12px"></div>
-
-    <div id="advancedBox">
-
-      <div class="swapRow" style="gap:10px;margin-top:6px;align-items:center">
-        <div class="mini" style="min-width:110px">Support DYOOR</div>
-        <label class="switch" title="Toggle support fee">
-          <input id="supportToggle" type="checkbox" />
-          <span class="slider"></span>
-        </label>
-        <div class="mini" id="supportHint" style="opacity:.95">
-          When ON, a <b>0.20%</b> support fee is sent to <span class="addrMono">0x4D54…c6d5</span> as a second confirmation after the swap.
-        </div>
-      </div>
-
-<div class="mini" style="opacity:.95">Using this swap directly supports DYOOR treasury. <b>0.20%</b> → <span class="addrMono">0x4D54…c6d5</span></div>
-      </div>
-
-
-<div class="swapRow" style="gap:10px">
-      <div class="mini">Slippage</div>
-      <button class="chip" data-slip="0.5" type="button">0.5%</button>
-      <button class="chip" data-slip="1" type="button">1%</button>
-      <button class="chip" data-slip="2" type="button">2%</button>
-      <div class="mini" style="margin-left:auto" id="accountLine">Not connected</div>
-    </div>
-
-    <div style="height:12px"></div>
-
-    <div id="statusBox" class="mini">Enter an amount — quote updates automatically.</div>
-    <div id="routeLine" class="routeLine">Route: —</div>
-    <div id="routeBox" class="routeLine"></div>
-    </div>
-
-<div style="height:10px"></div>
-
-    <div class="swapRow">
-      <button id="swapBtn" class="btn btnFull" type="button" disabled>Swap</button>
-      <button id="unwrapBtn" class="btn btn--ghost" type="button" style="display:none">Unwrap WMON → MON</button>
-    </div>
-
-    <div style="height:10px"></div>
-    <div class="mini">Safety: DYOOR will never ask for your seed phrase. Verify you are on the real dyoor.xyz domain before signing.</div>
-  </div>
-</main>
-
-<script>
 (() => {
   // Token sources (GitHub-backed)
   const PANCAKE_EXTENDED = 'https://tokens.pancakeswap.finance/pancakeswap-extended.json';
@@ -379,8 +202,7 @@
     fromSel.value = "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"; // MON
     toSel.value = TOKENS.find(t=>t.symbol==="USDC")?.address || TOKENS[1].address;
     updateTokenUI();
-        updateCTA().catch(()=>{});
-      }
+  }
 
   function getToken(addr) {
     return TOKENS.find(t => t.address.toLowerCase() === addr.toLowerCase());
@@ -684,9 +506,10 @@
       const msg = `${pi ? `Price impact ~${pi}%` : 'Quote ready.'}${warnTxt ? ` — ${warnTxt}` : ''}`;
       setStatus(msg, (data.warnings && data.warnings.length) ? 'warn' : 'ok');
 
-      // Update main CTA based on allowance/connection
-      updateCTA().catch(()=>{});
-} catch(e) {
+      // If allowance issue exists, user must approve first (we'll do it automatically before swapping)
+      swapBtn.disabled = !account;
+      if (!account) setStatus('Connect wallet to swap.', 'warn');
+    } catch(e) {
       setStatus('Quote error. Check connection and retry.', 'err');
     }
   }
@@ -710,17 +533,18 @@
   }
 
   async function readAllowance(token, owner, spender) {
-  const data = encodeAllowance(owner, spender);
-  const res = await provider.request({
-    method: 'eth_call',
-    params: [{ to: token, data }, 'latest']
-  });
-  return BigInt(res);
-}
+    const data = encodeAllowance(owner, spender);
+    const res = await provider.request({
+      method: 'eth_call',
+      params: [{ to: token, data }, 'latest']
+    });
+    return BigInt(res);
+  
+  function encodeTransfer(to, amount){
+    const iface = new ethers.utils.Interface(['function transfer(address to, uint256 value)']);
+    return iface.encodeFunctionData('transfer',[to, amount.toString()]);
+  }
 
-function encodeTransfer(to, amount){
-  const iface = new ethers.utils.Interface(['function transfer(address to, uint256 value)']);
-  return iface.encodeFunctionData('transfer',[to, amount.toString()]);
 }
 
   async function estimateGas(tx) {
@@ -739,128 +563,7 @@ function encodeTransfer(to, amount){
     return await provider.request({ method: 'eth_sendTransaction', params: [req] });
   }
 
-  
-
-let mainAction = 'connect'; // connect | approve | swap
-
-async function waitForReceipt(txHash, timeoutMs = 120000) {
-  const start = Date.now();
-  while (Date.now() - start < timeoutMs) {
-    try {
-      const r = await provider.request({ method: 'eth_getTransactionReceipt', params: [txHash] });
-      if (r && r.blockNumber) return r;
-    } catch (_e) {}
-    await new Promise(res => setTimeout(res, 2000));
-  }
-  throw new Error('Timed out waiting for confirmation');
-}
-
-function resetAfterSwap(keepUnwrap=false) {
-  fromAmt.value = '';
-  toAmt.textContent = '—';
-  lastQuote = null;
-  setRoute('Route: —');
-  if (!keepUnwrap) unwrapBtn.style.display = 'none';
-  setStatus('Enter an amount — quote updates automatically.', 'mini');
-  refreshBalances();
-  updateCTA().catch(()=>{});
-}
-
-async function updateCTA() {
-  // default disabled
-  const fromT = getToken(fromSel.value);
-  const toT = getToken(toSel.value);
-
-  // not connected
-  if (!account) {
-    mainAction = 'connect';
-    swapBtn.textContent = 'Connect Wallet';
-    swapBtn.disabled = false;
-    return;
-  }
-
-  // need a quote + amount
-  if (!fromAmt.value || !lastQuote || !fromT || !toT) {
-    mainAction = 'swap';
-    swapBtn.textContent = 'Swap';
-    swapBtn.disabled = true;
-    return;
-  }
-
-  const isNativeIn = (fromT.symbol === 'MON' || String(fromT.address||'').toLowerCase() === '0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee');
-  if (isNativeIn) {
-    mainAction = 'swap';
-    swapBtn.textContent = 'Swap';
-    swapBtn.disabled = false;
-    return;
-  }
-
-  const spender = String(lastQuote?.issues?.allowance?.spender || lastQuote?.transaction?.to || '').toLowerCase();
-  const token = String(fromT.address || '').toLowerCase();
-  if (!spender || !token) {
-    mainAction = 'swap';
-    swapBtn.textContent = 'Swap';
-    swapBtn.disabled = false;
-    return;
-  }
-
-  const need = parseUnits(fromAmt.value, fromT.decimals);
-  try {
-    const allowance = await readAllowance(token, account, spender);
-    if (allowance < need) {
-      mainAction = 'approve';
-      swapBtn.textContent = `Approve ${fromT.symbol}`;
-      swapBtn.disabled = false;
-      return;
-    }
-  } catch (_e) {
-    // If allowance read fails, still show approve to be safe
-    mainAction = 'approve';
-    swapBtn.textContent = `Approve ${fromT.symbol}`;
-    swapBtn.disabled = false;
-    return;
-  }
-
-  mainAction = 'swap';
-  swapBtn.textContent = 'Swap';
-  swapBtn.disabled = false;
-}
-
-async function doApprove() {
-  try {
-    if (!account) return connect();
-    if (!await ensureChain()) return;
-    if (!lastQuote) return;
-    const fromT = getToken(fromSel.value);
-    if (!fromT) return;
-    const isNativeIn = (fromT.symbol === 'MON' || String(fromT.address||'').toLowerCase() === '0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee');
-    if (isNativeIn) return;
-
-    const spender = String(lastQuote?.issues?.allowance?.spender || lastQuote?.transaction?.to || '').toLowerCase();
-    const token = String(fromT.address || '').toLowerCase();
-    if (!spender || !token) {
-      setStatus('Cannot determine approval spender.', 'err');
-      return;
-    }
-
-    swapBtn.disabled = true;
-    setStatus(`Approve ${fromT.symbol}…`, 'warn');
-    const max = (1n << 256n) - 1n;
-    const approveData = encodeApprove(spender, max);
-    const txHash = await sendTx({ to: token, data: approveData, value: '0' });
-    setStatus('Approval submitted — confirming…', 'mini');
-    await waitForReceipt(txHash);
-    setStatus(`Approved ${fromT.symbol}. You can swap now.`, 'ok');
-    await updateCTA();
-  } catch (e) {
-    setStatus('Approval canceled or failed in wallet.', 'err');
-    await updateCTA().catch(()=>{});
-  } finally {
-    swapBtn.disabled = false;
-  }
-}
-
-async function unwrapNow() {
+  async function unwrapNow() {
     try {
       if (!account) return;
       const wmon = getToken('0x3bd359C1119dA7Da1D913D1C4D2B7c461115433A') || TOKENS.find(t=>t.symbol==='WMON');
@@ -905,25 +608,30 @@ async function unwrapNow() {
     try {
       swapBtn.disabled = true;
       setStatus('Preparing transaction…', 'mini');
-      // --- Approval gating (ERC20-in) ---
+
+      // --- Approvals (ERC20-in) ---
+      // Some RPCs / wallets fail our server-side allowance precheck, so we do a client-side check too.
       const issues = lastQuote.issues || {};
       const isNativeIn = (fromT?.symbol === 'MON' || String(fromT?.address||'').toLowerCase() === '0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee');
       if (!isNativeIn) {
-        const spender = String(issues.allowance?.spender || lastQuote?.transaction?.to || '').toLowerCase();
-        const token = String(fromT?.address || '').toLowerCase();
+        const spender = (issues.allowance?.spender || lastQuote?.transaction?.to || '').toLowerCase();
+        const token = (issues.allowance?.token || fromT.address || '').toLowerCase();
         if (spender && token) {
           const need = parseUnits(fromAmt.value, fromT.decimals);
           try {
             const allowance = await readAllowance(token, account, spender);
             if (allowance < need) {
-              setStatus(`Approval required. Tap “Approve ${fromT.symbol}” first.`, 'warn');
-              await updateCTA();
-              return;
+              const max = (1n << 256n) - 1n;
+              const approveData = encodeApprove(spender, max);
+              setStatus('Approve token…', 'warn');
+              await sendTx({ to: token, data: approveData, value: '0' });
             }
           } catch (_a) {
-            setStatus(`Approval required. Tap “Approve ${fromT.symbol}” first.`, 'warn');
-            await updateCTA();
-            return;
+            // If allowance read fails, still attempt an approval so the swap doesn't hard-fail.
+            const max = (1n << 256n) - 1n;
+            const approveData = encodeApprove(spender, max);
+            setStatus('Approve token…', 'warn');
+            await sendTx({ to: token, data: approveData, value: '0' });
           }
         }
       }
@@ -954,24 +662,29 @@ async function unwrapNow() {
 
           const res = await fetch('/.netlify/functions/quote?' + params.toString());
           const data = await res.json();
-          if (!res.ok) throw new Error(data?.error || 'Fallback quote failed');          setStatus('Send swap (to WMON)…', 'mini');
-const fbHash = await sendTx(data.transaction);
-          setStatus('Swap submitted — confirming…', 'mini');
-          await waitForReceipt(fbHash);
+          if (!res.ok) throw new Error(data?.error || 'Fallback quote failed');
+
+          // approve if needed for fallback
+          const fbIssues = data.issues || {};
+          if (fbIssues.allowance && fbIssues.allowance.spender && fbIssues.allowance.token) {
+            const max = (1n << 256n) - 1n;
+            const approveData = encodeApprove(fbIssues.allowance.spender, max);
+            setStatus('Approve token…', 'warn');
+            await sendTx({ to: fbIssues.allowance.token, data: approveData, value: '0' });
+          }
+
+          setStatus('Send swap (to WMON)…', 'mini');
+          await sendTx(data.transaction);
 
           // Offer unwrap
           unwrapBtn.style.display = 'inline-flex';
-          unwrapBtn.style.display = 'inline-flex';
-          setStatus('Swap complete to WMON. Tap “Unwrap WMON → MON” to receive MON.', 'ok');
-          resetAfterSwap(true);
+          setStatus('Swap sent to WMON. Tap “Unwrap WMON → MON” to receive MON.', 'ok');
           return;
         }
       }
 
       setStatus('Send swap transaction…', 'mini');
-      const swapHash = await sendTx(lastQuote.transaction);
-      setStatus('Swap submitted — confirming…', 'mini');
-      await waitForReceipt(swapHash);
+      await sendTx(lastQuote.transaction);
 
       // Support fee transfer (separate confirmation) when enabled
       try{
@@ -985,13 +698,11 @@ const fbHash = await sendTx(data.transaction);
 
           if (feeToken === nativeSentinel || fromT?.symbol === 'MON'){
             // native MON fee (simple value transfer)
-            const feeHash = await sendTx({ to: recipient, data: '0x', value: feeAmt.toString() });
-            await waitForReceipt(feeHash);
+            await sendTx({ to: recipient, data: '0x', value: feeAmt.toString() });
           } else {
             // ERC20 fee transfer
             const transferData = encodeTransfer(recipient, feeAmt);
-            const feeHash = await sendTx({ to: feeToken, data: transferData, value: '0' });
-            await waitForReceipt(feeHash);
+            await sendTx({ to: feeToken, data: transferData, value: '0' });
           }
         }
       }catch(_feeErr){
@@ -1004,13 +715,12 @@ const fbHash = await sendTx(data.transaction);
         unwrapBtn.style.display = 'inline-flex';
       }
 
-      setStatus('Swap complete ✅', 'ok');
-      resetAfterSwap(false);
+      setStatus('Transaction sent. Check your wallet / explorer.', 'ok');
+      refreshBalances();
     } catch(e) {
       setStatus('Swap canceled or failed in wallet.', 'err');
     } finally {
       swapBtn.disabled = false;
-      updateCTA().catch(()=>{});
     }
   }
 
@@ -1027,11 +737,7 @@ const fbHash = await sendTx(data.transaction);
   document.querySelector('[data-slip="0.5"]')?.classList.add('chip--active');
 
   connectBtn.addEventListener('click', connect);
-  swapBtn.addEventListener('click', () => {
-    if (mainAction === 'connect') return connect();
-    if (mainAction === 'approve') return doApprove();
-    return doSwap();
-  });
+  swapBtn.addEventListener('click', doSwap);
   unwrapBtn.addEventListener('click', unwrapNow);
   flipBtn.addEventListener('click', () => {
     flipTokens();
@@ -1044,7 +750,6 @@ const fbHash = await sendTx(data.transaction);
     updateTokenUI();
     setStatus('Enter an amount — quote updates automatically.', 'mini');
     scheduleQuote();
-    updateCTA().catch(()=>{});
   });
   toSel.addEventListener('change', () => {
     toAmt.textContent = '—';
@@ -1054,7 +759,6 @@ const fbHash = await sendTx(data.transaction);
     updateTokenUI();
     setStatus('Enter an amount — quote updates automatically.', 'mini');
     scheduleQuote();
-    updateCTA().catch(()=>{});
   });
   fromAmt.addEventListener('input', () => {
     toAmt.textContent = '—';
@@ -1088,9 +792,5 @@ const fbHash = await sendTx(data.transaction);
     } catch(_) {}
     populate();
     tryAutoConnect();
-  updateCTA().catch(()=>{});
   })();
 })();
-</script>
-</body>
-</html>
