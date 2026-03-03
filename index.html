@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"/>
+  <title>DYOOR</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/style.css?v=safeclick1"/>
+</head>
+<body>
+  <div class="bg" aria-hidden="true"></div>
+
+  <header class="topbar" id="top">
+    <div class="container topbar__inner">
+      <a class="brand" href="/index.html">DYOOR</a>
+      <nav class="nav" aria-label="Primary">
+        <a href="/whitepaper.html">Whitepaper</a>
+        <a href="/stake.html">Stake</a>
+        <a href="/swap/">Swap</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="page">
+
+    <!-- HERO -->
+    <section class="section hero reveal">
+      <div class="container">
+        <div class="card hero__card">
+          <img class="hero__img" src="/assets/home_banner.png" alt="DYOOR banner" loading="eager"/>
+          <div class="hero__copy">
+            <h1>#DYOOR self a favor &amp; vibe | CTO Takeover 🏴‍☠️ | OG WL | Chads WL | VOH WL | Free Mint | 1111 supply | 💎✋ ONLY | $gainrot (Provably not a real token 😉)</h1>
+            <div class="hero__cta">
+              <a class="btn btn--primary hero__btn" href="/swap/">Swap on Monad</a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- COLLECTION PREVIEW -->
+    <section class="section reveal" id="collection">
+      <div class="container">
+        <h2 class="section__title">Collection Preview</h2>
+        <p class="muted">A quick look at the DYOOR supply — pulled live from metadata. If it looks stuck, hard refresh.</p>
+        <div class="card">
+          <div class="marquee" aria-label="DYOOR collection preview">
+            <div class="marquee__track" id="collectionMarquee" role="list"></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- LORE -->
+    <section class="section reveal" id="lore">
+      <div class="container">
+        <h2 class="section__title">Lore</h2>
+        <div class="grid2">
+          <div class="card">
+            <img class="media" src="/assets/lore.jpeg" alt="Lore art" loading="lazy"/>
+            <p class="muted">
+              DYOOR’s are an evolution of the human race...
+            </p>
+          </div>
+          <div class="card">
+            <img class="media" src="/assets/founder.png" alt="Founder" loading="lazy"/>
+            <h3 class="card__title">Founder Facts</h3>
+            <p class="muted">
+              I’m riffs.nad, leading the Rebrand & CTO!
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- LINKS -->
+    <section class="section reveal" id="links">
+      <div class="container">
+        <h2 class="section__title">Links</h2>
+        <p class="muted">Official socials + where to trade.</p>
+      </div>
+    </section>
+
+    <footer class="footer">
+      <div class="container footer__inner">
+        <span>© 2026 DYOOR</span>
+        <a href="#top" class="tiny muted">Back to top ↑</a>
+      </div>
+    </footer>
+
+  </main>
+
+  <script defer src="https://cdn.jsdelivr.net/npm/ethers@6.11.1/dist/ethers.umd.min.js"></script>
+  <script defer src="https://unpkg.com/@walletconnect/ethereum-provider@2.23.1/dist/index.umd.js"></script>
+  <script defer src="/script.js?v=safeclick1"></script>
+
+</body>
+</html>
