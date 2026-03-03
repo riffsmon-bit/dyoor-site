@@ -1,3 +1,8 @@
+// Don't attach global wallet modal on swap page
+if (location.pathname.startsWith("/swap")) {
+  // allow swap page to manage its own wallet logic
+  // (or remove this if swap relies on script.js)
+}
 // ---------- Wallet + WL Checker (works on desktop + iOS) ----------
 // WalletConnect v2 project id (public) – required for WalletConnect QR/deeplinks.
 const WALLETCONNECT_PROJECT_ID = "515640b93fcb56906722f2d6b44d2e47";
