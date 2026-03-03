@@ -1,4 +1,8 @@
-
+// Don't attach global wallet modal on swap page
+if (location.pathname.startsWith("/swap")) {
+  // allow swap page to manage its own wallet logic
+  // (or remove this if swap relies on script.js)
+}
 (() => {
   // Token sources (GitHub-backed)
   const PANCAKE_EXTENDED = 'https://tokens.pancakeswap.finance/pancakeswap-extended.json';
