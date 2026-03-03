@@ -1,0 +1,177 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"/>
+  <title>DYOOR • Whitepaper</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/style.css?v=fix3"/>
+</head>
+<body>
+<header class="topbar" id="top">
+    <div class="container topbar__inner">
+      <a class="brand" href="/index.html">DYOOR</a>
+      <nav class="nav">
+        <a href="/whitepaper.html" class="is-active">Whitepaper</a>
+        <a href="/stake.html">Stake</a>
+        <a href="/swap/">Swap</a>
+      </nav>
+    </div>
+  </header>
+  
+  <main class="page" id="top">
+
+    <!-- HERO -->
+    <section class="section hero reveal" id="whitepaper-hero">
+      <div class="container">
+        <div class="card hero__card">
+          <img class="hero__img" src="/assets/home_banner.png" alt="DYOOR banner" loading="eager"/>
+          <div class="hero__copy">
+            <h1>DYOOR — Do Your Own Obvious Research</h1>
+            <p class="muted"><em>(Or don’t, we’re not your dad.)</em></p>
+
+            <div class="hero__cta">
+              <a class="btn btn--primary hero__btn" href="/swap/">Swap on Monad</a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section reveal" id="whitepaper-intro">
+      <div class="container">
+        <h2 class="sectionTitle">Overview</h2>
+        <div class="card">
+          <p><strong>Supply:</strong> 1,111<br><span class="muted">Scarce. Sacred. Screenshot-worthy.</span></p>
+          <p><strong>Mint Price:</strong> FREE<br><span class="muted">Zero cost. Maximum cope if you fade.</span></p>
+
+          <p class="muted">
+            Built for OGs, Chads, and Valley of Heroes gigabrains.<br>
+            WL is earned — not begged for in Discord DMs.
+          </p>
+
+          <p class="muted">
+            This project is 100% community-focused and built for the Monad ecosystem.<br>
+            No VCs.<br>
+            No mystery wallets.<br>
+            No team allocation jump scare.
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <section class="section reveal" id="about">
+      <div class="container">
+        <h2 class="sectionTitle">About DYOOR NFT</h2>
+        <div class="card">
+          <p>DYOOR does <strong>not</strong> launch with a native token.</p>
+          <p class="muted">There is no tokenomics scheme. No emissions. No inflation games.</p>
+          <p class="muted">This is an NFT-first ecosystem built around sustainable revenue mechanics — not speculative token mechanics.</p>
+
+          <p><strong>Where the money goes (read slowly):</strong></p>
+          <ul class="trustList">
+            <li><strong>DEX Router:</strong> 75% of Support DYOOR swap fees go directly into the Community Fund.</li>
+            <li><strong>Secondary Royalties:</strong> 75% go directly into the Community Fund.</li>
+          </ul>
+
+          <p>All revenue flows directly to the <strong>DYOOR Treasury</strong>:</p>
+
+          <div class="treasury-box">
+            <code id="treasuryAddress">0x4D540f7D0Eb841c839334655C9f88313D750c6d5</code>
+            <button class="btn btn--small" type="button" data-copy-target="#treasuryAddress">Copy</button>
+            <a class="tiny muted" href="https://monad.socialscan.io/address/0x4D540f7D0Eb841c839334655C9f88313D750c6d5" target="_blank" rel="noopener noreferrer">View on MonadScan ↗</a>
+            <span class="tiny muted" id="copyStatus" aria-live="polite" style="margin-left:10px;"></span>
+          </div>
+
+          <p class="muted">The treasury exists to power long-term ecosystem growth, product expansion, and future utilities.</p>
+
+          <p><strong>We stack the treasury.</strong><br><strong>Then holders decide what happens next.</strong></p>
+        </div>
+      </div>
+    </section>
+
+    <section class="section reveal" id="governance">
+      <div class="container">
+        <h2 class="sectionTitle">Governance &amp; Utilities</h2>
+        <div class="card">
+          <p class="muted">Treasury allocation and future utilities are decided through DAO voting.</p>
+          <ul class="trustList">
+            <li><strong>Only holders vote.</strong></li>
+            <li>No vibe-based direction.</li>
+            <li>No Twitter governance.</li>
+          </ul>
+          <p class="muted">Utilities are built by the community, for the community.</p>
+          <p><strong>Degen-brained.</strong><br><strong>But launching free and structured.</strong></p>
+        </div>
+      </div>
+    </section>
+
+    <section class="section reveal" id="wl">
+      <div class="container">
+        <h2 class="sectionTitle">WL Breakdown</h2>
+        <div class="card">
+          <ul class="trustList">
+            <li><strong>Whitelist:</strong> 20 mints per wallet</li>
+            <li><strong>Public:</strong> 10 mints per wallet</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <section class="section reveal" id="dex-router">
+      <div class="container">
+        <h2 class="sectionTitle">DEX Router</h2>
+        <div class="card">
+          <p class="muted">DYOOR Swap is powered by a PancakeSwap-based router for fast, familiar DeFi swaps.</p>
+          <p>Users can optionally flip the <strong>“Support DYOOR”</strong> toggle.</p>
+          <p class="muted">When enabled:</p>
+          <ul class="trustList">
+            <li>An additional fee is applied</li>
+            <li>75% of that fee goes directly to the Community Fund (Treasury)</li>
+          </ul>
+          <p class="muted">You trade anyway.<br>You might as well support the treasury while doing it.</p>
+        </div>
+      </div>
+    </section>
+
+    </main>
+
+
+  <script defer src="https://unpkg.com/@walletconnect/ethereum-provider@2.23.1/dist/index.umd.js"></script>
+  <script defer src="/script.js?v=fix3"></script>
+
+  <!-- Wallet Connect Modal -->
+  <div id="walletModal" class="wallet-modal" aria-hidden="true">
+    <div class="wallet-modal__backdrop"></div>
+    <div class="wallet-modal__panel" role="dialog" aria-modal="true" aria-label="Connect wallet">
+      <div class="wallet-modal__header">
+        <div class="wallet-modal__title">Connect Wallet</div>
+        <button class="wallet-modal__close" data-close="1" aria-label="Close">✕</button>
+      </div>
+      <div class="wallet-modal__grid">
+        <button class="wallet-option" data-wallet="metamask">MetaMask</button>
+        <button class="wallet-option" data-wallet="phantom">Phantom (EVM)</button>
+        <button class="wallet-option" data-wallet="okx">OKX Wallet</button>
+        <button class="wallet-option" data-wallet="injected">Other Injected</button>
+        <button class="wallet-option wallet-option--wc" data-wallet="walletconnect">WalletConnect (QR)</button>
+      </div>
+
+      <div id="walletModalHint" class="wallet-modal__hint" style="display:none;">
+        On iOS Safari, MetaMask/OKX usually don’t inject directly. Connect via <strong>WalletConnect</strong>, or open this site inside your wallet’s in-app browser:
+      </div>
+      <div id="walletDeepLinks" class="wallet-modal__deeplinks" style="display:none;">
+        <a href="#" id="openInMetaMask" class="wallet-deeplink">Open in MetaMask</a>
+        <a href="#" id="openInOKX" class="wallet-deeplink">Open in OKX</a>
+        <a href="#" id="openInPhantom" class="wallet-deeplink">Open in Phantom</a>
+      </div>
+
+      <div class="wallet-modal__note">
+        We will <strong>never</strong> ask for your seed phrase. If a wallet prompt looks weird, cancel.
+      </div>
+    </div>
+  </div>
+
+</body>
+</html>
