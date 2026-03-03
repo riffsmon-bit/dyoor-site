@@ -1,174 +1,149 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8"/>
-  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"/>
-  <title>DYOOR • Soft Staking</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/style.css?v=stake1"/>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>DYOOR – Soft Staking</title>
+  <link rel="stylesheet" href="/style.css"/>
+  <style>
+    .card { padding:24px; background:#111; border-radius:12px; margin-bottom:20px; }
+    .btn { padding:12px 18px; cursor:pointer; border-radius:8px; border:1px solid #333; background:#1a1a1a; color:#fff; }
+    .btn-primary { background:#fff; color:#000; }
+    .btn-row { display:flex; gap:12px; flex-wrap:wrap; }
+    .muted { opacity:.6; font-size:14px; }
+    table { width:100%; border-collapse:collapse; }
+    th,td { padding:10px; border-bottom:1px solid #222; text-align:left; }
+  </style>
 </head>
 <body>
-  <div class="bg" aria-hidden="true"></div>
 
-  <header class="topbar" id="top">
-    <div class="container topbar__inner">
-      <a class="brand" href="/index.html">DYOOR</a>
-      <nav class="nav" aria-label="Primary">
-        <a href="/whitepaper.html">Whitepaper</a>
-        <a href="/stake.html" class="is-active">Stake</a>
-        <a href="/swap/">Swap</a>
-      </nav>
+<main style="max-width:900px;margin:60px auto;padding:20px;">
+
+  <h1>Soft Staking</h1>
+  <p class="muted">Hold DYOOR NFTs and register for snapshot rewards.</p>
+
+  <div class="card">
+    <div id="accountLine" class="muted">Not connected</div>
+    <div style="height:15px"></div>
+
+    <div class="btn-row">
+      <button id="connectBtn" class="btn">Connect Wallet</button>
+      <button id="enableStake" class="btn btn-primary" disabled>Enable Soft Staking</button>
     </div>
-  </header>
 
-  <main class="page">
-    <section class="section reveal">
-      <div class="container">
-        <div class="card stake-hero">
-          <div class="stake-hero__left">
-            <h1>Soft Staking</h1>
-            <p class="muted">
-              Connect your wallet to verify your <strong>DYOOR S1</strong> holdings on Monad. Soft staking does <strong>not</strong> move NFTs —
-              it simply tracks loyalty points for Season 2.
-            </p>
-            <div class="stake-actions">
-              <button class="btn btn--primary" id="btnConnectWL" type="button">Connect Wallet</button>
-              <button class="btn" id="btnRefresh" type="button">Refresh</button>
-              <span class="pill" id="chainPill">Monad</span>
-            </div>
+    <div style="height:15px"></div>
+    <div id="stakeStatus" class="muted"></div>
+  </div>
 
-            <div class="stake-stats">
-              <div class="stat">
-                <div class="label">Holdings (DYOOR S1)</div>
-                <div class="value" id="holdingsValue">0</div>
-              </div>
-              <div class="stat">
-                <div class="label">Soft Staked</div>
-                <div class="value" id="stakedValue">0</div>
-              </div>
-              <div class="stat">
-                <div class="label">Status</div>
-                <div class="value"><span class="pill" id="stakePill">Not Staked</span></div>
-              </div>
-              <div class="stat">
-                <div class="label">Loyalty Points</div>
-                <div class="value" id="pointsValue">0</div>
-              </div>
-            </div>
-
-            <div class="stake-amount">
-              <div class="stake-amount__label">Choose amount to soft stake</div>
-              <div class="stake-amount__row">
-                <input class="stake-amount__input" id="stakeAmount" type="number" min="0" step="1" value="1" inputmode="numeric" />
-                <div class="stake-amount__hint muted small">Max = your holdings</div>
-              </div>
-            </div>
-
-            <div class="stake-chart" aria-label="Holdings chart">
-              <div class="stake-chart__row">
-                <div class="stake-chart__label">Held</div>
-                <div class="stake-chart__bar"><div class="stake-chart__fill" id="barHeld" style="width:0%"></div></div>
-                <div class="stake-chart__value" id="chartHeld">0</div>
-              </div>
-              <div class="stake-chart__row">
-                <div class="stake-chart__label">Soft Staked</div>
-                <div class="stake-chart__bar"><div class="stake-chart__fill" id="barStaked" style="width:0%"></div></div>
-                <div class="stake-chart__value" id="chartStaked">0</div>
-              </div>
-            </div>
-
-            <div class="stake-cta">
-              <button class="btn btn--primary" id="btnStake" type="button">Stake</button>
-              <button class="btn" id="btnStakeAll" type="button">Stake All</button>
-              <button class="btn" id="btnSync" type="button">Sync Points</button>
-              <button class="btn btn--ghost" id="btnUnstake" type="button">Unstake</button>
-              <button class="btn btn--ghost" id="btnUnstakeAll" type="button">Unstake All</button>
-            </div>
-
-            <div class="note" id="stakeStatus">Connect your wallet to load holdings.</div>
-
-            <div class="small muted" style="margin-top:10px">
-              Contract: <span class="mono" style="word-break:break-all;">0x2c79c9e233fea4b4dcfe6561d9209dc292cd932f</span>
-            </div>
-
-            <div class="stake-admin" style="margin-top:12px">
-              <button class="btn btn--ghost" id="btnDownloadSnapshot" type="button">Download Soft Stake Snapshot (CSV)</button>
-              <div class="muted small" style="margin-top:6px">(Uses server snapshot if enabled. If not available, this will download only your wallet’s local state.)</div>
-            </div>
-          </div>
-
-        </div>
-      </div>
-    </section>
-
-    <section class="section reveal">
-      <div class="container">
-        <div class="card">
-          <h2 style="margin-top:0">How it works</h2>
-          <ul class="list">
-            <li><strong>Connect</strong> — we read your DYOOR S1 balance from the contract.</li>
-            <li><strong>Enable Soft Staking</strong> — you sign a message (no gas, no NFT transfers).</li>
-            <li><strong>Points</strong> — accrue while enabled based on holdings (currently 10 pts / NFT / day).</li>
-          </ul>
-          <div class="muted small">Want this to be server-verified + leaderboard + anti-cheat? We can wire it to a DB via Netlify Functions.</div>
-        </div>
-      </div>
-    </section>
-
-    <section class="section reveal">
-      <div class="container">
-        <div class="card">
-          <div style="display:flex; align-items:baseline; justify-content:space-between; gap:12px; flex-wrap:wrap;">
-            <h2 style="margin-top:0">Leaderboard</h2>
-            <button class="btn" id="btnLoadLeaderboard" type="button">Refresh Leaderboard</button>
-          </div>
-          <div class="muted small" style="margin-top:-6px">Top wallets by loyalty points (server-verified if enabled).</div>
-          <div id="leaderboard" class="leaderboard"></div>
-        </div>
-      </div>
-    </section>
-  </main>
-
-  <footer class="footer">
-    <div class="container footer__inner">
-      <div class="muted">© DYOOR</div>
-      <div class="footer__links">
-        <a href="/whitepaper.html">Whitepaper</a>
-        <a href="/swap/">Swap</a>
-      </div>
+  <div class="card">
+    <h2>Leaderboard</h2>
+    <div class="btn-row">
+      <button id="refreshBoard" class="btn">Refresh</button>
+      <a href="/.netlify/functions/stake-registry?action=csv&mode=current" target="_blank" class="btn">Export CSV</a>
     </div>
-  </footer>
 
-  <script defer src="https://cdn.jsdelivr.net/npm/ethers@6.13.0/dist/ethers.umd.min.js"></script>
-  <script defer src="https://unpkg.com/@walletconnect/ethereum-provider@2.23.1/dist/index.umd.js"></script>
-  <script defer src="/script.js?v=stake1"></script>
-  <script defer src="/stake.js?v=stake1"></script>
+    <div style="height:20px"></div>
 
-  <!-- Wallet Connect Modal (shared) -->
-  <div id="walletModal" class="wallet-modal" aria-hidden="true">
-    <div class="wallet-modal__backdrop" data-close="1"></div>
-    <div class="wallet-modal__panel" role="dialog" aria-modal="true" aria-label="Connect wallet">
-      <div class="wallet-modal__header">
-        <div class="wallet-modal__title">Connect Wallet</div>
-        <button type="button" class="wallet-modal__close" data-close="1" aria-label="Close">✕</button>
-      </div>
-      <div class="wallet-modal__grid">
-        <button type="button" class="wallet-option" data-wallet="metamask">MetaMask</button>
-        <button type="button" class="wallet-option" data-wallet="okx">OKX Wallet</button>
-        <button type="button" class="wallet-option" data-wallet="phantom">Phantom (EVM)</button>
-        <button type="button" class="wallet-option" data-wallet="walletconnect">WalletConnect</button>
-      </div>
-      <div id="walletModalHint" class="wallet-modal__hint" style="display:none">
-        <div class="muted">On iOS, open this site inside your wallet’s in-app browser, or use WalletConnect.</div>
-      </div>
-      <div id="walletDeepLinks" class="wallet-modal__deeplinks" style="display:none">
-        <a class="deeplink" href="metamask://dapp/">Open in MetaMask</a>
-        <a class="deeplink" href="okex://wallet/dapp/details">Open in OKX</a>
-      </div>
-      <div class="wallet-modal__footer muted small">Monad • EVM</div>
+    <table id="leaderboard">
+      <thead>
+        <tr>
+          <th>Wallet</th>
+          <th>Staked NFTs</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </div>
+
+</main>
+
+<!-- Wallet Connect Modal (required by script.js) -->
+<div id="walletModal" class="wallet-modal" aria-hidden="true">
+  <div class="wallet-modal__backdrop" data-close="1"></div>
+  <div class="wallet-modal__panel">
+    <div class="wallet-modal__header">
+      <div>Connect Wallet</div>
+      <button type="button" data-close="1">✕</button>
+    </div>
+    <div class="wallet-modal__grid">
+      <button type="button" class="wallet-option" data-wallet="metamask">MetaMask</button>
+      <button type="button" class="wallet-option" data-wallet="walletconnect">WalletConnect</button>
     </div>
   </div>
+</div>
+
+<script defer src="https://cdn.jsdelivr.net/npm/ethers@6.11.1/dist/ethers.umd.min.js"></script>
+<script defer src="https://unpkg.com/@walletconnect/ethereum-provider@2.23.1/dist/index.umd.js"></script>
+<script defer src="/script.js?v=stake2"></script>
+
+<script>
+let account = null;
+
+async function waitForAccount() {
+  return new Promise(resolve => {
+    const interval = setInterval(() => {
+      if (window.account) {
+        account = window.account;
+        document.getElementById("accountLine").innerText =
+          account.substring(0,6)+"..."+account.substring(account.length-4);
+        document.getElementById("enableStake").disabled = false;
+        clearInterval(interval);
+        resolve(account);
+      }
+    }, 300);
+  });
+}
+
+document.getElementById("connectBtn").addEventListener("click", async () => {
+  if (window.connect) {
+    await window.connect();
+    await waitForAccount();
+  }
+});
+
+document.getElementById("enableStake").addEventListener("click", async () => {
+  if (!account) return;
+
+  document.getElementById("stakeStatus").innerText = "Verifying on-chain holdings...";
+
+  const res = await fetch('/.netlify/functions/stake-registry?action=update', {
+    method: 'POST',
+    headers: { 'content-type':'application/json' },
+    body: JSON.stringify({ wallet: account })
+  });
+
+  const data = await res.json();
+  if (data.ok) {
+    document.getElementById("stakeStatus").innerText =
+      "Soft staking enabled. Current holdings: " + data.row.staked_count;
+    loadLeaderboard();
+  } else {
+    document.getElementById("stakeStatus").innerText = "Error enabling staking.";
+  }
+});
+
+async function loadLeaderboard() {
+  const res = await fetch('/.netlify/functions/stake-registry?action=leaderboard');
+  const data = await res.json();
+  const tbody = document.querySelector("#leaderboard tbody");
+  tbody.innerHTML = "";
+
+  if (!data.rows) return;
+
+  data.rows.forEach(r => {
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td>${r.wallet.substring(0,6)}...${r.wallet.substring(r.wallet.length-4)}</td>
+      <td>${r.staked_count}</td>
+    `;
+    tbody.appendChild(tr);
+  });
+}
+
+document.getElementById("refreshBoard").addEventListener("click", loadLeaderboard);
+
+loadLeaderboard();
+</script>
+
 </body>
 </html>
