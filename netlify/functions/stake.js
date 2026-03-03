@@ -1,44 +1,45 @@
-// netlify/functions/stake.js
 import { getStore } from "@netlify/blobs";
 import { ethers } from "ethers";
 
-// Minimal ABI for balance checks
-const ERC721_ABI = [
-  "function balanceOf(address owner) view returns (uint256)"
-];
+const ERC721_ABI = ["function balanceOf(address owner) view returns (uint256)"];
 
 const CONTRACT_ADDRESS = "0x2c79c9e233fea4b4dcfe6561d9209dc292cd932f";
 const CHAIN_ID = 143; // Monad
 const RPC_URL = "https://rpc.monad.xyz";
 
-// Helpers
-function json(statusCode, obj) {
-  return {
-    statusCode,
+const corsHeaders = {
+  "access-control-allow-origin": "*",
+  "access-control-allow-headers": "content-type",
+  "access-control-allow-methods": "GET,POST,OPTIONS",
+};
+
+function json(status, obj) {
+  return new Response(JSON.stringify(obj), {
+    status,
     headers: {
-      "content-type": "application/json",
-      "access-control-allow-origin": "*",
-      "access-control-allow-headers": "content-type",
-      "access-control-allow-methods": "GET,POST,OPTIONS",
+      ...corsHeaders,
+      "content-type": "application/json; charset=utf-8",
     },
-    body: JSON.stringify(obj),
-  };
+  });
 }
 
-function csvResponse(csvText) {
-  return {
-    statusCode: 200,
+function csv(status, csvText) {
+  return new Response(csvText, {
+    status,
     headers: {
+      ...corsHeaders,
       "content-type": "text/csv; charset=utf-8",
       "content-disposition": `attachment; filename="dyoor_softstake_snapshot.csv"`,
-      "access-control-allow-origin": "*",
     },
-    body: csvText,
-  };
+  });
 }
 
 function normalizeAddr(a) {
-  try { return ethers.getAddress(a); } catch { return null; }
+  try {
+    return ethers.getAddress(a);
+  } catch {
+    return null;
+  }
 }
 
 async function getOnchainBalance(address) {
@@ -58,37 +59,40 @@ async function writeIndex(store, addresses) {
   await store.set("index.json", { addresses });
 }
 
-export default async (req) => {
-  if (req.method === "OPTIONS") return json(200, { ok: true });
-
-  const store = getStore("softstake"); // Netlify Blobs store
-
+// Netlify Functions (new runtime): must return Response
+export default async (request) => {
   try {
-    const url = new URL(req.url);
+    if (request.method === "OPTIONS") return json(200, { ok: true });
+
+    const store = getStore("softstake");
+    const url = new URL(request.url);
     const action = url.searchParams.get("action");
 
-    // ----- GET: leaderboard -----
-    if (req.method === "GET" && action === "leaderboard") {
+    // GET leaderboard
+    if (request.method === "GET" && action === "leaderboard") {
       const idx = await readIndex(store);
       const rows = [];
 
-      for (const addr of idx.addresses.slice(0, 250)) {
+      for (const addr of idx.addresses.slice(0, 500)) {
         const rec = await store.get(`${addr}.json`, { type: "json" });
         if (rec && rec.address) rows.push(rec);
       }
 
-      // Sort by points desc, then staked amount desc
-      rows.sort((a, b) => (b.points || 0) - (a.points || 0) || (b.soft_staked || 0) - (a.soft_staked || 0));
+      rows.sort(
+        (a, b) =>
+          (b.points || 0) - (a.points || 0) ||
+          (b.soft_staked || 0) - (a.soft_staked || 0)
+      );
 
       return json(200, { ok: true, rows: rows.slice(0, 50) });
     }
 
-    // ----- GET: snapshot (CSV) -----
-    if (req.method === "GET" && action === "snapshot") {
+    // GET snapshot CSV
+    if (request.method === "GET" && action === "snapshot") {
       const idx = await readIndex(store);
       const out = ["address,held,soft_staked,points,updated_at"];
 
-      for (const addr of idx.addresses.slice(0, 5000)) {
+      for (const addr of idx.addresses.slice(0, 10000)) {
         const rec = await store.get(`${addr}.json`, { type: "json" });
         if (!rec || !rec.address) continue;
 
@@ -98,22 +102,23 @@ export default async (req) => {
           rec.soft_staked ?? "",
           rec.points ?? 0,
           rec.updated_at ?? "",
-        ].map(v => `"${String(v).replaceAll('"', '""')}"`).join(",");
+        ]
+          .map((v) => `"${String(v).replaceAll('"', '""')}"`)
+          .join(",");
 
         out.push(row);
       }
 
-      return csvResponse(out.join("\n"));
+      return csv(200, out.join("\n"));
     }
 
-    // ----- POST: upsert staking record -----
-    if (req.method === "POST") {
-      const body = JSON.parse(req.body || "{}");
+    // POST upsert
+    if (request.method === "POST") {
+      const body = await request.json().catch(() => ({}));
 
       const address = normalizeAddr(body.address);
       if (!address) return json(400, { ok: false, error: "Invalid address" });
 
-      // Verify signature (simple, effective)
       const nonce = String(body.nonce || "");
       const signature = String(body.signature || "");
       const message = `DYOOR Soft Staking\n\nWallet: ${address}\nNonce: ${nonce}`;
@@ -128,15 +133,12 @@ export default async (req) => {
         return json(401, { ok: false, error: "Signature does not match wallet" });
       }
 
-      // Onchain held
       const held = await getOnchainBalance(address);
 
-      // Soft staked amount (clamped)
       let softStaked = Number(body.soft_staked ?? 0);
       if (!Number.isFinite(softStaked)) softStaked = 0;
       softStaked = Math.max(0, Math.min(softStaked, held));
 
-      // Points (simple model: keep what client sends, but don’t allow negatives)
       let points = Number(body.points ?? 0);
       if (!Number.isFinite(points)) points = 0;
       points = Math.max(0, points);
@@ -152,11 +154,9 @@ export default async (req) => {
 
       await store.set(`${address}.json`, record);
 
-      // Add to index
       const idx = await readIndex(store);
       if (!idx.addresses.includes(address)) {
         idx.addresses.unshift(address);
-        // de-dup + cap
         idx.addresses = Array.from(new Set(idx.addresses)).slice(0, 10000);
         await writeIndex(store, idx.addresses);
       }
