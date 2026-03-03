@@ -1,16 +1,14 @@
 // netlify/functions/quote.js
 // PancakeSwap V2 quote + calldata builder for Monad (chainId 143)
 
-const RPC_URL = process.env.RPC_URL || "https://rpc.monad.xyz";
+const RPC_URL = "https://rpc.monad.xyz";
 
 // PancakeSwap V2 on Monad (from PancakeSwap dev docs)
 const PANCAKE_V2_ROUTER =
-  process.env.PANCAKE_V2_ROUTER ||
   "0xB1Bc24c34e88f7D43D5923034E3a14B24DaACfF9";
 
 // Wrapped MON (your site already uses this)
 const WMON =
-  process.env.WMON ||
   "0x3bd359C1119dA7Da1D913D1C4D2B7c461115433A";
 
 // Native sentinel your UI uses
