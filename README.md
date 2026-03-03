@@ -1,1 +1,29 @@
-# dyoor-site
+# DYOOR Site (Rebuilt)
+
+- One-page layout with a centered container system (no drifting sections)
+- Whitelist checker supports ERC-721 `balanceOf` checks for 3 collection contracts on Monad chainId 143
+
+## Deploy
+Upload the folder contents to Netlify as a static site.
+
+## OpenSea collection preview (scrolling marquee)
+This site includes a "Collection Preview" section that pulls NFT images from OpenSea and scrolls them continuously.
+
+- Collection details are set in `script.js`:
+  - `const OPENSEA_CHAIN = "monad";`
+  - `const MONAD_CONTRACT_ADDRESS = "0x2c79c9e233fea4b4dcfe6561d9209dc292cd932f";`
+  - `const OPENSEA_COLLECTION_SLUG = "dyoor-154958357";` (fallback)
+
+### Netlify environment variable (recommended)
+Set `OPENSEA_API_KEY` in Netlify to reduce rate-limits and make the preview more reliable.
+
+**Netlify UI:**
+1. Netlify Dashboard → select your site
+2. **Site configuration** → **Environment variables**
+3. **Add a variable**
+   - Key: `OPENSEA_API_KEY`
+   - Value: *(your OpenSea API key)*
+4. Deploy/trigger a new build (or redeploy). Netlify Functions will pick it up.
+
+The proxy function lives at `netlify/functions/opensea.js` and the front-end calls (contract-first):
+`/.netlify/functions/opensea?chain=monad&address=0x2c79c9e233fea4b4dcfe6561d9209dc292cd932f&slug=dyoor-154958357&limit=48`

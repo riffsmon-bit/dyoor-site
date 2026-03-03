@@ -1,0 +1,1096 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"/>
+<title>DYOOR • Swap</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/style.css"/>
+<style>
+  .swapWrap{max-width:980px;margin:0 auto;padding:22px 16px 72px}
+  .swapHero{position:relative;overflow:hidden;border-radius:22px;border:1px solid var(--stroke);background:rgba(0,0,0,.25);box-shadow:var(--shadow);margin-bottom:16px}
+  .swapHero__img{width:100%;display:block;opacity:.9;filter:saturate(1.15)}
+  .swapHero__tag{position:absolute;left:14px;bottom:12px;background:rgba(0,0,0,.55);border:1px solid rgba(255,255,255,.12);backdrop-filter: blur(10px);-webkit-backdrop-filter: blur(10px);padding:8px 10px;border-radius:999px;font-weight:700;font-size:13px}
+  .swapRow{display:flex;gap:14px;flex-wrap:wrap;align-items:center}
+  .swapCard2{border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.04);border-radius:18px;padding:16px}
+  .sel{appearance:none;background:rgba(10,10,14,.6);color:var(--text);border:1px solid rgba(255,255,255,.14);border-radius:12px;padding:12px 12px;font-weight:800}
+  .inp{width:100%;background:rgba(10,10,14,.6);color:var(--text);border:1px solid rgba(255,255,255,.14);border-radius:12px;padding:14px 12px;font-size:18px;font-weight:800}
+  .btnFull{width:100%;justify-content:center}
+  .mini{opacity:.8;font-size:13px;line-height:1.35}
+  .warn{border:1px solid rgba(255,210,94,.35);background:rgba(255,210,94,.08);padding:10px 12px;border-radius:14px}
+  .err{border:1px solid rgba(255,90,90,.35);background:rgba(255,90,90,.08);padding:10px 12px;border-radius:14px}
+  .ok{border:1px solid rgba(80,255,170,.28);background:rgba(80,255,170,.06);padding:10px 12px;border-radius:14px}
+  .tokSel{display:flex;align-items:center;gap:10px}
+  .tokLogo{width:22px;height:22px;border-radius:999px;flex:0 0 auto;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.14);object-fit:cover}
+  .routeLine{opacity:.8;font-size:12px;margin-top:6px}
+  .amtWrap{position:relative}
+  .maxBtn{position:absolute;right:10px;top:10px;padding:6px 10px;border-radius:999px;font-weight:900;font-size:12px}
+    .swapPair{position:relative;padding:6px 0 2px}
+  .swapPair{position:relative;}
+  .flipSeam{position:relative;height:28px;margin:10px 0;}
+  .flipSeam:before{content:'';position:absolute;left:0;right:0;top:50%;height:1px;background:rgba(255,255,255,.14);}
+  .flipBtn{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:54px;height:54px;border-radius:999px;border:1px solid rgba(255,255,255,.16);background:rgba(0,0,0,.38);color:var(--mint);display:flex;align-items:center;justify-content:center;z-index:6;box-shadow:0 10px 20px rgba(0,0,0,.35);}
+  .flipBtn svg{width:22px;height:22px;display:block}
+  .flipBtn:active{transform:translate(-50%,-50%) scale(.98)}
+
+  .segToggle{display:inline-flex;gap:6px;background:rgba(0,0,0,.28);border:1px solid rgba(255,255,255,.12);padding:6px;border-radius:999px}
+  .segToggle button{border:0;background:transparent;color:var(--text);opacity:.75;font-weight:900;padding:10px 14px;border-radius:999px;cursor:pointer}
+  .segToggle button.is-on{background:rgba(140,90,255,.28);opacity:1;box-shadow:inset 0 0 0 1px rgba(140,90,255,.45)}
+  @media (max-width:560px){.segToggle button{padding:9px 12px;font-size:13px}}
+.addrMono{font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,'Liberation Mono','Courier New',monospace;opacity:.95}
+
+  .switch{position:relative;display:inline-block;width:46px;height:26px;flex:0 0 auto}
+  .switch input{opacity:0;width:0;height:0}
+  .slider{position:absolute;cursor:pointer;top:0;left:0;right:0;bottom:0;background:rgba(255,255,255,.18);transition:.2s;border-radius:999px;border:1px solid rgba(255,255,255,.16)}
+  .slider:before{position:absolute;content:"";height:20px;width:20px;left:3px;top:50%;transform:translateY(-50%);background:rgba(0,0,0,.45);transition:.2s;border-radius:999px;border:1px solid rgba(255,255,255,.18)}
+  .switch input:checked + .slider{background:rgba(0,255,199,.22);border-color:rgba(0,255,199,.35)}
+  .switch input:checked + .slider:before{transform:translate(20px,-50%);background:rgba(0,0,0,.55);border-color:rgba(0,255,199,.35)}
+</style>
+</head>
+<body>
+<div class="bg"></div>
+
+<header class="topbar" id="top">
+  <div class="container topbar__inner">
+    <a class="brand" href="/index.html">DYOOR</a>
+    <nav class="nav" aria-label="Primary">
+      <a href="/whitepaper.html">Whitepaper</a>
+        <a href="/stake.html">Stake</a>
+      <a href="/swap/" class="is-active">Swap</a>
+    </nav>
+  </div>
+</header>
+
+<main class="swapWrap">
+  <div class="swapHero">
+    <img src="/assets/swap_brand.jpg" alt="DYOOR" class="swapHero__img"/>
+    <div class="swapHero__tag">Degen-mode swap • PancakeSwap on Monad</div>
+  </div>
+
+  <div class="swapRow" style="justify-content:space-between;margin-bottom:10px">
+    <div>
+      <h1 style="margin:0;font-size:40px">Swap</h1>
+      <div class="mini">Chain: Monad (143)</div>
+    </div>
+    <button id="connectBtn" class="btn btn--ghost" type="button">Connect Wallet</button>
+  </div>
+
+  <div class="swapCard2">
+    <div class="swapRow" style="justify-content:flex-end;margin-bottom:10px">
+      <div class="segToggle" role="tablist" aria-label="Swap view">
+        <button id="modeBasic" type="button">Basic</button>
+        <button id="modeAdv" type="button" class="is-on">Advanced</button>
+      </div>
+    </div>
+
+    <div class="swapPair">
+<div class="swapRow" style="gap:10px">
+      <div style="flex:1;min-width:220px">
+        <div class="mini" style="margin-bottom:6px">From</div>
+        <div class="tokSel">
+          <img id="fromLogo" class="tokLogo" alt="" />
+          <select id="fromToken" class="sel" style="width:100%"></select>
+        </div>
+        <div class="mini" id="fromBal" style="margin-top:6px">Balance: —</div>
+      </div>
+      <div style="flex:2;min-width:260px">
+        <div class="mini" style="margin-bottom:6px">Amount</div>
+        <div class="amtWrap">
+          <input id="fromAmt" class="inp" inputmode="decimal" placeholder="0.0"/>
+          <button id="maxBtn" class="btn btn--ghost maxBtn" type="button">MAX</button>
+        </div>
+      </div>
+    </div>
+
+    
+<div class="flipSeam"><button id="flipBtn" class="flipBtn" type="button" aria-label="Flip tokens" title="Flip tokens">
+        <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <path d="M8 7h10m0 0-3-3m3 3-3 3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M16 17H6m0 0 3 3m-3-3 3-3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </button></div>
+
+<div class="swapRow" style="gap:10px">
+      <div style="flex:1;min-width:220px">
+        <div class="mini" style="margin-bottom:6px">To</div>
+        <div class="tokSel">
+          <img id="toLogo" class="tokLogo" alt="" />
+          <select id="toToken" class="sel" style="width:100%"></select>
+        </div>
+        <div class="mini" id="toBal" style="margin-top:6px">Balance: —</div>
+      </div>
+      <div style="flex:2;min-width:260px">
+        <div class="mini" style="margin-bottom:6px">You receive (est.)</div>
+        <div id="toAmt" class="inp" style="display:flex;align-items:center">—</div>
+      </div>
+    </div>
+
+    </div>
+
+    <div style="height:12px"></div>
+
+    <div id="advancedBox">
+
+      <div class="swapRow" style="gap:10px;margin-top:6px;align-items:center">
+        <div class="mini" style="min-width:110px">Support DYOOR</div>
+        <label class="switch" title="Toggle support fee">
+          <input id="supportToggle" type="checkbox" />
+          <span class="slider"></span>
+        </label>
+        <div class="mini" id="supportHint" style="opacity:.95">
+          When ON, a <b>0.20%</b> support fee is sent to <span class="addrMono">0x4D54…c6d5</span> as a second confirmation after the swap.
+        </div>
+      </div>
+
+<div class="mini" style="opacity:.95">Using this swap directly supports DYOOR treasury. <b>0.20%</b> → <span class="addrMono">0x4D54…c6d5</span></div>
+      </div>
+
+
+<div class="swapRow" style="gap:10px">
+      <div class="mini">Slippage</div>
+      <button class="chip" data-slip="0.5" type="button">0.5%</button>
+      <button class="chip" data-slip="1" type="button">1%</button>
+      <button class="chip" data-slip="2" type="button">2%</button>
+      <div class="mini" style="margin-left:auto" id="accountLine">Not connected</div>
+    </div>
+
+    <div style="height:12px"></div>
+
+    <div id="statusBox" class="mini">Enter an amount — quote updates automatically.</div>
+    <div id="routeLine" class="routeLine">Route: —</div>
+    <div id="routeBox" class="routeLine"></div>
+    </div>
+
+<div style="height:10px"></div>
+
+    <div class="swapRow">
+      <button id="swapBtn" class="btn btnFull" type="button" disabled>Swap</button>
+      <button id="unwrapBtn" class="btn btn--ghost" type="button" style="display:none">Unwrap WMON → MON</button>
+    </div>
+
+    <div style="height:10px"></div>
+    <div class="mini">Safety: DYOOR will never ask for your seed phrase. Verify you are on the real dyoor.xyz domain before signing.</div>
+  </div>
+</main>
+
+<script>
+(() => {
+  // Token sources (GitHub-backed)
+  const PANCAKE_EXTENDED = 'https://tokens.pancakeswap.finance/pancakeswap-extended.json';
+  const MONAD_COMMUNITY = 'https://raw.githubusercontent.com/monad-crypto/token-list/main/tokenlist.json';
+  const LOCAL_FALLBACK = '/tokenlist.monad.json';
+  const TOKEN_CACHE_KEY = 'dyoor_tokens_143_cache_v1';
+
+  // Minimal always-present fallbacks (in case any list fetch fails)
+  const BASE_TOKENS = [
+    { symbol: 'MON', name: 'Monad', address: '0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee', decimals: 18, logoURI: '' },
+    { symbol: 'WMON', name: 'Wrapped MON', address: '0x3bd359C1119dA7Da1D913D1C4D2B7c461115433A', chainId: 143, decimals: 18, logoURI: '' },
+    { symbol: 'USDC', name: 'USD Coin', address: '0x754704Bc059F8C67012fEd69BC8A327a5aafb603', chainId: 143, decimals: 6, logoURI: '' }
+  ];
+
+  // Tokens to hide from the UI (by contract address). Requested: remove CHOG.
+  const TOKEN_BLACKLIST = new Set([
+    '0x350035555e10d9afaf1566aaebfced5ba6c27777' // CHOG
+  ]);
+
+  let TOKENS = [...BASE_TOKENS];
+  const CHAIN_ID_DEC = 143;
+  const CHAIN_ID_HEX = "0x8f";
+  const fromSel = document.getElementById('fromToken');
+  const toSel = document.getElementById('toToken');
+  const supportToggle = document.getElementById('supportToggle');
+  const flipBtn = document.getElementById('flipBtn');
+  const fromAmt = document.getElementById('fromAmt');
+  const toAmt = document.getElementById('toAmt');
+  const connectBtn = document.getElementById('connectBtn');
+  const swapBtn = document.getElementById('swapBtn');
+  const unwrapBtn = document.getElementById('unwrapBtn');
+  const maxBtn = document.getElementById('maxBtn');
+  const statusBox = document.getElementById('statusBox');
+  const accountLine = document.getElementById('accountLine');
+  const fromLogo = document.getElementById('fromLogo');
+  const toLogo = document.getElementById('toLogo');
+  const fromBal = document.getElementById('fromBal');
+  const toBal = document.getElementById('toBal');
+  const routeLine = document.getElementById('routeLine');
+
+  // View toggle (Basic / Advanced)
+  const modeBasic = document.getElementById('modeBasic');
+  const modeAdv = document.getElementById('modeAdv');
+  const advancedBox = document.getElementById('advancedBox');
+  function setView(v){
+    const isAdv = v === 'advanced';
+    if (advancedBox) advancedBox.style.display = isAdv ? '' : 'none';
+    if (modeAdv) modeAdv.classList.toggle('is-on', isAdv);
+    if (modeBasic) modeBasic.classList.toggle('is-on', !isAdv);
+    try{ localStorage.setItem('dyoor_swap_view', v); }catch(e){}
+  }
+  modeBasic && modeBasic.addEventListener('click', () => setView('basic'));
+  modeAdv && modeAdv.addEventListener('click', () => setView('advanced'));
+  try{
+    const saved = localStorage.getItem('dyoor_swap_view');
+    if(saved === 'basic' || saved === 'advanced') setView(saved);
+    else setView('advanced');
+  }catch(e){ setView('advanced'); }
+
+
+  let provider = null;
+  let account = null;
+  let slip = 0.5;
+  let lastQuote = null;
+  let lastFromBalRaw = null;
+
+  function setStatus(html, cls) {
+    statusBox.className = cls ? cls : 'mini';
+    statusBox.textContent = html;
+  }
+
+  function setRoute(text) {
+    routeLine.textContent = text || 'Route: —';
+  }
+
+  function flipTokens() {
+    const a = fromSel.value;
+    const b = toSel.value;
+    fromSel.value = b;
+    toSel.value = a;
+
+    // keep the typed amount, but clear derived output + force UI refresh
+    toAmt.textContent = '—';
+    lastQuote = null;
+    swapBtn.disabled = true;
+    setRoute('Route: —');
+    updateTokenUI();
+    setStatus('Enter an amount — quote updates automatically.', 'mini');
+
+    refreshBalances().catch(() => {});
+    scheduleQuote();
+  }
+
+  function normalizeLogoURI(uri) {
+    if (!uri) return '';
+    if (uri.startsWith('ipfs://')) {
+      const path = uri.replace('ipfs://', '');
+      return 'https://ipfs.io/ipfs/' + path;
+    }
+    return uri;
+  }
+
+  async function fetchJSON(url, timeoutMs=7000) {
+    const controller = new AbortController();
+    const t = setTimeout(() => controller.abort(), timeoutMs);
+    try {
+      const res = await fetch(url, { signal: controller.signal, cache: 'no-cache' });
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      return await res.json();
+    } finally {
+      clearTimeout(t);
+    }
+  }
+
+  function mergeTokenLists(lists) {
+    const map = new Map();
+    // seed with BASE_TOKENS
+    for (const t of BASE_TOKENS) {
+      map.set(t.address.toLowerCase(), { ...t, logoURI: normalizeLogoURI(t.logoURI) });
+    }
+    for (const list of lists) {
+      for (const t of (list || [])) {
+        if (!t || !t.address) continue;
+        if (t.chainId !== CHAIN_ID_DEC) continue;
+        const key = t.address.toLowerCase();
+        const merged = {
+          symbol: t.symbol || map.get(key)?.symbol || '',
+          name: t.name || map.get(key)?.name || '',
+          address: t.address,
+          decimals: Number(t.decimals ?? map.get(key)?.decimals ?? 18),
+          chainId: CHAIN_ID_DEC,
+          logoURI: normalizeLogoURI(t.logoURI || map.get(key)?.logoURI || '')
+        };
+        // prefer entries with a logo
+        const existing = map.get(key);
+        if (!existing || (!existing.logoURI && merged.logoURI)) map.set(key, merged);
+        else map.set(key, { ...existing, ...merged });
+      }
+    }
+    // sort: keep MON/WMON/USDC first, then by symbol
+    const arr = [...map.values()].filter(t => !TOKEN_BLACKLIST.has((t.address||'').toLowerCase()));
+    const priority = new Map([['MON',0],['WMON',1],['USDC',2]]);
+    arr.sort((a,b) => {
+      const pa = priority.has(a.symbol) ? priority.get(a.symbol) : 99;
+      const pb = priority.has(b.symbol) ? priority.get(b.symbol) : 99;
+      if (pa !== pb) return pa - pb;
+      return (a.symbol || '').localeCompare(b.symbol || '');
+    });
+    return arr;
+  }
+
+  async function loadTokens() {
+    // Cache first (wallet webviews can be flaky)
+    try {
+      const cached = JSON.parse(localStorage.getItem(TOKEN_CACHE_KEY) || 'null');
+      if (cached && Array.isArray(cached.tokens) && cached.tokens.length > 10 && (Date.now() - cached.ts) < 24*60*60*1000) {
+        TOKENS = mergeTokenLists([cached.tokens]);
+        return;
+      }
+    } catch(_) {}
+
+    let pancakeTokens = null;
+    let monadTokens = null;
+    let localTokens = null;
+
+    // Local fallback is fast + reliable
+    try {
+      const j = await fetchJSON(LOCAL_FALLBACK, 4000);
+      localTokens = Array.isArray(j?.tokens) ? j.tokens : (Array.isArray(j) ? j : null);
+    } catch(_) {}
+
+    // Remote sources
+    try {
+      const pj = await fetchJSON(PANCAKE_EXTENDED, 7000);
+      pancakeTokens = Array.isArray(pj?.tokens) ? pj.tokens : null;
+    } catch(_) {}
+    try {
+      const mj = await fetchJSON(MONAD_COMMUNITY, 7000);
+      monadTokens = Array.isArray(mj?.tokens) ? mj.tokens : null;
+    } catch(_) {}
+
+    TOKENS = mergeTokenLists([localTokens, pancakeTokens, monadTokens]);
+    try {
+      localStorage.setItem(TOKEN_CACHE_KEY, JSON.stringify({ ts: Date.now(), tokens: TOKENS }));
+    } catch(_) {}
+  }
+
+  function populate() {
+    fromSel.innerHTML = '';
+    toSel.innerHTML = '';
+    const opt = (t) => {
+      const o = document.createElement('option');
+      o.value = t.address;
+      o.textContent = `${t.symbol}`;
+      o.dataset.decimals = String(t.decimals);
+      if (t.logoURI) o.dataset.logo = t.logoURI;
+      return o;
+    };
+    TOKENS.forEach(t => fromSel.appendChild(opt(t)));
+    TOKENS.forEach(t => toSel.appendChild(opt(t)));
+    fromSel.value = "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"; // MON
+    toSel.value = TOKENS.find(t=>t.symbol==="USDC")?.address || TOKENS[1].address;
+    updateTokenUI();
+        updateCTA().catch(()=>{});
+      }
+
+  function getToken(addr) {
+    return TOKENS.find(t => t.address.toLowerCase() === addr.toLowerCase());
+  }
+
+  function setLogo(imgEl, token) {
+    const addr = (token?.address || '').toLowerCase();
+    const local = addr && addr.startsWith('0x') ? (`/assets/tokens/${addr}.png`) : '';
+    const remote = normalizeLogoURI(token?.logoURI || '');
+    // Try local first (most reliable in wallet browsers), then fall back to remote list logoURI.
+    if (local) {
+      imgEl.onerror = () => {
+        if (remote) {
+          imgEl.onerror = null;
+          imgEl.src = remote;
+          imgEl.style.visibility = 'visible';
+        } else {
+          imgEl.style.visibility = 'hidden';
+        }
+      };
+      imgEl.src = local;
+      imgEl.style.visibility = 'visible';
+      return;
+    }
+    if (remote) {
+      imgEl.onerror = null;
+      imgEl.src = remote;
+      imgEl.style.visibility = 'visible';
+    } else {
+      imgEl.removeAttribute('src');
+      imgEl.style.visibility = 'hidden';
+    }
+  }
+
+  function updateTokenUI() {
+    setLogo(fromLogo, getToken(fromSel.value));
+    setLogo(toLogo, getToken(toSel.value));
+    refreshBalances();
+  }
+
+  function updateSelectedLogos() {
+    setLogo(fromLogo, getToken(fromSel.value));
+    setLogo(toLogo, getToken(toSel.value));
+  }
+
+  function hexPad32(addr) {
+    return addr.toLowerCase().replace(/^0x/, '').padStart(64, '0');
+  }
+
+  async function readERC20Balance(tokenAddr, userAddr) {
+    // balanceOf(address): 0x70a08231 + 32-byte address
+    const data = '0x70a08231' + hexPad32(userAddr);
+    const res = await provider.request({ method: 'eth_call', params: [{ to: tokenAddr, data }, 'latest'] });
+    return BigInt(res);
+  }
+
+  async function refreshBalances() {
+    if (!provider || !account) {
+      fromBal.textContent = 'Balance: —';
+      toBal.textContent = 'Balance: —';
+      return;
+    }
+    try {
+      const ft = getToken(fromSel.value);
+      const tt = getToken(toSel.value);
+
+      // From balance
+      if (ft && ft.symbol === 'MON') {
+        const b = await provider.request({ method: 'eth_getBalance', params: [account, 'latest'] });
+        fromBal.textContent = `Balance: ${formatUnits(BigInt(b), 18, 6)} MON`;
+      } else if (ft) {
+        const b = await readERC20Balance(ft.address, account);
+        fromBal.textContent = `Balance: ${formatUnits(b, ft.decimals, 6)} ${ft.symbol}`;
+      }
+
+      // To balance (nice-to-have)
+      if (tt && tt.symbol === 'MON') {
+        const b = await provider.request({ method: 'eth_getBalance', params: [account, 'latest'] });
+        toBal.textContent = `Balance: ${formatUnits(BigInt(b), 18, 6)} MON`;
+      } else if (tt) {
+        const b = await readERC20Balance(tt.address, account);
+        toBal.textContent = `Balance: ${formatUnits(b, tt.decimals, 6)} ${tt.symbol}`;
+      }
+    } catch (e) {
+      // don't hard-fail UI
+    }
+  }
+
+  function parseUnits(val, decimals) {
+    const s = String(val || '').trim();
+    if (!s) return null;
+    if (!/^[0-9]*\.?[0-9]*$/.test(s)) return null;
+    const [a,b=''] = s.split('.');
+    const frac = (b + '0'.repeat(decimals)).slice(0, decimals);
+    const whole = a ? BigInt(a) : 0n;
+    const f = frac ? BigInt(frac) : 0n;
+    return whole * (10n ** BigInt(decimals)) + f;
+  }
+
+  function formatUnits(amount, decimals, maxFrac=6) {
+    try {
+      const n = BigInt(amount);
+      const base = 10n ** BigInt(decimals);
+      const whole = n / base;
+      let frac = (n % base).toString().padStart(decimals, '0');
+      frac = frac.slice(0, maxFrac).replace(/0+$/,'');
+      return frac ? `${whole.toString()}.${frac}` : whole.toString();
+    } catch(e) {
+      return '—';
+    }
+  }
+
+  function pad32(hex) {
+    return hex.replace(/^0x/,'').padStart(64,'0');
+  }
+
+  // ERC20 balanceOf(address) selector: 0x70a08231
+  async function getERC20Balance(tokenAddr, ownerAddr) {
+    const data = '0x70a08231' + pad32(ownerAddr.toLowerCase());
+    const res = await provider.request({ method: 'eth_call', params: [{ to: tokenAddr, data }, 'latest'] });
+    return BigInt(res);
+  }
+
+  async function refreshBalances() {
+    if (!provider || !account) {
+      fromBal.textContent = 'Balance: —';
+      toBal.textContent = 'Balance: —';
+      return;
+    }
+    try {
+      const fromT = getToken(fromSel.value);
+      const toT = getToken(toSel.value);
+      // native
+      let b1;
+      if (fromT?.symbol === 'MON' || fromT?.address.toLowerCase() === '0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee') {
+        const wei = await provider.request({ method: 'eth_getBalance', params: [account, 'latest'] });
+        b1 = BigInt(wei);
+      } else {
+        b1 = await getERC20Balance(fromT.address, account);
+      }
+      lastFromBalRaw = b1;
+      fromBal.textContent = `Balance: ${formatUnits(b1, fromT?.decimals ?? 18, 6)} ${fromT?.symbol || ''}`;
+
+      let b2;
+      if (toT?.symbol === 'MON' || toT?.address.toLowerCase() === '0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee') {
+        const wei = await provider.request({ method: 'eth_getBalance', params: [account, 'latest'] });
+        b2 = BigInt(wei);
+      } else {
+        b2 = await getERC20Balance(toT.address, account);
+      }
+      toBal.textContent = `Balance: ${formatUnits(b2, toT?.decimals ?? 18, 6)} ${toT?.symbol || ''}`;
+    } catch(e) {
+      fromBal.textContent = 'Balance: —';
+      toBal.textContent = 'Balance: —';
+    }
+  }
+
+  async function ensureProvider() {
+    if (window.ethereum) {
+      provider = window.ethereum;
+      return true;
+    }
+    setStatus('No injected wallet found. Open inside MetaMask/OKX in-app browser.', 'err');
+    return false;
+  }
+
+  async function ensureChain() {
+    if (!provider) return false;
+    try {
+      const chainId = await provider.request({ method: 'eth_chainId' });
+      if (chainId === CHAIN_ID_HEX) return true;
+      await provider.request({ method: 'wallet_switchEthereumChain', params: [{ chainId: CHAIN_ID_HEX }] });
+      return true;
+    } catch (e) {
+      // if chain not added
+      try {
+        await provider.request({
+          method: 'wallet_addEthereumChain',
+          params: [{
+            chainId: CHAIN_ID_HEX,
+            chainName: 'Monad',
+            rpcUrls: ['https://rpc.monad.xyz'],
+            nativeCurrency: { name: 'MON', symbol: 'MON', decimals: 18 },
+            blockExplorerUrls: ['https://monadscan.com']
+          }]
+        });
+        return true;
+      } catch (e2) {
+        setStatus('Please switch to Monad in your wallet.', 'err');
+        return false;
+      }
+    }
+  }
+
+  async function connect() {
+    if (!await ensureProvider()) return;
+    const okChain = await ensureChain();
+    if (!okChain) return;
+    try {
+      const accts = await provider.request({ method: 'eth_requestAccounts' });
+      account = accts && accts[0] ? accts[0] : null;
+      if (account) {
+        connectBtn.textContent = 'Connected';
+        accountLine.textContent = account.slice(0,6) + '…' + account.slice(-4);
+        setStatus('Connected. Enter an amount — quote updates automatically.', 'ok');
+        swapBtn.disabled = true;
+        updateTokenUI();
+      }
+    } catch(e) {
+      setStatus('Wallet connection canceled.', 'err');
+    }
+  }
+
+  async function tryAutoConnect() {
+    if (!await ensureProvider()) return;
+    try {
+      const accts = await provider.request({ method: 'eth_accounts' });
+      if (accts && accts[0]) {
+        account = accts[0];
+        connectBtn.textContent = 'Connected';
+        accountLine.textContent = account.slice(0,6) + '…' + account.slice(-4);
+        updateTokenUI();
+      }
+    } catch(_e) {}
+  }
+
+  function currentSlippageBps() {
+    return Math.floor(slip * 100); // 0.5% => 50 bps
+  }
+
+  let quoteTimer = null;
+  function scheduleQuote() {
+    // Debounce to avoid spamming RPC/Netlify
+    if (!account) return;
+    clearTimeout(quoteTimer);
+    quoteTimer = setTimeout(() => {
+      getQuote();
+    }, 450);
+  }
+
+  // Support toggle (0.20% fee to treasury)
+  const SUPPORT_KEY = 'dyoor_support_on';
+  let supportOn = true;
+  try{ const v = localStorage.getItem(SUPPORT_KEY); if (v === '0') supportOn = false; }catch(_e){}
+  if (supportToggle){
+    supportToggle.checked = supportOn;
+    supportToggle.addEventListener('change', ()=>{
+      supportOn = !!supportToggle.checked;
+      try{ localStorage.setItem(SUPPORT_KEY, supportOn ? '1':'0'); }catch(_e){}
+      lastQuote = null;
+      toAmt.textContent = '—';
+      swapBtn.disabled = true;
+      setRoute('Route: —');
+      setStatus('Enter an amount — quote updates automatically.', 'mini');
+      scheduleQuote();
+    });
+  }
+
+
+  async function getQuote() {
+    lastQuote = null;
+    swapBtn.disabled = true;
+    const fromT = getToken(fromSel.value);
+    const toT = getToken(toSel.value);
+    if (!fromT || !toT) return;
+
+    const amt = parseUnits(fromAmt.value, fromT.decimals);
+    if (!amt || amt <= 0n) {
+      setStatus('Enter a valid amount.', 'err');
+      return;
+    }
+
+    setStatus('Fetching quote…', 'mini');
+    const params = new URLSearchParams();
+    params.set('sellToken', fromT.address);
+    params.set('buyToken', toT.address);
+    params.set('sellAmount', amt.toString());
+    params.set('chainId', String(CHAIN_ID_DEC));
+    params.set('slippageBps', String(currentSlippageBps()));
+    params.set('sellTokenDecimals', String(fromT.decimals));
+    params.set('buyTokenDecimals', String(toT.decimals));
+    params.set('support', supportOn ? '1' : '0');
+    if (account) params.set('taker', account);
+
+    try {
+      const res = await fetch('/.netlify/functions/quote?' + params.toString());
+      const data = await res.json();
+      if (!res.ok) {
+        setRoute('Route: —');
+        setStatus(data?.error || 'Quote failed', 'err');
+        return;
+      }
+      lastQuote = data;
+      toAmt.textContent = formatUnits(data.buyAmount, toT.decimals, 6);
+
+      const piNum = data.priceImpactBps != null ? (Number(data.priceImpactBps)/100) : null;
+      const pi = (piNum != null && Number.isFinite(piNum) && piNum >= 0 && piNum <= 99.99) ? piNum.toFixed(2) : null;
+      const route = data?.route?.label || data?.route?.version || '—';
+      setRoute(`Route: ${route}`);
+      const warnTxt = (data.warnings && data.warnings.length) ? data.warnings.join(' • ') : '';
+      const msg = `${pi ? `Price impact ~${pi}%` : 'Quote ready.'}${warnTxt ? ` — ${warnTxt}` : ''}`;
+      setStatus(msg, (data.warnings && data.warnings.length) ? 'warn' : 'ok');
+
+      // Update main CTA based on allowance/connection
+      updateCTA().catch(()=>{});
+} catch(e) {
+      setStatus('Quote error. Check connection and retry.', 'err');
+    }
+  }
+
+  function hexPad32(bi) {
+    let h = BigInt(bi).toString(16);
+    if (h.length % 2) h = '0' + h;
+    return h.padStart(64, '0');
+  }
+  function addrPad32(addr) {
+    return addr.toLowerCase().replace(/^0x/,'').padStart(64, '0');
+  }
+  function encodeApprove(spender, amount) {
+    // approve(address,uint256) selector = 0x095ea7b3
+    return '0x095ea7b3' + addrPad32(spender) + hexPad32(amount);
+  }
+
+  function encodeAllowance(owner, spender) {
+    // allowance(address,address) selector = 0xdd62ed3e
+    return '0xdd62ed3e' + addrPad32(owner) + addrPad32(spender);
+  }
+
+  async function readAllowance(token, owner, spender) {
+  const data = encodeAllowance(owner, spender);
+  const res = await provider.request({
+    method: 'eth_call',
+    params: [{ to: token, data }, 'latest']
+  });
+  return BigInt(res);
+}
+
+function encodeTransfer(to, amount){
+  const iface = new ethers.utils.Interface(['function transfer(address to, uint256 value)']);
+  return iface.encodeFunctionData('transfer',[to, amount.toString()]);
+}
+
+  async function estimateGas(tx) {
+    const req = { from: account, to: tx.to, data: tx.data };
+    if (tx.value && tx.value !== '0') req.value = '0x' + BigInt(tx.value).toString(16);
+    return await provider.request({ method: 'eth_estimateGas', params: [req] });
+  }
+
+  async function sendTx(tx) {
+    const req = {
+      from: account,
+      to: tx.to,
+      data: tx.data,
+    };
+    if (tx.value && tx.value !== '0') req.value = '0x' + BigInt(tx.value).toString(16);
+    return await provider.request({ method: 'eth_sendTransaction', params: [req] });
+  }
+
+  
+
+let mainAction = 'connect'; // connect | approve | swap
+
+async function waitForReceipt(txHash, timeoutMs = 120000) {
+  const start = Date.now();
+  while (Date.now() - start < timeoutMs) {
+    try {
+      const r = await provider.request({ method: 'eth_getTransactionReceipt', params: [txHash] });
+      if (r && r.blockNumber) return r;
+    } catch (_e) {}
+    await new Promise(res => setTimeout(res, 2000));
+  }
+  throw new Error('Timed out waiting for confirmation');
+}
+
+function resetAfterSwap(keepUnwrap=false) {
+  fromAmt.value = '';
+  toAmt.textContent = '—';
+  lastQuote = null;
+  setRoute('Route: —');
+  if (!keepUnwrap) unwrapBtn.style.display = 'none';
+  setStatus('Enter an amount — quote updates automatically.', 'mini');
+  refreshBalances();
+  updateCTA().catch(()=>{});
+}
+
+async function updateCTA() {
+  // default disabled
+  const fromT = getToken(fromSel.value);
+  const toT = getToken(toSel.value);
+
+  // not connected
+  if (!account) {
+    mainAction = 'connect';
+    swapBtn.textContent = 'Connect Wallet';
+    swapBtn.disabled = false;
+    return;
+  }
+
+  // need a quote + amount
+  if (!fromAmt.value || !lastQuote || !fromT || !toT) {
+    mainAction = 'swap';
+    swapBtn.textContent = 'Swap';
+    swapBtn.disabled = true;
+    return;
+  }
+
+  const isNativeIn = (fromT.symbol === 'MON' || String(fromT.address||'').toLowerCase() === '0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee');
+  if (isNativeIn) {
+    mainAction = 'swap';
+    swapBtn.textContent = 'Swap';
+    swapBtn.disabled = false;
+    return;
+  }
+
+  const spender = String(lastQuote?.issues?.allowance?.spender || lastQuote?.transaction?.to || '').toLowerCase();
+  const token = String(fromT.address || '').toLowerCase();
+  if (!spender || !token) {
+    mainAction = 'swap';
+    swapBtn.textContent = 'Swap';
+    swapBtn.disabled = false;
+    return;
+  }
+
+  const need = parseUnits(fromAmt.value, fromT.decimals);
+  try {
+    const allowance = await readAllowance(token, account, spender);
+    if (allowance < need) {
+      mainAction = 'approve';
+      swapBtn.textContent = `Approve ${fromT.symbol}`;
+      swapBtn.disabled = false;
+      return;
+    }
+  } catch (_e) {
+    // If allowance read fails, still show approve to be safe
+    mainAction = 'approve';
+    swapBtn.textContent = `Approve ${fromT.symbol}`;
+    swapBtn.disabled = false;
+    return;
+  }
+
+  mainAction = 'swap';
+  swapBtn.textContent = 'Swap';
+  swapBtn.disabled = false;
+}
+
+async function doApprove() {
+  try {
+    if (!account) return connect();
+    if (!await ensureChain()) return;
+    if (!lastQuote) return;
+    const fromT = getToken(fromSel.value);
+    if (!fromT) return;
+    const isNativeIn = (fromT.symbol === 'MON' || String(fromT.address||'').toLowerCase() === '0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee');
+    if (isNativeIn) return;
+
+    const spender = String(lastQuote?.issues?.allowance?.spender || lastQuote?.transaction?.to || '').toLowerCase();
+    const token = String(fromT.address || '').toLowerCase();
+    if (!spender || !token) {
+      setStatus('Cannot determine approval spender.', 'err');
+      return;
+    }
+
+    swapBtn.disabled = true;
+    setStatus(`Approve ${fromT.symbol}…`, 'warn');
+    const max = (1n << 256n) - 1n;
+    const approveData = encodeApprove(spender, max);
+    const txHash = await sendTx({ to: token, data: approveData, value: '0' });
+    setStatus('Approval submitted — confirming…', 'mini');
+    await waitForReceipt(txHash);
+    setStatus(`Approved ${fromT.symbol}. You can swap now.`, 'ok');
+    await updateCTA();
+  } catch (e) {
+    setStatus('Approval canceled or failed in wallet.', 'err');
+    await updateCTA().catch(()=>{});
+  } finally {
+    swapBtn.disabled = false;
+  }
+}
+
+async function unwrapNow() {
+    try {
+      if (!account) return;
+      const wmon = getToken('0x3bd359C1119dA7Da1D913D1C4D2B7c461115433A') || TOKENS.find(t=>t.symbol==='WMON');
+      const wmonAddr = wmon?.address || '0x3bd359C1119dA7Da1D913D1C4D2B7c461115433A';
+      setStatus('Preparing unwrap…', 'mini');
+      // withdraw(uint256) selector: 0x2e1a7d4d
+      const bal = await provider.request({
+        method: 'eth_call',
+        params: [{ to: wmonAddr, data: '0x70a08231' + addrPad32(account) }, 'latest']
+      });
+      const balRaw = BigInt(bal);
+      if (balRaw <= 0n) {
+        setStatus('No WMON balance to unwrap.', 'warn');
+        return;
+      }
+      const data = '0x2e1a7d4d' + hexPad32(balRaw); // withdraw(amount)
+      await sendTx({ to: wmonAddr, data, value: '0' });
+      setStatus('Unwrap sent. You should receive MON shortly.', 'ok');
+      unwrapBtn.style.display = 'none';
+      refreshBalances();
+    } catch (e) {
+      setStatus('Unwrap canceled or failed in wallet.', 'err');
+    }
+  }
+
+  async function doSwap() {
+    unwrapBtn.style.display = 'none';
+
+    if (!account) {
+      setStatus('Connect wallet first.', 'err');
+      return;
+    }
+    if (!await ensureChain()) return;
+    if (!lastQuote) {
+      setStatus('Quote not ready yet — type an amount.', 'err');
+      return;
+    }
+
+    const fromT = getToken(fromSel.value);
+    const toT = getToken(toSel.value);
+
+    try {
+      swapBtn.disabled = true;
+      setStatus('Preparing transaction…', 'mini');
+      // --- Approval gating (ERC20-in) ---
+      const issues = lastQuote.issues || {};
+      const isNativeIn = (fromT?.symbol === 'MON' || String(fromT?.address||'').toLowerCase() === '0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee');
+      if (!isNativeIn) {
+        const spender = String(issues.allowance?.spender || lastQuote?.transaction?.to || '').toLowerCase();
+        const token = String(fromT?.address || '').toLowerCase();
+        if (spender && token) {
+          const need = parseUnits(fromAmt.value, fromT.decimals);
+          try {
+            const allowance = await readAllowance(token, account, spender);
+            if (allowance < need) {
+              setStatus(`Approval required. Tap “Approve ${fromT.symbol}” first.`, 'warn');
+              await updateCTA();
+              return;
+            }
+          } catch (_a) {
+            setStatus(`Approval required. Tap “Approve ${fromT.symbol}” first.`, 'warn');
+            await updateCTA();
+            return;
+          }
+        }
+      }
+
+      // If user wants native MON output from an ERC20 input, some wallet webviews fail to simulate multicall+unwrap.
+      // Preflight with estimateGas; if it fails, fall back to swapping into WMON and offer a one-tap unwrap.
+      const wantsNativeOut = (toT?.symbol === 'MON' || String(toT?.address||'').toLowerCase() === '0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee');
+      const isERC20In = !(fromT?.symbol === 'MON' || String(fromT?.address||'').toLowerCase() === '0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee');
+      if (wantsNativeOut && isERC20In) {
+        try {
+          await estimateGas(lastQuote.transaction);
+        } catch (_eg) {
+          // fallback to WMON swap
+          setStatus('Wallet cannot simulate MON unwrap. Swapping to WMON instead — then tap Unwrap.', 'warn');
+
+          const wmonAddr = TOKENS.find(t=>t.symbol==='WMON')?.address || '0x3bd359C1119dA7Da1D913D1C4D2B7c461115433A';
+          const params = new URLSearchParams();
+          params.set('sellToken', fromT.address);
+          params.set('buyToken', wmonAddr);
+          const amt = parseUnits(fromAmt.value, fromT.decimals);
+          params.set('sellAmount', String(amt));
+          params.set('chainId', String(CHAIN_ID_DEC));
+          params.set('slippageBps', String(currentSlippageBps()));
+          params.set('sellTokenDecimals', String(fromT.decimals));
+          params.set('buyTokenDecimals', '18');
+          params.set('support', supportOn ? '1' : '0');
+          params.set('taker', account);
+
+          const res = await fetch('/.netlify/functions/quote?' + params.toString());
+          const data = await res.json();
+          if (!res.ok) throw new Error(data?.error || 'Fallback quote failed');          setStatus('Send swap (to WMON)…', 'mini');
+const fbHash = await sendTx(data.transaction);
+          setStatus('Swap submitted — confirming…', 'mini');
+          await waitForReceipt(fbHash);
+
+          // Offer unwrap
+          unwrapBtn.style.display = 'inline-flex';
+          unwrapBtn.style.display = 'inline-flex';
+          setStatus('Swap complete to WMON. Tap “Unwrap WMON → MON” to receive MON.', 'ok');
+          resetAfterSwap(true);
+          return;
+        }
+      }
+
+      setStatus('Send swap transaction…', 'mini');
+      const swapHash = await sendTx(lastQuote.transaction);
+      setStatus('Swap submitted — confirming…', 'mini');
+      await waitForReceipt(swapHash);
+
+      // Support fee transfer (separate confirmation) when enabled
+      try{
+        if (supportOn && lastQuote?.fee && BigInt(lastQuote.fee.amount||'0') > 0n){
+          const feeAmt = BigInt(lastQuote.fee.amount);
+          const feeToken = String(lastQuote.fee.token||'').toLowerCase();
+          const nativeSentinel = '0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee';
+          const recipient = String(lastQuote.fee.recipient||'').trim();
+          // Soft warning: a second tx is coming
+          setStatus('Swap sent. Confirm support fee transfer…', 'mini');
+
+          if (feeToken === nativeSentinel || fromT?.symbol === 'MON'){
+            // native MON fee (simple value transfer)
+            const feeHash = await sendTx({ to: recipient, data: '0x', value: feeAmt.toString() });
+            await waitForReceipt(feeHash);
+          } else {
+            // ERC20 fee transfer
+            const transferData = encodeTransfer(recipient, feeAmt);
+            const feeHash = await sendTx({ to: feeToken, data: transferData, value: '0' });
+            await waitForReceipt(feeHash);
+          }
+        }
+      }catch(_feeErr){
+        // If user rejects the fee transfer, don't mark swap as failed.
+        setStatus('Swap sent. Support fee transfer was skipped.', 'warn');
+      }
+
+      // If we swapped to WMON and user wanted MON, offer unwrap anyway as a convenience
+      if (wantsNativeOut && isERC20In) {
+        unwrapBtn.style.display = 'inline-flex';
+      }
+
+      setStatus('Swap complete ✅', 'ok');
+      resetAfterSwap(false);
+    } catch(e) {
+      setStatus('Swap canceled or failed in wallet.', 'err');
+    } finally {
+      swapBtn.disabled = false;
+      updateCTA().catch(()=>{});
+    }
+  }
+
+
+  // slippage chip handlers
+  document.querySelectorAll('[data-slip]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      slip = Number(btn.getAttribute('data-slip'));
+      document.querySelectorAll('[data-slip]').forEach(b=>b.classList.remove('chip--active'));
+      btn.classList.add('chip--active');
+      scheduleQuote();
+    });
+  });
+  document.querySelector('[data-slip="0.5"]')?.classList.add('chip--active');
+
+  connectBtn.addEventListener('click', connect);
+  swapBtn.addEventListener('click', () => {
+    if (mainAction === 'connect') return connect();
+    if (mainAction === 'approve') return doApprove();
+    return doSwap();
+  });
+  unwrapBtn.addEventListener('click', unwrapNow);
+  flipBtn.addEventListener('click', () => {
+    flipTokens();
+  });
+  fromSel.addEventListener('change', () => {
+    toAmt.textContent = '—';
+    swapBtn.disabled = true;
+    lastQuote = null;
+    setRoute('Route: —');
+    updateTokenUI();
+    setStatus('Enter an amount — quote updates automatically.', 'mini');
+    scheduleQuote();
+    updateCTA().catch(()=>{});
+  });
+  toSel.addEventListener('change', () => {
+    toAmt.textContent = '—';
+    swapBtn.disabled = true;
+    lastQuote = null;
+    setRoute('Route: —');
+    updateTokenUI();
+    setStatus('Enter an amount — quote updates automatically.', 'mini');
+    scheduleQuote();
+    updateCTA().catch(()=>{});
+  });
+  fromAmt.addEventListener('input', () => {
+    toAmt.textContent = '—';
+    swapBtn.disabled = true;
+    lastQuote = null;
+    setRoute('Route: —');
+    scheduleQuote();
+  });
+
+  // MAX button: fills amount with available balance (keeps a small gas buffer for MON)
+  maxBtn.addEventListener('click', () => {
+    const t = getToken(fromSel.value);
+    if (!t || lastFromBalRaw == null) return;
+
+    let amtRaw = lastFromBalRaw;
+    if (t.symbol === 'MON') {
+      // Keep a buffer for gas (0.05 MON). Prevents "insufficient funds".
+      const buffer = 5n * (10n ** 16n); // 0.05 * 1e18
+      amtRaw = amtRaw > buffer ? (amtRaw - buffer) : 0n;
+    }
+    fromAmt.value = formatUnits(amtRaw, t.decimals, 6);
+    toAmt.textContent = '—';
+    swapBtn.disabled = true;
+    lastQuote = null;
+    setRoute('Route: —');
+  });
+
+  (async () => {
+    try {
+      await loadTokens();
+    } catch(_) {}
+    populate();
+    tryAutoConnect();
+  updateCTA().catch(()=>{});
+  })();
+})();
+</script>
+</body>
+</html>
