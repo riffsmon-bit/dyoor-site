@@ -13,14 +13,33 @@ const stakingAbi = [
   "function claimPoints()",
   "function pendingPoints(address user) view returns (uint256)",
   "function tokensOfStaker(address user) view returns (uint256[] memory)",
-  "function stakedBalance(address user) view returns (uint256)"
+  "function stakedBalance(address user) view returns (uint256)",
+  "function owner() view returns (address)",
+  "function paused() view returns (bool)",
+  "function s1Nft() view returns (address)",
+  "function pointsPerDay() view returns (uint256)",
+
+  "error EnforcedPause()",
+  "error ExpectedPause()",
+  "error OwnableUnauthorizedAccount(address account)",
+  "error OwnableInvalidOwner(address owner)",
+  "error ReentrancyGuardReentrantCall()"
 ];
 
 const nftAbi = [
   "function ownerOf(uint256 tokenId) view returns (address)",
   "function tokenURI(uint256 tokenId) view returns (string)",
   "function isApprovedForAll(address owner, address operator) view returns (bool)",
-  "function setApprovalForAll(address operator, bool approved)"
+  "function setApprovalForAll(address operator, bool approved)",
+
+  "error ERC721InvalidOwner(address owner)",
+  "error ERC721NonexistentToken(uint256 tokenId)",
+  "error ERC721IncorrectOwner(address sender, uint256 tokenId, address owner)",
+  "error ERC721InvalidSender(address sender)",
+  "error ERC721InvalidReceiver(address receiver)",
+  "error ERC721InsufficientApproval(address operator, uint256 tokenId)",
+  "error ERC721InvalidApprover(address approver)",
+  "error ERC721InvalidOperator(address operator)"
 ];
 
 let provider;
@@ -72,6 +91,8 @@ function formatError(err, fallback = "Unknown error.") {
   return (
     err?.shortMessage ||
     err?.reason ||
+    err?.revert?.name ||
+    err?.revert?.signature ||
     err?.info?.error?.message ||
     err?.info?.message ||
     err?.error?.message ||
@@ -150,9 +171,7 @@ async function getOwnedNfts(owner) {
       }
     }
 
-    if (!tokenIds.length) {
-      return [];
-    }
+    if (!tokenIds.length) return [];
 
     setStatus(`Found ${tokenIds.length} DYOOR. Loading metadata...`);
 
@@ -419,6 +438,22 @@ async function ascendTokenIds(tokenIds) {
 
     const approvedNow = await nft.isApprovedForAll(userAddress, STAKING_ADDRESS);
     console.log("approvedForAll now:", approvedNow);
+
+    const stakingRead = new ethers.Contract(STAKING_ADDRESS, stakingAbi, provider);
+
+    try {
+      const contractOwner = await stakingRead.owner();
+      const paused = await stakingRead.paused();
+      const s1Nft = await stakingRead.s1Nft();
+      const points = await stakingRead.pointsPerDay();
+
+      console.log("staking.owner()", contractOwner);
+      console.log("staking.paused()", paused);
+      console.log("staking.s1Nft()", s1Nft);
+      console.log("staking.pointsPerDay()", points.toString());
+    } catch (err) {
+      console.error("staking read debug failed", err);
+    }
 
     const staking = new ethers.Contract(STAKING_ADDRESS, stakingAbi, signer);
 
