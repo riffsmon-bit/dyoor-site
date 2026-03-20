@@ -73,6 +73,7 @@ function formatError(err, fallback = "Unknown error.") {
     err?.shortMessage ||
     err?.reason ||
     err?.info?.error?.message ||
+    err?.info?.message ||
     err?.error?.message ||
     err?.message ||
     fallback
@@ -368,13 +369,18 @@ async function ensureApproval() {
   const nft = new ethers.Contract(NFT_ADDRESS, nftAbi, signer);
 
   const approved = await nft.isApprovedForAll(userAddress, STAKING_ADDRESS);
+  console.log("isApprovedForAll before:", approved, "owner:", userAddress, "operator:", STAKING_ADDRESS);
+
   if (approved) return true;
 
   setStatus("Approval required. Confirm in wallet...");
   const tx = await nft.setApprovalForAll(STAKING_ADDRESS, true);
+  console.log("approval tx hash:", tx.hash);
   await tx.wait();
 
   const approvedAfter = await nft.isApprovedForAll(userAddress, STAKING_ADDRESS);
+  console.log("isApprovedForAll after:", approvedAfter);
+
   if (!approvedAfter) {
     throw new Error("Approval did not complete.");
   }
@@ -392,20 +398,41 @@ async function ascendTokenIds(tokenIds) {
     const normalizedIds = tokenIds.map((id) => BigInt(String(id)));
 
     setStatus(`Preparing ${normalizedIds.length} NFT(s) for ascension...`);
+    console.log("ascendTokenIds start");
+    console.log("wallet:", userAddress);
+    console.log("NFT_ADDRESS:", NFT_ADDRESS);
+    console.log("STAKING_ADDRESS:", STAKING_ADDRESS);
+    console.log("selected tokenIds:", normalizedIds.map(String));
 
     await ensureApproval();
+
+    const nft = new ethers.Contract(NFT_ADDRESS, nftAbi, provider);
+
+    for (const id of normalizedIds) {
+      try {
+        const ownerNow = await nft.ownerOf(id);
+        console.log("ownerOf", id.toString(), ownerNow);
+      } catch (err) {
+        console.error("ownerOf failed for token", id.toString(), err);
+      }
+    }
+
+    const approvedNow = await nft.isApprovedForAll(userAddress, STAKING_ADDRESS);
+    console.log("approvedForAll now:", approvedNow);
 
     const staking = new ethers.Contract(STAKING_ADDRESS, stakingAbi, signer);
 
     try {
-      await staking.stake.estimateGas(normalizedIds);
+      const gas = await staking.stake.estimateGas(normalizedIds);
+      console.log("stake gas estimate:", gas.toString());
     } catch (err) {
-      console.error("estimateGas stake error", err);
+      console.error("stake estimateGas full error", err);
       throw new Error(formatError(err, "Gas estimation failed before staking."));
     }
 
     setStatus("Ascension in progress...");
     const tx = await staking.stake(normalizedIds);
+    console.log("stake tx hash:", tx.hash);
     await tx.wait();
 
     setStatus("Ascension complete.");
@@ -426,8 +453,17 @@ async function disconnectTokenIds(tokenIds) {
     const normalizedIds = tokenIds.map((id) => BigInt(String(id)));
     const staking = new ethers.Contract(STAKING_ADDRESS, stakingAbi, signer);
 
+    try {
+      const gas = await staking.unstake.estimateGas(normalizedIds);
+      console.log("unstake gas estimate:", gas.toString());
+    } catch (err) {
+      console.error("unstake estimateGas error", err);
+      throw new Error(formatError(err, "Gas estimation failed before unstaking."));
+    }
+
     setStatus("Disconnecting from the protocol...");
     const tx = await staking.unstake(normalizedIds);
+    console.log("unstake tx hash:", tx.hash);
     await tx.wait();
 
     setStatus("Disconnect complete.");
@@ -443,7 +479,8 @@ async function harvestEnergy() {
     const staking = new ethers.Contract(STAKING_ADDRESS, stakingAbi, signer);
 
     try {
-      await staking.claimPoints.estimateGas();
+      const gas = await staking.claimPoints.estimateGas();
+      console.log("claimPoints gas estimate:", gas.toString());
     } catch (err) {
       console.error("estimateGas claim error", err);
       throw new Error(formatError(err, "Gas estimation failed before claim."));
@@ -451,6 +488,7 @@ async function harvestEnergy() {
 
     setStatus("Harvesting Energy...");
     const tx = await staking.claimPoints();
+    console.log("claimPoints tx hash:", tx.hash);
     await tx.wait();
 
     setStatus("Energy harvested.");
