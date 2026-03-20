@@ -1242,4 +1242,81 @@ button, a, input, select{ touch-action: manipulation; }
   color: rgba(255,255,255,0.70);
   text-align:center;
 }
+/* =========================
+   DYOOR ASCENSION THEME
+   ========================= */
 
+:root {
+  --asc-bg-1: #06070b;
+  --asc-bg-2: #0d1018;
+  --asc-panel: rgba(14, 18, 30, 0.82);
+  --asc-panel-2: rgba(255, 255, 255, 0.04);
+  --asc-border: rgba(166, 124, 255, 0.18);
+  --asc-border-strong: rgba(166, 124, 255, 0.45);
+  --asc-text: #f5f7ff;
+  --asc-muted: rgba(245, 247, 255, 0.68);
+  --asc-purple: #9c7cff;
+  --asc-violet: #6f4cff;
+  --asc-cyan: #3ee7d8;
+}
+
+body {
+  background:
+    radial-gradient(circle at top center, rgba(156, 124, 255, 0.18), transparent 30%),
+    radial-gradient(circle at 80% 20%, rgba(62, 231, 216, 0.1), transparent 20%),
+    linear-gradient(180deg, var(--asc-bg-2), var(--asc-bg-1));
+  color: var(--asc-text);
+}
+
+/* PANELS */
+.panel {
+  background: var(--asc-panel);
+  border: 1px solid var(--asc-border);
+  border-radius: 20px;
+  box-shadow: 0 10px 40px rgba(0,0,0,0.4);
+}
+
+/* TEXT */
+.stake-title {
+  background: linear-gradient(180deg, #fff, #bba8ff, #8a6bff);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  text-transform: uppercase;
+}
+
+.stake-copy {
+  color: var(--asc-muted);
+}
+
+/* BUTTONS */
+.stake-btn-primary {
+  background: linear-gradient(135deg, var(--asc-purple), var(--asc-violet));
+  color: #fff;
+}
+
+.stake-btn-secondary {
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.1);
+}
+
+/* TABS */
+.tab-btn.active {
+  background: var(--asc-purple);
+}
+
+/* NFT CARDS */
+.nft-card {
+  background: rgba(10,12,20,0.9);
+  border: 1px solid rgba(255,255,255,0.08);
+}
+
+.nft-card.selected {
+  border-color: var(--asc-purple);
+  box-shadow: 0 0 20px rgba(156,124,255,0.3);
+}
+
+/* STATUS BOX */
+.status-box {
+  background: rgba(62, 231, 216, 0.08);
+  border: 1px solid rgba(62, 231, 216, 0.2);
+}
