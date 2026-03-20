@@ -100,21 +100,37 @@ async function fetchTokenMetadata(tokenId) {
 
 async function getOwnedTokenIds(owner) {
   const nft = new ethers.Contract(NFT_ADDRESS, nftAbi, provider);
-  const balance = await nft.balanceOf(owner);
-  const ids = [];
 
-  for (let i = 0; i < Number(balance); i++) {
-    const tokenId = await nft.tokenOfOwnerByIndex(owner, i);
-    ids.push(tokenId.toString());
+  try {
+    const balance = await nft.balanceOf(owner);
+    const ids = [];
+
+    for (let i = 0; i < Number(balance); i++) {
+      const tokenId = await nft.tokenOfOwnerByIndex(owner, i);
+      ids.push(tokenId.toString());
+    }
+
+    return ids;
+  } catch (err) {
+    console.error("getOwnedTokenIds error", err);
+    throw new Error(
+      "Wallet connected, but NFT loading failed. Your NFT contract may not support tokenOfOwnerByIndex (ERC721Enumerable)."
+    );
   }
-
-  return ids;
 }
 
 async function getStakedTokenIds(owner) {
   const staking = new ethers.Contract(STAKING_ADDRESS, stakingAbi, provider);
-  const ids = await staking.tokensOfStaker(owner);
-  return ids.map((x) => x.toString());
+
+  try {
+    const ids = await staking.tokensOfStaker(owner);
+    return ids.map((x) => x.toString());
+  } catch (err) {
+    console.error("getStakedTokenIds error", err);
+    throw new Error(
+      "Wallet connected, but staked NFT loading failed. Check tokensOfStaker on the staking contract."
+    );
+  }
 }
 
 async function enrichTokenIds(tokenIds, source) {
@@ -205,13 +221,13 @@ async function loadState() {
   if (!userAddress || !provider) return;
 
   try {
-    setStatus("Synchronizing Ascension state...");
+    setStatus("Loading wallet NFTs...");
+    const ownedIds = await getOwnedTokenIds(userAddress);
 
-    const [ownedIds, stakedIds] = await Promise.all([
-      getOwnedTokenIds(userAddress),
-      getStakedTokenIds(userAddress)
-    ]);
+    setStatus("Loading ascended NFTs...");
+    const stakedIds = await getStakedTokenIds(userAddress);
 
+    setStatus("Loading metadata...");
     ownedNfts = await enrichTokenIds(ownedIds, "wallet");
     stakedNfts = await enrichTokenIds(stakedIds, "staked");
 
@@ -224,7 +240,13 @@ async function loadState() {
     setStatus("Ascension state synchronized.");
   } catch (err) {
     console.error("loadState error", err);
-    setStatus("Failed to load wallet state.");
+    ownedNfts = [];
+    stakedNfts = [];
+    selectedIds.clear();
+    updateSelectedCount();
+    renderGrid();
+    updateButtons();
+    setStatus(err?.message || "Failed to load wallet state.");
   }
 }
 
@@ -281,7 +303,7 @@ async function connectWallet() {
     walletStatus.textContent = shorten(userAddress);
     connectBtn.textContent = "Connected";
 
-    setStatus("Wallet connected. Loading Ascension state...");
+    setStatus("Wallet connected.");
     await loadState();
   } catch (err) {
     console.error("connectWallet error:", err);
@@ -430,7 +452,7 @@ if (window.ethereum) {
     userAddress = accounts[0];
     walletStatus.textContent = shorten(userAddress);
     connectBtn.textContent = "Connected";
-    setStatus("Account changed. Reloading state...");
+    setStatus("Account changed.");
     await loadState();
   });
 
@@ -452,7 +474,7 @@ if (window.ethereum) {
       userAddress = accounts[0];
       walletStatus.textContent = shorten(userAddress);
       connectBtn.textContent = "Connected";
-      setStatus("Network changed. Reloading state...");
+      setStatus("Network changed.");
       await loadState();
     } catch (err) {
       console.error("chainChanged error", err);
