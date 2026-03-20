@@ -4,7 +4,8 @@ const CHAIN_ID_HEX = "0x8f";
 const NFT_ADDRESS = "0x2c79c9e233fea4b4dcfe6561d9209dc292cd932f";
 const STAKING_ADDRESS = "0x23C66179144d5d6D1a24E58BdB97CE6266a0ba8D";
 const ENERGY_PER_DAY_PER_NFT = 24;
-const MAX_TOKEN_ID_SCAN = 1111;
+const MAX_SCAN = 1111;
+const BATCH_SIZE = 40;
 
 const stakingAbi = [
   "function stake(uint256[] calldata tokenIds)",
@@ -106,16 +107,38 @@ async function getOwnedNfts(owner) {
 
     setStatus("Scanning collection ownership...");
 
-    for (let i = 1; i <= MAX_TOKEN_ID_SCAN; i++) {
-      try {
-        const currentOwner = await nft.ownerOf(i);
-        if (currentOwner.toLowerCase() === ownerLower) {
-          tokenIds.push(String(i));
+    for (let start = 1; start <= MAX_SCAN; start += BATCH_SIZE) {
+      const end = Math.min(start + BATCH_SIZE - 1, MAX_SCAN);
+
+      setStatus(`Scanning collection ownership... ${start}-${end} / ${MAX_SCAN}`);
+
+      const batch = [];
+      for (let tokenId = start; tokenId <= end; tokenId++) {
+        batch.push(
+          nft.ownerOf(tokenId)
+            .then((currentOwner) => ({
+              tokenId,
+              owner: currentOwner
+            }))
+            .catch(() => null)
+        );
+      }
+
+      const results = await Promise.all(batch);
+
+      for (const result of results) {
+        if (!result) continue;
+        if (result.owner.toLowerCase() === ownerLower) {
+          tokenIds.push(String(result.tokenId));
         }
-      } catch {
-        // ignore nonexistent token ids
       }
     }
+
+    if (!tokenIds.length) {
+      return [];
+    }
+
+    setStatus(`Found ${tokenIds.length} DYOOR. Loading metadata...`);
 
     const items = [];
     for (const tokenId of tokenIds) {
@@ -169,6 +192,10 @@ function renderGrid() {
 
   if (!items.length) {
     emptyState.style.display = "block";
+    emptyState.textContent =
+      currentTab === "wallet"
+        ? "No unstaked DYOOR found in this wallet yet."
+        : "No ascended DYOOR found for this wallet yet.";
     return;
   }
 
@@ -452,6 +479,7 @@ if (window.ethereum) {
       energyRate.textContent = "0 / day";
       nftGrid.innerHTML = "";
       emptyState.style.display = "block";
+      emptyState.textContent = "No unstaked DYOOR found in this wallet yet.";
       updateSelectedCount();
       updateButtons();
       setStatus("Disconnected.");
