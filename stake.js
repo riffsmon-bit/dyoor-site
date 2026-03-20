@@ -68,6 +68,17 @@ function normalizeIpfs(url) {
   return url;
 }
 
+function formatError(err, fallback = "Unknown error.") {
+  return (
+    err?.shortMessage ||
+    err?.reason ||
+    err?.info?.error?.message ||
+    err?.error?.message ||
+    err?.message ||
+    fallback
+  );
+}
+
 async function fetchTokenMetadata(tokenId) {
   try {
     const nft = new ethers.Contract(NFT_ADDRESS, nftAbi, provider);
@@ -102,14 +113,13 @@ async function fetchTokenMetadata(tokenId) {
 async function getOwnedNfts(owner) {
   try {
     const nft = new ethers.Contract(NFT_ADDRESS, nftAbi, provider);
-    const ownerLower = owner.toLowerCase();
     const tokenIds = [];
+    const ownerChecksum = ethers.getAddress(owner);
 
     setStatus("Scanning collection ownership...");
 
     for (let start = 1; start <= MAX_SCAN; start += BATCH_SIZE) {
       const end = Math.min(start + BATCH_SIZE - 1, MAX_SCAN);
-
       setStatus(`Scanning collection ownership... ${start}-${end} / ${MAX_SCAN}`);
 
       const batch = [];
@@ -128,8 +138,13 @@ async function getOwnedNfts(owner) {
 
       for (const result of results) {
         if (!result) continue;
-        if (result.owner.toLowerCase() === ownerLower) {
-          tokenIds.push(String(result.tokenId));
+
+        try {
+          if (ethers.getAddress(result.owner) === ownerChecksum) {
+            tokenIds.push(String(result.tokenId));
+          }
+        } catch {
+          // skip malformed address results
         }
       }
     }
@@ -284,7 +299,7 @@ async function loadState() {
     updateSelectedCount();
     renderGrid();
     updateButtons();
-    setStatus(err?.message || "Failed to load wallet state.");
+    setStatus(formatError(err, "Failed to load wallet state."));
   }
 }
 
@@ -345,60 +360,95 @@ async function connectWallet() {
     await loadState();
   } catch (err) {
     console.error("connectWallet error:", err);
-    setStatus(err?.message || "Connection failed.");
+    setStatus(formatError(err, "Connection failed."));
   }
 }
 
 async function ensureApproval() {
   const nft = new ethers.Contract(NFT_ADDRESS, nftAbi, signer);
-  const approved = await nft.isApprovedForAll(userAddress, STAKING_ADDRESS);
 
-  if (approved) return;
+  const approved = await nft.isApprovedForAll(userAddress, STAKING_ADDRESS);
+  if (approved) return true;
 
   setStatus("Approval required. Confirm in wallet...");
   const tx = await nft.setApprovalForAll(STAKING_ADDRESS, true);
   await tx.wait();
+
+  const approvedAfter = await nft.isApprovedForAll(userAddress, STAKING_ADDRESS);
+  if (!approvedAfter) {
+    throw new Error("Approval did not complete.");
+  }
+
+  return true;
 }
 
 async function ascendTokenIds(tokenIds) {
-  if (!tokenIds.length) return;
-
   try {
+    if (!tokenIds || tokenIds.length === 0) {
+      setStatus("Nothing selected for ascension.");
+      return;
+    }
+
+    const normalizedIds = tokenIds.map((id) => BigInt(String(id)));
+
+    setStatus(`Preparing ${normalizedIds.length} NFT(s) for ascension...`);
+
     await ensureApproval();
 
     const staking = new ethers.Contract(STAKING_ADDRESS, stakingAbi, signer);
+
+    try {
+      await staking.stake.estimateGas(normalizedIds);
+    } catch (err) {
+      console.error("estimateGas stake error", err);
+      throw new Error(formatError(err, "Gas estimation failed before staking."));
+    }
+
     setStatus("Ascension in progress...");
-    const tx = await staking.stake(tokenIds);
+    const tx = await staking.stake(normalizedIds);
     await tx.wait();
 
     setStatus("Ascension complete.");
     await loadState();
   } catch (err) {
     console.error("ascendTokenIds error", err);
-    setStatus("Ascension failed.");
+    setStatus(`Ascension failed: ${formatError(err, "Unknown staking error.")}`);
   }
 }
 
 async function disconnectTokenIds(tokenIds) {
-  if (!tokenIds.length) return;
+  if (!tokenIds || tokenIds.length === 0) {
+    setStatus("Nothing selected to disconnect.");
+    return;
+  }
 
   try {
+    const normalizedIds = tokenIds.map((id) => BigInt(String(id)));
     const staking = new ethers.Contract(STAKING_ADDRESS, stakingAbi, signer);
+
     setStatus("Disconnecting from the protocol...");
-    const tx = await staking.unstake(tokenIds);
+    const tx = await staking.unstake(normalizedIds);
     await tx.wait();
 
     setStatus("Disconnect complete.");
     await loadState();
   } catch (err) {
     console.error("disconnectTokenIds error", err);
-    setStatus("Disconnect failed.");
+    setStatus(`Disconnect failed: ${formatError(err, "Unknown unstake error.")}`);
   }
 }
 
 async function harvestEnergy() {
   try {
     const staking = new ethers.Contract(STAKING_ADDRESS, stakingAbi, signer);
+
+    try {
+      await staking.claimPoints.estimateGas();
+    } catch (err) {
+      console.error("estimateGas claim error", err);
+      throw new Error(formatError(err, "Gas estimation failed before claim."));
+    }
+
     setStatus("Harvesting Energy...");
     const tx = await staking.claimPoints();
     await tx.wait();
@@ -407,7 +457,7 @@ async function harvestEnergy() {
     await loadState();
   } catch (err) {
     console.error("harvestEnergy error", err);
-    setStatus("Harvest failed.");
+    setStatus(`Harvest failed: ${formatError(err, "Unknown claim error.")}`);
   }
 }
 
@@ -451,15 +501,36 @@ document.getElementById("refreshBtn").addEventListener("click", async () => {
 connectBtn.addEventListener("click", connectWallet);
 
 ascendSelectedBtn.addEventListener("click", async () => {
-  await ascendTokenIds(selectedVisibleTokenIds());
+  const ids = selectedVisibleTokenIds();
+
+  if (!ids.length) {
+    setStatus("No NFTs selected.");
+    return;
+  }
+
+  await ascendTokenIds(ids);
 });
 
 ascendAllBtn.addEventListener("click", async () => {
-  await ascendTokenIds(ownedNfts.map((x) => x.tokenId));
+  const ids = ownedNfts.map((x) => x.tokenId);
+
+  if (!ids.length) {
+    setStatus("No NFTs available to ascend.");
+    return;
+  }
+
+  await ascendTokenIds(ids);
 });
 
 disconnectSelectedBtn.addEventListener("click", async () => {
-  await disconnectTokenIds(selectedVisibleTokenIds());
+  const ids = selectedVisibleTokenIds();
+
+  if (!ids.length) {
+    setStatus("No NFTs selected.");
+    return;
+  }
+
+  await disconnectTokenIds(ids);
 });
 
 harvestBtn.addEventListener("click", harvestEnergy);
