@@ -1,171 +1,338 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>DYOOR — Soft Staking</title>
-  <link rel="stylesheet" href="/style.css?v=stake2" />
-  <meta name="theme-color" content="#0b0b10" />
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>DYOOR — Ascension</title>
+  <link rel="stylesheet" href="style.css" />
   <style>
-    .pageWrap{max-width:960px;margin:0 auto;padding:22px}
-    .hero{padding:28px 8px 14px}
-    .hero h1{font-size:44px;line-height:1.1;margin:0 0 8px}
-    .hero p{opacity:.75;margin:0 0 18px;font-size:18px}
-    .card{border-radius:18px;padding:18px;margin:18px 0;background:rgba(255,255,255,.06);backdrop-filter: blur(10px);border:1px solid rgba(255,255,255,.08)}
-    .row{display:flex;gap:12px;flex-wrap:wrap;align-items:center}
-    .row .btn{flex:0 0 auto}
-    .muted{opacity:.75}
-    .mini{font-size:12px;opacity:.75}
-    .grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-    @media(max-width:720px){.grid2{grid-template-columns:1fr}}
-    table{width:100%;border-collapse:collapse}
-    th,td{padding:10px;border-bottom:1px solid rgba(255,255,255,.08);text-align:left}
-    .pill{display:inline-block;padding:4px 10px;border:1px solid rgba(255,255,255,.15);border-radius:999px;font-size:12px;opacity:.9}
+    .stake-shell {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 32px 20px 80px;
+    }
+
+    .stake-hero {
+      text-align: center;
+      margin-bottom: 28px;
+    }
+
+    .stake-kicker {
+      display: inline-block;
+      margin-bottom: 10px;
+      padding: 6px 12px;
+      border: 1px solid rgba(255,255,255,0.15);
+      border-radius: 999px;
+      font-size: 12px;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      opacity: 0.8;
+    }
+
+    .stake-title {
+      font-size: clamp(34px, 6vw, 72px);
+      line-height: 1;
+      margin: 0 0 12px;
+    }
+
+    .stake-copy {
+      max-width: 760px;
+      margin: 0 auto;
+      opacity: 0.82;
+      font-size: 16px;
+      line-height: 1.6;
+    }
+
+    .stake-grid {
+      display: grid;
+      grid-template-columns: 1.1fr 1.9fr;
+      gap: 20px;
+      align-items: start;
+    }
+
+    .panel {
+      border: 1px solid rgba(255,255,255,0.12);
+      border-radius: 20px;
+      padding: 20px;
+      background: rgba(255,255,255,0.03);
+      backdrop-filter: blur(10px);
+    }
+
+    .panel h2 {
+      margin: 0 0 14px;
+      font-size: 20px;
+    }
+
+    .stats {
+      display: grid;
+      gap: 12px;
+      margin-bottom: 18px;
+    }
+
+    .stat {
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 16px;
+      padding: 14px;
+      background: rgba(255,255,255,0.025);
+    }
+
+    .stat-label {
+      display: block;
+      font-size: 12px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      opacity: 0.65;
+      margin-bottom: 6px;
+    }
+
+    .stat-value {
+      font-size: 28px;
+      font-weight: 700;
+    }
+
+    .action-stack {
+      display: grid;
+      gap: 10px;
+    }
+
+    .action-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    .stake-btn {
+      appearance: none;
+      border: 0;
+      border-radius: 14px;
+      padding: 14px 16px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: transform 0.15s ease, opacity 0.15s ease;
+    }
+
+    .stake-btn:hover {
+      transform: translateY(-1px);
+    }
+
+    .stake-btn:disabled {
+      opacity: 0.45;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    .stake-btn-primary {
+      background: #9c7cff;
+      color: #fff;
+    }
+
+    .stake-btn-secondary {
+      background: rgba(255,255,255,0.08);
+      color: #fff;
+      border: 1px solid rgba(255,255,255,0.12);
+    }
+
+    .status-box {
+      margin-top: 16px;
+      font-size: 14px;
+      line-height: 1.5;
+      opacity: 0.9;
+      min-height: 22px;
+    }
+
+    .tabs {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 16px;
+      flex-wrap: wrap;
+    }
+
+    .tab-btn {
+      appearance: none;
+      border: 1px solid rgba(255,255,255,0.12);
+      background: rgba(255,255,255,0.03);
+      color: #fff;
+      border-radius: 999px;
+      padding: 10px 14px;
+      cursor: pointer;
+    }
+
+    .tab-btn.active {
+      background: #9c7cff;
+      border-color: #9c7cff;
+    }
+
+    .toolbar {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-bottom: 16px;
+    }
+
+    .toolbar button {
+      appearance: none;
+      border: 1px solid rgba(255,255,255,0.12);
+      background: rgba(255,255,255,0.04);
+      color: #fff;
+      border-radius: 12px;
+      padding: 10px 12px;
+      cursor: pointer;
+    }
+
+    .nft-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+      gap: 14px;
+    }
+
+    .nft-card {
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 18px;
+      overflow: hidden;
+      background: rgba(255,255,255,0.03);
+      cursor: pointer;
+      transition: transform 0.15s ease, border-color 0.15s ease;
+    }
+
+    .nft-card:hover {
+      transform: translateY(-2px);
+      border-color: rgba(156,124,255,0.65);
+    }
+
+    .nft-card.selected {
+      border-color: #9c7cff;
+      box-shadow: 0 0 0 1px #9c7cff inset;
+    }
+
+    .nft-image-wrap {
+      aspect-ratio: 1 / 1;
+      background: rgba(255,255,255,0.04);
+      display: grid;
+      place-items: center;
+      overflow: hidden;
+    }
+
+    .nft-image-wrap img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+
+    .nft-meta {
+      padding: 12px;
+    }
+
+    .nft-name {
+      font-size: 14px;
+      font-weight: 700;
+      margin-bottom: 4px;
+    }
+
+    .nft-sub {
+      font-size: 12px;
+      opacity: 0.7;
+    }
+
+    .empty-state {
+      padding: 28px 10px;
+      text-align: center;
+      opacity: 0.7;
+    }
+
+    .note {
+      margin-top: 18px;
+      font-size: 13px;
+      line-height: 1.6;
+      opacity: 0.7;
+    }
+
+    @media (max-width: 900px) {
+      .stake-grid {
+        grid-template-columns: 1fr;
+      }
+    }
   </style>
 </head>
-
 <body>
-  <header class="topnav">
-    <div class="topnav__inner">
-      <a class="topnav__brand" href="/">DYOOR</a>
-      <nav class="topnav__links">
-        <a href="/whitepaper">Whitepaper</a>
-        <a class="is-on" href="/stake">Stake</a>
-        <a href="/swap">Swap</a>
-      </nav>
-    </div>
-  </header>
-
-  <main class="pageWrap">
-    <section class="hero">
-      <h1>Soft Staking</h1>
-      <p>Hold DYOOR NFTs and register for snapshot rewards.</p>
+  <main class="stake-shell">
+    <section class="stake-hero">
+      <div class="stake-kicker">Ascension Protocol</div>
+      <h1 class="stake-title">Choose to Ascend</h1>
+      <p class="stake-copy">
+        Stake your DYOOR to enter the Ascension Protocol. Each ascended NFT generates
+        <strong>24 Energy per day</strong>. Those who ascend are aligned for the
+        Season 2 1:1 Droid rebirth.
+      </p>
     </section>
 
-    <section class="card">
-      <div class="grid2">
-        <div>
-          <div class="pill" id="chainPill">Monad • EVM</div>
-          <div style="height:10px"></div>
-          <div class="muted" id="walletStatus">Not connected</div>
-          <div class="mini" id="walletAddr">—</div>
+    <section class="stake-grid">
+      <aside class="panel">
+        <h2>Ascension Status</h2>
+
+        <div class="stats">
+          <div class="stat">
+            <span class="stat-label">Wallet</span>
+            <div class="stat-value" id="walletStatus">Not Connected</div>
+          </div>
+
+          <div class="stat">
+            <span class="stat-label">Pending Energy</span>
+            <div class="stat-value" id="pendingEnergy">0.00</div>
+          </div>
+
+          <div class="stat">
+            <span class="stat-label">Energy Rate</span>
+            <div class="stat-value" id="energyRate">0 / day</div>
+          </div>
+
+          <div class="stat">
+            <span class="stat-label">Selected</span>
+            <div class="stat-value" id="selectedCount">0</div>
+          </div>
         </div>
 
-        <div class="row" style="justify-content:flex-start">
-          <!-- IMPORTANT: script.js expects this id -->
-          <button class="btn btn--primary" id="btnConnectWL" type="button">Connect Wallet</button>
-          <button class="btn" id="btnRefresh" type="button">Refresh</button>
+        <div class="action-stack">
+          <button class="stake-btn stake-btn-primary" id="connectBtn">Connect Wallet</button>
+
+          <div class="action-row">
+            <button class="stake-btn stake-btn-secondary" id="ascendSelectedBtn" disabled>Ascend Selected</button>
+            <button class="stake-btn stake-btn-secondary" id="ascendAllBtn" disabled>Ascend All</button>
+          </div>
+
+          <div class="action-row">
+            <button class="stake-btn stake-btn-secondary" id="disconnectSelectedBtn" disabled>Disconnect Selected</button>
+            <button class="stake-btn stake-btn-secondary" id="harvestBtn" disabled>Harvest Energy</button>
+          </div>
         </div>
-      </div>
 
-      <div style="height:14px"></div>
+        <div class="status-box" id="statusBox">Awaiting connection.</div>
 
-      <div class="row">
-        <div class="mini">Holdings loaded.</div>
-        <div class="mini">Contract:</div>
-        <div class="mini" id="contractLine">—</div>
-      </div>
-
-      <div style="height:14px"></div>
-
-      <div class="row">
-        <div class="card" style="margin:0;flex:1">
-          <div class="mini muted">Soft Staked</div>
-          <div style="font-size:28px;font-weight:800" id="softStakedCount">0</div>
+        <div class="note">
+          Not all will ascend. Staked DYOOR generate Energy continuously and align for
+          the Season 2 Transcendence event.
         </div>
-        <div class="card" style="margin:0;flex:1">
-          <div class="mini muted">Status</div>
-          <div style="font-size:18px;font-weight:700" id="stakeStatusPill">Not Staked</div>
+      </aside>
+
+      <section class="panel">
+        <div class="tabs">
+          <button class="tab-btn active" data-tab="wallet">Available to Ascend</button>
+          <button class="tab-btn" data-tab="staked">Currently Ascending</button>
         </div>
-        <div class="card" style="margin:0;flex:1">
-          <div class="mini muted">Loyalty Points</div>
-          <div style="font-size:18px;font-weight:800" id="loyaltyPoints">0</div>
+
+        <div class="toolbar">
+          <button id="selectAllVisibleBtn">Select All Visible</button>
+          <button id="clearSelectionBtn">Clear Selection</button>
+          <button id="refreshBtn">Refresh</button>
         </div>
-      </div>
 
-      <div style="height:14px"></div>
-
-      <div class="row">
-        <input id="stakeAmount" inputmode="numeric" placeholder="Amount to stake (e.g. 3)" style="flex:1;min-width:220px" />
-        <button class="btn btn--primary" id="btnStake" type="button">Stake</button>
-        <button class="btn" id="btnStakeAll" type="button">Stake All</button>
-        <button class="btn" id="btnSync" type="button">Sync Points</button>
-        <button class="btn btn--ghost" id="btnUnstake" type="button">Unstake</button>
-        <button class="btn btn--ghost" id="btnUnstakeAll" type="button">Unstake All</button>
-      </div>
-
-      <div style="height:12px"></div>
-      <div class="mini" id="statusBox">Ready.</div>
-
-      <div style="height:14px"></div>
-
-      <button class="btn btn--ghost" id="btnDownloadSnapshot" type="button">
-        Download Soft Stake Snapshot (CSV)
-      </button>
-      <div class="mini muted" style="margin-top:6px">
-        Uses server snapshot if enabled. If not available, downloads only your wallet’s local state.
-      </div>
+        <div id="nftGrid" class="nft-grid"></div>
+        <div id="emptyState" class="empty-state" style="display:none;">No NFTs found in this view.</div>
+      </section>
     </section>
-
-    <section class="card">
-      <div class="row" style="justify-content:space-between">
-        <h2 style="margin:0">Leaderboard</h2>
-        <div class="row">
-          <button class="btn" id="btnLoadLeaderboard" type="button">Refresh Leaderboard</button>
-          <button class="btn" id="btnExportLeaderboard" type="button">Export CSV</button>
-        </div>
-      </div>
-
-      <div style="height:10px"></div>
-
-      <table>
-        <thead>
-          <tr>
-            <th>Wallet</th>
-            <th>Staked NFTs</th>
-            <th>On-chain holdings</th>
-            <th>Last update</th>
-          </tr>
-        </thead>
-        <tbody id="leaderboardBody">
-          <tr><td colspan="4" class="mini muted">No data yet.</td></tr>
-        </tbody>
-      </table>
-    </section>
-
-    <div class="mini muted" style="padding:10px 2px 40px">
-      Safety: DYOOR will never ask for your seed phrase. Verify you are on the real dyoor.xyz domain before signing.
-    </div>
   </main>
 
-  <script defer src="https://cdn.jsdelivr.net/npm/ethers@6.13.0/dist/ethers.umd.min.js"></script>
-  <script defer src="https://unpkg.com/@walletconnect/ethereum-provider@2.23.1/dist/index.umd.js"></script>
-  <script defer src="/script.js?v=stake2"></script>
-  <script defer src="/stake.js?v=stake2"></script>
-
-  <!-- Wallet Connect Modal (shared) -->
-  <div id="walletModal" class="wallet-modal" aria-hidden="true">
-    <div class="wallet-modal__backdrop" data-close="1"></div>
-    <div class="wallet-modal__panel" role="dialog" aria-modal="true" aria-label="Connect wallet">
-      <div class="wallet-modal__header">
-        <div class="wallet-modal__title">Connect Wallet</div>
-        <button type="button" class="wallet-modal__close" data-close="1" aria-label="Close">✕</button>
-      </div>
-      <div class="wallet-modal__grid">
-        <button type="button" class="wallet-option" data-wallet="metamask">MetaMask</button>
-        <button type="button" class="wallet-option" data-wallet="okx">OKX Wallet</button>
-        <button type="button" class="wallet-option" data-wallet="phantom">Phantom (EVM)</button>
-        <button type="button" class="wallet-option" data-wallet="walletconnect">WalletConnect</button>
-      </div>
-      <div id="walletModalHint" class="wallet-modal__hint" style="display:none">
-        <div class="muted">On iOS, open this site inside your wallet’s in-app browser, or use WalletConnect.</div>
-      </div>
-      <div id="walletDeepLinks" class="wallet-modal__deeplinks" style="display:none">
-        <a class="deeplink" href="metamask://dapp/">Open in MetaMask</a>
-        <a class="deeplink" href="okex://wallet/dapp/details">Open in OKX</a>
-      </div>
-      <div class="wallet-modal__footer muted small">Monad • EVM</div>
-    </div>
-  </div>
+  <script src="https://cdn.jsdelivr.net/npm/ethers@6.13.2/dist/ethers.umd.min.js"></script>
+  <script src="stake.js"></script>
 </body>
 </html>
