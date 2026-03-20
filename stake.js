@@ -106,27 +106,31 @@ function extractName(item, tokenId) {
 }
 
 async function fetchOwnedNftsFromProxy(owner) {
-  const url = `${OPENSEA_PROXY}?chain=monad&address=${NFT_ADDRESS}&owner=${owner}&limit=200`;
-  const res = await fetch(url);
+  try {
+    const url = `https://api-mainnet.magiceden.dev/v2/wallets/${owner}/tokens?collection=${NFT_ADDRESS}`;
+    const res = await fetch(url);
 
-  if (!res.ok) {
-    throw new Error(`Proxy failed with ${res.status}`);
+    if (!res.ok) {
+      throw new Error(`API failed: ${res.status}`);
+    }
+
+    const data = await res.json();
+
+    return data
+      .map((item) => {
+        const tokenId = String(item.tokenId || item.id || "");
+        return {
+          tokenId,
+          source: "wallet",
+          name: item.name || `DYOOR #${tokenId}`,
+          image: item.image || item.imageUrl || ""
+        };
+      })
+      .filter((item) => item.tokenId);
+  } catch (err) {
+    console.error("NFT fetch failed", err);
+    throw new Error("Wallet connected, but NFT loading failed from external indexer.");
   }
-
-  const data = await res.json();
-  const items = pickArray(data);
-
-  return items
-    .map((item) => {
-      const tokenId = extractTokenId(item);
-      return {
-        tokenId,
-        source: "wallet",
-        name: extractName(item, tokenId),
-        image: extractImage(item)
-      };
-    })
-    .filter((item) => item.tokenId);
 }
 
 async function fetchTokenMetadata(tokenId) {
