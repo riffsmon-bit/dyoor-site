@@ -3,8 +3,8 @@ const CHAIN_ID_HEX = "0x8f";
 
 const NFT_ADDRESS = "0x2c79c9e233fea4b4dcfe6561d9209dc292cd932f";
 const STAKING_ADDRESS = "0x23C66179144d5d6D1a24E58BdB97CE6266a0ba8D";
-const OPENSEA_PROXY = "/.netlify/functions/opensea";
 const ENERGY_PER_DAY_PER_NFT = 24;
+const MAX_TOKEN_ID_SCAN = 1111;
 
 const stakingAbi = [
   "function stake(uint256[] calldata tokenIds)",
@@ -16,6 +16,8 @@ const stakingAbi = [
 ];
 
 const nftAbi = [
+  "function ownerOf(uint256 tokenId) view returns (address)",
+  "function tokenURI(uint256 tokenId) view returns (string)",
   "function isApprovedForAll(address owner, address operator) view returns (bool)",
   "function setApprovalForAll(address operator, bool approved)"
 ];
@@ -65,108 +67,71 @@ function normalizeIpfs(url) {
   return url;
 }
 
-function pickArray(data) {
-  return (
-    data?.nfts ||
-    data?.assets ||
-    data?.results ||
-    data?.tokens ||
-    data?.items ||
-    []
-  );
-}
-
-function extractTokenId(item) {
-  return String(
-    item?.token_id ??
-    item?.identifier ??
-    item?.id ??
-    item?.tokenId ??
-    ""
-  );
-}
-
-function extractImage(item) {
-  return normalizeIpfs(
-    item?.image_url ||
-    item?.image ||
-    item?.display_image_url ||
-    item?.image_original_url ||
-    item?.metadata?.image ||
-    ""
-  );
-}
-
-function extractName(item, tokenId) {
-  return (
-    item?.name ||
-    item?.metadata?.name ||
-    `DYOOR #${tokenId}`
-  );
-}
-
-async function fetchOwnedNftsFromProxy(owner) {
-  try {
-    const url = `https://api-mainnet.magiceden.dev/v2/wallets/${owner}/tokens?collection=${NFT_ADDRESS}`;
-    const res = await fetch(url);
-
-    if (!res.ok) {
-      throw new Error(`API failed: ${res.status}`);
-    }
-
-    const data = await res.json();
-
-    return data
-      .map((item) => {
-        const tokenId = String(item.tokenId || item.id || "");
-        return {
-          tokenId,
-          source: "wallet",
-          name: item.name || `DYOOR #${tokenId}`,
-          image: item.image || item.imageUrl || ""
-        };
-      })
-      .filter((item) => item.tokenId);
-  } catch (err) {
-    console.error("NFT fetch failed", err);
-    throw new Error("Wallet connected, but NFT loading failed from external indexer.");
-  }
-}
-
 async function fetchTokenMetadata(tokenId) {
   try {
-    const url = `${OPENSEA_PROXY}?chain=monad&address=${NFT_ADDRESS}&tokenId=${tokenId}`;
-    const res = await fetch(url);
+    const nft = new ethers.Contract(NFT_ADDRESS, nftAbi, provider);
+    let uri = await nft.tokenURI(tokenId);
 
-    if (res.ok) {
-      const data = await res.json();
-      const nft =
-        data?.nft ||
-        data?.asset ||
-        data?.item ||
-        data;
-
+    if (uri.startsWith("data:application/json;base64,")) {
+      const b64 = uri.split(",")[1];
+      const json = JSON.parse(atob(b64));
       return {
-        image: extractImage(nft),
-        name: extractName(nft, tokenId)
+        image: normalizeIpfs(json.image || ""),
+        name: json.name || `DYOOR #${tokenId}`
       };
     }
-  } catch (err) {
-    console.error("metadata fetch error", tokenId, err);
-  }
 
-  return {
-    image: "",
-    name: `DYOOR #${tokenId}`
-  };
+    uri = normalizeIpfs(uri);
+    const res = await fetch(uri);
+    const json = await res.json();
+
+    return {
+      image: normalizeIpfs(json.image || ""),
+      name: json.name || `DYOOR #${tokenId}`
+    };
+  } catch (err) {
+    console.error("metadata error", tokenId, err);
+    return {
+      image: "",
+      name: `DYOOR #${tokenId}`
+    };
+  }
 }
 
 async function getOwnedNfts(owner) {
   try {
-    return await fetchOwnedNftsFromProxy(owner);
+    const nft = new ethers.Contract(NFT_ADDRESS, nftAbi, provider);
+    const ownerLower = owner.toLowerCase();
+    const tokenIds = [];
+
+    setStatus("Scanning collection ownership...");
+
+    for (let i = 1; i <= MAX_TOKEN_ID_SCAN; i++) {
+      try {
+        const currentOwner = await nft.ownerOf(i);
+        if (currentOwner.toLowerCase() === ownerLower) {
+          tokenIds.push(String(i));
+        }
+      } catch {
+        // ignore nonexistent token ids
+      }
+    }
+
+    const items = [];
+    for (const tokenId of tokenIds) {
+      const meta = await fetchTokenMetadata(tokenId);
+      items.push({
+        tokenId,
+        source: "wallet",
+        name: meta.name,
+        image: meta.image
+      });
+    }
+
+    return items;
   } catch (err) {
     console.error("getOwnedNfts error", err);
-    throw new Error("Wallet connected, but NFT loading failed from the collection API.");
+    throw new Error("Wallet connected, but direct NFT scan failed.");
   }
 }
 
