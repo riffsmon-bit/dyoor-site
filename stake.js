@@ -3,6 +3,7 @@ const CHAIN_ID_HEX = "0x8f";
 
 const NFT_ADDRESS = "0x2c79c9e233fea4b4dcfe6561d9209dc292cd932f";
 const STAKING_ADDRESS = "0x23C66179144d5d6D1a24E58BdB97CE6266a0ba8D";
+const OPENSEA_PROXY = "/.netlify/functions/opensea";
 const ENERGY_PER_DAY_PER_NFT = 24;
 
 const stakingAbi = [
@@ -15,9 +16,6 @@ const stakingAbi = [
 ];
 
 const nftAbi = [
-  "function balanceOf(address owner) view returns (uint256)",
-  "function tokenOfOwnerByIndex(address owner, uint256 index) view returns (uint256)",
-  "function tokenURI(uint256 tokenId) view returns (string)",
   "function isApprovedForAll(address owner, address operator) view returns (bool)",
   "function setApprovalForAll(address operator, bool approved)"
 ];
@@ -67,55 +65,104 @@ function normalizeIpfs(url) {
   return url;
 }
 
-async function fetchTokenMetadata(tokenId) {
-  try {
-    const nft = new ethers.Contract(NFT_ADDRESS, nftAbi, provider);
-    let uri = await nft.tokenURI(tokenId);
-
-    if (uri.startsWith("data:application/json;base64,")) {
-      const b64 = uri.split(",")[1];
-      const json = JSON.parse(atob(b64));
-      return {
-        image: normalizeIpfs(json.image || ""),
-        name: json.name || `DYOOR #${tokenId}`
-      };
-    }
-
-    uri = normalizeIpfs(uri);
-    const res = await fetch(uri);
-    const json = await res.json();
-
-    return {
-      image: normalizeIpfs(json.image || ""),
-      name: json.name || `DYOOR #${tokenId}`
-    };
-  } catch (err) {
-    console.error("metadata error", tokenId, err);
-    return {
-      image: "",
-      name: `DYOOR #${tokenId}`
-    };
-  }
+function pickArray(data) {
+  return (
+    data?.nfts ||
+    data?.assets ||
+    data?.results ||
+    data?.tokens ||
+    data?.items ||
+    []
+  );
 }
 
-async function getOwnedTokenIds(owner) {
-  const nft = new ethers.Contract(NFT_ADDRESS, nftAbi, provider);
+function extractTokenId(item) {
+  return String(
+    item?.token_id ??
+    item?.identifier ??
+    item?.id ??
+    item?.tokenId ??
+    ""
+  );
+}
 
+function extractImage(item) {
+  return normalizeIpfs(
+    item?.image_url ||
+    item?.image ||
+    item?.display_image_url ||
+    item?.image_original_url ||
+    item?.metadata?.image ||
+    ""
+  );
+}
+
+function extractName(item, tokenId) {
+  return (
+    item?.name ||
+    item?.metadata?.name ||
+    `DYOOR #${tokenId}`
+  );
+}
+
+async function fetchOwnedNftsFromProxy(owner) {
+  const url = `${OPENSEA_PROXY}?chain=monad&address=${NFT_ADDRESS}&owner=${owner}&limit=200`;
+  const res = await fetch(url);
+
+  if (!res.ok) {
+    throw new Error(`Proxy failed with ${res.status}`);
+  }
+
+  const data = await res.json();
+  const items = pickArray(data);
+
+  return items
+    .map((item) => {
+      const tokenId = extractTokenId(item);
+      return {
+        tokenId,
+        source: "wallet",
+        name: extractName(item, tokenId),
+        image: extractImage(item)
+      };
+    })
+    .filter((item) => item.tokenId);
+}
+
+async function fetchTokenMetadata(tokenId) {
   try {
-    const balance = await nft.balanceOf(owner);
-    const ids = [];
+    const url = `${OPENSEA_PROXY}?chain=monad&address=${NFT_ADDRESS}&tokenId=${tokenId}`;
+    const res = await fetch(url);
 
-    for (let i = 0; i < Number(balance); i++) {
-      const tokenId = await nft.tokenOfOwnerByIndex(owner, i);
-      ids.push(tokenId.toString());
+    if (res.ok) {
+      const data = await res.json();
+      const nft =
+        data?.nft ||
+        data?.asset ||
+        data?.item ||
+        data;
+
+      return {
+        image: extractImage(nft),
+        name: extractName(nft, tokenId)
+      };
     }
-
-    return ids;
   } catch (err) {
-    console.error("getOwnedTokenIds error", err);
-    throw new Error(
-      "Wallet connected, but NFT loading failed. Your NFT contract may not support tokenOfOwnerByIndex (ERC721Enumerable)."
-    );
+    console.error("metadata fetch error", tokenId, err);
+  }
+
+  return {
+    image: "",
+    name: `DYOOR #${tokenId}`
+  };
+}
+
+async function getOwnedNfts(owner) {
+  try {
+    return await fetchOwnedNftsFromProxy(owner);
+  } catch (err) {
+    console.error("getOwnedNfts error", err);
+    throw new Error("Wallet connected, but NFT loading failed from the collection API.");
   }
 }
 
@@ -127,20 +174,18 @@ async function getStakedTokenIds(owner) {
     return ids.map((x) => x.toString());
   } catch (err) {
     console.error("getStakedTokenIds error", err);
-    throw new Error(
-      "Wallet connected, but staked NFT loading failed. Check tokensOfStaker on the staking contract."
-    );
+    throw new Error("Wallet connected, but staked NFT loading failed.");
   }
 }
 
-async function enrichTokenIds(tokenIds, source) {
+async function enrichStakedTokenIds(tokenIds) {
   const items = [];
 
   for (const tokenId of tokenIds) {
     const meta = await fetchTokenMetadata(tokenId);
     items.push({
       tokenId,
-      source,
+      source: "staked",
       name: meta.name,
       image: meta.image
     });
@@ -222,14 +267,11 @@ async function loadState() {
 
   try {
     setStatus("Loading wallet NFTs...");
-    const ownedIds = await getOwnedTokenIds(userAddress);
+    ownedNfts = await getOwnedNfts(userAddress);
 
     setStatus("Loading ascended NFTs...");
     const stakedIds = await getStakedTokenIds(userAddress);
-
-    setStatus("Loading metadata...");
-    ownedNfts = await enrichTokenIds(ownedIds, "wallet");
-    stakedNfts = await enrichTokenIds(stakedIds, "staked");
+    stakedNfts = await enrichStakedTokenIds(stakedIds);
 
     selectedIds.clear();
     updateSelectedCount();
@@ -484,7 +526,10 @@ if (window.ethereum) {
 }
 
 window.addEventListener("DOMContentLoaded", async () => {
-  if (!window.ethereum) return;
+  if (!window.ethereum) {
+    updateButtons();
+    return;
+  }
 
   try {
     const accounts = await window.ethereum.request({ method: "eth_accounts" });
