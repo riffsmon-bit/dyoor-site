@@ -3,6 +3,7 @@
   const STAKING_ADDRESS = "0xf9611226c1CcCcCa37951938d6f358D3d5106549";
   const NFT_ADDRESS = "0x2c79c9e233fea4b4dcfe6561d9209dc292cd932f";
   const MAX_SCAN = 1111;
+  const ZERO = "0x0000000000000000000000000000000000000000";
 
   let batteryFill;
   let batteryPercent;
@@ -18,13 +19,14 @@
 
   let recoveryPanel;
   let recoveryList;
+  let recoveryText;
   let fixAscensionBtn;
 
   let adminPanel;
   let snapshotBtn;
   let snapshotUnregisteredBtn;
 
-  let lastKnownUnregistered = [];
+  let lastKnownUserPending = [];
   let uiBooted = false;
   let statusPatched = false;
   let loadStatePatched = false;
@@ -48,6 +50,7 @@
 
     recoveryPanel = document.getElementById("recoveryPanel");
     recoveryList = document.getElementById("recoveryList");
+    recoveryText = recoveryPanel ? recoveryPanel.querySelector(".muted") : null;
     fixAscensionBtn = document.getElementById("fixAscensionBtn");
 
     adminPanel = document.getElementById("adminPanel");
@@ -85,62 +88,6 @@
     else if (pct > 0) label = "Charging";
 
     if (batteryState) batteryState.textContent = label;
-  }
-
-  async function findUnregisteredDeposits() {
-    if (!window.provider || !window.ethers) return [];
-
-    const provider = window.provider;
-    const nft = new ethers.Contract(
-      NFT_ADDRESS,
-      ["function ownerOf(uint256 tokenId) view returns (address)"],
-      provider
-    );
-
-    const staking = new ethers.Contract(
-      STAKING_ADDRESS,
-      ["function tokensOfStaker(address user) view returns (uint256[] memory)"],
-      provider
-    );
-
-    const currentUser = window.userAddress;
-    const stakedSet = new Set();
-
-    if (currentUser) {
-      try {
-        const stakedIds = await staking.tokensOfStaker(currentUser);
-        stakedIds.forEach((x) => stakedSet.add(String(x)));
-      } catch {}
-    }
-
-    const stuck = [];
-    for (let tokenId = 1; tokenId <= MAX_SCAN; tokenId++) {
-      try {
-        const owner = await nft.ownerOf(tokenId);
-        if (safeLower(owner) === safeLower(STAKING_ADDRESS) && !stakedSet.has(String(tokenId))) {
-          stuck.push(tokenId);
-        }
-      } catch {}
-    }
-
-    return stuck;
-  }
-
-  function renderRecovery(ids) {
-    lastKnownUnregistered = ids.slice();
-
-    if (!ids.length) {
-      recoveryPanel?.classList.add("hidden");
-      if (recoveryList) recoveryList.innerHTML = "";
-      return;
-    }
-
-    recoveryPanel?.classList.remove("hidden");
-    if (recoveryList) {
-      recoveryList.innerHTML = ids
-        .map((id) => `<span class="token-chip">#${id}</span>`)
-        .join("");
-    }
   }
 
   async function showAdminIfOwner() {
@@ -205,7 +152,7 @@
         const info = await staking.stakeInfo(tokenId);
         const trackedOwner = info.owner;
 
-        if (trackedOwner && safeLower(trackedOwner) !== safeLower("0x0000000000000000000000000000000000000000")) {
+        if (trackedOwner && safeLower(trackedOwner) !== safeLower(ZERO)) {
           const key = ethers.getAddress(trackedOwner);
           if (!stakersMap.has(key)) {
             stakersMap.set(key, {
@@ -273,11 +220,131 @@
     downloadFile("dyoor_unregistered_deposits.csv", csv);
   }
 
-  async function handleFixRegistration() {
-    if (!lastKnownUnregistered.length) {
-      alert("No pending deposits found.");
+  function tokenIdTopic(tokenId) {
+    return ethers.zeroPadValue(ethers.toBeHex(tokenId), 32);
+  }
+
+  async function getLatestDepositorForToken(tokenId) {
+    if (!window.provider || !window.ethers) return null;
+
+    const provider = window.provider;
+    const transferTopic = ethers.id("Transfer(address,address,uint256)");
+    const stakingTopic = ethers.zeroPadValue(STAKING_ADDRESS, 32);
+    const topicTokenId = tokenIdTopic(tokenId);
+
+    try {
+      const logs = await provider.getLogs({
+        address: NFT_ADDRESS,
+        fromBlock: 0,
+        toBlock: "latest",
+        topics: [transferTopic, null, stakingTopic, topicTokenId]
+      });
+
+      if (!logs.length) return null;
+
+      const last = logs[logs.length - 1];
+      const fromTopic = last.topics[1];
+      const depositor = ethers.getAddress("0x" + fromTopic.slice(26));
+      return depositor;
+    } catch (err) {
+      console.warn(`Could not resolve depositor for token #${tokenId}`, err);
+      return null;
+    }
+  }
+
+  async function findPendingDepositsForCurrentWallet() {
+    if (!window.provider || !window.ethers || !window.userAddress) {
+      return { mine: [], all: [] };
+    }
+
+    const provider = window.provider;
+    const nft = new ethers.Contract(
+      NFT_ADDRESS,
+      ["function ownerOf(uint256 tokenId) view returns (address)"],
+      provider
+    );
+
+    const staking = new ethers.Contract(
+      STAKING_ADDRESS,
+      ["function stakeInfo(uint256 tokenId) view returns (address owner, uint64 stakedAt)"],
+      provider
+    );
+
+    const allPending = [];
+    const mine = [];
+
+    for (let tokenId = 1; tokenId <= MAX_SCAN; tokenId++) {
+      let owner;
+      try {
+        owner = await nft.ownerOf(tokenId);
+      } catch {
+        continue;
+      }
+
+      if (safeLower(owner) !== safeLower(STAKING_ADDRESS)) continue;
+
+      try {
+        const info = await staking.stakeInfo(tokenId);
+        if (info.owner && safeLower(info.owner) !== safeLower(ZERO)) {
+          continue;
+        }
+      } catch {
+        // treat as pending if stakeInfo can't be read cleanly
+      }
+
+      allPending.push(tokenId);
+
+      const depositor = await getLatestDepositorForToken(tokenId);
+      if (depositor && safeLower(depositor) === safeLower(window.userAddress)) {
+        mine.push(tokenId);
+      }
+    }
+
+    return { mine, all: allPending };
+  }
+
+  function renderRecovery(result) {
+    const mine = result?.mine || [];
+    const all = result?.all || [];
+    lastKnownUserPending = mine.slice();
+
+    if (!mine.length) {
+      recoveryPanel?.classList.add("hidden");
+      if (recoveryList) recoveryList.innerHTML = "";
       return;
     }
+
+    recoveryPanel?.classList.remove("hidden");
+
+    if (recoveryText) {
+      recoveryText.textContent =
+        `NFTs you deposited into the staking contract but have not yet fully registered. ` +
+        `Detected ${mine.length} pending token${mine.length === 1 ? "" : "s"} for this wallet.`;
+    }
+
+    if (recoveryList) {
+      recoveryList.innerHTML = mine
+        .map((id) => `<span class="token-chip">#${id}</span>`)
+        .join("");
+    }
+
+    if (fixAscensionBtn) {
+      fixAscensionBtn.textContent =
+        mine.length > 1 ? `Fix All (${mine.length})` : "Complete Registration";
+      fixAscensionBtn.disabled = mine.length === 0;
+      fixAscensionBtn.title =
+        all.length > mine.length
+          ? "Only your pending deposits are shown and fixable from this wallet."
+          : "Register your pending deposits.";
+    }
+  }
+
+  async function handleFixRegistration() {
+    if (!lastKnownUserPending.length) {
+      alert("No pending deposits found for this wallet.");
+      return;
+    }
+
     if (!window.userAddress || !window.ethereum || !window.ethers) {
       alert("Connect wallet first.");
       return;
@@ -291,7 +358,7 @@
         gas: "0xC3500",
         data: new ethers.Interface([
           "function stakeDeposited(uint256[] calldata tokenIds)"
-        ]).encodeFunctionData("stakeDeposited", [lastKnownUnregistered.map((x) => BigInt(x))])
+        ]).encodeFunctionData("stakeDeposited", [lastKnownUserPending.map((x) => BigInt(x))])
       }]
     });
 
@@ -334,8 +401,8 @@
   async function refreshUiPanels() {
     updateBatteryFromPage();
     await showAdminIfOwner();
-    const ids = await findUnregisteredDeposits();
-    renderRecovery(ids);
+    const pending = await findPendingDepositsForCurrentWallet();
+    renderRecovery(pending);
   }
 
   function bindEvents() {
