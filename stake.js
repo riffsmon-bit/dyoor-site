@@ -89,9 +89,7 @@ function formatError(err, fallback = "Unknown error.") {
 }
 
 async function waitForHash(txHash, timeoutMs = 180000, pollMs = 1500) {
-  if (!txHash) {
-    throw new Error("Missing transaction hash.");
-  }
+  if (!txHash) throw new Error("Missing transaction hash.");
 
   setStatus(`Waiting for confirmation... ${txHash.slice(0, 10)}...`);
   const started = Date.now();
@@ -103,18 +101,32 @@ async function waitForHash(txHash, timeoutMs = 180000, pollMs = 1500) {
     });
 
     if (receipt) {
-      if (receipt.status === "0x1") {
-        return receipt;
-      }
-      if (receipt.status === "0x0") {
-        throw new Error(`Transaction failed: ${txHash}`);
-      }
+      if (receipt.status === "0x1") return receipt;
+      if (receipt.status === "0x0") throw new Error(`Transaction failed: ${txHash}`);
     }
 
     await new Promise((resolve) => setTimeout(resolve, pollMs));
   }
 
   throw new Error(`Timed out waiting for confirmation: ${txHash}`);
+}
+
+async function sendContractTx(to, abi, fnName, args = []) {
+  const iface = new ethers.Interface(abi);
+  const data = iface.encodeFunctionData(fnName, args);
+
+  const txHash = await window.ethereum.request({
+    method: "eth_sendTransaction",
+    params: [
+      {
+        from: userAddress,
+        to,
+        data
+      }
+    ]
+  });
+
+  return txHash;
 }
 
 async function fetchTokenMetadata(tokenId) {
@@ -164,10 +176,7 @@ async function getOwnedNfts(owner) {
       for (let tokenId = start; tokenId <= end; tokenId++) {
         batch.push(
           nft.ownerOf(tokenId)
-            .then((currentOwner) => ({
-              tokenId,
-              owner: currentOwner
-            }))
+            .then((currentOwner) => ({ tokenId, owner: currentOwner }))
             .catch(() => null)
         );
       }
@@ -176,7 +185,6 @@ async function getOwnedNfts(owner) {
 
       for (const result of results) {
         if (!result) continue;
-
         try {
           if (ethers.getAddress(result.owner) === ownerChecksum) {
             tokenIds.push(String(result.tokenId));
@@ -209,7 +217,6 @@ async function getOwnedNfts(owner) {
 
 async function getStakedTokenIds(owner) {
   const staking = new ethers.Contract(STAKING_ADDRESS, stakingAbi, provider);
-
   try {
     const ids = await staking.tokensOfStaker(owner);
     return ids.map((x) => x.toString());
@@ -221,7 +228,6 @@ async function getStakedTokenIds(owner) {
 
 async function enrichStakedTokenIds(tokenIds) {
   const items = [];
-
   for (const tokenId of tokenIds) {
     const meta = await fetchTokenMetadata(tokenId);
     items.push({
@@ -231,7 +237,6 @@ async function enrichStakedTokenIds(tokenIds) {
       image: meta.image
     });
   }
-
   return items;
 }
 
@@ -339,7 +344,6 @@ async function loadState() {
 
 async function ensureMonadNetwork() {
   const current = await window.ethereum.request({ method: "eth_chainId" });
-
   if (current === CHAIN_ID_HEX) return;
 
   try {
@@ -377,7 +381,6 @@ async function connectWallet() {
 
   try {
     setStatus("Connecting wallet...");
-
     provider = new ethers.BrowserProvider(window.ethereum);
 
     await ensureMonadNetwork();
@@ -399,19 +402,24 @@ async function connectWallet() {
 }
 
 async function ensureApproval() {
-  const nft = new ethers.Contract(NFT_ADDRESS, nftAbi, signer);
+  const nftRead = new ethers.Contract(NFT_ADDRESS, nftAbi, provider);
 
-  const approved = await nft.isApprovedForAll(userAddress, STAKING_ADDRESS);
+  const approved = await nftRead.isApprovedForAll(userAddress, STAKING_ADDRESS);
   console.log("isApprovedForAll before:", approved, "owner:", userAddress, "operator:", STAKING_ADDRESS);
 
   if (approved) return true;
 
   setStatus("Approval required. Confirm in wallet...");
-  const tx = await nft.setApprovalForAll(STAKING_ADDRESS, true);
-  console.log("approval tx hash:", tx.hash);
-  await waitForHash(tx.hash);
+  const txHash = await sendContractTx(
+    NFT_ADDRESS,
+    nftAbi,
+    "setApprovalForAll",
+    [STAKING_ADDRESS, true]
+  );
+  console.log("approval tx hash:", txHash);
+  await waitForHash(txHash);
 
-  const approvedAfter = await nft.isApprovedForAll(userAddress, STAKING_ADDRESS);
+  const approvedAfter = await nftRead.isApprovedForAll(userAddress, STAKING_ADDRESS);
   console.log("isApprovedForAll after:", approvedAfter);
 
   if (!approvedAfter) {
@@ -429,13 +437,10 @@ async function ascendTokenIds(tokenIds) {
     }
 
     const normalizedIds = tokenIds.map((id) => BigInt(String(id)));
+    const nftRead = new ethers.Contract(NFT_ADDRESS, nftAbi, provider);
 
     setStatus(`Preparing ${normalizedIds.length} NFT(s) for ascension...`);
     await ensureApproval();
-
-    const nftWithSigner = new ethers.Contract(NFT_ADDRESS, nftAbi, signer);
-    const nftRead = new ethers.Contract(NFT_ADDRESS, nftAbi, provider);
-    const staking = new ethers.Contract(STAKING_ADDRESS, stakingAbi, signer);
 
     for (const id of normalizedIds) {
       const ownerNow = await nftRead.ownerOf(id);
@@ -446,15 +451,25 @@ async function ascendTokenIds(tokenIds) {
 
     setStatus("Depositing NFT(s) into staking contract...");
     for (const id of normalizedIds) {
-      const tx = await nftWithSigner.transferFrom(userAddress, STAKING_ADDRESS, id);
-      console.log("deposit tx hash:", tx.hash, "token:", id.toString());
-      await waitForHash(tx.hash);
+      const txHash = await sendContractTx(
+        NFT_ADDRESS,
+        nftAbi,
+        "transferFrom",
+        [userAddress, STAKING_ADDRESS, id]
+      );
+      console.log("deposit tx hash:", txHash, "token:", id.toString());
+      await waitForHash(txHash);
     }
 
     setStatus("Registering deposited NFT(s)...");
-    const registerTx = await staking.stakeDeposited(normalizedIds);
-    console.log("stakeDeposited tx hash:", registerTx.hash);
-    await waitForHash(registerTx.hash);
+    const registerHash = await sendContractTx(
+      STAKING_ADDRESS,
+      stakingAbi,
+      "stakeDeposited",
+      [normalizedIds]
+    );
+    console.log("stakeDeposited tx hash:", registerHash);
+    await waitForHash(registerHash);
 
     setStatus("Ascension complete.");
     await loadState();
@@ -472,12 +487,16 @@ async function disconnectTokenIds(tokenIds) {
 
   try {
     const normalizedIds = tokenIds.map((id) => BigInt(String(id)));
-    const staking = new ethers.Contract(STAKING_ADDRESS, stakingAbi, signer);
 
     setStatus("Disconnecting from the protocol...");
-    const tx = await staking.unstake(normalizedIds);
-    console.log("unstake tx hash:", tx.hash);
-    await waitForHash(tx.hash);
+    const txHash = await sendContractTx(
+      STAKING_ADDRESS,
+      stakingAbi,
+      "unstake",
+      [normalizedIds]
+    );
+    console.log("unstake tx hash:", txHash);
+    await waitForHash(txHash);
 
     setStatus("Disconnect complete.");
     await loadState();
@@ -489,12 +508,15 @@ async function disconnectTokenIds(tokenIds) {
 
 async function harvestEnergy() {
   try {
-    const staking = new ethers.Contract(STAKING_ADDRESS, stakingAbi, signer);
-
     setStatus("Harvesting Energy...");
-    const tx = await staking.claimPoints();
-    console.log("claimPoints tx hash:", tx.hash);
-    await waitForHash(tx.hash);
+    const txHash = await sendContractTx(
+      STAKING_ADDRESS,
+      stakingAbi,
+      "claimPoints",
+      []
+    );
+    console.log("claimPoints tx hash:", txHash);
+    await waitForHash(txHash);
 
     setStatus("Energy harvested.");
     await loadState();
@@ -545,34 +567,28 @@ connectBtn.addEventListener("click", connectWallet);
 
 ascendSelectedBtn.addEventListener("click", async () => {
   const ids = selectedVisibleTokenIds();
-
   if (!ids.length) {
     setStatus("No NFTs selected.");
     return;
   }
-
   await ascendTokenIds(ids);
 });
 
 ascendAllBtn.addEventListener("click", async () => {
   const ids = ownedNfts.map((x) => x.tokenId);
-
   if (!ids.length) {
     setStatus("No NFTs available to ascend.");
     return;
   }
-
   await ascendTokenIds(ids);
 });
 
 disconnectSelectedBtn.addEventListener("click", async () => {
   const ids = selectedVisibleTokenIds();
-
   if (!ids.length) {
     setStatus("No NFTs selected.");
     return;
   }
-
   await disconnectTokenIds(ids);
 });
 
