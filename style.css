@@ -1320,3 +1320,74 @@ body {
   background: rgba(62, 231, 216, 0.08);
   border: 1px solid rgba(62, 231, 216, 0.2);
 }
+/* ===== Stake page additions ===== */
+.hidden { display: none !important; }
+
+.progress-list { display:grid; gap:8px; }
+.progress-step {
+  display:flex;
+  justify-content:space-between;
+  gap:12px;
+  padding:10px 12px;
+  border-radius:12px;
+  background: rgba(255,255,255,.03);
+  border: 1px solid rgba(255,255,255,.08);
+  font-size: 13px;
+}
+.progress-step.is-active {
+  border-color: rgba(143,99,255,.45);
+  background: rgba(143,99,255,.10);
+}
+.progress-step.is-done {
+  border-color: rgba(37,227,166,.35);
+  background: rgba(37,227,166,.08);
+}
+
+.battery-wrap { display:grid; gap:8px; }
+.battery-top {
+  display:flex;
+  justify-content:space-between;
+  gap:12px;
+  font-size:13px;
+  opacity:.85;
+}
+.battery-bar {
+  position: relative;
+  height: 16px;
+  border-radius: 999px;
+  background: rgba(255,255,255,.06);
+  border: 1px solid rgba(255,255,255,.10);
+  overflow: hidden;
+}
+.battery-fill {
+  height:100%;
+  width:0%;
+  background: linear-gradient(90deg, rgba(143,99,255,.95), rgba(37,227,166,.9));
+  transition: width .25s ease;
+}
+
+.token-chip-list { display:flex; flex-wrap:wrap; gap:8px; }
+.token-chip {
+  padding:8px 10px;
+  border-radius:999px;
+  background: rgba(255,255,255,.06);
+  border: 1px solid rgba(255,255,255,.10);
+  font-size:12px;
+}
+
+details.faq-item {
+  border: 1px solid rgba(255,255,255,.08);
+  border-radius: 14px;
+  background: rgba(255,255,255,.03);
+  padding: 12px 14px;
+}
+details.faq-item + details.faq-item { margin-top: 10px; }
+details.faq-item summary {
+  cursor:pointer;
+  font-weight:700;
+}
+details.faq-item p {
+  margin:10px 0 0;
+  opacity:.8;
+  line-height:1.6;
+}
