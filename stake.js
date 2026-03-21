@@ -25,7 +25,8 @@ const nftAbi = [
   "function ownerOf(uint256 tokenId) view returns (address)",
   "function tokenURI(uint256 tokenId) view returns (string)",
   "function isApprovedForAll(address owner, address operator) view returns (bool)",
-  "function setApprovalForAll(address operator, bool approved)"
+  "function setApprovalForAll(address operator, bool approved)",
+  "function transferFrom(address from, address to, uint256 tokenId)"
 ];
 
 let provider;
@@ -87,23 +88,33 @@ function formatError(err, fallback = "Unknown error.") {
   );
 }
 
-async function waitForHash(txHash) {
+async function waitForHash(txHash, timeoutMs = 180000, pollMs = 1500) {
   if (!txHash) {
     throw new Error("Missing transaction hash.");
   }
 
   setStatus(`Waiting for confirmation... ${txHash.slice(0, 10)}...`);
-  const receipt = await provider.waitForTransaction(txHash);
+  const started = Date.now();
 
-  if (!receipt) {
-    throw new Error("Transaction confirmation not found.");
+  while (Date.now() - started < timeoutMs) {
+    const receipt = await window.ethereum.request({
+      method: "eth_getTransactionReceipt",
+      params: [txHash]
+    });
+
+    if (receipt) {
+      if (receipt.status === "0x1") {
+        return receipt;
+      }
+      if (receipt.status === "0x0") {
+        throw new Error(`Transaction failed: ${txHash}`);
+      }
+    }
+
+    await new Promise((resolve) => setTimeout(resolve, pollMs));
   }
 
-  if (receipt.status !== 1) {
-    throw new Error(`Transaction failed: ${txHash}`);
-  }
-
-  return receipt;
+  throw new Error(`Timed out waiting for confirmation: ${txHash}`);
 }
 
 async function fetchTokenMetadata(tokenId) {
@@ -422,11 +433,12 @@ async function ascendTokenIds(tokenIds) {
     setStatus(`Preparing ${normalizedIds.length} NFT(s) for ascension...`);
     await ensureApproval();
 
-    const nft = new ethers.Contract(NFT_ADDRESS, nftAbi, signer);
+    const nftWithSigner = new ethers.Contract(NFT_ADDRESS, nftAbi, signer);
+    const nftRead = new ethers.Contract(NFT_ADDRESS, nftAbi, provider);
     const staking = new ethers.Contract(STAKING_ADDRESS, stakingAbi, signer);
 
     for (const id of normalizedIds) {
-      const ownerNow = await new ethers.Contract(NFT_ADDRESS, nftAbi, provider).ownerOf(id);
+      const ownerNow = await nftRead.ownerOf(id);
       if (ethers.getAddress(ownerNow) !== ethers.getAddress(userAddress)) {
         throw new Error(`Token #${id.toString()} is not in your wallet.`);
       }
@@ -434,7 +446,7 @@ async function ascendTokenIds(tokenIds) {
 
     setStatus("Depositing NFT(s) into staking contract...");
     for (const id of normalizedIds) {
-      const tx = await nft.transferFrom(userAddress, STAKING_ADDRESS, id);
+      const tx = await nftWithSigner.transferFrom(userAddress, STAKING_ADDRESS, id);
       console.log("deposit tx hash:", tx.hash, "token:", id.toString());
       await waitForHash(tx.hash);
     }
