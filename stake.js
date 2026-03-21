@@ -394,8 +394,8 @@ async function ensureApproval() {
 
   setStatus("Approval required. Confirm in wallet...");
   const tx = await nft.setApprovalForAll(STAKING_ADDRESS, true);
-  console.log("approval tx hash:", tx.hash);
-  await tx.wait();
+console.log("approval tx hash:", tx.hash);
+await provider.waitForTransaction(tx.hash);
 
   const approvedAfter = await nft.isApprovedForAll(userAddress, STAKING_ADDRESS);
   console.log("isApprovedForAll after:", approvedAfter);
@@ -467,8 +467,8 @@ async function ascendTokenIds(tokenIds) {
 
     setStatus("Ascension in progress...");
     const tx = await staking.stake(normalizedIds);
-    console.log("stake tx hash:", tx.hash);
-    await tx.wait();
+console.log("stake tx hash:", tx.hash);
+await provider.waitForTransaction(tx.hash);
 
     setStatus("Ascension complete.");
     await loadState();
@@ -489,8 +489,9 @@ async function disconnectTokenIds(tokenIds) {
     const staking = new ethers.Contract(STAKING_ADDRESS, stakingAbi, signer);
 
     try {
-      const gas = await staking.unstake.estimateGas(normalizedIds);
-      console.log("unstake gas estimate:", gas.toString());
+      const tx = await staking.unstake(normalizedIds);
+console.log("unstake tx hash:", tx.hash);
+await provider.waitForTransaction(tx.hash);
     } catch (err) {
       console.error("unstake estimateGas error", err);
       throw new Error(formatError(err, "Gas estimation failed before unstaking."));
@@ -523,8 +524,8 @@ async function harvestEnergy() {
 
     setStatus("Harvesting Energy...");
     const tx = await staking.claimPoints();
-    console.log("claimPoints tx hash:", tx.hash);
-    await tx.wait();
+console.log("claimPoints tx hash:", tx.hash);
+await provider.waitForTransaction(tx.hash);
 
     setStatus("Energy harvested.");
     await loadState();
