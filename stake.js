@@ -50,6 +50,19 @@ const statusBox = document.getElementById("statusBox");
 const nftGrid = document.getElementById("nftGrid");
 const emptyState = document.getElementById("emptyState");
 
+function syncStakeGlobals() {
+  window.provider = provider;
+  window.signer = signer;
+  window.userAddress = userAddress;
+  window.ownedNfts = ownedNfts;
+  window.stakedNfts = stakedNfts;
+  window.selectedIds = selectedIds;
+  window.loadState = loadState;
+  window.setStatus = setStatus;
+  window.waitForHash = waitForHash;
+  window.currentTab = currentTab;
+}
+
 function setStatus(message) {
   statusBox.textContent = message;
 }
@@ -276,6 +289,7 @@ function renderGrid() {
       } else {
         selectedIds.add(item.tokenId);
       }
+      syncStakeGlobals();
       updateSelectedCount();
       renderGrid();
       updateButtons();
@@ -313,7 +327,10 @@ async function updateEnergy() {
 }
 
 async function loadState() {
-  if (!userAddress || !provider) return;
+  if (!userAddress || !provider) {
+    syncStakeGlobals();
+    return;
+  }
 
   try {
     setStatus("Loading wallet NFTs...");
@@ -328,6 +345,7 @@ async function loadState() {
     renderGrid();
     updateButtons();
     await updateEnergy();
+    syncStakeGlobals();
 
     setStatus("Ascension state synchronized.");
   } catch (err) {
@@ -338,6 +356,7 @@ async function loadState() {
     updateSelectedCount();
     renderGrid();
     updateButtons();
+    syncStakeGlobals();
     setStatus(formatError(err, "Failed to load wallet state."));
   }
 }
@@ -392,6 +411,7 @@ async function connectWallet() {
 
     walletStatus.textContent = shorten(userAddress);
     connectBtn.textContent = "Connected";
+    syncStakeGlobals();
 
     setStatus("Wallet connected.");
     await loadState();
@@ -538,6 +558,7 @@ document.querySelectorAll(".tab-btn").forEach((btn) => {
     btn.classList.add("active");
     currentTab = btn.dataset.tab;
     selectedIds.clear();
+    syncStakeGlobals();
     updateSelectedCount();
     renderGrid();
     updateButtons();
@@ -546,6 +567,7 @@ document.querySelectorAll(".tab-btn").forEach((btn) => {
 
 document.getElementById("selectAllVisibleBtn").addEventListener("click", () => {
   getVisibleItems().forEach((item) => selectedIds.add(item.tokenId));
+  syncStakeGlobals();
   updateSelectedCount();
   renderGrid();
   updateButtons();
@@ -553,6 +575,7 @@ document.getElementById("selectAllVisibleBtn").addEventListener("click", () => {
 
 document.getElementById("clearSelectionBtn").addEventListener("click", () => {
   selectedIds.clear();
+  syncStakeGlobals();
   updateSelectedCount();
   renderGrid();
   updateButtons();
@@ -612,6 +635,7 @@ if (window.ethereum) {
       emptyState.textContent = "No unstaked DYOOR found in this wallet yet.";
       updateSelectedCount();
       updateButtons();
+      syncStakeGlobals();
       setStatus("Disconnected.");
       return;
     }
@@ -619,6 +643,7 @@ if (window.ethereum) {
     provider = new ethers.BrowserProvider(window.ethereum);
     signer = await provider.getSigner();
     userAddress = accounts[0];
+    syncStakeGlobals();
     walletStatus.textContent = shorten(userAddress);
     connectBtn.textContent = "Connected";
     setStatus("Account changed.");
@@ -633,6 +658,8 @@ if (window.ethereum) {
       if (!accounts.length) {
         userAddress = null;
         signer = null;
+        provider = null;
+        syncStakeGlobals();
         walletStatus.textContent = "Not Connected";
         connectBtn.textContent = "Connect Wallet";
         setStatus("Wallet disconnected.");
@@ -641,6 +668,7 @@ if (window.ethereum) {
 
       signer = await provider.getSigner();
       userAddress = accounts[0];
+      syncStakeGlobals();
       walletStatus.textContent = shorten(userAddress);
       connectBtn.textContent = "Connected";
       setStatus("Network changed.");
@@ -653,6 +681,8 @@ if (window.ethereum) {
 }
 
 window.addEventListener("DOMContentLoaded", async () => {
+  syncStakeGlobals();
+
   if (!window.ethereum) {
     updateButtons();
     return;
@@ -665,12 +695,14 @@ window.addEventListener("DOMContentLoaded", async () => {
       provider = new ethers.BrowserProvider(window.ethereum);
       signer = await provider.getSigner();
       userAddress = accounts[0];
+      syncStakeGlobals();
       walletStatus.textContent = shorten(userAddress);
       connectBtn.textContent = "Connected";
       setStatus("Restoring session...");
       await loadState();
     } else {
       updateButtons();
+      syncStakeGlobals();
     }
   } catch (err) {
     console.error("restore error:", err);
