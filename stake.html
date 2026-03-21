@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>DYOOR — Ascension</title>
-  <link rel="stylesheet" href="style.css" />
+  <link rel="stylesheet" href="/style.css" />
   <style>
     .stake-shell {
       max-width: 1200px;
@@ -58,7 +58,7 @@
       backdrop-filter: blur(10px);
     }
 
-    .panel h2 {
+    .panel h2, .panel h3 {
       margin: 0 0 14px;
       font-size: 20px;
     }
@@ -111,21 +111,10 @@
       transition: transform 0.15s ease, opacity 0.15s ease;
     }
 
-    .stake-btn:hover {
-      transform: translateY(-1px);
-    }
+    .stake-btn:hover { transform: translateY(-1px); }
+    .stake-btn:disabled { opacity: 0.45; cursor: not-allowed; transform: none; }
 
-    .stake-btn:disabled {
-      opacity: 0.45;
-      cursor: not-allowed;
-      transform: none;
-    }
-
-    .stake-btn-primary {
-      background: #9c7cff;
-      color: #fff;
-    }
-
+    .stake-btn-primary { background: #9c7cff; color: #fff; }
     .stake-btn-secondary {
       background: rgba(255,255,255,0.08);
       color: #fff;
@@ -138,6 +127,10 @@
       line-height: 1.5;
       opacity: 0.9;
       min-height: 22px;
+      border: 1px solid rgba(156,124,255,0.22);
+      background: rgba(156,124,255,0.08);
+      border-radius: 14px;
+      padding: 12px 14px;
     }
 
     .tabs {
@@ -219,42 +212,86 @@
       display: block;
     }
 
-    .nft-meta {
-      padding: 12px;
-    }
+    .nft-meta { padding: 12px; }
+    .nft-name { font-size: 14px; font-weight: 700; margin-bottom: 4px; }
+    .nft-sub { font-size: 12px; opacity: 0.7; }
+    .empty-state { padding: 28px 10px; text-align: center; opacity: 0.7; }
+    .note { margin-top: 18px; font-size: 13px; line-height: 1.6; opacity: 0.7; }
 
-    .nft-name {
-      font-size: 14px;
-      font-weight: 700;
-      margin-bottom: 4px;
-    }
+    .panel-stack { display:grid; gap:16px; margin-top:16px; }
+    .mini-title { font-size: 16px; margin: 0 0 10px; }
+    .hidden { display: none !important; }
 
-    .nft-sub {
-      font-size: 12px;
-      opacity: 0.7;
-    }
-
-    .empty-state {
-      padding: 28px 10px;
-      text-align: center;
-      opacity: 0.7;
-    }
-
-    .note {
-      margin-top: 18px;
+    .progress-list { display:grid; gap:8px; }
+    .progress-step {
+      display:flex; justify-content:space-between; gap:12px;
+      padding:10px 12px; border-radius:12px;
+      background: rgba(255,255,255,0.03);
+      border: 1px solid rgba(255,255,255,0.08);
       font-size: 13px;
-      line-height: 1.6;
-      opacity: 0.7;
     }
+    .progress-step.is-active { border-color: rgba(156,124,255,0.5); background: rgba(156,124,255,0.12); }
+    .progress-step.is-done { border-color: rgba(37,227,166,0.4); background: rgba(37,227,166,0.08); }
+
+    .battery-wrap { display:grid; gap:8px; }
+    .battery-top { display:flex; justify-content:space-between; gap:12px; font-size:13px; opacity:0.85; }
+    .battery-bar {
+      position: relative;
+      height: 16px;
+      border-radius: 999px;
+      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,255,255,0.10);
+      overflow: hidden;
+    }
+    .battery-fill {
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, #8f63ff, #25e3a6);
+      transition: width .25s ease;
+    }
+
+    .admin-actions, .recovery-actions, .snapshot-actions {
+      display:flex; gap:10px; flex-wrap:wrap;
+    }
+
+    .token-chip-list { display:flex; flex-wrap:wrap; gap:8px; }
+    .token-chip {
+      padding: 8px 10px;
+      border-radius: 999px;
+      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,255,255,0.10);
+      font-size: 12px;
+    }
+
+    details.faq-item {
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 14px;
+      background: rgba(255,255,255,0.03);
+      padding: 12px 14px;
+    }
+    details.faq-item + details.faq-item { margin-top: 10px; }
+    details.faq-item summary { cursor:pointer; font-weight:700; }
+    details.faq-item p { margin: 10px 0 0; opacity: 0.8; line-height: 1.6; }
 
     @media (max-width: 900px) {
-      .stake-grid {
-        grid-template-columns: 1fr;
-      }
+      .stake-grid { grid-template-columns: 1fr; }
     }
   </style>
 </head>
 <body>
+  <div class="bg" aria-hidden="true"></div>
+
+  <header class="topbar" id="top">
+    <div class="container topbar__inner">
+      <a class="brand" href="/index.html">DYOOR</a>
+      <nav class="nav" aria-label="Primary">
+        <a href="/whitepaper.html">Whitepaper</a>
+        <a href="/stake.html">Stake</a>
+        <a href="/swap/">Swap</a>
+      </nav>
+    </div>
+  </header>
+
   <main class="stake-shell">
     <section class="stake-hero">
       <div class="stake-kicker">Ascension Protocol</div>
@@ -292,7 +329,32 @@
           </div>
         </div>
 
-        <div class="action-stack">
+        <div class="panel-stack">
+          <div class="panel">
+            <h3 class="mini-title">Ascension Battery</h3>
+            <div class="battery-wrap">
+              <div class="battery-top">
+                <span id="batteryState">Dormant</span>
+                <span id="batteryPercent">0%</span>
+              </div>
+              <div class="battery-bar">
+                <div class="battery-fill" id="batteryFill"></div>
+              </div>
+              <div class="tiny muted" id="batteryMeta">0 ascended / 0 total visible</div>
+            </div>
+          </div>
+
+          <div class="panel">
+            <h3 class="mini-title">Staking Progress</h3>
+            <div class="progress-list">
+              <div class="progress-step" id="progressApproval"><span>Approval</span><span id="progressApprovalText">Waiting</span></div>
+              <div class="progress-step" id="progressDeposit"><span>Deposit</span><span id="progressDepositText">Waiting</span></div>
+              <div class="progress-step" id="progressRegister"><span>Register</span><span id="progressRegisterText">Waiting</span></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="action-stack" style="margin-top:16px;">
           <button class="stake-btn stake-btn-primary" id="connectBtn">Connect Wallet</button>
 
           <div class="action-row">
@@ -309,8 +371,8 @@
         <div class="status-box" id="statusBox">Awaiting connection.</div>
 
         <div class="note">
-          Not all will ascend. Staked DYOOR generate Energy continuously and align for
-          the Season 2 Transcendence event.
+          Ascension can require multiple confirmations. First time users may approve the collection,
+          then deposit NFTs into the vault, then register them on-chain to begin energy generation.
         </div>
       </aside>
 
@@ -326,13 +388,67 @@
           <button id="refreshBtn">Refresh</button>
         </div>
 
-        <div id="nftGrid" class="nft-grid"></div>
-        <div id="emptyState" class="empty-state" style="display:none;">No NFTs found in this view.</div>
+        <div class="nft-grid" id="nftGrid"></div>
+        <div class="empty-state" id="emptyState">No unstaked DYOOR found in this wallet yet.</div>
+
+        <div class="panel-stack">
+          <div class="panel hidden" id="recoveryPanel">
+            <h3 class="mini-title">Pending Deposits / Recovery</h3>
+            <p class="muted">NFTs found inside the staking contract but not yet fully registered.</p>
+            <div class="token-chip-list" id="recoveryList"></div>
+            <div class="recovery-actions" style="margin-top:12px;">
+              <button class="stake-btn stake-btn-secondary" id="fixAscensionBtn">Complete Registration</button>
+            </div>
+          </div>
+
+          <div class="panel hidden" id="adminPanel">
+            <h3 class="mini-title">Admin Panel</h3>
+            <div class="admin-actions">
+              <button class="stake-btn stake-btn-secondary hidden" id="snapshotBtn">Download Snapshot</button>
+              <button class="stake-btn stake-btn-secondary hidden" id="snapshotUnregisteredBtn">Download Unregistered</button>
+            </div>
+            <div class="tiny muted" style="margin-top:10px;">Visible only to the staking contract owner.</div>
+          </div>
+
+          <div class="panel">
+            <h3 class="mini-title">FAQ / Explainer</h3>
+
+            <details class="faq-item">
+              <summary>Why are there multiple wallet confirmations?</summary>
+              <p>
+                First-time ascension may require an approval transaction. After that, your NFT is deposited into the vault and then registered on-chain so energy generation begins.
+              </p>
+            </details>
+
+            <details class="faq-item">
+              <summary>What happens if a transaction stops halfway?</summary>
+              <p>
+                Your NFT may be deposited but not yet registered. The recovery panel on this page will detect that state and let you complete registration.
+              </p>
+            </details>
+
+            <details class="faq-item">
+              <summary>What does the battery mean?</summary>
+              <p>
+                The battery reflects the share of your visible DYOOR that are currently ascended. A full battery means everything you currently hold is ascended.
+              </p>
+            </details>
+
+            <details class="faq-item">
+              <summary>What is Energy?</summary>
+              <p>
+                Each ascended DYOOR generates 24 Energy per day. Energy accrues on-chain and aligns your NFTs for future Season 2 mechanics.
+              </p>
+            </details>
+          </div>
+        </div>
       </section>
     </section>
   </main>
 
   <script src="https://cdn.jsdelivr.net/npm/ethers@6.13.2/dist/ethers.umd.min.js"></script>
-  <script src="stake.js"></script>
+  <script src="/script.js"></script>
+  <script src="/stake.js"></script>
+  <script src="/stake-ui.js"></script>
 </body>
 </html>
