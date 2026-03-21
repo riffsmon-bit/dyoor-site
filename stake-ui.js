@@ -4,30 +4,55 @@
   const NFT_ADDRESS = "0x2c79c9e233fea4b4dcfe6561d9209dc292cd932f";
   const MAX_SCAN = 1111;
 
-  const batteryFill = document.getElementById("batteryFill");
-  const batteryPercent = document.getElementById("batteryPercent");
-  const batteryMeta = document.getElementById("batteryMeta");
-  const batteryState = document.getElementById("batteryState");
+  let batteryFill;
+  let batteryPercent;
+  let batteryMeta;
+  let batteryState;
 
-  const progressApproval = document.getElementById("progressApproval");
-  const progressDeposit = document.getElementById("progressDeposit");
-  const progressRegister = document.getElementById("progressRegister");
-  const progressApprovalText = document.getElementById("progressApprovalText");
-  const progressDepositText = document.getElementById("progressDepositText");
-  const progressRegisterText = document.getElementById("progressRegisterText");
+  let progressApproval;
+  let progressDeposit;
+  let progressRegister;
+  let progressApprovalText;
+  let progressDepositText;
+  let progressRegisterText;
 
-  const recoveryPanel = document.getElementById("recoveryPanel");
-  const recoveryList = document.getElementById("recoveryList");
-  const fixAscensionBtn = document.getElementById("fixAscensionBtn");
+  let recoveryPanel;
+  let recoveryList;
+  let fixAscensionBtn;
 
-  const adminPanel = document.getElementById("adminPanel");
-  const snapshotBtn = document.getElementById("snapshotBtn");
-  const snapshotUnregisteredBtn = document.getElementById("snapshotUnregisteredBtn");
+  let adminPanel;
+  let snapshotBtn;
+  let snapshotUnregisteredBtn;
 
   let lastKnownUnregistered = [];
+  let uiBooted = false;
+  let statusPatched = false;
+  let loadStatePatched = false;
 
   function safeLower(x) {
     return String(x || "").toLowerCase();
+  }
+
+  function cacheDom() {
+    batteryFill = document.getElementById("batteryFill");
+    batteryPercent = document.getElementById("batteryPercent");
+    batteryMeta = document.getElementById("batteryMeta");
+    batteryState = document.getElementById("batteryState");
+
+    progressApproval = document.getElementById("progressApproval");
+    progressDeposit = document.getElementById("progressDeposit");
+    progressRegister = document.getElementById("progressRegister");
+    progressApprovalText = document.getElementById("progressApprovalText");
+    progressDepositText = document.getElementById("progressDepositText");
+    progressRegisterText = document.getElementById("progressRegisterText");
+
+    recoveryPanel = document.getElementById("recoveryPanel");
+    recoveryList = document.getElementById("recoveryList");
+    fixAscensionBtn = document.getElementById("fixAscensionBtn");
+
+    adminPanel = document.getElementById("adminPanel");
+    snapshotBtn = document.getElementById("snapshotBtn");
+    snapshotUnregisteredBtn = document.getElementById("snapshotUnregisteredBtn");
   }
 
   function setProgressState(stepEl, textEl, state, text) {
@@ -97,6 +122,7 @@
         }
       } catch {}
     }
+
     return stuck;
   }
 
@@ -128,7 +154,10 @@
       );
       const owner = await staking.owner();
 
-      if (safeLower(owner) === safeLower(window.userAddress) || safeLower(window.userAddress) === safeLower(OWNER_ADDRESS)) {
+      if (
+        safeLower(owner) === safeLower(window.userAddress) ||
+        safeLower(window.userAddress) === safeLower(OWNER_ADDRESS)
+      ) {
         adminPanel?.classList.remove("hidden");
         snapshotBtn?.classList.remove("hidden");
         snapshotUnregisteredBtn?.classList.remove("hidden");
@@ -179,7 +208,12 @@
         if (trackedOwner && safeLower(trackedOwner) !== safeLower("0x0000000000000000000000000000000000000000")) {
           const key = ethers.getAddress(trackedOwner);
           if (!stakersMap.has(key)) {
-            stakersMap.set(key, { wallet: key, tokenIds: [], firstStakedAt: Number(info.stakedAt) || 0, pendingPoints: "0" });
+            stakersMap.set(key, {
+              wallet: key,
+              tokenIds: [],
+              firstStakedAt: Number(info.stakedAt) || 0,
+              pendingPoints: "0"
+            });
           }
           const row = stakersMap.get(key);
           row.tokenIds.push(tokenId);
@@ -268,7 +302,8 @@
   }
 
   function patchStatusForProgress() {
-    if (typeof window.setStatus !== "function") return;
+    if (statusPatched || typeof window.setStatus !== "function") return;
+    statusPatched = true;
 
     const originalSetStatus = window.setStatus;
     window.setStatus = function patchedSetStatus(message) {
@@ -309,8 +344,9 @@
     snapshotUnregisteredBtn?.addEventListener("click", handleSnapshotUnregistered);
   }
 
-  function hookLoadState() {
-    if (typeof window.loadState !== "function") return;
+  function patchLoadState() {
+    if (loadStatePatched || typeof window.loadState !== "function") return;
+    loadStatePatched = true;
 
     const originalLoadState = window.loadState;
     window.loadState = async function wrappedLoadState(...args) {
@@ -320,16 +356,41 @@
     };
   }
 
-  document.addEventListener("DOMContentLoaded", async () => {
+  function coreReady() {
+    return (
+      typeof window.loadState === "function" &&
+      typeof window.setStatus === "function" &&
+      !!window.ethers
+    );
+  }
+
+  function boot() {
+    if (uiBooted) return;
+    cacheDom();
+
+    if (!coreReady()) {
+      setTimeout(boot, 400);
+      return;
+    }
+
+    uiBooted = true;
     patchStatusForProgress();
-    hookLoadState();
+    patchLoadState();
     bindEvents();
     resetProgress();
 
     setTimeout(async () => {
       try {
         await refreshUiPanels();
-      } catch {}
+      } catch (err) {
+        console.warn("stake-ui refresh warning:", err);
+      }
     }, 800);
-  });
+  }
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", boot);
+  } else {
+    boot();
+  }
 })();
