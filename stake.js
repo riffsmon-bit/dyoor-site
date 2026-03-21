@@ -2,13 +2,14 @@ const CHAIN_ID = 143;
 const CHAIN_ID_HEX = "0x8f";
 
 const NFT_ADDRESS = "0x2c79c9e233fea4b4dcfe6561d9209dc292cd932f";
-const STAKING_ADDRESS = "0x56daD1ae39d52aae7274C0260D1fA36A41D2Dc69";
+const STAKING_ADDRESS = "REPLACE_WITH_V4_ADDRESS";
 const ENERGY_PER_DAY_PER_NFT = 24;
 const MAX_SCAN = 1111;
 const BATCH_SIZE = 40;
 
 const stakingAbi = [
-  "function stake(uint256[] calldata tokenIds)",
+  "function deposit(uint256[] calldata tokenIds)",
+  "function stakeDeposited(uint256[] calldata tokenIds)",
   "function unstake(uint256[] calldata tokenIds)",
   "function claimPoints()",
   "function pendingPoints(address user) view returns (uint256)",
@@ -17,29 +18,14 @@ const stakingAbi = [
   "function owner() view returns (address)",
   "function paused() view returns (bool)",
   "function s1Nft() view returns (address)",
-  "function pointsPerDay() view returns (uint256)",
-
-  "error EnforcedPause()",
-  "error ExpectedPause()",
-  "error OwnableUnauthorizedAccount(address account)",
-  "error OwnableInvalidOwner(address owner)",
-  "error ReentrancyGuardReentrantCall()"
+  "function pointsPerDay() view returns (uint256)"
 ];
 
 const nftAbi = [
   "function ownerOf(uint256 tokenId) view returns (address)",
   "function tokenURI(uint256 tokenId) view returns (string)",
   "function isApprovedForAll(address owner, address operator) view returns (bool)",
-  "function setApprovalForAll(address operator, bool approved)",
-
-  "error ERC721InvalidOwner(address owner)",
-  "error ERC721NonexistentToken(uint256 tokenId)",
-  "error ERC721IncorrectOwner(address sender, uint256 tokenId, address owner)",
-  "error ERC721InvalidSender(address sender)",
-  "error ERC721InvalidReceiver(address receiver)",
-  "error ERC721InsufficientApproval(address operator, uint256 tokenId)",
-  "error ERC721InvalidApprover(address approver)",
-  "error ERC721InvalidOperator(address operator)"
+  "function setApprovalForAll(address operator, bool approved)"
 ];
 
 let provider;
@@ -184,9 +170,7 @@ async function getOwnedNfts(owner) {
           if (ethers.getAddress(result.owner) === ownerChecksum) {
             tokenIds.push(String(result.tokenId));
           }
-        } catch {
-          // skip malformed address results
-        }
+        } catch {}
       }
     }
 
@@ -436,58 +420,29 @@ async function ascendTokenIds(tokenIds) {
     const normalizedIds = tokenIds.map((id) => BigInt(String(id)));
 
     setStatus(`Preparing ${normalizedIds.length} NFT(s) for ascension...`);
-    console.log("ascendTokenIds start");
-    console.log("wallet:", userAddress);
-    console.log("NFT_ADDRESS:", NFT_ADDRESS);
-    console.log("STAKING_ADDRESS:", STAKING_ADDRESS);
-    console.log("selected tokenIds:", normalizedIds.map(String));
-
     await ensureApproval();
 
-    const nft = new ethers.Contract(NFT_ADDRESS, nftAbi, provider);
+    const nft = new ethers.Contract(NFT_ADDRESS, nftAbi, signer);
+    const staking = new ethers.Contract(STAKING_ADDRESS, stakingAbi, signer);
 
     for (const id of normalizedIds) {
-      try {
-        const ownerNow = await nft.ownerOf(id);
-        console.log("ownerOf", id.toString(), ownerNow);
-      } catch (err) {
-        console.error("ownerOf failed for token", id.toString(), err);
+      const ownerNow = await new ethers.Contract(NFT_ADDRESS, nftAbi, provider).ownerOf(id);
+      if (ethers.getAddress(ownerNow) !== ethers.getAddress(userAddress)) {
+        throw new Error(`Token #${id.toString()} is not in your wallet.`);
       }
     }
 
-    const approvedNow = await nft.isApprovedForAll(userAddress, STAKING_ADDRESS);
-    console.log("approvedForAll now:", approvedNow);
-
-    const stakingRead = new ethers.Contract(STAKING_ADDRESS, stakingAbi, provider);
-
-    try {
-      const contractOwner = await stakingRead.owner();
-      const paused = await stakingRead.paused();
-      const s1Nft = await stakingRead.s1Nft();
-      const points = await stakingRead.pointsPerDay();
-
-      console.log("staking.owner()", contractOwner);
-      console.log("staking.paused()", paused);
-      console.log("staking.s1Nft()", s1Nft);
-      console.log("staking.pointsPerDay()", points.toString());
-    } catch (err) {
-      console.error("staking read debug failed", err);
+    setStatus("Depositing NFT(s) into staking contract...");
+    for (const id of normalizedIds) {
+      const tx = await nft.transferFrom(userAddress, STAKING_ADDRESS, id);
+      console.log("deposit tx hash:", tx.hash, "token:", id.toString());
+      await waitForHash(tx.hash);
     }
 
-    const staking = new ethers.Contract(STAKING_ADDRESS, stakingAbi, signer);
-
-    try {
-      const gas = await staking.stake.estimateGas(normalizedIds);
-      console.log("stake gas estimate:", gas.toString());
-    } catch (err) {
-      console.error("stake estimateGas full error", err);
-      throw new Error(formatError(err, "Gas estimation failed before staking."));
-    }
-
-    setStatus("Ascension in progress...");
-    const tx = await staking.stake(normalizedIds);
-    console.log("stake tx hash:", tx.hash);
-    await waitForHash(tx.hash);
+    setStatus("Registering deposited NFT(s)...");
+    const registerTx = await staking.stakeDeposited(normalizedIds);
+    console.log("stakeDeposited tx hash:", registerTx.hash);
+    await waitForHash(registerTx.hash);
 
     setStatus("Ascension complete.");
     await loadState();
@@ -507,14 +462,6 @@ async function disconnectTokenIds(tokenIds) {
     const normalizedIds = tokenIds.map((id) => BigInt(String(id)));
     const staking = new ethers.Contract(STAKING_ADDRESS, stakingAbi, signer);
 
-    try {
-      const gas = await staking.unstake.estimateGas(normalizedIds);
-      console.log("unstake gas estimate:", gas.toString());
-    } catch (err) {
-      console.error("unstake estimateGas error", err);
-      throw new Error(formatError(err, "Gas estimation failed before unstaking."));
-    }
-
     setStatus("Disconnecting from the protocol...");
     const tx = await staking.unstake(normalizedIds);
     console.log("unstake tx hash:", tx.hash);
@@ -531,14 +478,6 @@ async function disconnectTokenIds(tokenIds) {
 async function harvestEnergy() {
   try {
     const staking = new ethers.Contract(STAKING_ADDRESS, stakingAbi, signer);
-
-    try {
-      const gas = await staking.claimPoints.estimateGas();
-      console.log("claimPoints gas estimate:", gas.toString());
-    } catch (err) {
-      console.error("estimateGas claim error", err);
-      throw new Error(formatError(err, "Gas estimation failed before claim."));
-    }
 
     setStatus("Harvesting Energy...");
     const tx = await staking.claimPoints();
