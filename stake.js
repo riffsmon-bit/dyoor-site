@@ -1,6 +1,5 @@
 const CHAIN_ID = 143;
 const CHAIN_ID_HEX = "0x8f";
-
 const NFT_ADDRESS = "0x2c79c9e233fea4b4dcfe6561d9209dc292cd932f";
 const STAKING_ADDRESS = "0xf9611226c1CcCcCa37951938d6f358D3d5106549";
 const ENERGY_PER_DAY_PER_NFT = 24;
@@ -37,6 +36,10 @@ let ownedNfts = [];
 let stakedNfts = [];
 let selectedIds = new Set();
 
+let injectedProvider = null;
+let injectedWalletName = null;
+let removeWalletListeners = null;
+
 const connectBtn = document.getElementById("connectBtn");
 const ascendSelectedBtn = document.getElementById("ascendSelectedBtn");
 const ascendAllBtn = document.getElementById("ascendAllBtn");
@@ -61,6 +64,8 @@ function syncStakeGlobals() {
   window.setStatus = setStatus;
   window.waitForHash = waitForHash;
   window.currentTab = currentTab;
+  window.injectedProvider = injectedProvider;
+  window.injectedWalletName = injectedWalletName;
 }
 
 function setStatus(message) {
@@ -101,14 +106,106 @@ function formatError(err, fallback = "Unknown error.") {
   );
 }
 
+function getInjectedProviderOrThrow() {
+  if (!injectedProvider?.request) {
+    throw new Error("No wallet provider selected.");
+  }
+  return injectedProvider;
+}
+
+function detectLegacyWalletName(providerLike) {
+  if (!providerLike) return "Injected Wallet";
+  if (providerLike.isBackpack) return "Backpack";
+  if (providerLike.isOkxWallet || providerLike.isOKExWallet) return "OKX Wallet";
+  if (providerLike.isMetaMask) return "MetaMask";
+  if (providerLike.isPhantom) return "Phantom";
+  if (providerLike.isRabby) return "Rabby";
+  return "Injected Wallet";
+}
+
+function normalizeAnnouncedWallet(detail) {
+  if (!detail?.info || !detail?.provider) return null;
+
+  return {
+    uuid: detail.info.uuid || `${detail.info.name || "wallet"}-${Math.random()}`,
+    name: detail.info.name || "Injected Wallet",
+    icon: detail.info.icon || "",
+    rdns: detail.info.rdns || "",
+    provider: detail.provider
+  };
+}
+
+async function discoverWallets(timeoutMs = 700) {
+  const announced = new Map();
+
+  function onAnnounce(event) {
+    const wallet = normalizeAnnouncedWallet(event.detail);
+    if (!wallet) return;
+    announced.set(wallet.uuid, wallet);
+  }
+
+  window.addEventListener("eip6963:announceProvider", onAnnounce);
+  window.dispatchEvent(new Event("eip6963:requestProvider"));
+
+  await new Promise((resolve) => setTimeout(resolve, timeoutMs));
+
+  window.removeEventListener("eip6963:announceProvider", onAnnounce);
+
+  let wallets = Array.from(announced.values());
+
+  if (!wallets.length && window.ethereum) {
+    wallets = [
+      {
+        uuid: "legacy-window-ethereum",
+        name: detectLegacyWalletName(window.ethereum),
+        icon: "",
+        rdns: "",
+        provider: window.ethereum
+      }
+    ];
+  }
+
+  const seen = new Set();
+  wallets = wallets.filter((wallet) => {
+    const key = `${wallet.name}|${wallet.rdns}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+
+  return wallets;
+}
+
+async function pickWallet(wallets) {
+  if (!wallets.length) {
+    throw new Error("No compatible wallet found. Install Backpack, OKX, MetaMask, or another EVM wallet.");
+  }
+
+  if (wallets.length === 1) {
+    return wallets[0];
+  }
+
+  const options = wallets.map((w, i) => `${i + 1}. ${w.name}`).join("\n");
+  const choice = window.prompt(`Choose wallet:\n${options}`, "1");
+  const index = Number(choice) - 1;
+
+  if (!wallets[index]) {
+    throw new Error("Invalid wallet selection.");
+  }
+
+  return wallets[index];
+}
+
 async function waitForHash(txHash, timeoutMs = 180000, pollMs = 1500) {
   if (!txHash) throw new Error("Missing transaction hash.");
 
-  setStatus(`Waiting for confirmation... ${txHash.slice(0, 10)}...`);
+  const injected = getInjectedProviderOrThrow();
+  setStatus(`Waiting for confirmation...\n${txHash.slice(0, 10)}...`);
+
   const started = Date.now();
 
   while (Date.now() - started < timeoutMs) {
-    const receipt = await window.ethereum.request({
+    const receipt = await injected.request({
       method: "eth_getTransactionReceipt",
       params: [txHash]
     });
@@ -125,10 +222,11 @@ async function waitForHash(txHash, timeoutMs = 180000, pollMs = 1500) {
 }
 
 async function sendContractTx(to, abi, fnName, args = []) {
+  const injected = getInjectedProviderOrThrow();
   const iface = new ethers.Interface(abi);
   const data = iface.encodeFunctionData(fnName, args);
 
-  const txHash = await window.ethereum.request({
+  const txHash = await injected.request({
     method: "eth_sendTransaction",
     params: [
       {
@@ -166,10 +264,7 @@ async function fetchTokenMetadata(tokenId) {
     };
   } catch (err) {
     console.error("metadata error", tokenId, err);
-    return {
-      image: "",
-      name: `DYOOR #${tokenId}`
-    };
+    return { image: "", name: `DYOOR #${tokenId}` };
   }
 }
 
@@ -183,7 +278,7 @@ async function getOwnedNfts(owner) {
 
     for (let start = 1; start <= MAX_SCAN; start += BATCH_SIZE) {
       const end = Math.min(start + BATCH_SIZE - 1, MAX_SCAN);
-      setStatus(`Scanning collection ownership... ${start}-${end} / ${MAX_SCAN}`);
+      setStatus(`Scanning collection ownership...\n${start}-${end} / ${MAX_SCAN}`);
 
       const batch = [];
       for (let tokenId = start; tokenId <= end; tokenId++) {
@@ -208,7 +303,7 @@ async function getOwnedNfts(owner) {
 
     if (!tokenIds.length) return [];
 
-    setStatus(`Found ${tokenIds.length} DYOOR. Loading metadata...`);
+    setStatus(`Found ${tokenIds.length} DYOOR.\nLoading metadata...`);
 
     const items = [];
     for (const tokenId of tokenIds) {
@@ -230,6 +325,7 @@ async function getOwnedNfts(owner) {
 
 async function getStakedTokenIds(owner) {
   const staking = new ethers.Contract(STAKING_ADDRESS, stakingAbi, provider);
+
   try {
     const ids = await staking.tokensOfStaker(owner);
     return ids.map((x) => x.toString());
@@ -274,13 +370,9 @@ function renderGrid() {
     card.dataset.id = item.tokenId;
 
     card.innerHTML = `
-      <div class="nft-image-wrap">
-        ${item.image ? `<img src="${item.image}" alt="${item.name}">` : `<span>No Image</span>`}
-      </div>
-      <div class="nft-meta">
-        <div class="nft-name">${item.name}</div>
-        <div class="nft-sub">#${item.tokenId}</div>
-      </div>
+      ${item.image ? `<img src="${item.image}" alt="${item.name}" loading="lazy" />` : `<div class="no-image">No Image</div>`}
+      <div class="nft-name">${item.name}</div>
+      <div class="nft-id">#${item.tokenId}</div>
     `;
 
     card.addEventListener("click", () => {
@@ -289,6 +381,7 @@ function renderGrid() {
       } else {
         selectedIds.add(item.tokenId);
       }
+
       syncStakeGlobals();
       updateSelectedCount();
       renderGrid();
@@ -362,29 +455,33 @@ async function loadState() {
 }
 
 async function ensureMonadNetwork() {
-  const current = await window.ethereum.request({ method: "eth_chainId" });
+  const injected = getInjectedProviderOrThrow();
+  const current = await injected.request({ method: "eth_chainId" });
+
   if (current === CHAIN_ID_HEX) return;
 
   try {
-    await window.ethereum.request({
+    await injected.request({
       method: "wallet_switchEthereumChain",
       params: [{ chainId: CHAIN_ID_HEX }]
     });
   } catch (err) {
     if (err.code === 4902) {
-      await window.ethereum.request({
+      await injected.request({
         method: "wallet_addEthereumChain",
-        params: [{
-          chainId: CHAIN_ID_HEX,
-          chainName: "Monad Mainnet",
-          nativeCurrency: {
-            name: "MON",
-            symbol: "MON",
-            decimals: 18
-          },
-          rpcUrls: ["https://rpc.monad.xyz"],
-          blockExplorerUrls: ["https://explorer.monad.xyz"]
-        }]
+        params: [
+          {
+            chainId: CHAIN_ID_HEX,
+            chainName: "Monad Mainnet",
+            nativeCurrency: {
+              name: "MON",
+              symbol: "MON",
+              decimals: 18
+            },
+            rpcUrls: ["https://rpc.monad.xyz"],
+            blockExplorerUrls: ["https://explorer.monad.xyz"]
+          }
+        ]
       });
     } else {
       throw err;
@@ -392,28 +489,135 @@ async function ensureMonadNetwork() {
   }
 }
 
-async function connectWallet() {
-  if (!window.ethereum) {
-    setStatus("No wallet found. Install MetaMask or open in a wallet browser.");
-    return;
+function clearWalletState(disconnectMessage = "Disconnected.") {
+  userAddress = null;
+  signer = null;
+  provider = null;
+  ownedNfts = [];
+  stakedNfts = [];
+  selectedIds.clear();
+
+  walletStatus.textContent = "Not Connected";
+  connectBtn.textContent = "Connect Wallet";
+  pendingEnergy.textContent = "0.00";
+  energyRate.textContent = "0 / day";
+  nftGrid.innerHTML = "";
+  emptyState.style.display = "block";
+  emptyState.textContent = "No unstaked DYOOR found in this wallet yet.";
+
+  updateSelectedCount();
+  updateButtons();
+
+  if (removeWalletListeners) {
+    removeWalletListeners();
+    removeWalletListeners = null;
   }
 
+  injectedProvider = null;
+  injectedWalletName = null;
+
+  syncStakeGlobals();
+  setStatus(disconnectMessage);
+}
+
+function bindProviderEvents() {
+  if (!injectedProvider?.on) return;
+
+  if (removeWalletListeners) {
+    removeWalletListeners();
+    removeWalletListeners = null;
+  }
+
+  const handleAccountsChanged = async (accounts) => {
+    try {
+      if (!accounts.length) {
+        clearWalletState("Disconnected.");
+        return;
+      }
+
+      provider = new ethers.BrowserProvider(injectedProvider);
+      signer = await provider.getSigner();
+      userAddress = accounts[0];
+
+      walletStatus.textContent = shorten(userAddress);
+      connectBtn.textContent = `Connected: ${injectedWalletName || "Wallet"}`;
+
+      syncStakeGlobals();
+      setStatus("Account changed.");
+      await loadState();
+    } catch (err) {
+      console.error("accountsChanged error", err);
+      setStatus("Failed to refresh wallet session.");
+    }
+  };
+
+  const handleChainChanged = async () => {
+    try {
+      provider = new ethers.BrowserProvider(injectedProvider);
+      const accounts = await injectedProvider.request({ method: "eth_accounts" });
+
+      if (!accounts.length) {
+        clearWalletState("Wallet disconnected.");
+        return;
+      }
+
+      signer = await provider.getSigner();
+      userAddress = accounts[0];
+
+      syncStakeGlobals();
+      walletStatus.textContent = shorten(userAddress);
+      connectBtn.textContent = `Connected: ${injectedWalletName || "Wallet"}`;
+      setStatus("Network changed.");
+
+      await loadState();
+    } catch (err) {
+      console.error("chainChanged error", err);
+      setStatus("Switch to Monad Mainnet to continue.");
+    }
+  };
+
+  const handleDisconnect = () => {
+    clearWalletState("Wallet disconnected.");
+  };
+
+  injectedProvider.on("accountsChanged", handleAccountsChanged);
+  injectedProvider.on("chainChanged", handleChainChanged);
+  injectedProvider.on("disconnect", handleDisconnect);
+
+  removeWalletListeners = () => {
+    try {
+      injectedProvider?.removeListener?.("accountsChanged", handleAccountsChanged);
+      injectedProvider?.removeListener?.("chainChanged", handleChainChanged);
+      injectedProvider?.removeListener?.("disconnect", handleDisconnect);
+    } catch {}
+  };
+}
+
+async function connectWallet() {
   try {
-    setStatus("Connecting wallet...");
-    provider = new ethers.BrowserProvider(window.ethereum);
+    setStatus("Looking for wallets...");
+    const wallets = await discoverWallets();
+    const chosenWallet = await pickWallet(wallets);
 
+    injectedProvider = chosenWallet.provider;
+    injectedWalletName = chosenWallet.name;
+
+    setStatus(`Connecting ${chosenWallet.name}...`);
     await ensureMonadNetwork();
-    await window.ethereum.request({ method: "eth_requestAccounts" });
 
-    provider = new ethers.BrowserProvider(window.ethereum);
+    await injectedProvider.request({ method: "eth_requestAccounts" });
+
+    provider = new ethers.BrowserProvider(injectedProvider);
     signer = await provider.getSigner();
     userAddress = await signer.getAddress();
 
     walletStatus.textContent = shorten(userAddress);
-    connectBtn.textContent = "Connected";
-    syncStakeGlobals();
+    connectBtn.textContent = `Connected: ${chosenWallet.name}`;
 
-    setStatus("Wallet connected.");
+    bindProviderEvents();
+    syncStakeGlobals();
+    setStatus(`Wallet connected: ${chosenWallet.name}`);
+
     await loadState();
   } catch (err) {
     console.error("connectWallet error:", err);
@@ -423,19 +627,20 @@ async function connectWallet() {
 
 async function ensureApproval() {
   const nftRead = new ethers.Contract(NFT_ADDRESS, nftAbi, provider);
-
   const approved = await nftRead.isApprovedForAll(userAddress, STAKING_ADDRESS);
+
   console.log("isApprovedForAll before:", approved, "owner:", userAddress, "operator:", STAKING_ADDRESS);
 
   if (approved) return true;
 
-  setStatus("Approval required. Confirm in wallet...");
+  setStatus("Approval required.\nConfirm in wallet...");
   const txHash = await sendContractTx(
     NFT_ADDRESS,
     nftAbi,
     "setApprovalForAll",
     [STAKING_ADDRESS, true]
   );
+
   console.log("approval tx hash:", txHash);
   await waitForHash(txHash);
 
@@ -477,6 +682,7 @@ async function ascendTokenIds(tokenIds) {
         "transferFrom",
         [userAddress, STAKING_ADDRESS, id]
       );
+
       console.log("deposit tx hash:", txHash, "token:", id.toString());
       await waitForHash(txHash);
     }
@@ -488,6 +694,7 @@ async function ascendTokenIds(tokenIds) {
       "stakeDeposited",
       [normalizedIds]
     );
+
     console.log("stakeDeposited tx hash:", registerHash);
     await waitForHash(registerHash);
 
@@ -515,6 +722,7 @@ async function disconnectTokenIds(tokenIds) {
       "unstake",
       [normalizedIds]
     );
+
     console.log("unstake tx hash:", txHash);
     await waitForHash(txHash);
 
@@ -535,6 +743,7 @@ async function harvestEnergy() {
       "claimPoints",
       []
     );
+
     console.log("claimPoints tx hash:", txHash);
     await waitForHash(txHash);
 
@@ -617,94 +826,46 @@ disconnectSelectedBtn.addEventListener("click", async () => {
 
 harvestBtn.addEventListener("click", harvestEnergy);
 
-if (window.ethereum) {
-  window.ethereum.on("accountsChanged", async (accounts) => {
-    if (!accounts.length) {
-      userAddress = null;
-      signer = null;
-      provider = null;
-      ownedNfts = [];
-      stakedNfts = [];
-      selectedIds.clear();
-      walletStatus.textContent = "Not Connected";
-      connectBtn.textContent = "Connect Wallet";
-      pendingEnergy.textContent = "0.00";
-      energyRate.textContent = "0 / day";
-      nftGrid.innerHTML = "";
-      emptyState.style.display = "block";
-      emptyState.textContent = "No unstaked DYOOR found in this wallet yet.";
-      updateSelectedCount();
-      updateButtons();
-      syncStakeGlobals();
-      setStatus("Disconnected.");
-      return;
-    }
-
-    provider = new ethers.BrowserProvider(window.ethereum);
-    signer = await provider.getSigner();
-    userAddress = accounts[0];
-    syncStakeGlobals();
-    walletStatus.textContent = shorten(userAddress);
-    connectBtn.textContent = "Connected";
-    setStatus("Account changed.");
-    await loadState();
-  });
-
-  window.ethereum.on("chainChanged", async () => {
-    try {
-      provider = new ethers.BrowserProvider(window.ethereum);
-      const accounts = await window.ethereum.request({ method: "eth_accounts" });
-
-      if (!accounts.length) {
-        userAddress = null;
-        signer = null;
-        provider = null;
-        syncStakeGlobals();
-        walletStatus.textContent = "Not Connected";
-        connectBtn.textContent = "Connect Wallet";
-        setStatus("Wallet disconnected.");
-        return;
-      }
-
-      signer = await provider.getSigner();
-      userAddress = accounts[0];
-      syncStakeGlobals();
-      walletStatus.textContent = shorten(userAddress);
-      connectBtn.textContent = "Connected";
-      setStatus("Network changed.");
-      await loadState();
-    } catch (err) {
-      console.error("chainChanged error", err);
-      setStatus("Switch to Monad Mainnet to continue.");
-    }
-  });
-}
-
 window.addEventListener("DOMContentLoaded", async () => {
   syncStakeGlobals();
 
-  if (!window.ethereum) {
-    updateButtons();
-    return;
-  }
-
   try {
-    const accounts = await window.ethereum.request({ method: "eth_accounts" });
-
-    if (accounts.length) {
-      provider = new ethers.BrowserProvider(window.ethereum);
-      signer = await provider.getSigner();
-      userAddress = accounts[0];
-      syncStakeGlobals();
-      walletStatus.textContent = shorten(userAddress);
-      connectBtn.textContent = "Connected";
-      setStatus("Restoring session...");
-      await loadState();
-    } else {
+    const wallets = await discoverWallets();
+    if (!wallets.length) {
       updateButtons();
-      syncStakeGlobals();
+      return;
     }
+
+    for (const wallet of wallets) {
+      try {
+        const accounts = await wallet.provider.request({ method: "eth_accounts" });
+        if (accounts && accounts.length) {
+          injectedProvider = wallet.provider;
+          injectedWalletName = wallet.name;
+          provider = new ethers.BrowserProvider(injectedProvider);
+          signer = await provider.getSigner();
+          userAddress = accounts[0];
+
+          bindProviderEvents();
+          syncStakeGlobals();
+
+          walletStatus.textContent = shorten(userAddress);
+          connectBtn.textContent = `Connected: ${wallet.name}`;
+          setStatus(`Restoring session: ${wallet.name}...`);
+
+          await loadState();
+          return;
+        }
+      } catch (err) {
+        console.warn("restore error for wallet", wallet.name, err);
+      }
+    }
+
+    updateButtons();
+    syncStakeGlobals();
   } catch (err) {
     console.error("restore error:", err);
+    updateButtons();
+    syncStakeGlobals();
   }
 });
