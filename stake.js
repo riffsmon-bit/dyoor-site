@@ -8,7 +8,9 @@ const BATCH_SIZE = 20;
 
 // --- ABI ---
 const stakingAbi = [
-  "function tokensOfStaker(address user) view returns (uint256[])"
+  "function tokensOfStaker(address user) view returns (uint256[])",
+  "function pendingPoints(address user) view returns (uint256)",
+  "function stakedBalance(address user) view returns (uint256)"
 ];
 
 const nftAbi = [
@@ -19,6 +21,12 @@ const nftAbi = [
 // --- STATE ---
 let provider, signer, userAddress;
 let injectedProvider;
+
+let ownedNfts = [];
+let stakedNfts = [];
+let selectedIds = new Set();
+
+let currentTab = "wallet";
 
 // --- UI ---
 const connectBtn = document.getElementById("connectBtn");
@@ -88,18 +96,21 @@ async function connectWallet() {
   }
 }
 
-// --- FAST LOAD ---
+// --- LOAD STATE ---
 async function loadStateFast() {
   if (!userAddress) return;
 
-  setStatus("Loading staked NFTs...");
-
   const staking = new ethers.Contract(STAKING_ADDRESS, stakingAbi, provider);
+
+  setStatus("Loading ascended NFTs...");
+
   const stakedIds = await staking.tokensOfStaker(userAddress);
+  stakedNfts = stakedIds.map(x => x.toString());
 
-  renderNFTs(stakedIds.map(x => x.toString()));
+  renderNFTs(stakedNfts, "staked");
 
-  // background wallet load
+  await updateEnergy();
+
   loadWalletNFTsBackground();
 }
 
@@ -108,7 +119,7 @@ async function loadWalletNFTsBackground() {
   setStatus("Scanning wallet NFTs...");
 
   const nft = new ethers.Contract(NFT_ADDRESS, nftAbi, provider);
-  const owned = [];
+  ownedNfts = [];
 
   for (let i = 1; i <= MAX_SCAN; i += BATCH_SIZE) {
     const batch = [];
@@ -126,12 +137,13 @@ async function loadWalletNFTsBackground() {
     for (const r of results) {
       if (!r) continue;
       if (r.owner.toLowerCase() === userAddress.toLowerCase()) {
-        owned.push(r.id.toString());
+        ownedNfts.push(r.id.toString());
       }
     }
 
-    // progressively render
-    renderNFTs(owned);
+    if (currentTab === "wallet") {
+      renderNFTs(ownedNfts, "wallet");
+    }
 
     await new Promise(r => setTimeout(r, 50));
   }
@@ -139,9 +151,33 @@ async function loadWalletNFTsBackground() {
   setStatus("Ready 🚀");
 }
 
-// --- RENDER WITH IMAGES ---
-async function renderNFTs(ids) {
+// --- ENERGY ---
+async function updateEnergy() {
+  try {
+    const staking = new ethers.Contract(STAKING_ADDRESS, stakingAbi, provider);
+
+    const pending = await staking.pendingPoints(userAddress);
+    const stakedBalance = await staking.stakedBalance(userAddress);
+
+    document.getElementById("pendingEnergy").textContent =
+      Number(ethers.formatEther(pending)).toFixed(2);
+
+    document.getElementById("energyRate").textContent =
+      `${Number(stakedBalance) * 24} / day`;
+
+  } catch (err) {
+    console.error("energy error", err);
+  }
+}
+
+// --- RENDER ---
+async function renderNFTs(ids, type) {
   nftGrid.innerHTML = "";
+
+  if (!ids.length) {
+    nftGrid.innerHTML = `<p>No NFTs found</p>`;
+    return;
+  }
 
   const nft = new ethers.Contract(NFT_ADDRESS, nftAbi, provider);
 
@@ -150,7 +186,6 @@ async function renderNFTs(ids) {
     el.className = "nft-card";
 
     let image = "";
-    let name = "DYOOR";
 
     try {
       let uri = await nft.tokenURI(id);
@@ -158,24 +193,20 @@ async function renderNFTs(ids) {
       if (uri.startsWith("data:application/json;base64,")) {
         const json = JSON.parse(atob(uri.split(",")[1]));
         image = normalizeIpfs(json.image);
-        name = json.name || name;
       } else {
         uri = normalizeIpfs(uri);
         const res = await fetch(uri);
         const json = await res.json();
         image = normalizeIpfs(json.image);
-        name = json.name || name;
       }
-    } catch (e) {
-      console.log("metadata fail", id);
-    }
+    } catch (e) {}
 
     el.innerHTML = `
       <div class="nft-thumb">
         ${image ? `<img src="${image}" />` : `<div class="nft-image">#${id}</div>`}
       </div>
       <div class="nft-meta">
-        <div class="name">${name}</div>
+        <div class="name">DYOOR</div>
         <div class="sub">#${id}</div>
       </div>
     `;
@@ -183,6 +214,19 @@ async function renderNFTs(ids) {
     nftGrid.appendChild(el);
   }
 }
+
+// --- TAB SWITCH ---
+document.querySelectorAll(".tab-btn").forEach(btn => {
+  btn.addEventListener("click", () => {
+    currentTab = btn.dataset.tab;
+
+    if (currentTab === "wallet") {
+      renderNFTs(ownedNfts, "wallet");
+    } else {
+      renderNFTs(stakedNfts, "staked");
+    }
+  });
+});
 
 // --- INIT ---
 connectBtn.addEventListener("click", connectWallet);
