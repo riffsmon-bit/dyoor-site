@@ -1,4 +1,5 @@
 // --- CONFIG ---
+const CHAIN_ID_HEX = "0x8f";
 const NFT_ADDRESS = "0x2c79c9e233fea4b4dcfe6561d9209dc292cd932f";
 const STAKING_ADDRESS = "0xf9611226c1CcCcCa37951938d6f358D3d5106549";
 
@@ -26,7 +27,6 @@ let injectedProvider;
 let ownedNfts = [];
 let stakedNfts = [];
 let selectedIds = new Set();
-
 let currentTab = "wallet";
 
 // --- UI ---
@@ -53,17 +53,20 @@ function normalizeIpfs(url) {
   return url;
 }
 
-// --- WALLET ---
+// --- WALLET DISCOVERY ---
 async function discoverWallets() {
   const wallets = [];
 
+  function handler(e) {
+    wallets.push(e.detail);
+  }
+
+  window.addEventListener("eip6963:announceProvider", handler);
   window.dispatchEvent(new Event("eip6963:requestProvider"));
 
-  window.addEventListener("eip6963:announceProvider", (event) => {
-    wallets.push(event.detail);
-  });
+  await new Promise(r => setTimeout(r, 500));
 
-  await new Promise(r => setTimeout(r, 300));
+  window.removeEventListener("eip6963:announceProvider", handler);
 
   if (!wallets.length && window.ethereum) {
     wallets.push({ provider: window.ethereum });
@@ -72,23 +75,53 @@ async function discoverWallets() {
   return wallets;
 }
 
+// --- CONNECT ---
 async function connectWallet() {
   try {
-    setStatus("Connecting...");
+    setStatus("Detecting wallets...");
 
     const wallets = await discoverWallets();
+    if (!wallets.length) throw new Error("No wallet found");
+
     injectedProvider = wallets[0].provider;
 
-    await injectedProvider.request({ method: "eth_requestAccounts" });
+    // 🔥 switch network FIRST
+    try {
+      await injectedProvider.request({
+        method: "wallet_switchEthereumChain",
+        params: [{ chainId: CHAIN_ID_HEX }]
+      });
+    } catch (err) {
+      if (err.code === 4902) {
+        await injectedProvider.request({
+          method: "wallet_addEthereumChain",
+          params: [{
+            chainId: CHAIN_ID_HEX,
+            chainName: "Monad",
+            rpcUrls: ["https://rpc.monad.xyz"],
+            nativeCurrency: {
+              name: "MON",
+              symbol: "MON",
+              decimals: 18
+            }
+          }]
+        });
+      }
+    }
+
+    const accounts = await injectedProvider.request({
+      method: "eth_requestAccounts"
+    });
 
     provider = new ethers.BrowserProvider(injectedProvider);
     signer = await provider.getSigner();
-    userAddress = await signer.getAddress();
+    userAddress = accounts[0];
 
     walletStatus.textContent = shorten(userAddress);
     setStatus("Connected ⚡");
 
     await loadState();
+
   } catch (err) {
     console.error(err);
     setStatus("Connection failed");
@@ -102,7 +135,7 @@ async function loadState() {
   const stakedIds = await staking.tokensOfStaker(userAddress);
   stakedNfts = stakedIds.map(x => x.toString());
 
-  renderNFTs(stakedNfts);
+  renderNFTs(currentTab === "wallet" ? ownedNfts : stakedNfts);
 
   await updateEnergy();
   updateBattery();
@@ -172,27 +205,20 @@ function updateBattery() {
     `${staked} ascended / ${total} total visible`;
 
   const bar = document.querySelector(".battery-bar-fill");
-  if (bar) {
-    bar.style.width = `${percent}%`;
-  }
+  if (bar) bar.style.width = `${percent}%`;
 }
 
 // --- RENDER + SELECT ---
 async function renderNFTs(ids) {
   nftGrid.innerHTML = "";
 
-  if (!ids.length) {
-    nftGrid.innerHTML = `<p>No NFTs found</p>`;
-    return;
-  }
-
   const nft = new ethers.Contract(NFT_ADDRESS, nftAbi, provider);
 
   for (const id of ids) {
-    const el = document.createElement("div");
+    const selected = selectedIds.has(id);
 
-    const isSelected = selectedIds.has(id);
-    el.className = `nft-card ${isSelected ? "selected" : ""}`;
+    const el = document.createElement("div");
+    el.className = `nft-card ${selected ? "selected" : ""}`;
 
     let image = "";
 
@@ -217,7 +243,6 @@ async function renderNFTs(ids) {
       <div>#${id}</div>
     `;
 
-    // 🔥 CLICK SELECT
     el.onclick = () => {
       if (selectedIds.has(id)) {
         selectedIds.delete(id);
@@ -233,10 +258,9 @@ async function renderNFTs(ids) {
   }
 }
 
-// --- BUTTON LOGIC ---
+// --- BUTTON STATE ---
 function updateButtons() {
   if (!ascendBtn) return;
-
   ascendBtn.disabled = selectedIds.size === 0;
 }
 
@@ -251,11 +275,10 @@ async function ascendSelected() {
   setStatus("Approving...");
   await nft.setApprovalForAll(STAKING_ADDRESS, true);
 
-  setStatus("Ascending...");
   const staking = new ethers.Contract(STAKING_ADDRESS, stakingAbi, signer);
-  await staking.stakeDeposited(ids);
 
-  setStatus("Done 🚀");
+  setStatus("Ascending...");
+  await staking.stakeDeposited(ids);
 
   selectedIds.clear();
   await loadState();
@@ -266,11 +289,7 @@ document.querySelectorAll(".tab-btn").forEach(btn => {
   btn.onclick = () => {
     currentTab = btn.dataset.tab;
 
-    if (currentTab === "wallet") {
-      renderNFTs(ownedNfts);
-    } else {
-      renderNFTs(stakedNfts);
-    }
+    renderNFTs(currentTab === "wallet" ? ownedNfts : stakedNfts);
   };
 });
 
