@@ -1,5 +1,4 @@
 // --- CONFIG ---
-const CHAIN_ID_HEX = "0x8f";
 const NFT_ADDRESS = "0x2c79c9e233fea4b4dcfe6561d9209dc292cd932f";
 const STAKING_ADDRESS = "0xf9611226c1CcCcCa37951938d6f358D3d5106549";
 
@@ -10,12 +9,14 @@ const BATCH_SIZE = 20;
 const stakingAbi = [
   "function tokensOfStaker(address user) view returns (uint256[])",
   "function pendingPoints(address user) view returns (uint256)",
-  "function stakedBalance(address user) view returns (uint256)"
+  "function stakedBalance(address user) view returns (uint256)",
+  "function stakeDeposited(uint256[] tokenIds)"
 ];
 
 const nftAbi = [
   "function ownerOf(uint256 tokenId) view returns (address)",
-  "function tokenURI(uint256 tokenId) view returns (string)"
+  "function tokenURI(uint256 tokenId) view returns (string)",
+  "function setApprovalForAll(address operator, bool approved)"
 ];
 
 // --- STATE ---
@@ -30,6 +31,7 @@ let currentTab = "wallet";
 
 // --- UI ---
 const connectBtn = document.getElementById("connectBtn");
+const ascendBtn = document.getElementById("ascendSelectedBtn");
 const walletStatus = document.getElementById("walletStatus");
 const statusBox = document.getElementById("statusBox");
 const nftGrid = document.getElementById("nftGrid");
@@ -51,7 +53,7 @@ function normalizeIpfs(url) {
   return url;
 }
 
-// --- WALLET DISCOVERY ---
+// --- WALLET ---
 async function discoverWallets() {
   const wallets = [];
 
@@ -61,24 +63,21 @@ async function discoverWallets() {
     wallets.push(event.detail);
   });
 
-  await new Promise((r) => setTimeout(r, 300));
+  await new Promise(r => setTimeout(r, 300));
 
   if (!wallets.length && window.ethereum) {
-    wallets.push({ provider: window.ethereum, info: { name: "Injected" } });
+    wallets.push({ provider: window.ethereum });
   }
 
   return wallets;
 }
 
-// --- CONNECT ---
 async function connectWallet() {
   try {
-    setStatus("Detecting wallets...");
+    setStatus("Connecting...");
 
     const wallets = await discoverWallets();
-    const wallet = wallets[0];
-
-    injectedProvider = wallet.provider;
+    injectedProvider = wallets[0].provider;
 
     await injectedProvider.request({ method: "eth_requestAccounts" });
 
@@ -89,35 +88,30 @@ async function connectWallet() {
     walletStatus.textContent = shorten(userAddress);
     setStatus("Connected ⚡");
 
-    await loadStateFast();
-  } catch (e) {
-    console.error(e);
+    await loadState();
+  } catch (err) {
+    console.error(err);
     setStatus("Connection failed");
   }
 }
 
 // --- LOAD STATE ---
-async function loadStateFast() {
-  if (!userAddress) return;
-
+async function loadState() {
   const staking = new ethers.Contract(STAKING_ADDRESS, stakingAbi, provider);
-
-  setStatus("Loading ascended NFTs...");
 
   const stakedIds = await staking.tokensOfStaker(userAddress);
   stakedNfts = stakedIds.map(x => x.toString());
 
-  renderNFTs(stakedNfts, "staked");
+  renderNFTs(stakedNfts);
 
   await updateEnergy();
+  updateBattery();
 
-  loadWalletNFTsBackground();
+  loadWalletNFTs();
 }
 
-// --- BACKGROUND SCAN ---
-async function loadWalletNFTsBackground() {
-  setStatus("Scanning wallet NFTs...");
-
+// --- BACKGROUND LOAD ---
+async function loadWalletNFTs() {
   const nft = new ethers.Contract(NFT_ADDRESS, nftAbi, provider);
   ownedNfts = [];
 
@@ -142,36 +136,49 @@ async function loadWalletNFTsBackground() {
     }
 
     if (currentTab === "wallet") {
-      renderNFTs(ownedNfts, "wallet");
+      renderNFTs(ownedNfts);
     }
 
     await new Promise(r => setTimeout(r, 50));
   }
 
+  updateBattery();
   setStatus("Ready 🚀");
 }
 
 // --- ENERGY ---
 async function updateEnergy() {
-  try {
-    const staking = new ethers.Contract(STAKING_ADDRESS, stakingAbi, provider);
+  const staking = new ethers.Contract(STAKING_ADDRESS, stakingAbi, provider);
 
-    const pending = await staking.pendingPoints(userAddress);
-    const stakedBalance = await staking.stakedBalance(userAddress);
+  const pending = await staking.pendingPoints(userAddress);
+  const stakedBalance = await staking.stakedBalance(userAddress);
 
-    document.getElementById("pendingEnergy").textContent =
-      Number(ethers.formatEther(pending)).toFixed(2);
+  document.getElementById("pendingEnergy").textContent =
+    Number(ethers.formatEther(pending)).toFixed(2);
 
-    document.getElementById("energyRate").textContent =
-      `${Number(stakedBalance) * 24} / day`;
+  document.getElementById("energyRate").textContent =
+    `${Number(stakedBalance) * 24} / day`;
+}
 
-  } catch (err) {
-    console.error("energy error", err);
+// --- BATTERY ---
+function updateBattery() {
+  const staked = stakedNfts.length;
+  const total = stakedNfts.length + ownedNfts.length;
+
+  const percent = total > 0 ? Math.floor((staked / total) * 100) : 0;
+
+  document.querySelector(".battery-percent").textContent = `${percent}%`;
+  document.querySelector(".battery-text").textContent =
+    `${staked} ascended / ${total} total visible`;
+
+  const bar = document.querySelector(".battery-bar-fill");
+  if (bar) {
+    bar.style.width = `${percent}%`;
   }
 }
 
-// --- RENDER ---
-async function renderNFTs(ids, type) {
+// --- RENDER + SELECT ---
+async function renderNFTs(ids) {
   nftGrid.innerHTML = "";
 
   if (!ids.length) {
@@ -183,7 +190,9 @@ async function renderNFTs(ids, type) {
 
   for (const id of ids) {
     const el = document.createElement("div");
-    el.className = "nft-card";
+
+    const isSelected = selectedIds.has(id);
+    el.className = `nft-card ${isSelected ? "selected" : ""}`;
 
     let image = "";
 
@@ -199,34 +208,72 @@ async function renderNFTs(ids, type) {
         const json = await res.json();
         image = normalizeIpfs(json.image);
       }
-    } catch (e) {}
+    } catch {}
 
     el.innerHTML = `
       <div class="nft-thumb">
-        ${image ? `<img src="${image}" />` : `<div class="nft-image">#${id}</div>`}
+        ${image ? `<img src="${image}" />` : `<div>#${id}</div>`}
       </div>
-      <div class="nft-meta">
-        <div class="name">DYOOR</div>
-        <div class="sub">#${id}</div>
-      </div>
+      <div>#${id}</div>
     `;
+
+    // 🔥 CLICK SELECT
+    el.onclick = () => {
+      if (selectedIds.has(id)) {
+        selectedIds.delete(id);
+      } else {
+        selectedIds.add(id);
+      }
+
+      updateButtons();
+      renderNFTs(currentTab === "wallet" ? ownedNfts : stakedNfts);
+    };
 
     nftGrid.appendChild(el);
   }
 }
 
-// --- TAB SWITCH ---
+// --- BUTTON LOGIC ---
+function updateButtons() {
+  if (!ascendBtn) return;
+
+  ascendBtn.disabled = selectedIds.size === 0;
+}
+
+// --- ASCEND ---
+async function ascendSelected() {
+  if (!selectedIds.size) return;
+
+  const ids = Array.from(selectedIds).map(x => BigInt(x));
+
+  const nft = new ethers.Contract(NFT_ADDRESS, nftAbi, signer);
+
+  setStatus("Approving...");
+  await nft.setApprovalForAll(STAKING_ADDRESS, true);
+
+  setStatus("Ascending...");
+  const staking = new ethers.Contract(STAKING_ADDRESS, stakingAbi, signer);
+  await staking.stakeDeposited(ids);
+
+  setStatus("Done 🚀");
+
+  selectedIds.clear();
+  await loadState();
+}
+
+// --- TABS ---
 document.querySelectorAll(".tab-btn").forEach(btn => {
-  btn.addEventListener("click", () => {
+  btn.onclick = () => {
     currentTab = btn.dataset.tab;
 
     if (currentTab === "wallet") {
-      renderNFTs(ownedNfts, "wallet");
+      renderNFTs(ownedNfts);
     } else {
-      renderNFTs(stakedNfts, "staked");
+      renderNFTs(stakedNfts);
     }
-  });
+  };
 });
 
 // --- INIT ---
-connectBtn.addEventListener("click", connectWallet);
+connectBtn.onclick = connectWallet;
+if (ascendBtn) ascendBtn.onclick = ascendSelected;
