@@ -4,16 +4,11 @@ const NFT_ADDRESS = "0x2c79c9e233fea4b4dcfe6561d9209dc292cd932f";
 const STAKING_ADDRESS = "0xf9611226c1CcCcCa37951938d6f358D3d5106549";
 
 const MAX_SCAN = 1111;
-const BATCH_SIZE = 20; // 🔥 LOWER = FASTER ON MOBILE
+const BATCH_SIZE = 20;
 
 // --- ABI ---
 const stakingAbi = [
-  "function stakeDeposited(uint256[] calldata tokenIds)",
-  "function unstake(uint256[] calldata tokenIds)",
-  "function claimPoints()",
-  "function pendingPoints(address user) view returns (uint256)",
-  "function tokensOfStaker(address user) view returns (uint256[])",
-  "function stakedBalance(address user) view returns (uint256)"
+  "function tokensOfStaker(address user) view returns (uint256[])"
 ];
 
 const nftAbi = [
@@ -26,6 +21,7 @@ let provider, signer, userAddress;
 let injectedProvider;
 
 // --- UI ---
+const connectBtn = document.getElementById("connectBtn");
 const walletStatus = document.getElementById("walletStatus");
 const statusBox = document.getElementById("statusBox");
 const nftGrid = document.getElementById("nftGrid");
@@ -39,7 +35,15 @@ function shorten(addr) {
   return addr.slice(0, 6) + "..." + addr.slice(-4);
 }
 
-// --- WALLET DISCOVERY (FAST + SAFE) ---
+function normalizeIpfs(url) {
+  if (!url) return "";
+  if (url.startsWith("ipfs://")) {
+    return "https://ipfs.io/ipfs/" + url.replace("ipfs://", "");
+  }
+  return url;
+}
+
+// --- WALLET DISCOVERY ---
 async function discoverWallets() {
   const wallets = [];
 
@@ -64,7 +68,7 @@ async function connectWallet() {
     setStatus("Detecting wallets...");
 
     const wallets = await discoverWallets();
-    const wallet = wallets[0]; // auto-pick first
+    const wallet = wallets[0];
 
     injectedProvider = wallet.provider;
 
@@ -75,32 +79,31 @@ async function connectWallet() {
     userAddress = await signer.getAddress();
 
     walletStatus.textContent = shorten(userAddress);
-    setStatus("Connected");
+    setStatus("Connected ⚡");
 
-    await loadStateFast(); // 🔥 FAST LOAD
+    await loadStateFast();
   } catch (e) {
     console.error(e);
     setStatus("Connection failed");
   }
 }
 
-// --- FAST STATE LOAD ---
+// --- FAST LOAD ---
 async function loadStateFast() {
   if (!userAddress) return;
 
-  // 🔥 STEP 1: LOAD STAKED FIRST (FAST)
-  setStatus("Loading ascended NFTs...");
+  setStatus("Loading staked NFTs...");
 
   const staking = new ethers.Contract(STAKING_ADDRESS, stakingAbi, provider);
   const stakedIds = await staking.tokensOfStaker(userAddress);
 
-  renderNFTs(stakedIds.map(x => x.toString()), "staked");
+  renderNFTs(stakedIds.map(x => x.toString()));
 
-  // 🔥 STEP 2: LOAD WALLET NFTs IN BACKGROUND
+  // background wallet load
   loadWalletNFTsBackground();
 }
 
-// --- BACKGROUND WALLET SCAN ---
+// --- BACKGROUND SCAN ---
 async function loadWalletNFTsBackground() {
   setStatus("Scanning wallet NFTs...");
 
@@ -127,33 +130,59 @@ async function loadWalletNFTsBackground() {
       }
     }
 
-    // 🔥 update UI progressively
-    renderNFTs(owned, "wallet");
+    // progressively render
+    renderNFTs(owned);
 
-    await new Promise(r => setTimeout(r, 50)); // yield thread
+    await new Promise(r => setTimeout(r, 50));
   }
 
-  setStatus("Ready");
+  setStatus("Ready 🚀");
 }
 
-// --- RENDER ---
-function renderNFTs(ids, type) {
-  if (!ids.length) return;
-
+// --- RENDER WITH IMAGES ---
+async function renderNFTs(ids) {
   nftGrid.innerHTML = "";
 
-  ids.forEach(id => {
+  const nft = new ethers.Contract(NFT_ADDRESS, nftAbi, provider);
+
+  for (const id of ids) {
     const el = document.createElement("div");
     el.className = "nft-card";
 
+    let image = "";
+    let name = "DYOOR";
+
+    try {
+      let uri = await nft.tokenURI(id);
+
+      if (uri.startsWith("data:application/json;base64,")) {
+        const json = JSON.parse(atob(uri.split(",")[1]));
+        image = normalizeIpfs(json.image);
+        name = json.name || name;
+      } else {
+        uri = normalizeIpfs(uri);
+        const res = await fetch(uri);
+        const json = await res.json();
+        image = normalizeIpfs(json.image);
+        name = json.name || name;
+      }
+    } catch (e) {
+      console.log("metadata fail", id);
+    }
+
     el.innerHTML = `
-      <div class="nft-image">#${id}</div>
-      <div class="nft-id">#${id}</div>
+      <div class="nft-thumb">
+        ${image ? `<img src="${image}" />` : `<div class="nft-image">#${id}</div>`}
+      </div>
+      <div class="nft-meta">
+        <div class="name">${name}</div>
+        <div class="sub">#${id}</div>
+      </div>
     `;
 
     nftGrid.appendChild(el);
-  });
+  }
 }
 
-// --- BUTTON ---
-document.getElementById("connectBtn").onclick = connectWallet;
+// --- INIT ---
+connectBtn.addEventListener("click", connectWallet);
