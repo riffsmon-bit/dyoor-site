@@ -40,6 +40,8 @@ let injectedProvider = null;
 let injectedWalletName = null;
 let removeWalletListeners = null;
 
+const metadataCache = new Map();
+
 const connectBtn = document.getElementById("connectBtn");
 const ascendSelectedBtn = document.getElementById("ascendSelectedBtn");
 const ascendAllBtn = document.getElementById("ascendAllBtn");
@@ -117,6 +119,7 @@ function detectLegacyWalletName(providerLike) {
   if (!providerLike) return "Injected Wallet";
   if (providerLike.isBackpack) return "Backpack";
   if (providerLike.isOkxWallet || providerLike.isOKExWallet) return "OKX Wallet";
+  if (providerLike.isTokenPocket || providerLike.isTPWallet) return "TokenPocket";
   if (providerLike.isMetaMask) return "MetaMask";
   if (providerLike.isPhantom) return "Phantom";
   if (providerLike.isRabby) return "Rabby";
@@ -135,7 +138,7 @@ function normalizeAnnouncedWallet(detail) {
   };
 }
 
-async function discoverWallets(timeoutMs = 700) {
+async function discoverWallets(timeoutMs = 500) {
   const announced = new Map();
 
   function onAnnounce(event) {
@@ -178,7 +181,7 @@ async function discoverWallets(timeoutMs = 700) {
 
 async function pickWallet(wallets) {
   if (!wallets.length) {
-    throw new Error("No compatible wallet found. Install Backpack, OKX, MetaMask, or another EVM wallet.");
+    throw new Error("No compatible wallet found. Install Backpack, OKX, TokenPocket, MetaMask, or another EVM wallet.");
   }
 
   if (wallets.length === 1) {
@@ -241,30 +244,44 @@ async function sendContractTx(to, abi, fnName, args = []) {
 }
 
 async function fetchTokenMetadata(tokenId) {
+  const cacheKey = String(tokenId);
+  if (metadataCache.has(cacheKey)) {
+    return metadataCache.get(cacheKey);
+  }
+
   try {
     const nft = new ethers.Contract(NFT_ADDRESS, nftAbi, provider);
     let uri = await nft.tokenURI(tokenId);
 
+    let result;
+
     if (uri.startsWith("data:application/json;base64,")) {
       const b64 = uri.split(",")[1];
       const json = JSON.parse(atob(b64));
-      return {
+      result = {
+        image: normalizeIpfs(json.image || ""),
+        name: json.name || `DYOOR #${tokenId}`
+      };
+    } else {
+      uri = normalizeIpfs(uri);
+      const res = await fetch(uri, { cache: "force-cache" });
+      const json = await res.json();
+      result = {
         image: normalizeIpfs(json.image || ""),
         name: json.name || `DYOOR #${tokenId}`
       };
     }
 
-    uri = normalizeIpfs(uri);
-    const res = await fetch(uri);
-    const json = await res.json();
-
-    return {
-      image: normalizeIpfs(json.image || ""),
-      name: json.name || `DYOOR #${tokenId}`
-    };
+    metadataCache.set(cacheKey, result);
+    return result;
   } catch (err) {
     console.error("metadata error", tokenId, err);
-    return { image: "", name: `DYOOR #${tokenId}` };
+    const fallback = {
+      image: "",
+      name: `DYOOR #${tokenId}`
+    };
+    metadataCache.set(cacheKey, fallback);
+    return fallback;
   }
 }
 
@@ -273,32 +290,48 @@ async function getOwnedNfts(owner) {
     const nft = new ethers.Contract(NFT_ADDRESS, nftAbi, provider);
     const tokenIds = [];
     const ownerChecksum = ethers.getAddress(owner);
+    const scanBatchSize = 50;
+    const metadataBatchSize = 12;
 
     setStatus("Scanning collection ownership...");
 
-    for (let start = 1; start <= MAX_SCAN; start += BATCH_SIZE) {
-      const end = Math.min(start + BATCH_SIZE - 1, MAX_SCAN);
+    async function ownerOfWithRetry(tokenId) {
+      try {
+        return await nft.ownerOf(tokenId);
+      } catch (err) {
+        try {
+          await new Promise((resolve) => setTimeout(resolve, 50));
+          return await nft.ownerOf(tokenId);
+        } catch {
+          return null;
+        }
+      }
+    }
+
+    for (let start = 1; start <= MAX_SCAN; start += scanBatchSize) {
+      const end = Math.min(start + scanBatchSize - 1, MAX_SCAN);
       setStatus(`Scanning collection ownership...\n${start}-${end} / ${MAX_SCAN}`);
 
       const batch = [];
       for (let tokenId = start; tokenId <= end; tokenId++) {
         batch.push(
-          nft.ownerOf(tokenId)
-            .then((currentOwner) => ({ tokenId, owner: currentOwner }))
-            .catch(() => null)
+          ownerOfWithRetry(tokenId).then((currentOwner) => {
+            if (!currentOwner) return null;
+            try {
+              return ethers.getAddress(currentOwner) === ownerChecksum ? String(tokenId) : null;
+            } catch {
+              return null;
+            }
+          })
         );
       }
 
       const results = await Promise.all(batch);
-
-      for (const result of results) {
-        if (!result) continue;
-        try {
-          if (ethers.getAddress(result.owner) === ownerChecksum) {
-            tokenIds.push(String(result.tokenId));
-          }
-        } catch {}
+      for (const tokenId of results) {
+        if (tokenId) tokenIds.push(tokenId);
       }
+
+      await new Promise((resolve) => setTimeout(resolve, 15));
     }
 
     if (!tokenIds.length) return [];
@@ -306,14 +339,30 @@ async function getOwnedNfts(owner) {
     setStatus(`Found ${tokenIds.length} DYOOR.\nLoading metadata...`);
 
     const items = [];
-    for (const tokenId of tokenIds) {
-      const meta = await fetchTokenMetadata(tokenId);
-      items.push({
-        tokenId,
-        source: "wallet",
-        name: meta.name,
-        image: meta.image
-      });
+    for (let i = 0; i < tokenIds.length; i += metadataBatchSize) {
+      const slice = tokenIds.slice(i, i + metadataBatchSize);
+
+      const chunk = await Promise.all(
+        slice.map(async (tokenId) => {
+          const meta = await fetchTokenMetadata(tokenId);
+          return {
+            tokenId,
+            source: "wallet",
+            name: meta.name,
+            image: meta.image
+          };
+        })
+      );
+
+      items.push(...chunk);
+
+      if (currentTab === "wallet") {
+        ownedNfts = [...items];
+        renderGrid();
+        updateButtons();
+      }
+
+      await new Promise((resolve) => setTimeout(resolve, 10));
     }
 
     return items;
@@ -426,12 +475,19 @@ async function loadState() {
   }
 
   try {
-    setStatus("Loading wallet NFTs...");
-    ownedNfts = await getOwnedNfts(userAddress);
-
     setStatus("Loading ascended NFTs...");
     const stakedIds = await getStakedTokenIds(userAddress);
     stakedNfts = await enrichStakedTokenIds(stakedIds);
+
+    selectedIds.clear();
+    updateSelectedCount();
+    renderGrid();
+    updateButtons();
+    await updateEnergy();
+    syncStakeGlobals();
+
+    setStatus("Loading wallet NFTs...");
+    ownedNfts = await getOwnedNfts(userAddress);
 
     selectedIds.clear();
     updateSelectedCount();
@@ -603,16 +659,27 @@ async function connectWallet() {
     injectedWalletName = chosenWallet.name;
 
     setStatus(`Connecting ${chosenWallet.name}...`);
-    await ensureMonadNetwork();
 
-    await injectedProvider.request({ method: "eth_requestAccounts" });
+    const accounts = await injectedProvider.request({
+      method: "eth_requestAccounts"
+    });
+
+    if (!accounts || !accounts.length) {
+      throw new Error("No accounts returned from wallet.");
+    }
 
     provider = new ethers.BrowserProvider(injectedProvider);
     signer = await provider.getSigner();
-    userAddress = await signer.getAddress();
+    userAddress = accounts[0];
 
     walletStatus.textContent = shorten(userAddress);
     connectBtn.textContent = `Connected: ${chosenWallet.name}`;
+
+    try {
+      await ensureMonadNetwork();
+    } catch (err) {
+      console.warn("Network switch skipped or failed:", err);
+    }
 
     bindProviderEvents();
     syncStakeGlobals();
@@ -845,6 +912,12 @@ window.addEventListener("DOMContentLoaded", async () => {
           provider = new ethers.BrowserProvider(injectedProvider);
           signer = await provider.getSigner();
           userAddress = accounts[0];
+
+          try {
+            await ensureMonadNetwork();
+          } catch (err) {
+            console.warn("Restore network switch skipped or failed:", err);
+          }
 
           bindProviderEvents();
           syncStakeGlobals();
