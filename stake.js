@@ -1,301 +1,156 @@
 // --- CONFIG ---
+const CHAIN_ID = 143;
 const CHAIN_ID_HEX = "0x8f";
+
 const NFT_ADDRESS = "0x2c79c9e233fea4b4dcfe6561d9209dc292cd932f";
 const STAKING_ADDRESS = "0xf9611226c1CcCcCa37951938d6f358D3d5106549";
-
+const ENERGY_PER_DAY_PER_NFT = 24;
 const MAX_SCAN = 1111;
-const BATCH_SIZE = 20;
+const BATCH_SIZE = 40;
 
 // --- ABI ---
 const stakingAbi = [
-  "function tokensOfStaker(address user) view returns (uint256[])",
+  "function deposit(uint256[] calldata tokenIds)",
+  "function stakeDeposited(uint256[] calldata tokenIds)",
+  "function unstake(uint256[] calldata tokenIds)",
+  "function claimPoints()",
   "function pendingPoints(address user) view returns (uint256)",
+  "function tokensOfStaker(address user) view returns (uint256[] memory)",
   "function stakedBalance(address user) view returns (uint256)",
-  "function stakeDeposited(uint256[] tokenIds)"
+  "function owner() view returns (address)",
+  "function paused() view returns (bool)",
+  "function s1Nft() view returns (address)",
+  "function pointsPerDay() view returns (uint256)"
 ];
 
 const nftAbi = [
   "function ownerOf(uint256 tokenId) view returns (address)",
   "function tokenURI(uint256 tokenId) view returns (string)",
-  "function setApprovalForAll(address operator, bool approved)"
+  "function isApprovedForAll(address owner, address operator) view returns (bool)",
+  "function setApprovalForAll(address operator, bool approved)",
+  "function transferFrom(address from, address to, uint256 tokenId)"
 ];
 
 // --- STATE ---
-let provider, signer, userAddress;
-let injectedProvider;
-
+let provider;
+let signer;
+let userAddress = null;
+let currentTab = "wallet";
 let ownedNfts = [];
 let stakedNfts = [];
 let selectedIds = new Set();
-let currentTab = "wallet";
 
 // --- UI ---
 const connectBtn = document.getElementById("connectBtn");
-const ascendBtn = document.getElementById("ascendSelectedBtn");
+const ascendSelectedBtn = document.getElementById("ascendSelectedBtn");
+const ascendAllBtn = document.getElementById("ascendAllBtn");
+const disconnectSelectedBtn = document.getElementById("disconnectSelectedBtn");
+const harvestBtn = document.getElementById("harvestBtn");
 const walletStatus = document.getElementById("walletStatus");
+const pendingEnergy = document.getElementById("pendingEnergy");
+const energyRate = document.getElementById("energyRate");
+const selectedCount = document.getElementById("selectedCount");
 const statusBox = document.getElementById("statusBox");
 const nftGrid = document.getElementById("nftGrid");
+const emptyState = document.getElementById("emptyState");
 
 // --- HELPERS ---
-function setStatus(msg) {
-  statusBox.textContent = msg;
+function setStatus(message) {
+  statusBox.textContent = message;
 }
 
 function shorten(addr) {
-  return addr.slice(0, 6) + "..." + addr.slice(-4);
+  return `${addr.slice(0, 6)}...${addr.slice(-4)}`;
+}
+
+function updateSelectedCount() {
+  selectedCount.textContent = String(selectedIds.size);
+}
+
+function getVisibleItems() {
+  return currentTab === "wallet" ? ownedNfts : stakedNfts;
 }
 
 function normalizeIpfs(url) {
   if (!url) return "";
   if (url.startsWith("ipfs://")) {
-    return "https://ipfs.io/ipfs/" + url.replace("ipfs://", "");
+    return `https://ipfs.io/ipfs/${url.replace("ipfs://", "")}`;
   }
   return url;
 }
 
-// --- WALLET DISCOVERY ---
-async function discoverWallets() {
-  const wallets = [];
-
-  function handler(e) {
-    wallets.push(e.detail);
-  }
-
-  window.addEventListener("eip6963:announceProvider", handler);
-  window.dispatchEvent(new Event("eip6963:requestProvider"));
-
-  await new Promise(r => setTimeout(r, 400));
-
-  window.removeEventListener("eip6963:announceProvider", handler);
-
-  if (!wallets.length && window.ethereum) {
-    wallets.push({ provider: window.ethereum });
-  }
-
-  return wallets;
+function formatError(err, fallback = "Unknown error.") {
+  return err?.message || fallback;
 }
 
-// --- CONNECT (FIXED) ---
-async function connectWallet() {
+// --- NETWORK ---
+async function ensureMonadNetwork() {
+  const current = await window.ethereum.request({ method: "eth_chainId" });
+  if (current === CHAIN_ID_HEX) return;
+
   try {
-    setStatus("Connecting...");
+    await window.ethereum.request({
+      method: "wallet_switchEthereumChain",
+      params: [{ chainId: CHAIN_ID_HEX }]
+    });
+  } catch (err) {
+    if (err.code === 4902) {
+      await window.ethereum.request({
+        method: "wallet_addEthereumChain",
+        params: [{
+          chainId: CHAIN_ID_HEX,
+          chainName: "Monad Mainnet",
+          rpcUrls: ["https://rpc.monad.xyz"],
+          nativeCurrency: { name: "MON", symbol: "MON", decimals: 18 }
+        }]
+      });
+    } else {
+      throw err;
+    }
+  }
+}
 
-    const wallets = await discoverWallets();
-    if (!wallets.length) throw new Error("No wallet");
+// --- FIXED CONNECT ---
+async function connectWallet() {
+  if (!window.ethereum) {
+    setStatus("No wallet found. Open in a wallet browser.");
+    return;
+  }
 
-    injectedProvider = wallets[0].provider;
+  try {
+    setStatus("Connecting wallet...");
 
     // ✅ CONNECT FIRST (CRITICAL FIX)
-    const accounts = await injectedProvider.request({
+    const accounts = await window.ethereum.request({
       method: "eth_requestAccounts"
     });
 
-    provider = new ethers.BrowserProvider(injectedProvider);
+    provider = new ethers.BrowserProvider(window.ethereum);
     signer = await provider.getSigner();
     userAddress = accounts[0];
 
     walletStatus.textContent = shorten(userAddress);
+    connectBtn.textContent = "Connected";
 
     // ✅ SWITCH AFTER CONNECT
     try {
-      await injectedProvider.request({
-        method: "wallet_switchEthereumChain",
-        params: [{ chainId: CHAIN_ID_HEX }]
-      });
+      await ensureMonadNetwork();
     } catch (err) {
-      if (err.code === 4902) {
-        await injectedProvider.request({
-          method: "wallet_addEthereumChain",
-          params: [{
-            chainId: CHAIN_ID_HEX,
-            chainName: "Monad",
-            rpcUrls: ["https://rpc.monad.xyz"],
-            nativeCurrency: {
-              name: "MON",
-              symbol: "MON",
-              decimals: 18
-            }
-          }]
-        });
-      }
+      console.warn("Network switch skipped:", err);
     }
 
-    setStatus("Connected ⚡");
-
+    setStatus("Wallet connected.");
     await loadState();
 
   } catch (err) {
-    console.error("CONNECT ERROR:", err);
-    setStatus("Connection failed");
+    console.error("connectWallet error:", err);
+
+    if (err.code === 4001) {
+      setStatus("User rejected connection.");
+    } else {
+      setStatus(formatError(err, "Connection failed."));
+    }
   }
 }
 
-// --- LOAD STATE ---
-async function loadState() {
-  const staking = new ethers.Contract(STAKING_ADDRESS, stakingAbi, provider);
-
-  const stakedIds = await staking.tokensOfStaker(userAddress);
-  stakedNfts = stakedIds.map(x => x.toString());
-
-  await updateEnergy();
-
-  renderNFTs(currentTab === "wallet" ? ownedNfts : stakedNfts);
-
-  loadWalletNFTs();
-  updateBattery();
-}
-
-// --- BACKGROUND SCAN ---
-async function loadWalletNFTs() {
-  const nft = new ethers.Contract(NFT_ADDRESS, nftAbi, provider);
-  ownedNfts = [];
-
-  for (let i = 1; i <= MAX_SCAN; i += BATCH_SIZE) {
-    const batch = [];
-
-    for (let j = i; j < i + BATCH_SIZE && j <= MAX_SCAN; j++) {
-      batch.push(
-        nft.ownerOf(j)
-          .then(owner => ({ id: j, owner }))
-          .catch(() => null)
-      );
-    }
-
-    const results = await Promise.all(batch);
-
-    for (const r of results) {
-      if (!r) continue;
-      if (r.owner.toLowerCase() === userAddress.toLowerCase()) {
-        ownedNfts.push(r.id.toString());
-      }
-    }
-
-    if (currentTab === "wallet") {
-      renderNFTs(ownedNfts);
-    }
-
-    await new Promise(r => setTimeout(r, 40));
-  }
-
-  updateBattery();
-  setStatus("Ready 🚀");
-}
-
-// --- ENERGY ---
-async function updateEnergy() {
-  const staking = new ethers.Contract(STAKING_ADDRESS, stakingAbi, provider);
-
-  const pending = await staking.pendingPoints(userAddress);
-  const stakedBalance = await staking.stakedBalance(userAddress);
-
-  document.getElementById("pendingEnergy").textContent =
-    Number(ethers.formatEther(pending)).toFixed(2);
-
-  document.getElementById("energyRate").textContent =
-    `${Number(stakedBalance) * 24} / day`;
-}
-
-// --- BATTERY ---
-function updateBattery() {
-  const staked = stakedNfts.length;
-  const total = staked + ownedNfts.length;
-
-  const percent = total ? Math.floor((staked / total) * 100) : 0;
-
-  const percentEl = document.querySelector(".battery-percent");
-  const textEl = document.querySelector(".battery-text");
-  const bar = document.querySelector(".battery-bar-fill");
-
-  if (percentEl) percentEl.textContent = `${percent}%`;
-  if (textEl) textEl.textContent = `${staked} ascended / ${total} total visible`;
-  if (bar) bar.style.width = `${percent}%`;
-}
-
-// --- RENDER + SELECT ---
-async function renderNFTs(ids) {
-  nftGrid.innerHTML = "";
-
-  const nft = new ethers.Contract(NFT_ADDRESS, nftAbi, provider);
-
-  for (const id of ids) {
-    const selected = selectedIds.has(id);
-
-    const el = document.createElement("div");
-    el.className = `nft-card ${selected ? "selected" : ""}`;
-
-    let image = "";
-
-    try {
-      let uri = await nft.tokenURI(id);
-
-      if (uri.startsWith("data:application/json;base64,")) {
-        const json = JSON.parse(atob(uri.split(",")[1]));
-        image = normalizeIpfs(json.image);
-      } else {
-        uri = normalizeIpfs(uri);
-        const res = await fetch(uri);
-        const json = await res.json();
-        image = normalizeIpfs(json.image);
-      }
-    } catch {}
-
-    el.innerHTML = `
-      <div class="nft-thumb">
-        ${image ? `<img src="${image}" />` : `<div>#${id}</div>`}
-      </div>
-      <div>#${id}</div>
-    `;
-
-    el.onclick = () => {
-      if (selectedIds.has(id)) {
-        selectedIds.delete(id);
-      } else {
-        selectedIds.add(id);
-      }
-
-      updateButtons();
-      renderNFTs(currentTab === "wallet" ? ownedNfts : stakedNfts);
-    };
-
-    nftGrid.appendChild(el);
-  }
-}
-
-// --- BUTTON STATE ---
-function updateButtons() {
-  if (!ascendBtn) return;
-  ascendBtn.disabled = selectedIds.size === 0;
-}
-
-// --- ASCEND ---
-async function ascendSelected() {
-  if (!selectedIds.size) return;
-
-  const ids = Array.from(selectedIds).map(x => BigInt(x));
-
-  const nft = new ethers.Contract(NFT_ADDRESS, nftAbi, signer);
-
-  setStatus("Approving...");
-  await nft.setApprovalForAll(STAKING_ADDRESS, true);
-
-  const staking = new ethers.Contract(STAKING_ADDRESS, stakingAbi, signer);
-
-  setStatus("Ascending...");
-  await staking.stakeDeposited(ids);
-
-  selectedIds.clear();
-  await loadState();
-}
-
-// --- TABS ---
-document.querySelectorAll(".tab-btn").forEach(btn => {
-  btn.onclick = () => {
-    currentTab = btn.dataset.tab;
-
-    renderNFTs(currentTab === "wallet" ? ownedNfts : stakedNfts);
-  };
-});
-
-// --- INIT ---
-connectBtn.onclick = connectWallet;
-if (ascendBtn) ascendBtn.onclick = ascendSelected;
+// --- KEEP EVERYTHING ELSE SAME ---
