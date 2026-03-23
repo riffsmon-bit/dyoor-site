@@ -64,7 +64,7 @@ async function discoverWallets() {
   window.addEventListener("eip6963:announceProvider", handler);
   window.dispatchEvent(new Event("eip6963:requestProvider"));
 
-  await new Promise(r => setTimeout(r, 500));
+  await new Promise(r => setTimeout(r, 400));
 
   window.removeEventListener("eip6963:announceProvider", handler);
 
@@ -75,17 +75,28 @@ async function discoverWallets() {
   return wallets;
 }
 
-// --- CONNECT ---
+// --- CONNECT (FIXED) ---
 async function connectWallet() {
   try {
-    setStatus("Detecting wallets...");
+    setStatus("Connecting...");
 
     const wallets = await discoverWallets();
-    if (!wallets.length) throw new Error("No wallet found");
+    if (!wallets.length) throw new Error("No wallet");
 
     injectedProvider = wallets[0].provider;
 
-    // 🔥 switch network FIRST
+    // ✅ CONNECT FIRST (CRITICAL FIX)
+    const accounts = await injectedProvider.request({
+      method: "eth_requestAccounts"
+    });
+
+    provider = new ethers.BrowserProvider(injectedProvider);
+    signer = await provider.getSigner();
+    userAddress = accounts[0];
+
+    walletStatus.textContent = shorten(userAddress);
+
+    // ✅ SWITCH AFTER CONNECT
     try {
       await injectedProvider.request({
         method: "wallet_switchEthereumChain",
@@ -109,21 +120,12 @@ async function connectWallet() {
       }
     }
 
-    const accounts = await injectedProvider.request({
-      method: "eth_requestAccounts"
-    });
-
-    provider = new ethers.BrowserProvider(injectedProvider);
-    signer = await provider.getSigner();
-    userAddress = accounts[0];
-
-    walletStatus.textContent = shorten(userAddress);
     setStatus("Connected ⚡");
 
     await loadState();
 
   } catch (err) {
-    console.error(err);
+    console.error("CONNECT ERROR:", err);
     setStatus("Connection failed");
   }
 }
@@ -135,15 +137,15 @@ async function loadState() {
   const stakedIds = await staking.tokensOfStaker(userAddress);
   stakedNfts = stakedIds.map(x => x.toString());
 
+  await updateEnergy();
+
   renderNFTs(currentTab === "wallet" ? ownedNfts : stakedNfts);
 
-  await updateEnergy();
-  updateBattery();
-
   loadWalletNFTs();
+  updateBattery();
 }
 
-// --- BACKGROUND LOAD ---
+// --- BACKGROUND SCAN ---
 async function loadWalletNFTs() {
   const nft = new ethers.Contract(NFT_ADDRESS, nftAbi, provider);
   ownedNfts = [];
@@ -172,7 +174,7 @@ async function loadWalletNFTs() {
       renderNFTs(ownedNfts);
     }
 
-    await new Promise(r => setTimeout(r, 50));
+    await new Promise(r => setTimeout(r, 40));
   }
 
   updateBattery();
@@ -196,15 +198,16 @@ async function updateEnergy() {
 // --- BATTERY ---
 function updateBattery() {
   const staked = stakedNfts.length;
-  const total = stakedNfts.length + ownedNfts.length;
+  const total = staked + ownedNfts.length;
 
-  const percent = total > 0 ? Math.floor((staked / total) * 100) : 0;
+  const percent = total ? Math.floor((staked / total) * 100) : 0;
 
-  document.querySelector(".battery-percent").textContent = `${percent}%`;
-  document.querySelector(".battery-text").textContent =
-    `${staked} ascended / ${total} total visible`;
-
+  const percentEl = document.querySelector(".battery-percent");
+  const textEl = document.querySelector(".battery-text");
   const bar = document.querySelector(".battery-bar-fill");
+
+  if (percentEl) percentEl.textContent = `${percent}%`;
+  if (textEl) textEl.textContent = `${staked} ascended / ${total} total visible`;
   if (bar) bar.style.width = `${percent}%`;
 }
 
