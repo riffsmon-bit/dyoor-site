@@ -1391,3 +1391,37 @@ details.faq-item p {
   opacity:.8;
   line-height:1.6;
 }
+/* FIX NFT IMAGE SIZE (MOBILE + DESKTOP SAFE) */
+
+.nft-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 12px;
+}
+
+.nft-card {
+  width: 100%;
+  max-width: 100%;
+  overflow: hidden;
+}
+
+.nft-card img,
+.nft-image {
+  width: 100%;
+  height: auto;
+  aspect-ratio: 1 / 1;
+  object-fit: cover;
+  border-radius: 12px;
+}
+
+/* MOBILE FIX */
+@media (max-width: 600px) {
+  .nft-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .nft-card img,
+  .nft-image {
+    max-width: 100%;
+  }
+}
