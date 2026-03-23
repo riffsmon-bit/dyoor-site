@@ -16,11 +16,7 @@ const stakingAbi = [
   "function claimPoints()",
   "function pendingPoints(address user) view returns (uint256)",
   "function tokensOfStaker(address user) view returns (uint256[] memory)",
-  "function stakedBalance(address user) view returns (uint256)",
-  "function owner() view returns (address)",
-  "function paused() view returns (bool)",
-  "function s1Nft() view returns (address)",
-  "function pointsPerDay() view returns (uint256)"
+  "function stakedBalance(address user) view returns (uint256)"
 ];
 
 const nftAbi = [
@@ -83,34 +79,7 @@ function formatError(err, fallback = "Unknown error.") {
   return err?.message || fallback;
 }
 
-// --- NETWORK ---
-async function ensureMonadNetwork() {
-  const current = await window.ethereum.request({ method: "eth_chainId" });
-  if (current === CHAIN_ID_HEX) return;
-
-  try {
-    await window.ethereum.request({
-      method: "wallet_switchEthereumChain",
-      params: [{ chainId: CHAIN_ID_HEX }]
-    });
-  } catch (err) {
-    if (err.code === 4902) {
-      await window.ethereum.request({
-        method: "wallet_addEthereumChain",
-        params: [{
-          chainId: CHAIN_ID_HEX,
-          chainName: "Monad Mainnet",
-          rpcUrls: ["https://rpc.monad.xyz"],
-          nativeCurrency: { name: "MON", symbol: "MON", decimals: 18 }
-        }]
-      });
-    } else {
-      throw err;
-    }
-  }
-}
-
-// --- FIXED CONNECT ---
+// --- CONNECT (FINAL FIX) ---
 async function connectWallet() {
   if (!window.ethereum) {
     setStatus("No wallet found. Open in a wallet browser.");
@@ -120,7 +89,7 @@ async function connectWallet() {
   try {
     setStatus("Connecting wallet...");
 
-    // ✅ CONNECT FIRST (CRITICAL FIX)
+    // ✅ CONNECT ONLY (NO NETWORK FORCE)
     const accounts = await window.ethereum.request({
       method: "eth_requestAccounts"
     });
@@ -132,11 +101,12 @@ async function connectWallet() {
     walletStatus.textContent = shorten(userAddress);
     connectBtn.textContent = "Connected";
 
-    // ✅ SWITCH AFTER CONNECT
-    try {
-      await ensureMonadNetwork();
-    } catch (err) {
-      console.warn("Network switch skipped:", err);
+    // ✅ CHECK NETWORK (DON’T FORCE)
+    const chainId = await window.ethereum.request({ method: "eth_chainId" });
+
+    if (chainId !== CHAIN_ID_HEX) {
+      setStatus("⚠️ Switch to Monad network.");
+      return;
     }
 
     setStatus("Wallet connected.");
@@ -148,9 +118,42 @@ async function connectWallet() {
     if (err.code === 4001) {
       setStatus("User rejected connection.");
     } else {
-      setStatus(formatError(err, "Connection failed."));
+      setStatus("Connection failed.");
     }
   }
 }
 
-// --- KEEP EVERYTHING ELSE SAME ---
+// --- LOAD STATE (UNCHANGED CORE) ---
+async function loadState() {
+  if (!userAddress || !provider) return;
+
+  try {
+    setStatus("Loading wallet NFTs...");
+    ownedNfts = await getOwnedNfts(userAddress);
+
+    setStatus("Loading ascended NFTs...");
+    const stakedIds = await getStakedTokenIds(userAddress);
+    stakedNfts = await enrichStakedTokenIds(stakedIds);
+
+    selectedIds.clear();
+    updateSelectedCount();
+    renderGrid();
+    updateButtons();
+    await updateEnergy();
+
+    setStatus("Ascension state synchronized.");
+  } catch (err) {
+    console.error("loadState error", err);
+    setStatus("Failed to load wallet state.");
+  }
+}
+
+// --- KEEP EVERYTHING ELSE FROM YOUR ORIGINAL FILE ---
+// (renderGrid, getOwnedNfts, ascendTokenIds, etc stay EXACTLY the same)
+
+connectBtn.addEventListener("click", connectWallet);
+
+// --- AUTO RELOAD ON NETWORK CHANGE ---
+window.ethereum?.on("chainChanged", () => {
+  window.location.reload();
+});
