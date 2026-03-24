@@ -2,7 +2,6 @@ const CHAIN_ID = 143;
 const CHAIN_ID_HEX = "0x8f";
 const NFT_ADDRESS = "0x2c79c9e233fea4b4dcfe6561d9209dc292cd932f";
 const STAKING_ADDRESS = "0xf9611226c1CcCcCa37951938d6f358D3d5106549";
-const ENERGY_PER_DAY_PER_NFT = 24;
 const MAX_SCAN = 1111;
 const BATCH_SIZE = 40;
 
@@ -456,11 +455,24 @@ async function updateEnergy() {
 
   try {
     const staking = new ethers.Contract(STAKING_ADDRESS, stakingAbi, provider);
-    const pending = await staking.pendingPoints(userAddress);
-    const stakedBalance = await staking.stakedBalance(userAddress);
 
-    pendingEnergy.textContent = Number(ethers.formatEther(pending)).toFixed(2);
-    energyRate.textContent = `${Number(stakedBalance) * ENERGY_PER_DAY_PER_NFT} / day`;
+    const [pending, stakedBalance, pointsPerDayRaw] = await Promise.all([
+      staking.pendingPoints(userAddress),
+      staking.stakedBalance(userAddress),
+      staking.pointsPerDay()
+    ]);
+
+    const pointsPerDayPerNft = Number(ethers.formatEther(pointsPerDayRaw));
+    const pendingDisplay = Number(ethers.formatEther(pending));
+    const totalRate = Number(stakedBalance) * pointsPerDayPerNft;
+
+    pendingEnergy.textContent = pendingDisplay.toFixed(2);
+
+    if (Number.isInteger(totalRate)) {
+      energyRate.textContent = `${totalRate} / day`;
+    } else {
+      energyRate.textContent = `${totalRate.toFixed(2)} / day`;
+    }
   } catch (err) {
     console.error("energy error", err);
     pendingEnergy.textContent = "0.00";
@@ -893,52 +905,9 @@ disconnectSelectedBtn.addEventListener("click", async () => {
 
 harvestBtn.addEventListener("click", harvestEnergy);
 
-window.addEventListener("DOMContentLoaded", async () => {
+// No auto-connect / no auto-restore on load.
+// Wait until the user explicitly clicks Connect Wallet.
+window.addEventListener("DOMContentLoaded", () => {
   syncStakeGlobals();
-
-  try {
-    const wallets = await discoverWallets();
-    if (!wallets.length) {
-      updateButtons();
-      return;
-    }
-
-    for (const wallet of wallets) {
-      try {
-        const accounts = await wallet.provider.request({ method: "eth_accounts" });
-        if (accounts && accounts.length) {
-          injectedProvider = wallet.provider;
-          injectedWalletName = wallet.name;
-          provider = new ethers.BrowserProvider(injectedProvider);
-          signer = await provider.getSigner();
-          userAddress = accounts[0];
-
-          try {
-            await ensureMonadNetwork();
-          } catch (err) {
-            console.warn("Restore network switch skipped or failed:", err);
-          }
-
-          bindProviderEvents();
-          syncStakeGlobals();
-
-          walletStatus.textContent = shorten(userAddress);
-          connectBtn.textContent = `Connected: ${wallet.name}`;
-          setStatus(`Restoring session: ${wallet.name}...`);
-
-          await loadState();
-          return;
-        }
-      } catch (err) {
-        console.warn("restore error for wallet", wallet.name, err);
-      }
-    }
-
-    updateButtons();
-    syncStakeGlobals();
-  } catch (err) {
-    console.error("restore error:", err);
-    updateButtons();
-    syncStakeGlobals();
-  }
+  updateButtons();
 });
