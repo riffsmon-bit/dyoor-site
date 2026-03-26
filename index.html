@@ -7,7 +7,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/style.css?v=home-refresh-4"/>
+  <link rel="stylesheet" href="/style.css?v=home-refresh-6"/>
   <style>
     .ascensionBatteryCard{
       margin:18px auto 0;
@@ -93,6 +93,7 @@
       display:block;
       width:100%;
       height:auto;
+      background:#000;
     }
 
     .ascensionPromo__body{
@@ -144,7 +145,7 @@
         <div class="card hero__card">
           <img class="hero__img" src="/assets/home_banner.png" alt="DYOOR banner" loading="eager"/>
           <div class="hero__copy">
-            <h1>#DYOOR self a favor &amp; vibe | CTO Takeover 🏴‍☠️ | Free Mint | 1111 supply | 💎✋ ONLY</h1>
+            <h1>#DYOOR self a favor &amp; vibe | S1 SOLD OUT | Ascending To Solana</h1>
             <div class="hero__cta">
               <a class="btn btn--primary hero__btn" href="/swap/">Swap on Monad</a>
             </div>
@@ -175,9 +176,15 @@
           </div>
         </div>
 
-        <!-- ASCENSION PROMO IMAGE -->
+        <!-- ASCENSION PROMO -->
         <div class="ascensionPromo">
-          <img class="ascensionPromo__img" src="/assets/ascension-protocol-promo.jpeg" alt="Ascension Protocol promo art" loading="lazy"/>
+          <img
+            class="ascensionPromo__img"
+            src="/assets/ascension.jpg?v=2"
+            alt="Ascension Protocol promo art"
+            loading="lazy"
+            onerror="this.onerror=null;this.src='/assets/home_banner.png?v=2';"
+          />
           <div class="ascensionPromo__body">
             <h3 class="ascensionPromo__title">Enter the Ascension Protocol</h3>
             <p class="ascensionPromo__text">
@@ -290,10 +297,42 @@
         <a href="#top" class="tiny muted">Back to top ↑</a>
       </div>
     </footer>
-
   </main>
 
- <script defer src="/script.js?v=home-refresh-4"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/ethers@6.11.1/dist/ethers.umd.min.js"></script>
+  <script defer src="https://unpkg.com/@walletconnect/ethereum-provider@2.23.1/dist/index.umd.js"></script>
+  <script defer src="/script.js?v=home-refresh-6"></script>
+
+  <div id="walletModal" class="wallet-modal" aria-hidden="true">
+    <div class="wallet-modal__backdrop" data-close="1"></div>
+    <div class="wallet-modal__panel" role="dialog" aria-modal="true" aria-label="Connect wallet">
+      <div class="wallet-modal__header">
+        <div class="wallet-modal__title">Connect Wallet</div>
+        <button type="button" class="wallet-modal__close" data-close="1" aria-label="Close">✕</button>
+      </div>
+      <div class="wallet-modal__grid">
+        <button type="button" class="wallet-option" data-wallet="metamask">MetaMask</button>
+        <button type="button" class="wallet-option" data-wallet="phantom">Phantom (EVM)</button>
+        <button type="button" class="wallet-option" data-wallet="okx">OKX Wallet</button>
+        <button type="button" class="wallet-option" data-wallet="injected">Other Injected</button>
+        <button type="button" class="wallet-option wallet-option--wc" data-wallet="walletconnect">WalletConnect (QR)</button>
+      </div>
+
+      <div id="walletModalHint" class="wallet-modal__hint" style="display:none;">
+        On iOS Safari, MetaMask/OKX usually don’t inject directly. Connect via <strong>WalletConnect</strong>, or open this site inside your wallet’s in-app browser.
+      </div>
+
+      <div id="walletDeepLinks" class="wallet-modal__deeplinks" style="display:none;">
+        <a href="#" id="openInMetaMask" class="wallet-deeplink">Open in MetaMask</a>
+        <a href="#" id="openInOKX" class="wallet-deeplink">Open in OKX</a>
+        <a href="#" id="openInPhantom" class="wallet-deeplink">Open in Phantom</a>
+      </div>
+
+      <div class="wallet-modal__note">
+        We will <strong>never</strong> ask for your seed phrase.
+      </div>
+    </div>
+  </div>
 
   <script>
     async function loadAscensionBattery(){
@@ -305,7 +344,10 @@
       if (!percentEl || !countEl || !subEl || !fillEl) return;
 
       try {
-        const res = await fetch("/.netlify/functions/ascension-stats", { cache: "no-store" });
+        const res = await fetch("/.netlify/functions/ascension-stats?v=3", {
+          cache: "no-store"
+        });
+
         const data = await res.json();
 
         if (!res.ok) throw new Error(data?.error || "Failed");
@@ -316,7 +358,7 @@
 
         percentEl.textContent = percent + "%";
         countEl.textContent = total + " / " + max + " Ascended";
-        subEl.textContent = percent + "% of Season 1 has entered the Ascension Protocol";
+        subEl.textContent = total + " DYOORs have ascended. Protocol charge rising.";
         fillEl.style.width = Math.max(0, Math.min(percent, 100)) + "%";
       } catch (e) {
         console.error("Ascension battery failed:", e);
