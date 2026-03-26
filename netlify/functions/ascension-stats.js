@@ -20,34 +20,40 @@ exports.handler = async function () {
       });
 
       const json = await res.json();
-      if (json.error) throw new Error(json.error.message);
+      if (json.error) throw new Error(json.error.message || "RPC error");
       return json.result;
     }
 
     const latestHex = await rpc("eth_blockNumber", []);
     const latest = parseInt(latestHex, 16);
 
-    // 🔥 ONLY scan last ~2000 blocks (fast + safe)
+    // fast recent scan
     const LOOKBACK = 2000;
+    const CHUNK_SIZE = 100;
     const startBlock = Math.max(0, latest - LOOKBACK);
 
-    const stakedLogs = await rpc("eth_getLogs", [{
-      fromBlock: "0x" + startBlock.toString(16),
-      toBlock: "0x" + latest.toString(16),
-      address: contract,
-      topics: [stakedTopic]
-    }]);
-
-    const unstakedLogs = await rpc("eth_getLogs", [{
-      fromBlock: "0x" + startBlock.toString(16),
-      toBlock: "0x" + latest.toString(16),
-      address: contract,
-      topics: [unstakedTopic]
-    }]);
-
     let totalStaked = 0;
-    totalStaked += stakedLogs.length;
-    totalStaked -= unstakedLogs.length;
+
+    for (let from = startBlock; from <= latest; from += CHUNK_SIZE + 1) {
+      const to = Math.min(from + CHUNK_SIZE, latest);
+
+      const stakedLogs = await rpc("eth_getLogs", [{
+        fromBlock: "0x" + from.toString(16),
+        toBlock: "0x" + to.toString(16),
+        address: contract,
+        topics: [stakedTopic]
+      }]);
+
+      const unstakedLogs = await rpc("eth_getLogs", [{
+        fromBlock: "0x" + from.toString(16),
+        toBlock: "0x" + to.toString(16),
+        address: contract,
+        topics: [unstakedTopic]
+      }]);
+
+      totalStaked += Array.isArray(stakedLogs) ? stakedLogs.length : 0;
+      totalStaked -= Array.isArray(unstakedLogs) ? unstakedLogs.length : 0;
+    }
 
     if (totalStaked < 0) totalStaked = 0;
 
@@ -65,11 +71,16 @@ exports.handler = async function () {
         percent
       })
     };
-
   } catch (err) {
+    console.error("ascension-stats error:", err);
     return {
       statusCode: 500,
-      body: JSON.stringify({ error: err.message })
+      headers: {
+        "content-type": "application/json"
+      },
+      body: JSON.stringify({
+        error: String(err && err.message ? err.message : err)
+      })
     };
   }
 };
