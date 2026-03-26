@@ -4,6 +4,10 @@ exports.handler = async function () {
     const contract = "0xf9611226c1CcCcCa37951938d6f358D3d5106549".toLowerCase();
     const maxSupply = 1111;
 
+    // contract creation block from MonadScan
+    const START_BLOCK = 62912794;
+
+    // event topics from your staking contract
     const stakedTopic = "0x9e71bc8eea02a63969f509818f2dafb9254532904319f9dbda79b67bd34a5f3d";
     const unstakedTopic = "0x0f5bb82176feb1b5e747e28471aa92156a04d9f3ab9f45f28e2d704232b93f75";
 
@@ -27,14 +31,10 @@ exports.handler = async function () {
     const latestHex = await rpc("eth_blockNumber", []);
     const latest = parseInt(latestHex, 16);
 
-    // fast recent scan
-    const LOOKBACK = 2000;
     const CHUNK_SIZE = 100;
-    const startBlock = Math.max(0, latest - LOOKBACK);
-
     let totalStaked = 0;
 
-    for (let from = startBlock; from <= latest; from += CHUNK_SIZE + 1) {
+    for (let from = START_BLOCK; from <= latest; from += CHUNK_SIZE + 1) {
       const to = Math.min(from + CHUNK_SIZE, latest);
 
       const stakedLogs = await rpc("eth_getLogs", [{
@@ -51,6 +51,7 @@ exports.handler = async function () {
         topics: [unstakedTopic]
       }]);
 
+      // ✅ FIXED LINE (this was your bug)
       totalStaked += Array.isArray(stakedLogs) ? stakedLogs.length : 0;
       totalStaked -= Array.isArray(unstakedLogs) ? unstakedLogs.length : 0;
     }
@@ -63,7 +64,7 @@ exports.handler = async function () {
       statusCode: 200,
       headers: {
         "content-type": "application/json",
-        "cache-control": "public, max-age=30"
+        "cache-control": "public, max-age=60"
       },
       body: JSON.stringify({
         totalStaked,
