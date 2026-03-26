@@ -1,8 +1,7 @@
 const { ethers } = require("ethers");
 
-const RPC_URL = "https://rpc.monad.xyz";
-const STAKING_ADDRESS = "0xf9611226c1CcCcCa37951938d6f358D3d5106549";
-const MAX_SUPPLY = 1111;
+const RPC = "https://rpc.monad.xyz";
+const CONTRACT = "0xD24cd2aE86381B8a7E38bd1E0E6822620d930aB1"; // your staking contract
 
 const ABI = [
   "event Staked(address indexed user, uint256 indexed tokenId)",
@@ -11,60 +10,32 @@ const ABI = [
 
 exports.handler = async function () {
   try {
-    const provider = new ethers.JsonRpcProvider(RPC_URL);
-    const contract = new ethers.Contract(STAKING_ADDRESS, ABI, provider);
+    const provider = new ethers.JsonRpcProvider(RPC);
+    const contract = new ethers.Contract(CONTRACT, ABI, provider);
 
-    const latestBlock = await provider.getBlockNumber();
-    const chunkSize = 5000;
+    const staked = await contract.queryFilter("Staked");
+    const unstaked = await contract.queryFilter("Unstaked");
 
-    let totalStaked = 0;
+    const active = new Set();
 
-    for (let fromBlock = 0; fromBlock <= latestBlock; fromBlock += chunkSize + 1) {
-      const toBlock = Math.min(fromBlock + chunkSize, latestBlock);
-
-      const stakedLogs = await contract.queryFilter(
-        contract.filters.Staked(),
-        fromBlock,
-        toBlock
-      );
-
-      const unstakedLogs = await contract.queryFilter(
-        contract.filters.Unstaked(),
-        fromBlock,
-        toBlock
-      );
-
-      totalStaked += stakedLogs.length;
-      totalStaked -= unstakedLogs.length;
+    for (const e of staked) {
+      active.add(e.args.tokenId.toString());
     }
 
-    if (totalStaked < 0) totalStaked = 0;
-
-    const percent = Number(((totalStaked / MAX_SUPPLY) * 100).toFixed(2));
+    for (const e of unstaked) {
+      active.delete(e.args.tokenId.toString());
+    }
 
     return {
       statusCode: 200,
-      headers: {
-        "content-type": "application/json",
-        "cache-control": "public, max-age=60"
-      },
       body: JSON.stringify({
-        totalStaked,
-        maxSupply: MAX_SUPPLY,
-        percent
+        totalStaked: active.size
       })
     };
   } catch (err) {
-    console.error("ascension-stats error:", err);
-
     return {
       statusCode: 500,
-      headers: {
-        "content-type": "application/json"
-      },
-      body: JSON.stringify({
-        error: "Failed to load ascension stats"
-      })
+      body: JSON.stringify({ error: err.message })
     };
   }
 };
