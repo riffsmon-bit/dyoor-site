@@ -1,45 +1,59 @@
-const { ethers } = require("ethers");
-
-const RPC_URL = "https://rpc.monad.xyz";
-const STAKING_ADDRESS = "0xf9611226c1CcCcCa37951938d6f358D3d5106549";
-const MAX_SUPPLY = 1111;
-
-const ABI = [
-  "event Staked(address indexed user, uint256 indexed tokenId)",
-  "event Unstaked(address indexed user, uint256 indexed tokenId)"
-];
-
 exports.handler = async function () {
   try {
-    const provider = new ethers.JsonRpcProvider(RPC_URL);
-    const contract = new ethers.Contract(STAKING_ADDRESS, ABI, provider);
+    const rpcUrl = "https://rpc.monad.xyz";
+    const contract = "0xf9611226c1CcCcCa37951938d6f358D3d5106549".toLowerCase();
+    const maxSupply = 1111;
 
-    const latestBlock = await provider.getBlockNumber();
+    const stakedTopic = "0x9e71bc8eea02a63969f509818f2dafb9254532904319f9dbda79b67bd34a5f3d";
+    const unstakedTopic = "0x0f5bb82176feb1b5e747e28471aa92156a04d9f3ab9f45f28e2d704232b93f75";
+
+    async function rpc(method, params) {
+      const res = await fetch(rpcUrl, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          jsonrpc: "2.0",
+          id: 1,
+          method,
+          params
+        })
+      });
+
+      const json = await res.json();
+      if (json.error) throw new Error(json.error.message || "RPC error");
+      return json.result;
+    }
+
+    const latestHex = await rpc("eth_blockNumber", []);
+    const latest = parseInt(latestHex, 16);
+
     const chunkSize = 5000;
     let totalStaked = 0;
 
-    for (let fromBlock = 0; fromBlock <= latestBlock; fromBlock += chunkSize + 1) {
-      const toBlock = Math.min(fromBlock + chunkSize, latestBlock);
+    for (let from = 0; from <= latest; from += chunkSize + 1) {
+      const to = Math.min(from + chunkSize, latest);
 
-      const stakedLogs = await contract.queryFilter(
-        contract.filters.Staked(),
-        fromBlock,
-        toBlock
-      );
+      const stakedLogs = await rpc("eth_getLogs", [{
+        fromBlock: "0x" + from.toString(16),
+        toBlock: "0x" + to.toString(16),
+        address: contract,
+        topics: [stakedTopic]
+      }]);
 
-      const unstakedLogs = await contract.queryFilter(
-        contract.filters.Unstaked(),
-        fromBlock,
-        toBlock
-      );
+      const unstakedLogs = await rpc("eth_getLogs", [{
+        fromBlock: "0x" + from.toString(16),
+        toBlock: "0x" + to.toString(16),
+        address: contract,
+        topics: [unstakedTopic]
+      }]);
 
-      totalStaked += stakedLogs.length;
-      totalStaked -= unstakedLogs.length;
+      totalStaked += Array.isArray(stakedLogs) ? stakedLogs.length : 0;
+      totalStaked -= Array.isArray(unstakedLogs) ? unstakedLogs.length : 0;
     }
 
     if (totalStaked < 0) totalStaked = 0;
 
-    const percent = Number(((totalStaked / MAX_SUPPLY) * 100).toFixed(2));
+    const percent = Number(((totalStaked / maxSupply) * 100).toFixed(2));
 
     return {
       statusCode: 200,
@@ -49,7 +63,7 @@ exports.handler = async function () {
       },
       body: JSON.stringify({
         totalStaked,
-        maxSupply: MAX_SUPPLY,
+        maxSupply,
         percent
       })
     };
@@ -57,9 +71,11 @@ exports.handler = async function () {
     console.error("ascension-stats error:", err);
     return {
       statusCode: 500,
-      headers: { "content-type": "application/json" },
+      headers: {
+        "content-type": "application/json"
+      },
       body: JSON.stringify({
-        error: "Failed to load ascension stats"
+        error: String(err && err.message ? err.message : err)
       })
     };
   }
