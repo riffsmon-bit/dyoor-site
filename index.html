@@ -6,120 +6,92 @@
   <title>DYOOR</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/style.css?v=home-refresh-6"/>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/style.css?v=home-refresh-7"/>
   <style>
-    .ascensionBatteryCard{
-      margin:18px auto 0;
-      max-width:1100px;
-      padding:18px;
-      border-radius:22px;
-      border:1px solid rgba(255,255,255,.12);
-      background:rgba(255,255,255,.04);
-      box-shadow:0 16px 40px rgba(0,0,0,.28);
+    .homeBatteryCard{
+      margin: 20px auto 0;
+      max-width: 1100px;
+      padding: 22px;
+      border-radius: 26px;
+      border: 1px solid rgba(255,255,255,.10);
+      background:
+        radial-gradient(1200px 280px at 10% 0%, rgba(123, 92, 255, .16), transparent 45%),
+        radial-gradient(900px 220px at 100% 0%, rgba(67, 241, 200, .10), transparent 45%),
+        rgba(255,255,255,.045);
+      box-shadow:
+        0 18px 40px rgba(0,0,0,.34),
+        inset 0 1px 0 rgba(255,255,255,.05);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
     }
 
-    .ascensionBatteryTop{
-      display:flex;
-      align-items:flex-end;
-      justify-content:space-between;
-      gap:14px;
-      flex-wrap:wrap;
-      margin-bottom:14px;
+    .homeBatteryTitle{
+      margin: 0 0 18px;
+      font-size: 24px;
+      line-height: 1.05;
+      font-weight: 900;
+      letter-spacing: -.02em;
     }
 
-    .ascensionEyebrow{
-      font-size:12px;
-      font-weight:800;
-      letter-spacing:.14em;
-      opacity:.72;
+    .homeBatteryRow{
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+      margin-bottom: 12px;
+      flex-wrap: wrap;
     }
 
-    .ascensionTitle{
-      margin:4px 0 0;
-      font-size:28px;
-      line-height:1.05;
+    .homeBatteryLabel{
+      font-size: 15px;
+      font-weight: 600;
+      opacity: .95;
     }
 
-    .ascensionPercent{
-      font-size:28px;
-      font-weight:900;
-      color:var(--mint, #9fffd8);
+    .homeBatteryPct{
+      font-size: 15px;
+      font-weight: 800;
+      opacity: .98;
     }
 
-    .ascensionBar{
-      height:22px;
-      width:100%;
-      border-radius:999px;
-      overflow:hidden;
-      background:rgba(255,255,255,.08);
-      border:1px solid rgba(255,255,255,.12);
+    .homeBatteryBar{
+      height: 20px;
+      width: 100%;
+      border-radius: 999px;
+      overflow: hidden;
+      background: rgba(255,255,255,.07);
+      border: 1px solid rgba(255,255,255,.10);
+      box-shadow: inset 0 1px 2px rgba(0,0,0,.35);
     }
 
-    .ascensionBarFill{
-      height:100%;
-      width:0%;
-      border-radius:999px;
-      background:linear-gradient(90deg, rgba(111,76,255,.95), rgba(107,255,179,.95));
-      transition:width .5s ease;
-      box-shadow:0 0 24px rgba(0,255,199,.25);
+    .homeBatteryFill{
+      height: 100%;
+      width: 0%;
+      border-radius: 999px;
+      background: linear-gradient(90deg, #8d5cff 0%, #73a7ff 45%, #69e2cf 75%, #72df8c 100%);
+      box-shadow:
+        0 0 18px rgba(115, 167, 255, .28),
+        0 0 28px rgba(105, 226, 207, .22);
+      transition: width .5s ease;
     }
 
-    .ascensionMeta{
-      display:flex;
-      justify-content:space-between;
-      gap:12px;
-      flex-wrap:wrap;
-      margin-top:12px;
-      font-size:14px;
-      opacity:.9;
+    .homeBatteryMeta{
+      margin-top: 14px;
+      font-size: 14px;
+      opacity: .92;
+      font-weight: 600;
     }
 
-    #ascensionCount{
-      font-weight:800;
-    }
+    @media (max-width: 640px){
+      .homeBatteryCard{
+        padding: 18px;
+        border-radius: 22px;
+      }
 
-    .ascensionPromo{
-      margin:18px auto 0;
-      max-width:1100px;
-      border-radius:22px;
-      overflow:hidden;
-      border:1px solid rgba(255,255,255,.12);
-      background:rgba(255,255,255,.04);
-      box-shadow:0 16px 40px rgba(0,0,0,.28);
-    }
-
-    .ascensionPromo__img{
-      display:block;
-      width:100%;
-      height:auto;
-      background:#000;
-    }
-
-    .ascensionPromo__body{
-      padding:18px;
-      text-align:left;
-    }
-
-    .ascensionPromo__title{
-      margin:0 0 8px;
-      font-size:24px;
-      line-height:1.1;
-    }
-
-    .ascensionPromo__text{
-      margin:0 0 16px;
-      opacity:.88;
-    }
-
-    .ascensionPromo__cta{
-      display:inline-flex;
-      align-items:center;
-      justify-content:center;
-      padding:12px 18px;
-      border-radius:14px;
-      text-decoration:none;
-      font-weight:800;
+      .homeBatteryTitle{
+        font-size: 20px;
+      }
     }
   </style>
 </head>
@@ -157,41 +129,19 @@
     <!-- ASCENSION BATTERY -->
     <section class="section reveal" id="ascension-battery">
       <div class="container">
-        <div class="ascensionBatteryCard" aria-labelledby="ascensionBatteryTitle">
-          <div class="ascensionBatteryTop">
-            <div>
-              <div class="ascensionEyebrow">GLOBAL PROTOCOL CHARGE</div>
-              <h2 class="ascensionTitle" id="ascensionBatteryTitle">Ascension Battery 🔋</h2>
-            </div>
-            <div class="ascensionPercent" id="ascensionPercent">—%</div>
+        <div class="homeBatteryCard" aria-labelledby="homeBatteryHeading">
+          <h2 class="homeBatteryTitle" id="homeBatteryHeading">Ascension Battery</h2>
+
+          <div class="homeBatteryRow">
+            <div class="homeBatteryLabel" id="ascensionBatteryLabel">Fully Ascended ⚡</div>
+            <div class="homeBatteryPct" id="ascensionPercent">—%</div>
           </div>
 
-          <div class="ascensionBar" aria-hidden="true">
-            <div class="ascensionBarFill" id="ascensionBarFill" style="width:0%"></div>
+          <div class="homeBatteryBar" aria-hidden="true">
+            <div class="homeBatteryFill" id="ascensionBarFill" style="width:0%"></div>
           </div>
 
-          <div class="ascensionMeta">
-            <div id="ascensionCount">Loading…</div>
-            <div id="ascensionSub">Scanning total ascended DYOORs…</div>
-          </div>
-        </div>
-
-        <!-- ASCENSION PROMO -->
-        <div class="ascensionPromo">
-          <img
-            class="ascensionPromo__img"
-            src="/assets/ascension.jpg?v=2"
-            alt="Ascension Protocol promo art"
-            loading="lazy"
-            onerror="this.onerror=null;this.src='/assets/home_banner.png?v=2';"
-          />
-          <div class="ascensionPromo__body">
-            <h3 class="ascensionPromo__title">Enter the Ascension Protocol</h3>
-            <p class="ascensionPromo__text">
-              Ascend your Season 1 DYOORs, generate energy, and align for what comes next.
-            </p>
-            <a class="btn btn--primary ascensionPromo__cta" href="/stake.html">Go to Ascension Protocol</a>
-          </div>
+          <div class="homeBatteryMeta" id="ascensionCount">Loading…</div>
         </div>
       </div>
     </section>
@@ -301,7 +251,7 @@
 
   <script defer src="https://cdn.jsdelivr.net/npm/ethers@6.11.1/dist/ethers.umd.min.js"></script>
   <script defer src="https://unpkg.com/@walletconnect/ethereum-provider@2.23.1/dist/index.umd.js"></script>
-  <script defer src="/script.js?v=home-refresh-6"></script>
+  <script defer src="/script.js?v=home-refresh-7"></script>
 
   <div id="walletModal" class="wallet-modal" aria-hidden="true">
     <div class="wallet-modal__backdrop" data-close="1"></div>
@@ -338,13 +288,13 @@
     async function loadAscensionBattery(){
       const percentEl = document.getElementById("ascensionPercent");
       const countEl = document.getElementById("ascensionCount");
-      const subEl = document.getElementById("ascensionSub");
       const fillEl = document.getElementById("ascensionBarFill");
+      const labelEl = document.getElementById("ascensionBatteryLabel");
 
-      if (!percentEl || !countEl || !subEl || !fillEl) return;
+      if (!percentEl || !countEl || !fillEl || !labelEl) return;
 
       try {
-        const res = await fetch("/.netlify/functions/ascension-stats?v=3", {
+        const res = await fetch("/.netlify/functions/ascension-stats?v=4", {
           cache: "no-store"
         });
 
@@ -357,14 +307,14 @@
         const percent = Number(data.percent || 0);
 
         percentEl.textContent = percent + "%";
-        countEl.textContent = total + " / " + max + " Ascended";
-        subEl.textContent = total + " DYOORs have ascended. Protocol charge rising.";
+        countEl.textContent = total + " ascended / " + max + " total visible";
+        labelEl.textContent = percent >= 100 ? "Fully Ascended ⚡" : "Charging ⚡";
         fillEl.style.width = Math.max(0, Math.min(percent, 100)) + "%";
       } catch (e) {
         console.error("Ascension battery failed:", e);
         percentEl.textContent = "—%";
         countEl.textContent = "Battery offline";
-        subEl.textContent = "Could not load global ascension stats";
+        labelEl.textContent = "Charging ⚡";
         fillEl.style.width = "0%";
       }
     }
