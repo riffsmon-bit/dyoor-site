@@ -4,6 +4,7 @@ exports.handler = async function () {
     const contract = "0xf9611226c1CcCcCa37951938d6f358D3d5106549".toLowerCase();
     const maxSupply = 1111;
 
+    // Event topics (KEEP THESE)
     const stakedTopic = "0x9e71bc8eea02a63969f509818f2dafb9254532904319f9dbda79b67bd34a5f3d";
     const unstakedTopic = "0x0f5bb82176feb1b5e747e28471aa92156a04d9f3ab9f45f28e2d704232b93f75";
 
@@ -27,7 +28,9 @@ exports.handler = async function () {
     const latestHex = await rpc("eth_blockNumber", []);
     const latest = parseInt(latestHex, 16);
 
-    const chunkSize = 5000;
+    // ⚠️ IMPORTANT FIX — Monad limit is ~100 blocks
+    const chunkSize = 100;
+
     let totalStaked = 0;
 
     for (let from = 0; from <= latest; from += chunkSize + 1) {
@@ -67,15 +70,13 @@ exports.handler = async function () {
         percent
       })
     };
+
   } catch (err) {
     console.error("ascension-stats error:", err);
     return {
       statusCode: 500,
-      headers: {
-        "content-type": "application/json"
-      },
       body: JSON.stringify({
-        error: String(err && err.message ? err.message : err)
+        error: String(err.message || err)
       })
     };
   }
