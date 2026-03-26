@@ -6,74 +6,73 @@
   <title>DYOOR</title>
 
   <style>
-    body{
+    body {
       margin:0;
-      font-family:Arial, sans-serif;
+      font-family: Arial, sans-serif;
       background:#0a0a0a;
       color:#fff;
+      text-align:center;
     }
 
-    .container{
-      max-width:1100px;
+    .container {
+      max-width:900px;
       margin:auto;
-      padding:20px;
+      padding:40px 20px;
     }
 
-    h1{
-      font-size:42px;
+    h1 {
+      font-size:40px;
       margin-bottom:10px;
     }
 
-    /* ===== ASCENSION BATTERY ===== */
-
-    .ascensionBatteryCard{
-      margin:40px auto 0;
-      padding:20px;
-      border-radius:20px;
-      border:1px solid rgba(255,255,255,.1);
-      background:rgba(255,255,255,.03);
+    button {
+      padding:12px 18px;
+      border-radius:10px;
+      border:none;
+      cursor:pointer;
+      font-weight:bold;
+      margin:8px;
     }
 
-    .ascensionBatteryTop{
-      display:flex;
-      justify-content:space-between;
-      align-items:flex-end;
-      margin-bottom:10px;
-    }
+    .primary { background:#00ffa3; color:#000; }
+    .secondary { background:#222; color:#fff; }
 
-    .ascensionTitle{
-      font-size:26px;
-      font-weight:900;
-    }
-
-    .ascensionPercent{
-      font-size:26px;
-      color:#00ffc8;
-      font-weight:900;
-    }
-
-    .ascensionBar{
-      height:18px;
-      background:#111;
-      border-radius:999px;
-      overflow:hidden;
-      margin-top:10px;
-    }
-
-    .ascensionBarFill{
-      height:100%;
-      width:0%;
-      background:linear-gradient(90deg,#00ffc8,#8cff66);
-      transition:0.4s;
-    }
-
-    .ascensionMeta{
-      margin-top:10px;
+    #wlResult {
+      margin-top:15px;
       font-size:14px;
-      display:flex;
-      justify-content:space-between;
-      opacity:0.8;
     }
+
+    /* BATTERY */
+    #ascensionBattery {
+      margin-top:20px;
+      padding:14px;
+      border-radius:12px;
+      background:rgba(0,0,0,0.6);
+      border:1px solid rgba(255,255,255,0.1);
+    }
+
+    /* MARQUEE */
+    .marquee {
+      overflow:hidden;
+      margin-top:40px;
+    }
+
+    .marquee__track {
+      display:flex;
+      gap:12px;
+      animation: scroll 25s linear infinite;
+    }
+
+    .marquee__item img {
+      width:120px;
+      border-radius:10px;
+    }
+
+    @keyframes scroll {
+      from { transform:translateX(0); }
+      to { transform:translateX(-50%); }
+    }
+
   </style>
 </head>
 
@@ -82,33 +81,60 @@
 <div class="container">
 
   <h1>DYOOR</h1>
-  <p>Season 1 is live on Monad.</p>
+  <p>Ascension Protocol Live</p>
 
-  <!-- 🔋 ASCENSION BATTERY -->
-  <section class="ascensionBatteryCard">
+  <!-- CONNECT -->
+  <button id="btnConnectWL" class="primary">Connect Wallet</button>
+  <button id="btnCheckWL" class="secondary">Check WL</button>
 
-    <div class="ascensionBatteryTop">
-      <div>
-        <div style="font-size:12px;opacity:.6;">GLOBAL PROTOCOL</div>
-        <div class="ascensionTitle">Ascension Battery 🔋</div>
-      </div>
+  <div id="wlResult"></div>
 
-      <div id="ascensionPercent" class="ascensionPercent">--%</div>
-    </div>
+  <!-- ASCENSION BATTERY -->
+  <div id="ascensionBattery">
+    🔋 Ascension Battery: <span id="batteryCount">Loading...</span>
+  </div>
 
-    <div class="ascensionBar">
-      <div id="ascensionBarFill" class="ascensionBarFill"></div>
-    </div>
-
-    <div class="ascensionMeta">
-      <div id="ascensionCount">Loading...</div>
-      <div id="ascensionSub">Scanning chain...</div>
-    </div>
-
-  </section>
+  <!-- COLLECTION PREVIEW -->
+  <div class="marquee">
+    <div id="collectionMarquee" class="marquee__track"></div>
+  </div>
 
 </div>
 
-<script src="script.js"></script>
+<!-- WALLET MODAL -->
+<div id="walletModal" style="
+  position:fixed;
+  inset:0;
+  background:rgba(0,0,0,0.9);
+  display:none;
+  align-items:center;
+  justify-content:center;
+  z-index:9999;
+">
+  <div style="background:#111;padding:20px;border-radius:12px;">
+    <h3>Select Wallet</h3>
+
+    <button onclick="connectWithWallet('metamask')">MetaMask</button>
+    <button onclick="connectWithWallet('okx')">OKX</button>
+    <button onclick="connectWithWallet('walletconnect')">WalletConnect</button>
+
+    <br/><br/>
+    <button onclick="closeWalletModal()">Close</button>
+  </div>
+</div>
+
+<script>
+  // show modal fix
+  function openWalletModal(){
+    document.getElementById("walletModal").style.display = "flex";
+  }
+  function closeWalletModal(){
+    document.getElementById("walletModal").style.display = "none";
+  }
+</script>
+
+<!-- YOUR MAIN SCRIPT -->
+<script src="/script.js"></script>
+
 </body>
 </html>
