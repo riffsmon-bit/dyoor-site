@@ -7,7 +7,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/style.css?v=home-refresh-7"/>
+  <link rel="stylesheet" href="/style.css?v=home-refresh-8"/>
   <style>
     .homeBatteryCard{
       margin: 20px auto 0;
@@ -83,6 +83,20 @@
       font-weight: 600;
     }
 
+    .homeBatteryCtaWrap{
+      margin-top: 16px;
+    }
+
+    .homeBatteryCta{
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 12px 18px;
+      border-radius: 14px;
+      text-decoration: none;
+      font-weight: 800;
+    }
+
     @media (max-width: 640px){
       .homeBatteryCard{
         padding: 18px;
@@ -133,7 +147,7 @@
           <h2 class="homeBatteryTitle" id="homeBatteryHeading">Ascension Battery</h2>
 
           <div class="homeBatteryRow">
-            <div class="homeBatteryLabel" id="ascensionBatteryLabel">Fully Ascended ⚡</div>
+            <div class="homeBatteryLabel" id="ascensionBatteryLabel">Charging ⚡</div>
             <div class="homeBatteryPct" id="ascensionPercent">—%</div>
           </div>
 
@@ -142,6 +156,10 @@
           </div>
 
           <div class="homeBatteryMeta" id="ascensionCount">Loading…</div>
+
+          <div class="homeBatteryCtaWrap">
+            <a class="btn btn--primary homeBatteryCta" href="/stake.html">Go to Ascension Protocol</a>
+          </div>
         </div>
       </div>
     </section>
@@ -251,7 +269,7 @@
 
   <script defer src="https://cdn.jsdelivr.net/npm/ethers@6.11.1/dist/ethers.umd.min.js"></script>
   <script defer src="https://unpkg.com/@walletconnect/ethereum-provider@2.23.1/dist/index.umd.js"></script>
-  <script defer src="/script.js?v=home-refresh-7"></script>
+  <script defer src="/script.js?v=home-refresh-8"></script>
 
   <div id="walletModal" class="wallet-modal" aria-hidden="true">
     <div class="wallet-modal__backdrop" data-close="1"></div>
@@ -294,7 +312,7 @@
       if (!percentEl || !countEl || !fillEl || !labelEl) return;
 
       try {
-        const res = await fetch("/.netlify/functions/ascension-stats?v=4", {
+        const res = await fetch("/.netlify/functions/ascension-stats?v=5", {
           cache: "no-store"
         });
 
