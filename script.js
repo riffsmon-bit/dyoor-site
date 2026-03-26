@@ -1271,4 +1271,31 @@ async function initCollectionMarquee() {
 document.addEventListener("DOMContentLoaded", () => {
   try { initCollectionMarquee(); } catch (e) {}
 });
+// ---------- GLOBAL ASCENSION BATTERY ----------
+async function loadAscensionBattery(){
+  try {
+    const res = await fetch("/.netlify/functions/ascension-stats");
+    const data = await res.json();
 
+    const el = document.getElementById("batteryCount");
+    if(!el) return;
+
+    if(data.totalStaked !== undefined){
+      el.textContent = data.totalStaked.toLocaleString() + " NFTs";
+    } else {
+      el.textContent = "Unavailable";
+    }
+  } catch(e){
+    console.error("Battery load failed:", e);
+    const el = document.getElementById("batteryCount");
+    if(el) el.textContent = "Offline";
+  }
+}
+
+// load on page start
+document.addEventListener("DOMContentLoaded", () => {
+  loadAscensionBattery();
+
+  // auto refresh every 30 sec
+  setInterval(loadAscensionBattery, 30000);
+});
