@@ -4,84 +4,55 @@ exports.handler = async function () {
     const contract = "0xf9611226c1CcCcCa37951938d6f358D3d5106549";
     const maxSupply = 1111;
 
-    // stakeInfo(uint256) selector from your verified contract
-    const STAKE_INFO_SELECTOR = "0x4e533572";
-    const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
+    // stakedBalance(address) selector
+    const STAKED_BALANCE_SELECTOR = "0x60217267";
 
-    function hex32(value) {
-      return BigInt(value).toString(16).padStart(64, "0");
+    // wallets seen staking into this contract
+    const stakers = [
+      "0x245E3D068bCD5dD059bB8c23cCa1Af6d2877a3bE",
+      "0x48477b50818b75f4b4a5c86d5fcbb35d3c0fb14d",
+      "0x49b9e94f9841da5df27cb44ede19d963b8ff6e78",
+      "0x7179af9dbe43f1dbfed8733b83260ecac18515c4",
+      "0x447d3809ab984e75431854432f9d7b9325112e07",
+      "0xa26f5dc12bae4b0a8a684526a3beb77f34f99426",
+      "0xC7f55cE6A7dF9A79cc4A643a5081230F890c7AA6"
+    ];
+
+    function encodeAddress(address) {
+      return address.toLowerCase().replace(/^0x/, "").padStart(64, "0");
     }
 
-    function buildStakeInfoCall(tokenId) {
-      return STAKE_INFO_SELECTOR + hex32(tokenId);
-    }
-
-    function decodeOwnerFromStakeInfo(result) {
-      if (!result || result === "0x") return ZERO_ADDRESS;
-
-      const clean = result.startsWith("0x") ? result.slice(2) : result;
-
-      // public mapping getter for struct returns:
-      // owner (32 bytes) + stakedAt (32 bytes)
-      if (clean.length < 64) return ZERO_ADDRESS;
-
-      const ownerWord = clean.slice(0, 64);
-      const owner = "0x" + ownerWord.slice(24).toLowerCase();
-
-      return owner;
-    }
-
-    async function batchEthCall(tokenIds) {
-      const payload = tokenIds.map((tokenId, i) => ({
-        jsonrpc: "2.0",
-        id: i + 1,
-        method: "eth_call",
-        params: [
-          {
-            to: contract,
-            data: buildStakeInfoCall(tokenId)
-          },
-          "latest"
-        ]
-      }));
-
+    async function ethCall(data) {
       const res = await fetch(rpcUrl, {
         method: "POST",
-        headers: {
-          "content-type": "application/json"
-        },
-        body: JSON.stringify(payload)
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          jsonrpc: "2.0",
+          id: 1,
+          method: "eth_call",
+          params: [
+            {
+              to: contract,
+              data
+            },
+            "latest"
+          ]
+        })
       });
 
       const json = await res.json();
-      if (!Array.isArray(json)) {
-        throw new Error("Unexpected RPC batch response");
-      }
-
-      return json;
+      if (json.error) throw new Error(json.error.message || "RPC error");
+      return json.result;
     }
 
     let totalStaked = 0;
-    const chunkSize = 100;
 
-    for (let start = 1; start <= maxSupply; start += chunkSize) {
-      const end = Math.min(start + chunkSize - 1, maxSupply);
-      const tokenIds = [];
+    for (const wallet of stakers) {
+      const data = STAKED_BALANCE_SELECTOR + encodeAddress(wallet);
+      const result = await ethCall(data);
 
-      for (let tokenId = start; tokenId <= end; tokenId++) {
-        tokenIds.push(tokenId);
-      }
-
-      const results = await batchEthCall(tokenIds);
-
-      for (const item of results) {
-        if (item.error) continue;
-
-        const owner = decodeOwnerFromStakeInfo(item.result);
-        if (owner !== ZERO_ADDRESS) {
-          totalStaked += 1;
-        }
-      }
+      const value = result && result !== "0x" ? parseInt(result, 16) : 0;
+      totalStaked += Number.isFinite(value) ? value : 0;
     }
 
     const percent = Number(((totalStaked / maxSupply) * 100).toFixed(2));
@@ -100,7 +71,6 @@ exports.handler = async function () {
     };
   } catch (err) {
     console.error("ascension-stats error:", err);
-
     return {
       statusCode: 500,
       headers: {
