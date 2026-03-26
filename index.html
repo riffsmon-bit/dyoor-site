@@ -7,28 +7,8 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/style.css?v=homebattery2"/>
+  <link rel="stylesheet" href="/style.css?v=home-refresh-3"/>
   <style>
-    .brandLogo{
-      display:flex;
-      align-items:center;
-      justify-content:flex-start;
-      min-width:0;
-    }
-
-    .brandLogo img{
-      display:block;
-      height:52px;
-      width:auto;
-      object-fit:contain;
-    }
-
-    @media (max-width: 640px){
-      .brandLogo img{
-        height:40px;
-      }
-    }
-
     .ascensionBatteryCard{
       margin:18px auto 0;
       max-width:1100px;
@@ -80,7 +60,7 @@
       height:100%;
       width:0%;
       border-radius:999px;
-      background:linear-gradient(90deg, rgba(0,255,199,.55), rgba(157,255,113,.75));
+      background:linear-gradient(90deg, rgba(111,76,255,.95), rgba(107,255,179,.95));
       transition:width .5s ease;
       box-shadow:0 0 24px rgba(0,255,199,.25);
     }
@@ -98,6 +78,48 @@
     #ascensionCount{
       font-weight:800;
     }
+
+    .ascensionPromo{
+      margin:18px auto 0;
+      max-width:1100px;
+      border-radius:22px;
+      overflow:hidden;
+      border:1px solid rgba(255,255,255,.12);
+      background:rgba(255,255,255,.04);
+      box-shadow:0 16px 40px rgba(0,0,0,.28);
+    }
+
+    .ascensionPromo__img{
+      display:block;
+      width:100%;
+      height:auto;
+    }
+
+    .ascensionPromo__body{
+      padding:18px;
+      text-align:left;
+    }
+
+    .ascensionPromo__title{
+      margin:0 0 8px;
+      font-size:24px;
+      line-height:1.1;
+    }
+
+    .ascensionPromo__text{
+      margin:0 0 16px;
+      opacity:.88;
+    }
+
+    .ascensionPromo__cta{
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      padding:12px 18px;
+      border-radius:14px;
+      text-decoration:none;
+      font-weight:800;
+    }
   </style>
 </head>
 <body>
@@ -105,13 +127,10 @@
 
   <header class="topbar" id="top">
     <div class="container topbar__inner">
-      <a class="brand brandLogo" href="/index.html" aria-label="DYOOR Home">
-        <img src="/assets/dyoor-logo.png" alt="DYOOR logo" />
-      </a>
-
+      <a class="brand" href="/index.html">DYOOR</a>
       <nav class="nav" aria-label="Primary">
         <a href="/whitepaper.html">Whitepaper</a>
-        <a href="/stake.html">Stake</a>
+        <a href="/stake.html">Ascension Protocol</a>
         <a href="/swap/">Swap</a>
       </nav>
     </div>
@@ -153,6 +172,18 @@
           <div class="ascensionMeta">
             <div id="ascensionCount">Loading…</div>
             <div id="ascensionSub">Scanning total ascended DYOORs…</div>
+          </div>
+        </div>
+
+        <!-- ASCENSION PROMO IMAGE -->
+        <div class="ascensionPromo">
+          <img class="ascensionPromo__img" src="/assets/ascension-protocol-promo.jpeg" alt="Ascension Protocol promo art" loading="lazy"/>
+          <div class="ascensionPromo__body">
+            <h3 class="ascensionPromo__title">Enter the Ascension Protocol</h3>
+            <p class="ascensionPromo__text">
+              Ascend your Season 1 DYOORs, generate energy, and align for what comes next.
+            </p>
+            <a class="btn btn--primary ascensionPromo__cta" href="/stake.html">Go to Ascension Protocol</a>
           </div>
         </div>
       </div>
@@ -236,14 +267,6 @@
           <div class="card">
             <h3 class="card__title">NFT Marketplaces</h3>
             <div class="linkGrid" role="list">
-              <a class="btn linkBtn" role="listitem" target="_blank" rel="noopener noreferrer" href="https://magiceden.us/collections/monad/DYOOR">
-                <span class="linkIcon" aria-hidden="true">
-                  <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2 2.8 7v10L12 22l9.2-5V7L12 2Zm0 2.2 7.2 3.9v7.8L12 19.8l-7.2-3.9V8.1L12 4.2Zm0 3.2-5.2 2.8V15l5.2 2.8 5.2-2.8V10.2L12 7.4Z"/></svg>
-                </span>
-                <span class="linkText">Magic Eden</span>
-                <span class="linkHint">Monad</span>
-              </a>
-
               <a class="btn linkBtn" role="listitem" target="_blank" rel="noopener noreferrer" href="https://opensea.io/collection/dyoor-154958357">
                 <span class="linkIcon" aria-hidden="true">
                   <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M20.5 12.2a8.5 8.5 0 1 1-17 0 8.5 8.5 0 0 1 17 0ZM12 5.5c-1.1 0-2 .9-2 2v4.4c0 .5.4.9.9.9h2.2c1 0 1.9-.8 1.9-1.9 0-1.2-1-2.2-2.2-2.2h-.8v-1c0-1.1-.9-2-2-2Z"/></svg>
@@ -270,40 +293,7 @@
 
   </main>
 
-  <script defer src="https://cdn.jsdelivr.net/npm/ethers@6.11.1/dist/ethers.umd.min.js"></script>
-  <script defer src="https://unpkg.com/@walletconnect/ethereum-provider@2.23.1/dist/index.umd.js"></script>
-  <script defer src="/script.js?v=homebattery2"></script>
-
-  <div id="walletModal" class="wallet-modal" aria-hidden="true">
-    <div class="wallet-modal__backdrop" data-close="1"></div>
-    <div class="wallet-modal__panel" role="dialog" aria-modal="true" aria-label="Connect wallet">
-      <div class="wallet-modal__header">
-        <div class="wallet-modal__title">Connect Wallet</div>
-        <button type="button" class="wallet-modal__close" data-close="1" aria-label="Close">✕</button>
-      </div>
-      <div class="wallet-modal__grid">
-        <button type="button" class="wallet-option" data-wallet="metamask">MetaMask</button>
-        <button type="button" class="wallet-option" data-wallet="phantom">Phantom (EVM)</button>
-        <button type="button" class="wallet-option" data-wallet="okx">OKX Wallet</button>
-        <button type="button" class="wallet-option" data-wallet="injected">Other Injected</button>
-        <button type="button" class="wallet-option wallet-option--wc" data-wallet="walletconnect">WalletConnect (QR)</button>
-      </div>
-
-      <div id="walletModalHint" class="wallet-modal__hint" style="display:none;">
-        On iOS Safari, MetaMask/OKX usually don’t inject directly. Connect via <strong>WalletConnect</strong>, or open this site inside your wallet’s in-app browser.
-      </div>
-
-      <div id="walletDeepLinks" class="wallet-modal__deeplinks" style="display:none;">
-        <a href="#" id="openInMetaMask" class="wallet-deeplink">Open in MetaMask</a>
-        <a href="#" id="openInOKX" class="wallet-deeplink">Open in OKX</a>
-        <a href="#" id="openInPhantom" class="wallet-deeplink">Open in Phantom</a>
-      </div>
-
-      <div class="wallet-modal__note">
-        We will <strong>never</strong> ask for your seed phrase.
-      </div>
-    </div>
-  </div>
+  <script defer src="/script.js?v=home-refresh-3"></script>
 
   <script>
     async function loadAscensionBattery(){
