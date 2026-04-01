@@ -27,22 +27,34 @@ body{
 }
 
 .bg{
-  position:fixed; inset:0;
+  position:fixed;
+  inset:0;
   background:
     radial-gradient(900px 550px at 50% 10%, rgba(143,99,255,.20), transparent 60%),
     radial-gradient(700px 500px at 20% 30%, rgba(37,227,166,.10), transparent 60%),
     radial-gradient(900px 650px at 80% 55%, rgba(143,99,255,.12), transparent 62%);
-  pointer-events:#walletModalClose {
-  position: relative;
-  z-index: 10001;
-  pointer-events: auto;
+  pointer-events:none;
+  z-index:-1;
 }
 
 .wallet-modal__panel {
   position: relative;
-  z-index: 10000;
-};
-  z-index:-1;
+  z-index: 10001;
+}
+
+.wallet-modal__backdrop {
+  pointer-events: auto;
+}
+
+.wallet-modal__close,
+.wallet-option {
+  position: relative;
+  z-index: 10002;
+  pointer-events: auto;
+}
+
+#verifyConnectWalletBtn {
+  pointer-events: auto;
 }
 
 .container{
@@ -236,10 +248,6 @@ body{
   font-weight:800;
 }
 
-  padding: 16px 16px 18px;
-  display:flex; flex-direction:column; gap:8px;
-  text-align:center;
-}
 
 .game{padding: 14px}
 .game__head{display:flex; align-items:flex-start; justify-content:space-between}
@@ -534,7 +542,7 @@ body{
   line-height:1.45;
 }
 .trustList li::before{
-  content:"✓";
+  content:"âœ“";
   position:absolute;
   left:0;
   top:0;
@@ -1597,4 +1605,33 @@ details.faq-item p {
   .verifyCard{ padding:18px; }
   .verifyStats{ grid-template-columns: 1fr; }
   .verifyActions--main .btn{ width:100%; }
+}
+/* ===== DYOOR verifier wallet modal safety fix ===== */
+.wallet-modal {
+  z-index: 9999;
+}
+
+.wallet-modal.is-open {
+  display: block;
+  pointer-events: auto;
+}
+
+.wallet-modal__panel {
+  position: relative;
+  z-index: 10001;
+}
+
+.wallet-modal__backdrop {
+  pointer-events: auto;
+}
+
+.wallet-modal__close,
+.wallet-option {
+  position: relative;
+  z-index: 10002;
+  pointer-events: auto;
+}
+
+#verifyConnectWalletBtn {
+  pointer-events: auto;
 }
