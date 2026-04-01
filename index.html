@@ -216,6 +216,77 @@
       </div>
     </section>
 
+
+    <section class="section reveal" id="discord-verify">
+      <div class="container">
+        <h2 class="section__title">Verify Your DYOOR Roles</h2>
+        <p class="muted center">Connect Discord, connect your wallet, and sync Holder, Ascended, 20+, and 50+ automatically.</p>
+
+        <div class="card verifyCard">
+          <div class="verifyCard__glow" aria-hidden="true"></div>
+
+          <div class="verifyCard__head">
+            <div>
+              <div class="verifyCard__eyebrow">Discord + Wallet Sync</div>
+              <h3 class="verifyCard__title">Verify on first connect. Refresh anytime. Auto-sync every hour.</h3>
+            </div>
+            <div class="verifyPills">
+              <span class="verifyPill">Holder</span>
+              <span class="verifyPill">Ascended</span>
+              <span class="verifyPill">20+</span>
+              <span class="verifyPill">50+</span>
+            </div>
+          </div>
+
+          <div class="verifyGrid">
+            <div class="verifyPanel">
+              <div class="verifyPanel__label">Discord</div>
+              <div class="verifyValue" id="discordVerifyUser">Not connected</div>
+              <div class="verifySub" id="discordVerifySub">Login with Discord to link the exact account that should receive roles.</div>
+              <div class="verifyActions">
+                <button class="btn btn--primary" id="btnConnectDiscord" type="button">Connect Discord</button>
+              </div>
+            </div>
+
+            <div class="verifyPanel">
+              <div class="verifyPanel__label">Wallet</div>
+              <div class="verifyValue" id="verifyWalletValue">Not connected</div>
+              <div class="verifySub" id="verifyWalletSub">Connect the wallet that holds or has ascended your DYOORs.</div>
+              <div class="verifyActions">
+                <button class="btn btn--ghost" id="btnVerifyConnectWallet" type="button">Connect Wallet</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="verifyStats" id="verifyStats">
+            <div class="verifyStat">
+              <span class="verifyStat__k">Wallet S1</span>
+              <span class="verifyStat__v" id="verifyWalletCount">—</span>
+            </div>
+            <div class="verifyStat">
+              <span class="verifyStat__k">Staked S1</span>
+              <span class="verifyStat__v" id="verifyStakedCount">—</span>
+            </div>
+            <div class="verifyStat">
+              <span class="verifyStat__k">Total Counted</span>
+              <span class="verifyStat__v" id="verifyTotalCount">—</span>
+            </div>
+            <div class="verifyStat">
+              <span class="verifyStat__k">Active Roles</span>
+              <span class="verifyStat__v" id="verifyRolesText">Not synced</span>
+            </div>
+          </div>
+
+          <div class="verifyActions verifyActions--main">
+            <button class="btn btn--primary" id="btnVerifyRoles" type="button">Verify Roles</button>
+            <button class="btn btn--ghost" id="btnRefreshRoles" type="button">Refresh Roles</button>
+          </div>
+
+          <div class="verifyStatus" id="verifyStatusBox">Connect Discord and your wallet to begin verification.</div>
+        </div>
+      </div>
+    </section>
+
     <section class="section reveal" id="collection">
       <div class="container">
         <h2 class="section__title">S1 Collection on Monad</h2>
@@ -318,7 +389,7 @@
 
   <script defer src="https://cdn.jsdelivr.net/npm/ethers@6.11.1/dist/ethers.umd.min.js"></script>
   <script defer src="https://unpkg.com/@walletconnect/ethereum-provider@2.23.1/dist/index.umd.js"></script>
-  <script defer src="/script.js?v=home-glow-1"></script>
+  <script defer src="/script.js?v=home-glow-verify-1"></script>
 
   <div id="walletModal" class="wallet-modal" aria-hidden="true">
     <div class="wallet-modal__backdrop" data-close="1"></div>

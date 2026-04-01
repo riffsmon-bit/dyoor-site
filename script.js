@@ -367,16 +367,24 @@ function updateWalletUI(){
   const addr = userAddress;
   const connectWL = qs('#btnConnectWL');
   const connectSwap = qs('#swapConnectBtn');
+  const connectVerify = qs('#btnVerifyConnectWallet');
   // Some pages have additional connect buttons; keep this function safe.
   const connectCasino = qs('#btnConnectCasino');
   const chainPill = qs('#chainPill');
   const wlResult = qs('#wlResult');
+  const verifyWalletValue = qs('#verifyWalletValue');
+  const verifyWalletSub = qs('#verifyWalletSub');
 
   if (connectWL) connectWL.textContent = addr ? `Connected: ${shortAddr(addr)}` : 'Connect Wallet';
   if (connectCasino) connectCasino.textContent = addr ? `Connected: ${shortAddr(addr)}` : 'Connect Wallet';
   if (connectSwap) connectSwap.textContent = addr ? `Connected: ${shortAddr(addr)}` : 'Connect wallet';
+  if (connectVerify) connectVerify.textContent = addr ? `Connected: ${shortAddr(addr)}` : 'Connect Wallet';
   if (chainPill) chainPill.textContent = addr ? `Monad • ${shortAddr(addr)}` : 'Monad';
   if (wlResult && addr) wlResult.textContent = `Connected: ${shortAddr(addr)}. Tap “Check Eligibility”.`;
+  if (verifyWalletValue) verifyWalletValue.textContent = addr ? shortAddr(addr) : 'Not connected';
+  if (verifyWalletSub) verifyWalletSub.textContent = addr
+    ? 'Wallet connected on Monad. You can verify or refresh your Discord roles now.'
+    : 'Connect the wallet that holds or has ascended your DYOORs.';
 
   // Keep globals synced for standalone pages that rely on window.* state.
   syncWalletGlobals();
@@ -1270,7 +1278,182 @@ async function initCollectionMarquee() {
 
 document.addEventListener("DOMContentLoaded", () => {
   try { initCollectionMarquee(); } catch (e) {}
+  try { initHomepageVerifier(); } catch (e) { console.warn('Verifier init failed', e); }
 });
+
+
+// ---------- HOMEPAGE DISCORD VERIFIER ----------
+const VERIFY_API = {
+  status: '/.netlify/functions/discord-status',
+  loginStart: '/.netlify/functions/discord-login-start',
+  nonce: '/.netlify/functions/discord-verify-nonce',
+  submit: '/.netlify/functions/discord-verify-submit',
+  refresh: '/.netlify/functions/discord-refresh'
+};
+
+const __verifyState = {
+  discordUser: null,
+  wallet: null,
+  snapshot: null,
+  loading: false
+};
+
+function verifySetStatus(message, tone = 'idle'){
+  const box = document.getElementById('verifyStatusBox');
+  if(!box) return;
+  box.textContent = message;
+  box.classList.remove('is-good','is-bad','is-warn','is-busy');
+  if(tone === 'good') box.classList.add('is-good');
+  else if(tone === 'bad') box.classList.add('is-bad');
+  else if(tone === 'warn') box.classList.add('is-warn');
+  else if(tone === 'busy') box.classList.add('is-busy');
+}
+
+function verifyRoleList(snapshot){
+  if(!snapshot) return 'Not synced';
+  const roles = [];
+  if(snapshot.isHolder) roles.push('Holder');
+  if(snapshot.isAscended) roles.push('Ascended');
+  if(snapshot.isTwentyPlus) roles.push('20+');
+  if(snapshot.isFiftyPlus) roles.push('50+');
+  return roles.length ? roles.join(' • ') : 'No active roles';
+}
+
+function verifyApplySnapshot(snapshot){
+  __verifyState.snapshot = snapshot || null;
+  const walletCount = document.getElementById('verifyWalletCount');
+  const stakedCount = document.getElementById('verifyStakedCount');
+  const totalCount = document.getElementById('verifyTotalCount');
+  const rolesText = document.getElementById('verifyRolesText');
+
+  if (walletCount) walletCount.textContent = snapshot?.walletBalance ?? '—';
+  if (stakedCount) stakedCount.textContent = snapshot?.stakedBalance ?? '—';
+  if (totalCount) totalCount.textContent = snapshot?.totalBalance ?? '—';
+  if (rolesText) rolesText.textContent = verifyRoleList(snapshot);
+}
+
+function verifyApplyDiscordUser(user){
+  __verifyState.discordUser = user || null;
+  const userEl = document.getElementById('discordVerifyUser');
+  const subEl = document.getElementById('discordVerifySub');
+  const btn = document.getElementById('btnConnectDiscord');
+
+  if(user){
+    if(userEl) userEl.textContent = user.username ? `${user.username}${user.discriminator ? '#' + user.discriminator : ''}` : (user.global_name || 'Connected');
+    if(subEl) subEl.textContent = 'Discord linked. This is the account that will receive your DYOOR roles.';
+    if(btn) btn.textContent = 'Discord Connected';
+  } else {
+    if(userEl) userEl.textContent = 'Not connected';
+    if(subEl) subEl.textContent = 'Login with Discord to link the exact account that should receive roles.';
+    if(btn) btn.textContent = 'Connect Discord';
+  }
+}
+
+async function verifyFetchJSON(url, options){
+  const res = await fetch(url, options);
+  let data = {};
+  try { data = await res.json(); } catch(e) {}
+  if(!res.ok){
+    throw new Error(data?.error || data?.message || `Request failed (${res.status})`);
+  }
+  return data;
+}
+
+async function loadVerifyStatus(){
+  try{
+    const data = await verifyFetchJSON(VERIFY_API.status, { credentials: 'include' });
+    verifyApplyDiscordUser(data?.discordUser || null);
+    verifyApplySnapshot(data?.snapshot || null);
+
+    if(data?.wallet){
+      __verifyState.wallet = data.wallet;
+      if(!userAddress && window.ethereum){
+        // leave actual wallet connection state alone; status endpoint may know a linked wallet
+      }
+      const walletValue = document.getElementById('verifyWalletValue');
+      const walletSub = document.getElementById('verifyWalletSub');
+      if(walletValue) walletValue.textContent = shortAddr(data.wallet);
+      if(walletSub) walletSub.textContent = 'Wallet linked. Use Refresh Roles anytime, or just let hourly sync handle it.';
+    }
+
+    if(data?.snapshot){
+      verifySetStatus('Roles synced. Hourly auto-update is active.', 'good');
+    }
+  } catch(err){
+    console.warn('verify status load failed', err);
+    verifySetStatus('Verifier backend not reachable yet. Add the Netlify verifier functions, then reload.', 'warn');
+  }
+}
+
+async function startDiscordLogin(){
+  const returnTo = encodeURIComponent(window.location.href);
+  window.location.href = `${VERIFY_API.loginStart}?returnTo=${returnTo}`;
+}
+
+async function verifyRolesFlow(mode = 'verify'){
+  if(__verifyState.loading) return;
+  if(!__verifyState.discordUser){
+    verifySetStatus('Connect Discord first so the site knows which account should receive roles.', 'warn');
+    return;
+  }
+  if(!userAddress || !signer){
+    verifySetStatus('Connect your wallet first.', 'warn');
+    openWalletModal();
+    return;
+  }
+
+  __verifyState.loading = true;
+  verifySetStatus(mode === 'refresh' ? 'Refreshing your roles…' : 'Preparing secure verification message…', 'busy');
+
+  try {
+    const wallet = await signer.getAddress();
+    const nonceData = await verifyFetchJSON(VERIFY_API.nonce, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify({ wallet, mode })
+    });
+
+    const message = nonceData?.message;
+    if(!message) throw new Error('Verifier did not return a signable message.');
+
+    verifySetStatus(mode === 'refresh' ? 'Sign to refresh your role state…' : 'Sign the wallet message to verify…', 'busy');
+    const signature = await signer.signMessage(message);
+
+    const submitData = await verifyFetchJSON(VERIFY_API.submit, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify({ wallet, message, signature, mode })
+    });
+
+    verifyApplySnapshot(submitData?.snapshot || null);
+    verifyApplyDiscordUser(submitData?.discordUser || __verifyState.discordUser);
+    verifySetStatus(submitData?.message || 'Roles synced successfully.', 'good');
+  } catch(err){
+    console.error('verify flow failed', err);
+    verifySetStatus(err?.message || 'Verification failed. Try again.', 'bad');
+  } finally {
+    __verifyState.loading = false;
+  }
+}
+
+function initHomepageVerifier(){
+  const discordBtn = document.getElementById('btnConnectDiscord');
+  const connectWalletBtn = document.getElementById('btnVerifyConnectWallet');
+  const verifyBtn = document.getElementById('btnVerifyRoles');
+  const refreshBtn = document.getElementById('btnRefreshRoles');
+
+  if(!discordBtn || !connectWalletBtn || !verifyBtn || !refreshBtn) return;
+
+  discordBtn.addEventListener('click', startDiscordLogin);
+  connectWalletBtn.addEventListener('click', ()=>openWalletModal());
+  verifyBtn.addEventListener('click', ()=>verifyRolesFlow('verify'));
+  refreshBtn.addEventListener('click', ()=>verifyRolesFlow('refresh'));
+
+  loadVerifyStatus();
+}
+
 // ---------- GLOBAL ASCENSION BATTERY ----------
 async function loadAscensionBattery(){
   try {
