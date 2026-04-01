@@ -1,6 +1,13 @@
 const { getStore } = require('@netlify/blobs');
 
-const store = getStore('dyoor-verify');
+const siteID = process.env.NETLIFY_BLOBS_SITE_ID || process.env.NETLIFY_SITE_ID || '';
+const token = process.env.NETLIFY_BLOBS_TOKEN || '';
+
+const storeOptions = {};
+if (siteID) storeOptions.siteID = siteID;
+if (token) storeOptions.token = token;
+
+const store = getStore('dyoor-verify', storeOptions);
 
 async function getJson(key, fallback = null) {
   const value = await store.get(key, { type: 'json' });
