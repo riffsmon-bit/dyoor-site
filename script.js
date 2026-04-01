@@ -826,7 +826,36 @@ async function initSwapUI(){
   qs('#tabAll')?.addEventListener('click', ()=>{ __tokenPickerTab='all'; renderTokenList(); });
 
   document.addEventListener('keydown', (e)=>{ if(e.key==='Escape') closeTokenModal(); });
+// Homepage verifier connect wallet button
+qs('#verifyConnectWalletBtn')?.addEventListener('click', (e) => {
+  e.preventDefault();
+  openWalletModal();
+});
 
+// Close wallet modal from X button
+qs('#walletModalClose')?.addEventListener('click', (e) => {
+  e.preventDefault();
+  closeWalletModal();
+});
+
+// Close wallet modal from backdrop click
+qs('#walletModalBackdrop')?.addEventListener('click', () => {
+  closeWalletModal();
+});
+
+// ESC closes modal too
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') closeWalletModal();
+});
+
+// Wallet option buttons inside modal
+document.querySelectorAll('.wallet-option[data-wallet]').forEach((btn) => {
+  btn.addEventListener('click', async (e) => {
+    e.preventDefault();
+    const walletType = btn.getAttribute('data-wallet') || '';
+    await connectWithWallet(walletType);
+  });
+});
   // Set initial button labels
   setTokenBtn('sell', __tokenIndex.get(String(sellSel.value).toLowerCase()));
   setTokenBtn('buy',  __tokenIndex.get(String(buySel.value).toLowerCase()));
