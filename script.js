@@ -1113,35 +1113,117 @@ document.querySelectorAll('.wallet-option[data-wallet]').forEach((btn) => {
   await updateBalancesUI();
 }
 
-document.addEventListener('DOMContentLoaded', ()=>{
-  // Swap connect button: use OKX injected provider when available, otherwise show modal.
-  qs('#swapConnectBtn')?.addEventListener('click', async ()=>{
-    const okxProv = getInjectedProvider('okx') || (window.okxwallet && (window.okxwallet.ethereum || window.okxwallet)) || window.ethereum;
+document.addEventListener('DOMContentLoaded', () => {
+  const bindClick = (selector, handler) => {
+    document.querySelectorAll(selector).forEach((el) => {
+      el.addEventListener('click', handler);
+    });
+  };
+
+  const safeOpenWalletModal = (e) => {
+    if (e) e.preventDefault();
+    openWalletModal();
+  };
+
+  const safeCloseWalletModal = (e) => {
+    if (e) e.preventDefault();
+    closeWalletModal();
+  };
+
+  qs('#swapConnectBtn')?.addEventListener('click', async (e) => {
+    e.preventDefault();
+
+    const okxProv =
+      getInjectedProvider('okx') ||
+      (window.okxwallet && (window.okxwallet.ethereum || window.okxwallet)) ||
+      window.ethereum;
+
     if (detectOKXInjected() && okxProv && okxProv.request) {
-      try { await connectWallet(okxProv); } catch(e) {}
-      return;
+      try {
+        await connectWallet(okxProv);
+        return;
+      } catch (err) {
+        console.warn('Direct OKX connect failed, falling back to modal:', err);
+      }
     }
+
     openWalletModal();
   });
 
-  // Silent auto-connect: if OKX has already granted access, reflect it without prompting.
+  bindClick('#btnConnectWL', safeOpenWalletModal);
+  bindClick('#verifyConnectWalletBtn', safeOpenWalletModal);
+  bindClick('[data-open-wallet]', safeOpenWalletModal);
+
+  bindClick('#walletModal [data-close]', safeCloseWalletModal);
+  bindClick('#walletModalBackdrop', safeCloseWalletModal);
+  bindClick('.wallet-modal__backdrop', safeCloseWalletModal);
+  bindClick('.wallet-modal__close', safeCloseWalletModal);
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') closeWalletModal();
+  });
+
+  document.querySelectorAll('#walletModal .wallet-option[data-wallet]').forEach((btn) => {
+    btn.addEventListener('click', async (e) => {
+      e.preventDefault();
+      const walletType = (btn.getAttribute('data-wallet') || '').toLowerCase();
+      await connectWithWallet(walletType);
+    });
+  });
+
+  const openInMetaMask = document.getElementById('openInMetaMask');
+  const openInOKX = document.getElementById('openInOKX');
+  const openInPhantom = document.getElementById('openInPhantom');
+
+  if (openInMetaMask) {
+    openInMetaMask.addEventListener('click', (e) => {
+      e.preventDefault();
+      window.location.href = `https://metamask.app.link/dapp/${window.location.host}${window.location.pathname}${window.location.search}`;
+    });
+  }
+
+  if (openInOKX) {
+    openInOKX.addEventListener('click', (e) => {
+      e.preventDefault();
+      const dappUrl = encodeURIComponent(window.location.href);
+      window.location.href = `okx://wallet/dapp/url?dappUrl=${dappUrl}`;
+    });
+  }
+
+  if (openInPhantom) {
+    openInPhantom.addEventListener('click', (e) => {
+      e.preventDefault();
+      const dappUrl = encodeURIComponent(window.location.href);
+      window.location.href = `https://phantom.app/ul/browse/${dappUrl}?ref=${encodeURIComponent(window.location.origin)}`;
+    });
+  }
+
   const trySilent = async () => {
-    try { await autoConnectOKX(); } catch(e) {}
+    try {
+      await autoConnectOKX();
+    } catch (e) {}
     updateWalletUI();
   };
+
   trySilent();
 
-  // Some webviews inject late; retry briefly.
   let tries = 0;
-  const iv = setInterval(async ()=>{
+  const iv = setInterval(async () => {
     tries++;
     await trySilent();
-    if ((typeof userAddress !== 'undefined' && userAddress) || tries >= 8) clearInterval(iv);
+    if ((typeof userAddress !== 'undefined' && userAddress) || tries >= 8) {
+      clearInterval(iv);
+    }
   }, 300);
 
   updateWalletUI();
 
-  try { initSwapUI(); } catch(e) { console.warn('Swap init failed', e); }
+  try {
+    initSwapUI();
+  } catch (e) {
+    console.warn('Swap init failed', e);
+  }
+
   setTimeout(updateWalletUI, 250);
   setTimeout(updateWalletUI, 1250);
 });
@@ -1511,3 +1593,61 @@ document.addEventListener("DOMContentLoaded", () => {
   // auto refresh every 30 sec
   setInterval(loadAscensionBattery, 30000);
 });
+/* ===== DYOOR verifier wallet modal fix ===== */
+(function () {
+  function bindVerifierWalletUi() {
+    const modal = document.getElementById('walletModal');
+    if (!modal) return;
+
+    const closeEls = modal.querySelectorAll('[data-close], #walletModalClose, .wallet-modal__close');
+    const walletButtons = modal.querySelectorAll('.wallet-option[data-wallet]');
+
+    function safeOpenWalletModal(e) {
+      if (e) e.preventDefault();
+      if (typeof openWalletModal === 'function') openWalletModal();
+    }
+
+    function safeCloseWalletModal(e) {
+      if (e) e.preventDefault();
+      if (typeof closeWalletModal === 'function') closeWalletModal();
+    }
+
+    document.querySelectorAll(
+      '#verifyConnectWalletBtn, #btnConnectWL, #swapConnectBtn, [data-open-wallet]'
+    ).forEach((btn) => {
+      btn.addEventListener('click', safeOpenWalletModal);
+    });
+
+    closeEls.forEach((el) => {
+      el.addEventListener('click', safeCloseWalletModal);
+    });
+
+    const backdrop =
+      document.getElementById('walletModalBackdrop') ||
+      modal.querySelector('.wallet-modal__backdrop');
+
+    if (backdrop) {
+      backdrop.addEventListener('click', safeCloseWalletModal);
+    }
+
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') safeCloseWalletModal();
+    });
+
+    walletButtons.forEach((btn) => {
+      btn.addEventListener('click', async (e) => {
+        e.preventDefault();
+        const walletType = btn.getAttribute('data-wallet') || '';
+        if (typeof connectWithWallet === 'function') {
+          await connectWithWallet(walletType);
+        }
+      });
+    });
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', bindVerifierWalletUi);
+  } else {
+    bindVerifierWalletUi();
+  }
+})();

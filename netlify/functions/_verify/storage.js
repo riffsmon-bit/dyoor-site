@@ -1,16 +1,42 @@
 const { getStore } = require('@netlify/blobs');
 
-const siteID = process.env.NETLIFY_BLOBS_SITE_ID || process.env.NETLIFY_SITE_ID || '';
-const token = process.env.NETLIFY_BLOBS_TOKEN || '';
+function readEnv(...names) {
+  for (const name of names) {
+    const value = process.env[name];
+    if (value && String(value).trim()) return String(value).trim();
+  }
+  return '';
+}
 
-const storeOptions = {};
-if (siteID) storeOptions.siteID = siteID;
-if (token) storeOptions.token = token;
+const siteID = readEnv(
+  'NETLIFY_BLOBS_SITE_ID',
+  'NETLIFY_SITE_ID',
+  'SITE_ID'
+);
 
-const store = getStore('dyoor-verify', storeOptions);
+const token = readEnv(
+  'NETLIFY_BLOBS_TOKEN',
+  'NETLIFY_ACCESS_TOKEN',
+  'NETLIFY_AUTH_TOKEN'
+);
+
+if (!siteID || !token) {
+  throw new Error(
+    `Netlify Blobs is not configured. Missing siteID/token. ` +
+    `Got siteID=${siteID ? 'yes' : 'no'} token=${token ? 'yes' : 'no'}. ` +
+    `Set NETLIFY_BLOBS_SITE_ID and NETLIFY_BLOBS_TOKEN in Netlify env vars.`
+  );
+}
+
+const store = getStore({
+  name: 'dyoor-verify',
+  siteID,
+  token,
+  consistency: 'strong'
+});
 
 async function getJson(key, fallback = null) {
-  const value = await store.get(key, { type: 'json' });
+  const value = await store.get(key, { type: 'json', consistency: 'strong' });
   return value ?? fallback;
 }
 

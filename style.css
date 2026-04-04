@@ -27,34 +27,13 @@ body{
 }
 
 .bg{
-  position:fixed;
-  inset:0;
+  position:fixed; inset:0;
   background:
     radial-gradient(900px 550px at 50% 10%, rgba(143,99,255,.20), transparent 60%),
     radial-gradient(700px 500px at 20% 30%, rgba(37,227,166,.10), transparent 60%),
     radial-gradient(900px 650px at 80% 55%, rgba(143,99,255,.12), transparent 62%);
   pointer-events:none;
   z-index:-1;
-}
-
-.wallet-modal__panel {
-  position: relative;
-  z-index: 10001;
-}
-
-.wallet-modal__backdrop {
-  pointer-events: auto;
-}
-
-.wallet-modal__close,
-.wallet-option {
-  position: relative;
-  z-index: 10002;
-  pointer-events: auto;
-}
-
-#verifyConnectWalletBtn {
-  pointer-events: auto;
 }
 
 .container{

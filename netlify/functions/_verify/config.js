@@ -26,9 +26,14 @@ module.exports = {
   twentyPlusRoleId: required('TWENTY_PLUS_ROLE_ID'),
   fiftyPlusRoleId: required('FIFTY_PLUS_ROLE_ID'),
 
-  // optional explicit Blobs config
-  netlifyBlobsSiteId: optional('NETLIFY_BLOBS_SITE_ID', optional('NETLIFY_SITE_ID', '')),
-  netlifyBlobsToken: optional('NETLIFY_BLOBS_TOKEN', ''),
+  netlifyBlobsSiteId: optional(
+    'NETLIFY_BLOBS_SITE_ID',
+    optional('NETLIFY_SITE_ID', optional('SITE_ID', ''))
+  ),
+  netlifyBlobsToken: optional(
+    'NETLIFY_BLOBS_TOKEN',
+    optional('NETLIFY_ACCESS_TOKEN', optional('NETLIFY_AUTH_TOKEN', ''))
+  ),
 
   sessionCookieName: optional('VERIFY_SESSION_COOKIE', 'dyoor_verify_session'),
   nonceTtlSeconds: Number(optional('VERIFY_NONCE_TTL_SECONDS', '900')),
