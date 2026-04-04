@@ -1,9 +1,7 @@
 const { ethers } = require("ethers");
 
 exports.handler = async function (event) {
-  const debug = {
-    stage: "start"
-  };
+  const debug = { stage: "start" };
 
   try {
     const rpcUrl = "https://rpc.monad.xyz";
@@ -11,7 +9,10 @@ exports.handler = async function (event) {
     const maxSupply = 1111;
     const contractStartBlock = 62912794;
 
+    // stakedBalance(address)
     const STAKED_BALANCE_SELECTOR = "0x60217267";
+
+    // PointsClaimed(address,uint256)
     const POINTS_CLAIMED_TOPIC = ethers.id("PointsClaimed(address,uint256)");
 
     const stakers = [
@@ -52,9 +53,11 @@ exports.handler = async function (event) {
       });
 
       const json = await res.json();
+
       if (json.error) {
         throw new Error(json.error.message || "RPC error");
       }
+
       return json.result;
     }
 
@@ -63,7 +66,9 @@ exports.handler = async function (event) {
     }
 
     async function getLogs(params) {
-      return rpc("eth_getLogs", [params]);
+      const result = await rpc("eth_getLogs", [params]);
+      if (!Array.isArray(result)) return [];
+      return result;
     }
 
     async function getLatestBlockNumber() {
@@ -91,11 +96,12 @@ exports.handler = async function (event) {
       }
 
       const latestBlock = await getLatestBlockNumber();
-      const chunkSize = 100;
+      const chunkSize = 100; // Monad RPC limit
 
       let harvested = 0n;
       let logCount = 0;
       let chunksScanned = 0;
+
       const userTopic = "0x" + encodeAddress(normalized);
 
       debug.stage = "scan_logs";
@@ -109,18 +115,28 @@ exports.handler = async function (event) {
         const toBlock = Math.min(fromBlock + chunkSize - 1, latestBlock);
         chunksScanned += 1;
 
-        const logs = await getLogs({
-          address: contract,
-          fromBlock: toHexBlock(fromBlock),
-          toBlock: toHexBlock(toBlock),
-          topics: [POINTS_CLAIMED_TOPIC, userTopic]
-        });
+        let logs = [];
+        try {
+          logs = await getLogs({
+            address: contract,
+            fromBlock: toHexBlock(fromBlock),
+            toBlock: toHexBlock(toBlock),
+            topics: [POINTS_CLAIMED_TOPIC, userTopic]
+          });
+        } catch (err) {
+          console.warn("getLogs warning", { fromBlock, toBlock, error: String(err?.message || err) });
+          logs = [];
+        }
 
         logCount += logs.length;
 
         for (const log of logs) {
-          if (log && typeof log.data === "string" && log.data !== "0x") {
-            harvested += BigInt(log.data);
+          try {
+            if (log && typeof log.data === "string" && log.data !== "0x") {
+              harvested += BigInt(log.data);
+            }
+          } catch {
+            // ignore malformed log row
           }
         }
       }
