@@ -1,13 +1,15 @@
 const { ethers } = require("ethers");
 
 exports.handler = async function (event) {
-  const debug = { stage: "start" };
-
   try {
     const rpcUrl = "https://rpc.monad.xyz";
     const contract = "0xf9611226c1CcCcCa37951938d6f358D3d5106549";
     const maxSupply = 1111;
     const contractStartBlock = 62912794;
+
+    // Optional: set this in Netlify env for better limits
+    const MONADSCAN_API_KEY = process.env.MONADSCAN_API_KEY || "";
+    const MONADSCAN_API_BASE = "https://api.monadscan.com/api";
 
     // stakedBalance(address)
     const STAKED_BALANCE_SELECTOR = "0x60217267";
@@ -36,10 +38,6 @@ exports.handler = async function (event) {
       return address.toLowerCase().replace(/^0x/, "").padStart(64, "0");
     }
 
-    function toHexBlock(blockNumber) {
-      return "0x" + blockNumber.toString(16);
-    }
-
     async function rpc(method, params) {
       const res = await fetch(rpcUrl, {
         method: "POST",
@@ -53,27 +51,12 @@ exports.handler = async function (event) {
       });
 
       const json = await res.json();
-
-      if (json.error) {
-        throw new Error(json.error.message || "RPC error");
-      }
-
+      if (json.error) throw new Error(json.error.message || "RPC error");
       return json.result;
     }
 
     async function ethCall(data) {
       return rpc("eth_call", [{ to: contract, data }, "latest"]);
-    }
-
-    async function getLogs(params) {
-      const result = await rpc("eth_getLogs", [params]);
-      if (!Array.isArray(result)) return [];
-      return result;
-    }
-
-    async function getLatestBlockNumber() {
-      const hex = await rpc("eth_blockNumber", []);
-      return parseInt(hex, 16);
     }
 
     async function getTotalStaked() {
@@ -91,72 +74,57 @@ exports.handler = async function (event) {
 
     async function getHarvestedForWallet(address) {
       const normalized = normalizeAddress(address);
-      if (!normalized) {
-        throw new Error("Invalid address");
+      if (!normalized) throw new Error("Invalid address");
+
+      const params = new URLSearchParams({
+        module: "logs",
+        action: "getLogs",
+        fromBlock: String(contractStartBlock),
+        toBlock: "latest",
+        address: contract,
+        topic0: POINTS_CLAIMED_TOPIC,
+        topic1: "0x" + encodeAddress(normalized)
+      });
+
+      if (MONADSCAN_API_KEY) {
+        params.set("apikey", MONADSCAN_API_KEY);
       }
 
-      const latestBlock = await getLatestBlockNumber();
-      const chunkSize = 100; // Monad RPC limit
+      const res = await fetch(`${MONADSCAN_API_BASE}?${params.toString()}`, {
+        headers: { accept: "application/json" }
+      });
+
+      const json = await res.json().catch(() => ({}));
+
+      // Etherscan-style APIs usually return status/message/result.
+      // Treat missing/empty result as no logs.
+      if (!res.ok) {
+        throw new Error(`Monadscan API failed (${res.status})`);
+      }
+
+      const result = Array.isArray(json.result) ? json.result : [];
 
       let harvested = 0n;
-      let logCount = 0;
-      let chunksScanned = 0;
-
-      const userTopic = "0x" + encodeAddress(normalized);
-
-      debug.stage = "scan_logs";
-      debug.latestBlock = latestBlock;
-      debug.userTopic = userTopic;
-      debug.eventTopic = POINTS_CLAIMED_TOPIC;
-      debug.contractStartBlock = contractStartBlock;
-      debug.chunkSize = chunkSize;
-
-      for (let fromBlock = contractStartBlock; fromBlock <= latestBlock; fromBlock += chunkSize) {
-        const toBlock = Math.min(fromBlock + chunkSize - 1, latestBlock);
-        chunksScanned += 1;
-
-        let logs = [];
-        try {
-          logs = await getLogs({
-            address: contract,
-            fromBlock: toHexBlock(fromBlock),
-            toBlock: toHexBlock(toBlock),
-            topics: [POINTS_CLAIMED_TOPIC, userTopic]
-          });
-        } catch (err) {
-          console.warn("getLogs warning", { fromBlock, toBlock, error: String(err?.message || err) });
-          logs = [];
-        }
-
-        logCount += logs.length;
-
-        for (const log of logs) {
-          try {
-            if (log && typeof log.data === "string" && log.data !== "0x") {
-              harvested += BigInt(log.data);
-            }
-          } catch {
-            // ignore malformed log row
-          }
+      for (const log of result) {
+        if (log && typeof log.data === "string" && log.data !== "0x") {
+          harvested += BigInt(log.data);
         }
       }
 
       return {
         harvested,
-        logCount,
-        chunksScanned
+        logCount: result.length,
+        apiStatus: json.status ?? null,
+        apiMessage: json.message ?? null
       };
     }
 
-    debug.stage = "totals";
     const totalStaked = await getTotalStaked();
     const percent = Number(((totalStaked / maxSupply) * 100).toFixed(2));
-
     const address = normalizeAddress(event?.queryStringParameters?.address || "");
 
     if (address) {
-      debug.stage = "wallet_lookup";
-      const { harvested, logCount, chunksScanned } = await getHarvestedForWallet(address);
+      const { harvested, logCount, apiStatus, apiMessage } = await getHarvestedForWallet(address);
 
       return {
         statusCode: 200,
@@ -173,10 +141,10 @@ exports.handler = async function (event) {
           contractStartBlock,
           eventTopic: POINTS_CLAIMED_TOPIC,
           logCount,
-          chunksScanned,
           harvestedRaw: harvested.toString(),
           harvestedEnergy: ethers.formatEther(harvested),
-          debug
+          apiStatus,
+          apiMessage
         })
       };
     }
@@ -193,13 +161,11 @@ exports.handler = async function (event) {
         maxSupply,
         percent,
         contractStartBlock,
-        eventTopic: POINTS_CLAIMED_TOPIC,
-        debug
+        eventTopic: POINTS_CLAIMED_TOPIC
       })
     };
   } catch (err) {
     console.error("ascension-stats error:", err);
-
     return {
       statusCode: 500,
       headers: {
@@ -207,8 +173,7 @@ exports.handler = async function (event) {
       },
       body: JSON.stringify({
         ok: false,
-        error: String(err && err.message ? err.message : err),
-        debug
+        error: String(err && err.message ? err.message : err)
       })
     };
   }
