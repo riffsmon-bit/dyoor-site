@@ -1,57 +1,299 @@
-const { json } = require('./_verify/http');
-const { getSessionFromEvent, updateSession } = require('./_verify/session');
-const { normalizeAddress, verifyWalletSignature, getVerificationSnapshot } = require('./_verify/chain');
-const { saveLink, getLinkByWallet } = require('./_verify/linking');
-const { syncDiscordMemberRoles } = require('./_verify/discord');
-const config = require('./_verify/config');
+const { createPublicClient, http, verifyMessage, getAddress, isAddress } = require('viem');
+const { getJson, setJson, deleteKey } = require('./_verify/storage');
 
-exports.handler = async (event) => {
-  if (event.httpMethod !== 'POST') return json(405, { error: 'Method not allowed' });
+const ERC721_ABI = [
+  {
+    type: 'function',
+    name: 'balanceOf',
+    stateMutability: 'view',
+    inputs: [{ name: 'owner', type: 'address' }],
+    outputs: [{ name: 'balance', type: 'uint256' }]
+  }
+];
 
+function normalizeAddress(address) {
+  if (!isAddress(address)) throw new Error('Invalid wallet address');
+  return getAddress(address);
+}
+
+function getCookie(event, name) {
+  const raw = event.headers?.cookie || event.headers?.Cookie || '';
+  const parts = raw.split(';').map((p) => p.trim());
+  for (const part of parts) {
+    const idx = part.indexOf('=');
+    if (idx === -1) continue;
+    const k = part.slice(0, idx).trim();
+    const v = part.slice(idx + 1).trim();
+    if (k === name) return decodeURIComponent(v);
+  }
+  return '';
+}
+
+async function discordRequest(path, options = {}) {
+  const token = process.env.DISCORD_BOT_TOKEN;
+  const res = await fetch(`https://discord.com/api/v10${path}`, {
+    ...options,
+    headers: {
+      Authorization: `Bot ${token}`,
+      'Content-Type': 'application/json',
+      ...(options.headers || {})
+    }
+  });
+
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(`Discord API ${res.status}: ${text}`);
+  }
+
+  if (res.status === 204) return null;
+  return await res.json();
+}
+
+async function addRole(guildId, userId, roleId) {
+  return discordRequest(`/guilds/${guildId}/members/${userId}/roles/${roleId}`, {
+    method: 'PUT'
+  });
+}
+
+async function removeRole(guildId, userId, roleId) {
+  return discordRequest(`/guilds/${guildId}/members/${userId}/roles/${roleId}`, {
+    method: 'DELETE'
+  });
+}
+
+async function getWalletS1Balance(client, wallet) {
+  return await client.readContract({
+    address: normalizeAddress(process.env.S1_COLLECTION_ADDRESS),
+    abi: ERC721_ABI,
+    functionName: 'balanceOf',
+    args: [wallet]
+  });
+}
+
+async function getTransferLogs(client, fromBlock, toBlock, fromAddress, toAddress) {
+  return await client.getLogs({
+    address: normalizeAddress(process.env.S1_COLLECTION_ADDRESS),
+    event: {
+      type: 'event',
+      name: 'Transfer',
+      inputs: [
+        { type: 'address', name: 'from', indexed: true },
+        { type: 'address', name: 'to', indexed: true },
+        { type: 'uint256', name: 'tokenId', indexed: true }
+      ]
+    },
+    args: {
+      from: fromAddress ? normalizeAddress(fromAddress) : undefined,
+      to: toAddress ? normalizeAddress(toAddress) : undefined
+    },
+    fromBlock,
+    toBlock
+  });
+}
+
+async function getCurrentStakedCount(client, wallet) {
+  const staking = normalizeAddress(process.env.ASCENSION_CONTRACT_ADDRESS);
+  const latestBlock = await client.getBlockNumber();
+  const startBlock = BigInt(process.env.SCAN_FROM_BLOCK || '0');
+  const chunkSize = 50000n;
+
+  let current = 0n;
+
+  for (let start = startBlock; start <= latestBlock; start += chunkSize + 1n) {
+    const end = start + chunkSize > latestBlock ? latestBlock : start + chunkSize;
+
+    const deposits = await getTransferLogs(client, start, end, wallet, staking);
+    const withdrawals = await getTransferLogs(client, start, end, staking, wallet);
+
+    current += BigInt(deposits.length);
+    current -= BigInt(withdrawals.length);
+  }
+
+  return current < 0n ? 0n : current;
+}
+
+async function syncRoles(discordUserId, snapshot) {
+  const guildId = process.env.DISCORD_GUILD_ID;
+
+  const roleMap = [
+    [process.env.HOLDER_ROLE_ID, snapshot.isHolder],
+    [process.env.ASCENDED_ROLE_ID, snapshot.isAscended],
+    [process.env.TWENTY_PLUS_ROLE_ID, snapshot.isTwentyPlus],
+    [process.env.FIFTY_PLUS_ROLE_ID, snapshot.isFiftyPlus]
+  ];
+
+  for (const [roleId, shouldHave] of roleMap) {
+    if (!roleId) continue;
+    if (shouldHave) {
+      await addRole(guildId, discordUserId, roleId);
+    } else {
+      try {
+        await removeRole(guildId, discordUserId, roleId);
+      } catch (e) {
+        // ignore remove failures
+      }
+    }
+  }
+}
+
+exports.handler = async function (event) {
   try {
-    const { sessionId, session } = await getSessionFromEvent(event);
-    if (!sessionId || !session?.discordUser) return json(401, { error: 'Connect Discord first.' });
+    const cookieName = process.env.VERIFY_SESSION_COOKIE || 'dyoor_verify_session';
+    const sessionEncoded = getCookie(event, cookieName);
 
-    const body = JSON.parse(event.body || '{}');
-    const wallet = normalizeAddress(body.wallet || '');
-    const signature = String(body.signature || '').trim();
-    const message = String(body.message || '');
-
-    if (!signature) return json(400, { error: 'Missing signature.' });
-    if (!session.pendingNonce || !session.pendingWallet || !session.pendingMessage) return json(400, { error: 'Run verify again. Your sign request expired.' });
-    if (wallet !== session.pendingWallet) return json(400, { error: 'Wallet does not match pending verification request.' });
-    if (message !== session.pendingMessage) return json(400, { error: 'Signed message does not match the issued message.' });
-
-    const ageMs = Date.now() - Number(session.pendingCreatedAt || 0);
-    if (ageMs > config.nonceTtlSeconds * 1000) return json(400, { error: 'Verification request expired. Start again.' });
-
-    const existing = await getLinkByWallet(wallet);
-    if (existing?.discordUser?.id && existing.discordUser.id !== session.discordUser.id) {
-      return json(409, { error: 'That wallet is already linked to another Discord account.' });
+    if (!sessionEncoded) {
+      return {
+        statusCode: 401,
+        headers: {
+          'Content-Type': 'application/json; charset=utf-8',
+          'Cache-Control': 'no-store'
+        },
+        body: JSON.stringify({ ok: false, error: 'Discord session missing' })
+      };
     }
 
-    const valid = await verifyWalletSignature({ address: wallet, message, signature });
-    if (!valid) return json(400, { error: 'Signature verification failed.' });
+    const session = JSON.parse(Buffer.from(sessionEncoded, 'base64url').toString('utf8'));
+    const discordUserId = session?.discordUserId;
 
-    const snapshot = await getVerificationSnapshot(wallet);
-    await syncDiscordMemberRoles(session.discordUser.id, snapshot);
-    await saveLink({ discordUser: session.discordUser, wallet, snapshot });
-    await updateSession(sessionId, {
-      wallet,
-      pendingNonce: null,
-      pendingWallet: null,
-      pendingMode: null,
-      pendingMessage: null,
-      pendingCreatedAt: null,
+    if (!discordUserId) {
+      return {
+        statusCode: 401,
+        headers: {
+          'Content-Type': 'application/json; charset=utf-8',
+          'Cache-Control': 'no-store'
+        },
+        body: JSON.stringify({ ok: false, error: 'Invalid Discord session' })
+      };
+    }
+
+    const body = event.body ? JSON.parse(event.body) : {};
+    const wallet = normalizeAddress(String(body.wallet || '').trim());
+    const signature = String(body.signature || '').trim();
+
+    if (!signature) {
+      return {
+        statusCode: 400,
+        headers: {
+          'Content-Type': 'application/json; charset=utf-8',
+          'Cache-Control': 'no-store'
+        },
+        body: JSON.stringify({ ok: false, error: 'Missing signature' })
+      };
+    }
+
+    const nonceRecord = await getJson(`nonce:${discordUserId}`, null);
+
+    if (!nonceRecord) {
+      return {
+        statusCode: 400,
+        headers: {
+          'Content-Type': 'application/json; charset=utf-8',
+          'Cache-Control': 'no-store'
+        },
+        body: JSON.stringify({ ok: false, error: 'Verification nonce not found' })
+      };
+    }
+
+    if (Date.now() > Number(nonceRecord.expiresAt || 0)) {
+      await deleteKey(`nonce:${discordUserId}`);
+      return {
+        statusCode: 400,
+        headers: {
+          'Content-Type': 'application/json; charset=utf-8',
+          'Cache-Control': 'no-store'
+        },
+        body: JSON.stringify({ ok: false, error: 'Verification nonce expired' })
+      };
+    }
+
+    if (normalizeAddress(nonceRecord.wallet) !== wallet) {
+      return {
+        statusCode: 400,
+        headers: {
+          'Content-Type': 'application/json; charset=utf-8',
+          'Cache-Control': 'no-store'
+        },
+        body: JSON.stringify({ ok: false, error: 'Wallet does not match nonce request' })
+      };
+    }
+
+    const chainId = Number(process.env.CHAIN_ID || '143');
+
+    const message = [
+      'DYOOR Verification',
+      `Discord User ID: ${discordUserId}`,
+      `Discord Username: ${session.username || session.globalName || 'unknown'}`,
+      `Wallet: ${wallet}`,
+      `Guild ID: ${process.env.DISCORD_GUILD_ID}`,
+      `Nonce: ${nonceRecord.nonce}`,
+      `Chain ID: ${chainId}`,
+      'Purpose: Verify DYOOR holder roles'
+    ].join('\n');
+
+    const valid = await verifyMessage({
+      address: wallet,
+      message,
+      signature
     });
 
-    return json(200, {
-      message: body.mode === 'refresh' ? 'Roles refreshed successfully.' : 'Wallet verified and roles synced.',
-      discordUser: session.discordUser,
-      wallet,
-      snapshot,
+    if (!valid) {
+      return {
+        statusCode: 400,
+        headers: {
+          'Content-Type': 'application/json; charset=utf-8',
+          'Cache-Control': 'no-store'
+        },
+        body: JSON.stringify({ ok: false, error: 'Signature verification failed' })
+      };
+    }
+
+    const client = createPublicClient({
+      transport: http(process.env.RPC_URL)
     });
+
+    const walletBalance = await getWalletS1Balance(client, wallet);
+    const stakedBalance = await getCurrentStakedCount(client, wallet);
+    const totalBalance = walletBalance + stakedBalance;
+
+    const snapshot = {
+      wallet,
+      walletBalance: walletBalance.toString(),
+      stakedBalance: stakedBalance.toString(),
+      totalBalance: totalBalance.toString(),
+      isHolder: walletBalance > 0n,
+      isAscended: stakedBalance > 0n,
+      isTwentyPlus: totalBalance >= 20n,
+      isFiftyPlus: totalBalance >= 50n,
+      updatedAt: Date.now(),
+      discordUserId
+    };
+
+    await syncRoles(discordUserId, snapshot);
+    await setJson(`link:${discordUserId}`, snapshot);
+    await deleteKey(`nonce:${discordUserId}`);
+
+    return {
+      statusCode: 200,
+      headers: {
+        'Content-Type': 'application/json; charset=utf-8',
+        'Cache-Control': 'no-store'
+      },
+      body: JSON.stringify({
+        ok: true,
+        snapshot
+      })
+    };
   } catch (error) {
-    return json(400, { error: error.message });
+    return {
+      statusCode: 502,
+      headers: {
+        'Content-Type': 'application/json; charset=utf-8',
+        'Cache-Control': 'no-store'
+      },
+      body: JSON.stringify({
+        ok: false,
+        error: error?.message || 'discord-verify-submit failed'
+      })
+    };
   }
 };

@@ -1,46 +1,115 @@
-const crypto = require('crypto');
-const { json } = require('./_verify/http');
-const { getSessionFromEvent, updateSession } = require('./_verify/session');
-const { normalizeAddress } = require('./_verify/chain');
-const config = require('./_verify/config');
+const { getJson, setJson } = require('./_verify/storage');
 
-function buildMessage({ discordUser, wallet, nonce, mode }) {
-  return [
-    'DYOOR Role Verification',
-    `Discord User ID: ${discordUser.id}`,
-    `Discord Username: ${discordUser.username}`,
-    `Wallet: ${wallet}`,
-    `Guild ID: ${config.discordGuildId}`,
-    `Chain ID: ${config.chainId}`,
-    `Mode: ${mode}`,
-    `Nonce: ${nonce}`,
-    'Purpose: Verify DYOOR holder roles on the official site',
-  ].join('\n');
+function randomNonce(bytes = 16) {
+  return require('crypto').randomBytes(bytes).toString('hex');
 }
 
-exports.handler = async (event) => {
-  if (event.httpMethod !== 'POST') return json(405, { error: 'Method not allowed' });
-
+exports.handler = async function (event) {
   try {
-    const { sessionId, session } = await getSessionFromEvent(event);
-    if (!sessionId || !session?.discordUser) return json(401, { error: 'Connect Discord first.' });
+    const cookieName = process.env.VERIFY_SESSION_COOKIE || 'dyoor_verify_session';
+    const rawCookie = event.headers?.cookie || event.headers?.Cookie || '';
 
-    const body = JSON.parse(event.body || '{}');
-    const wallet = normalizeAddress(body.wallet || '');
-    const mode = body.mode === 'refresh' ? 'refresh' : 'verify';
-    const nonce = crypto.randomBytes(18).toString('hex');
-    const message = buildMessage({ discordUser: session.discordUser, wallet, nonce, mode });
+    const sessionCookie = rawCookie
+      .split(';')
+      .map((p) => p.trim())
+      .find((p) => p.startsWith(`${cookieName}=`));
 
-    await updateSession(sessionId, {
-      pendingNonce: nonce,
-      pendingWallet: wallet,
-      pendingMode: mode,
-      pendingMessage: message,
-      pendingCreatedAt: Date.now(),
+    if (!sessionCookie) {
+      return {
+        statusCode: 401,
+        headers: {
+          'Content-Type': 'application/json; charset=utf-8',
+          'Cache-Control': 'no-store'
+        },
+        body: JSON.stringify({
+          ok: false,
+          error: 'Discord session missing'
+        })
+      };
+    }
+
+    const encoded = decodeURIComponent(sessionCookie.split('=').slice(1).join('='));
+    const session = JSON.parse(Buffer.from(encoded, 'base64url').toString('utf8'));
+
+    if (!session?.discordUserId) {
+      return {
+        statusCode: 401,
+        headers: {
+          'Content-Type': 'application/json; charset=utf-8',
+          'Cache-Control': 'no-store'
+        },
+        body: JSON.stringify({
+          ok: false,
+          error: 'Invalid Discord session'
+        })
+      };
+    }
+
+    const body = event.body ? JSON.parse(event.body) : {};
+    const wallet = String(body.wallet || '').trim();
+
+    if (!/^0x[a-fA-F0-9]{40}$/.test(wallet)) {
+      return {
+        statusCode: 400,
+        headers: {
+          'Content-Type': 'application/json; charset=utf-8',
+          'Cache-Control': 'no-store'
+        },
+        body: JSON.stringify({
+          ok: false,
+          error: 'Invalid wallet address'
+        })
+      };
+    }
+
+    const nonce = randomNonce(16);
+    const ttlSeconds = Number(process.env.VERIFY_NONCE_TTL_SECONDS || '900');
+    const expiresAt = Date.now() + ttlSeconds * 1000;
+
+    await setJson(`nonce:${session.discordUserId}`, {
+      discordUserId: session.discordUserId,
+      wallet,
+      nonce,
+      expiresAt
     });
 
-    return json(200, { wallet, nonce, message });
+    const chainId = Number(process.env.CHAIN_ID || '143');
+
+    const message = [
+      'DYOOR Verification',
+      `Discord User ID: ${session.discordUserId}`,
+      `Discord Username: ${session.username || session.globalName || 'unknown'}`,
+      `Wallet: ${wallet}`,
+      `Guild ID: ${process.env.DISCORD_GUILD_ID}`,
+      `Nonce: ${nonce}`,
+      `Chain ID: ${chainId}`,
+      'Purpose: Verify DYOOR holder roles'
+    ].join('\n');
+
+    return {
+      statusCode: 200,
+      headers: {
+        'Content-Type': 'application/json; charset=utf-8',
+        'Cache-Control': 'no-store'
+      },
+      body: JSON.stringify({
+        ok: true,
+        message,
+        nonce,
+        expiresAt
+      })
+    };
   } catch (error) {
-    return json(400, { error: error.message });
+    return {
+      statusCode: 500,
+      headers: {
+        'Content-Type': 'application/json; charset=utf-8',
+        'Cache-Control': 'no-store'
+      },
+      body: JSON.stringify({
+        ok: false,
+        error: error?.message || 'discord-verify-nonce failed'
+      })
+    };
   }
 };
