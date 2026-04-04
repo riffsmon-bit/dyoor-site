@@ -1,3 +1,5 @@
+const { ethers } = require("ethers");
+
 exports.handler = async function (event) {
   try {
     const rpcUrl = "https://rpc.monad.xyz";
@@ -7,9 +9,8 @@ exports.handler = async function (event) {
     // stakedBalance(address)
     const STAKED_BALANCE_SELECTOR = "0x60217267";
 
-    // PointsClaimed(address,uint256)
-    const POINTS_CLAIMED_TOPIC =
-      "0x1573f6f14599bfcac3c5f0af9665f7a1f995702d002b4b5d4798365a79310261";
+    // derive event topic from actual signature
+    const POINTS_CLAIMED_TOPIC = ethers.id("PointsClaimed(address,uint256)");
 
     // wallets seen staking into this contract
     const stakers = [
@@ -26,7 +27,7 @@ exports.handler = async function (event) {
       if (typeof address !== "string") return null;
       const trimmed = address.trim();
       if (!/^0x[a-fA-F0-9]{40}$/.test(trimmed)) return null;
-      return trimmed;
+      return ethers.getAddress(trimmed);
     }
 
     function encodeAddress(address) {
@@ -38,12 +39,7 @@ exports.handler = async function (event) {
     }
 
     function formatEtherFromBigInt(value) {
-      const negative = value < 0n;
-      const abs = negative ? -value : value;
-      const whole = abs / 1000000000000000000n;
-      const fraction = abs % 1000000000000000000n;
-      const fractionStr = fraction.toString().padStart(18, "0").replace(/0+$/, "");
-      return `${negative ? "-" : ""}${whole.toString()}${fractionStr ? "." + fractionStr : ""}`;
+      return ethers.formatEther(value);
     }
 
     async function rpc(method, params) {
@@ -59,7 +55,9 @@ exports.handler = async function (event) {
       });
 
       const json = await res.json();
-      if (json.error) throw new Error(json.error.message || "RPC error");
+      if (json.error) {
+        throw new Error(json.error.message || "RPC error");
+      }
       return json.result;
     }
 
@@ -96,7 +94,7 @@ exports.handler = async function (event) {
       }
 
       const latestBlock = await getLatestBlockNumber();
-      const chunkSize = 50000;
+      const chunkSize = 25000;
 
       let harvested = 0n;
       const userTopic = "0x" + encodeAddress(normalized);
@@ -136,10 +134,12 @@ exports.handler = async function (event) {
           "cache-control": "public, max-age=30"
         },
         body: JSON.stringify({
+          ok: true,
           address,
           totalStaked,
           maxSupply,
           percent,
+          eventTopic: POINTS_CLAIMED_TOPIC,
           harvestedRaw: harvestedRaw.toString(),
           harvestedEnergy: formatEtherFromBigInt(harvestedRaw)
         })
@@ -153,9 +153,11 @@ exports.handler = async function (event) {
         "cache-control": "public, max-age=60"
       },
       body: JSON.stringify({
+        ok: true,
         totalStaked,
         maxSupply,
-        percent
+        percent,
+        eventTopic: POINTS_CLAIMED_TOPIC
       })
     };
   } catch (err) {
@@ -166,6 +168,7 @@ exports.handler = async function (event) {
         "content-type": "application/json"
       },
       body: JSON.stringify({
+        ok: false,
         error: String(err && err.message ? err.message : err)
       })
     };
