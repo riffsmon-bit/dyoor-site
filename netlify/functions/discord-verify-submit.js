@@ -69,60 +69,6 @@ async function getWalletS1Balance(client, wallet) {
   });
 }
 
-async function getTransferLogs(client, fromBlock, toBlock, fromAddress, toAddress) {
-  return await client.getLogs({
-    address: normalizeAddress(process.env.S1_COLLECTION_ADDRESS),
-    event: {
-      type: 'event',
-      name: 'Transfer',
-      inputs: [
-        { type: 'address', name: 'from', indexed: true },
-        { type: 'address', name: 'to', indexed: true },
-        { type: 'uint256', name: 'tokenId', indexed: true }
-      ]
-    },
-    args: {
-      from: fromAddress ? normalizeAddress(fromAddress) : undefined,
-      to: toAddress ? normalizeAddress(toAddress) : undefined
-    },
-    fromBlock,
-    toBlock
-  });
-}
-
-async function getCurrentStakedCountFast(client, wallet) {
-  const staking = normalizeAddress(process.env.ASCENSION_CONTRACT_ADDRESS);
-  const latestBlock = await client.getBlockNumber();
-
-  const startBlock = BigInt(process.env.SCAN_FROM_BLOCK || '0');
-  const chunkSize = 99n;
-
-  // hard cap so Netlify doesn't time out forever
-  const maxChunks = 80;
-
-  let current = 0n;
-  let chunks = 0;
-
-  for (let start = startBlock; start <= latestBlock; start += chunkSize + 1n) {
-    const end = start + chunkSize > latestBlock ? latestBlock : start + chunkSize;
-
-    const deposits = await getTransferLogs(client, start, end, wallet, staking);
-    const withdrawals = await getTransferLogs(client, start, end, staking, wallet);
-
-    current += BigInt(deposits.length);
-    current -= BigInt(withdrawals.length);
-
-    chunks++;
-    if (chunks >= maxChunks) {
-      throw new Error(
-        `Stake scan exceeded safe limit. Move SCAN_FROM_BLOCK forward. Current start: ${startBlock.toString()}`
-      );
-    }
-  }
-
-  return current < 0n ? 0n : current;
-}
-
 async function syncRoles(discordUserId, snapshot) {
   const guildId = process.env.DISCORD_GUILD_ID;
 
@@ -140,7 +86,9 @@ async function syncRoles(discordUserId, snapshot) {
     } else {
       try {
         await removeRole(guildId, discordUserId, roleId);
-      } catch (e) {}
+      } catch (e) {
+        // ignore remove failures
+      }
     }
   }
 }
@@ -262,16 +210,9 @@ exports.handler = async function (event) {
 
     const walletBalance = await getWalletS1Balance(client, wallet);
 
-    let stakedBalance = 0n;
-    let stakedScanWarning = '';
-
-    try {
-      stakedBalance = await getCurrentStakedCountFast(client, wallet);
-    } catch (e) {
-      stakedScanWarning = e?.message || 'Staked scan timed out';
-    }
-
-    const totalBalance = walletBalance + stakedBalance;
+    // Fast path: first verify uses wallet only, no live staking scan
+    const stakedBalance = 0n;
+    const totalBalance = walletBalance;
 
     const snapshot = {
       wallet,
@@ -279,12 +220,12 @@ exports.handler = async function (event) {
       stakedBalance: stakedBalance.toString(),
       totalBalance: totalBalance.toString(),
       isHolder: walletBalance > 0n,
-      isAscended: stakedBalance > 0n,
+      isAscended: false,
       isTwentyPlus: totalBalance >= 20n,
       isFiftyPlus: totalBalance >= 50n,
       updatedAt: Date.now(),
       discordUserId,
-      stakedScanWarning
+      stakedScanWarning: 'Skipped on first verify. Use Refresh Roles to sync staked balance.'
     };
 
     await syncRoles(discordUserId, snapshot);
