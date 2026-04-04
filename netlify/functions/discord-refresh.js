@@ -1,5 +1,4 @@
 const { createPublicClient, http, getAddress, isAddress } = require('viem');
-const { getJson, setJson } = require('./_verify/storage');
 
 const ERC721_ABI = [
   {
@@ -91,13 +90,15 @@ async function getTransferLogs(client, fromBlock, toBlock, fromAddress, toAddres
   });
 }
 
-async function getCurrentStakedCount(client, wallet) {
+async function getCurrentStakedCountFast(client, wallet) {
   const staking = normalizeAddress(process.env.ASCENSION_CONTRACT_ADDRESS);
   const latestBlock = await client.getBlockNumber();
   const startBlock = BigInt(process.env.SCAN_FROM_BLOCK || '0');
-  const chunkSize = 50000n;
+  const chunkSize = 99n;
+  const maxChunks = 80;
 
   let current = 0n;
+  let chunks = 0;
 
   for (let start = startBlock; start <= latestBlock; start += chunkSize + 1n) {
     const end = start + chunkSize > latestBlock ? latestBlock : start + chunkSize;
@@ -107,6 +108,13 @@ async function getCurrentStakedCount(client, wallet) {
 
     current += BigInt(deposits.length);
     current -= BigInt(withdrawals.length);
+
+    chunks++;
+    if (chunks >= maxChunks) {
+      throw new Error(
+        `Stake scan exceeded safe limit. Move SCAN_FROM_BLOCK forward. Current start: ${startBlock.toString()}`
+      );
+    }
   }
 
   return current < 0n ? 0n : current;
@@ -136,8 +144,8 @@ async function syncRoles(discordUserId, snapshot) {
 
 exports.handler = async function (event) {
   try {
-    const cookieName = process.env.VERIFY_SESSION_COOKIE || 'dyoor_verify_session';
-    const sessionEncoded = getCookie(event, cookieName);
+    const sessionCookieName = process.env.VERIFY_SESSION_COOKIE || 'dyoor_verify_session';
+    const sessionEncoded = getCookie(event, sessionCookieName);
 
     if (!sessionEncoded) {
       return {
@@ -164,27 +172,24 @@ exports.handler = async function (event) {
       };
     }
 
-    const linked = await getJson(`link:${discordUserId}`, null);
-
-    if (!linked?.wallet) {
-      return {
-        statusCode: 400,
-        headers: {
-          'Content-Type': 'application/json; charset=utf-8',
-          'Cache-Control': 'no-store'
-        },
-        body: JSON.stringify({ ok: false, error: 'No verified wallet linked yet' })
-      };
-    }
-
-    const wallet = normalizeAddress(linked.wallet);
+    const body = event.body ? JSON.parse(event.body) : {};
+    const wallet = normalizeAddress(String(body.wallet || '').trim());
 
     const client = createPublicClient({
       transport: http(process.env.RPC_URL)
     });
 
     const walletBalance = await getWalletS1Balance(client, wallet);
-    const stakedBalance = await getCurrentStakedCount(client, wallet);
+
+    let stakedBalance = 0n;
+    let stakedScanWarning = '';
+
+    try {
+      stakedBalance = await getCurrentStakedCountFast(client, wallet);
+    } catch (e) {
+      stakedScanWarning = e?.message || 'Staked scan timed out';
+    }
+
     const totalBalance = walletBalance + stakedBalance;
 
     const snapshot = {
@@ -197,11 +202,11 @@ exports.handler = async function (event) {
       isTwentyPlus: totalBalance >= 20n,
       isFiftyPlus: totalBalance >= 50n,
       updatedAt: Date.now(),
-      discordUserId
+      discordUserId,
+      stakedScanWarning
     };
 
     await syncRoles(discordUserId, snapshot);
-    await setJson(`link:${discordUserId}`, snapshot);
 
     return {
       statusCode: 200,

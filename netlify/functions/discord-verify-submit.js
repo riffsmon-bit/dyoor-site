@@ -1,4 +1,4 @@
-const { createPublicClient, http, getAddress, isAddress } = require('viem');
+const { createPublicClient, http, verifyMessage, getAddress, isAddress } = require('viem');
 
 const ERC721_ABI = [
   {
@@ -90,15 +90,18 @@ async function getTransferLogs(client, fromBlock, toBlock, fromAddress, toAddres
   });
 }
 
-async function getCurrentStakedCount(client, wallet) {
+async function getCurrentStakedCountFast(client, wallet) {
   const staking = normalizeAddress(process.env.ASCENSION_CONTRACT_ADDRESS);
   const latestBlock = await client.getBlockNumber();
-  const startBlock = BigInt(process.env.SCAN_FROM_BLOCK || '0');
 
-  // Monad RPC in your screenshot is limited to 100 block ranges
+  const startBlock = BigInt(process.env.SCAN_FROM_BLOCK || '0');
   const chunkSize = 99n;
 
+  // hard cap so Netlify doesn't time out forever
+  const maxChunks = 80;
+
   let current = 0n;
+  let chunks = 0;
 
   for (let start = startBlock; start <= latestBlock; start += chunkSize + 1n) {
     const end = start + chunkSize > latestBlock ? latestBlock : start + chunkSize;
@@ -108,6 +111,13 @@ async function getCurrentStakedCount(client, wallet) {
 
     current += BigInt(deposits.length);
     current -= BigInt(withdrawals.length);
+
+    chunks++;
+    if (chunks >= maxChunks) {
+      throw new Error(
+        `Stake scan exceeded safe limit. Move SCAN_FROM_BLOCK forward. Current start: ${startBlock.toString()}`
+      );
+    }
   }
 
   return current < 0n ? 0n : current;
@@ -167,13 +177,100 @@ exports.handler = async function (event) {
 
     const body = event.body ? JSON.parse(event.body) : {};
     const wallet = normalizeAddress(String(body.wallet || '').trim());
+    const signature = String(body.signature || '').trim();
+
+    if (!signature) {
+      return {
+        statusCode: 400,
+        headers: {
+          'Content-Type': 'application/json; charset=utf-8',
+          'Cache-Control': 'no-store'
+        },
+        body: JSON.stringify({ ok: false, error: 'Missing signature' })
+      };
+    }
+
+    const nonceEncoded = getCookie(event, 'dyoor_verify_nonce');
+    if (!nonceEncoded) {
+      return {
+        statusCode: 400,
+        headers: {
+          'Content-Type': 'application/json; charset=utf-8',
+          'Cache-Control': 'no-store'
+        },
+        body: JSON.stringify({ ok: false, error: 'Verification nonce missing' })
+      };
+    }
+
+    const nonceRecord = JSON.parse(Buffer.from(nonceEncoded, 'base64url').toString('utf8'));
+
+    if (Date.now() > Number(nonceRecord.expiresAt || 0)) {
+      return {
+        statusCode: 400,
+        headers: {
+          'Content-Type': 'application/json; charset=utf-8',
+          'Cache-Control': 'no-store'
+        },
+        body: JSON.stringify({ ok: false, error: 'Verification nonce expired' })
+      };
+    }
+
+    if (normalizeAddress(nonceRecord.wallet) !== wallet) {
+      return {
+        statusCode: 400,
+        headers: {
+          'Content-Type': 'application/json; charset=utf-8',
+          'Cache-Control': 'no-store'
+        },
+        body: JSON.stringify({ ok: false, error: 'Wallet does not match nonce request' })
+      };
+    }
+
+    const chainId = Number(process.env.CHAIN_ID || '143');
+
+    const message = [
+      'DYOOR Verification',
+      `Discord User ID: ${discordUserId}`,
+      `Discord Username: ${session.username || session.globalName || 'unknown'}`,
+      `Wallet: ${wallet}`,
+      `Guild ID: ${process.env.DISCORD_GUILD_ID}`,
+      `Nonce: ${nonceRecord.nonce}`,
+      `Chain ID: ${chainId}`,
+      'Purpose: Verify DYOOR holder roles'
+    ].join('\n');
+
+    const valid = await verifyMessage({
+      address: wallet,
+      message,
+      signature
+    });
+
+    if (!valid) {
+      return {
+        statusCode: 400,
+        headers: {
+          'Content-Type': 'application/json; charset=utf-8',
+          'Cache-Control': 'no-store'
+        },
+        body: JSON.stringify({ ok: false, error: 'Signature verification failed' })
+      };
+    }
 
     const client = createPublicClient({
       transport: http(process.env.RPC_URL)
     });
 
     const walletBalance = await getWalletS1Balance(client, wallet);
-    const stakedBalance = await getCurrentStakedCount(client, wallet);
+
+    let stakedBalance = 0n;
+    let stakedScanWarning = '';
+
+    try {
+      stakedBalance = await getCurrentStakedCountFast(client, wallet);
+    } catch (e) {
+      stakedScanWarning = e?.message || 'Staked scan timed out';
+    }
+
     const totalBalance = walletBalance + stakedBalance;
 
     const snapshot = {
@@ -186,16 +283,24 @@ exports.handler = async function (event) {
       isTwentyPlus: totalBalance >= 20n,
       isFiftyPlus: totalBalance >= 50n,
       updatedAt: Date.now(),
-      discordUserId
+      discordUserId,
+      stakedScanWarning
     };
 
     await syncRoles(discordUserId, snapshot);
+
+    const clearNonceCookie =
+      'dyoor_verify_nonce=; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=0';
 
     return {
       statusCode: 200,
       headers: {
         'Content-Type': 'application/json; charset=utf-8',
-        'Cache-Control': 'no-store'
+        'Cache-Control': 'no-store',
+        'Set-Cookie': clearNonceCookie
+      },
+      multiValueHeaders: {
+        'Set-Cookie': [clearNonceCookie]
       },
       body: JSON.stringify({
         ok: true,
@@ -211,7 +316,7 @@ exports.handler = async function (event) {
       },
       body: JSON.stringify({
         ok: false,
-        error: error?.message || 'discord-refresh failed'
+        error: error?.message || 'discord-verify-submit failed'
       })
     };
   }
