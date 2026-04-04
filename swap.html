@@ -812,9 +812,9 @@
     return BigInt(res);
   }
 
-  function encodeTransfer(to, amount){
-    const iface = new ethers.utils.Interface(['function transfer(address to, uint256 value)']);
-    return iface.encodeFunctionData('transfer',[to, amount.toString()]);
+  function encodeTransfer(to, amount) {
+    // transfer(address,uint256) selector = 0xa9059cbb
+    return '0xa9059cbb' + addrPad32(to) + hexPad32(amount);
   }
 
   async function estimateGas(tx) {
