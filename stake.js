@@ -116,18 +116,32 @@ function formatEnergyValue(value) {
   });
 }
 
+async function fetchWithTimeout(url, timeoutMs = 4500) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+
+  try {
+    return await fetch(url, {
+      cache: "no-store",
+      signal: controller.signal
+    });
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 async function fetchHarvestedEnergyRaw(address) {
   if (!address) return 0n;
 
   const url = `/.netlify/functions/ascension-stats?address=${encodeURIComponent(address)}`;
-  const res = await fetch(url, { cache: "no-store" });
+  const res = await fetchWithTimeout(url, 4500);
   const text = await res.text();
 
   let json = {};
   try {
     json = JSON.parse(text);
   } catch {
-    throw new Error(`ascension-stats returned non-JSON: ${text.slice(0, 180)}`);
+    throw new Error(`ascension-stats returned non-JSON`);
   }
 
   if (!res.ok || json.ok === false) {
@@ -477,25 +491,34 @@ async function updateEnergy() {
   const staking = new ethers.Contract(STAKING_ADDRESS, stakingAbi, provider);
 
   try {
-    const [pending, stakedBalance, pointsPerDayRaw, harvestedRaw] = await Promise.all([
+    const [pending, stakedBalance, pointsPerDayRaw] = await Promise.all([
       staking.pendingPoints(userAddress),
       staking.stakedBalance(userAddress),
-      staking.pointsPerDay(),
-      fetchHarvestedEnergyRaw(userAddress)
+      staking.pointsPerDay()
     ]);
 
     const pendingDisplay = Number(ethers.formatEther(pending));
-    const harvestedDisplay = Number(ethers.formatEther(harvestedRaw));
-    const lifetimeDisplay = Number(ethers.formatEther(pending + harvestedRaw));
     const pointsPerDayPerNft = Number(ethers.formatEther(pointsPerDayRaw));
     const totalRate = Number(stakedBalance) * pointsPerDayPerNft;
 
     pendingEnergy.textContent = formatEnergyValue(pendingDisplay);
-    harvestedEnergy.textContent = formatEnergyValue(harvestedDisplay);
-    lifetimeEnergy.textContent = formatEnergyValue(lifetimeDisplay);
     energyRate.textContent = Number.isInteger(totalRate)
       ? `${totalRate} / day`
       : `${totalRate.toFixed(2)} / day`;
+
+    let harvestedRaw = 0n;
+    try {
+      harvestedRaw = await fetchHarvestedEnergyRaw(userAddress);
+    } catch (err) {
+      console.warn("harvested lookup failed", err);
+      harvestedRaw = 0n;
+    }
+
+    const harvestedDisplay = Number(ethers.formatEther(harvestedRaw));
+    const lifetimeDisplay = Number(ethers.formatEther(pending + harvestedRaw));
+
+    harvestedEnergy.textContent = formatEnergyValue(harvestedDisplay);
+    lifetimeEnergy.textContent = formatEnergyValue(lifetimeDisplay);
   } catch (err) {
     console.error("energy error", err);
     pendingEnergy.textContent = "0.00";
