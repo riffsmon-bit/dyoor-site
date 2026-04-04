@@ -1,11 +1,15 @@
-exports.handler = async function () {
+exports.handler = async function (event) {
   try {
     const rpcUrl = "https://rpc.monad.xyz";
     const contract = "0xf9611226c1CcCcCa37951938d6f358D3d5106549";
     const maxSupply = 1111;
 
-    // stakedBalance(address) selector
+    // stakedBalance(address)
     const STAKED_BALANCE_SELECTOR = "0x60217267";
+
+    // PointsClaimed(address,uint256)
+    const POINTS_CLAIMED_TOPIC =
+      "0x1573f6f14599bfcac3c5f0af9665f7a1f995702d002b4b5d4798365a79310261";
 
     // wallets seen staking into this contract
     const stakers = [
@@ -18,25 +22,39 @@ exports.handler = async function () {
       "0xC7f55cE6A7dF9A79cc4A643a5081230F890c7AA6"
     ];
 
+    function normalizeAddress(address) {
+      if (typeof address !== "string") return null;
+      const trimmed = address.trim();
+      if (!/^0x[a-fA-F0-9]{40}$/.test(trimmed)) return null;
+      return trimmed;
+    }
+
     function encodeAddress(address) {
       return address.toLowerCase().replace(/^0x/, "").padStart(64, "0");
     }
 
-    async function ethCall(data) {
+    function toHexBlock(blockNumber) {
+      return "0x" + blockNumber.toString(16);
+    }
+
+    function formatEtherFromBigInt(value) {
+      const negative = value < 0n;
+      const abs = negative ? -value : value;
+      const whole = abs / 1000000000000000000n;
+      const fraction = abs % 1000000000000000000n;
+      const fractionStr = fraction.toString().padStart(18, "0").replace(/0+$/, "");
+      return `${negative ? "-" : ""}${whole.toString()}${fractionStr ? "." + fractionStr : ""}`;
+    }
+
+    async function rpc(method, params) {
       const res = await fetch(rpcUrl, {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({
           jsonrpc: "2.0",
           id: 1,
-          method: "eth_call",
-          params: [
-            {
-              to: contract,
-              data
-            },
-            "latest"
-          ]
+          method,
+          params
         })
       });
 
@@ -45,17 +63,88 @@ exports.handler = async function () {
       return json.result;
     }
 
-    let totalStaked = 0;
-
-    for (const wallet of stakers) {
-      const data = STAKED_BALANCE_SELECTOR + encodeAddress(wallet);
-      const result = await ethCall(data);
-
-      const value = result && result !== "0x" ? parseInt(result, 16) : 0;
-      totalStaked += Number.isFinite(value) ? value : 0;
+    async function ethCall(data) {
+      return rpc("eth_call", [{ to: contract, data }, "latest"]);
     }
 
+    async function getLatestBlockNumber() {
+      const hex = await rpc("eth_blockNumber", []);
+      return parseInt(hex, 16);
+    }
+
+    async function getLogs(params) {
+      return rpc("eth_getLogs", [params]);
+    }
+
+    async function getTotalStaked() {
+      let totalStaked = 0;
+
+      for (const wallet of stakers) {
+        const data = STAKED_BALANCE_SELECTOR + encodeAddress(wallet);
+        const result = await ethCall(data);
+        const value = result && result !== "0x" ? parseInt(result, 16) : 0;
+        totalStaked += Number.isFinite(value) ? value : 0;
+      }
+
+      return totalStaked;
+    }
+
+    async function getHarvestedForWallet(address) {
+      const normalized = normalizeAddress(address);
+      if (!normalized) {
+        throw new Error("Invalid address");
+      }
+
+      const latestBlock = await getLatestBlockNumber();
+      const chunkSize = 50000;
+
+      let harvested = 0n;
+      const userTopic = "0x" + encodeAddress(normalized);
+
+      for (let fromBlock = 0; fromBlock <= latestBlock; fromBlock += chunkSize) {
+        const toBlock = Math.min(fromBlock + chunkSize - 1, latestBlock);
+
+        const logs = await getLogs({
+          address: contract,
+          fromBlock: toHexBlock(fromBlock),
+          toBlock: toHexBlock(toBlock),
+          topics: [POINTS_CLAIMED_TOPIC, userTopic]
+        });
+
+        for (const log of logs) {
+          if (log && typeof log.data === "string" && log.data !== "0x") {
+            harvested += BigInt(log.data);
+          }
+        }
+      }
+
+      return harvested;
+    }
+
+    const totalStaked = await getTotalStaked();
     const percent = Number(((totalStaked / maxSupply) * 100).toFixed(2));
+
+    const address = normalizeAddress(event?.queryStringParameters?.address || "");
+
+    if (address) {
+      const harvestedRaw = await getHarvestedForWallet(address);
+
+      return {
+        statusCode: 200,
+        headers: {
+          "content-type": "application/json",
+          "cache-control": "public, max-age=30"
+        },
+        body: JSON.stringify({
+          address,
+          totalStaked,
+          maxSupply,
+          percent,
+          harvestedRaw: harvestedRaw.toString(),
+          harvestedEnergy: formatEtherFromBigInt(harvestedRaw)
+        })
+      };
+    }
 
     return {
       statusCode: 200,
