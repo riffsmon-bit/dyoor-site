@@ -17,27 +17,37 @@ exports.handler = async function (event) {
   try {
     const session = getCookie(event, COOKIE_NAME);
 
+    let discordUser = null;
+    if (session) {
+      try {
+        discordUser = JSON.parse(Buffer.from(session, 'base64url').toString('utf8'));
+      } catch (e) {
+        discordUser = null;
+      }
+    }
+
     return {
       statusCode: 200,
       headers: {
-        'content-type': 'application/json; charset=utf-8',
-        'cache-control': 'no-store'
+        'Content-Type': 'application/json; charset=utf-8',
+        'Cache-Control': 'no-store'
       },
       body: JSON.stringify({
         ok: true,
         backendReachable: true,
-        discordConnected: !!session,
+        discordConnected: !!discordUser,
+        discordUser,
         walletLinked: false,
         roles: [],
-        sessionPresent: !!session
+        sessionPresent: !!discordUser
       })
     };
   } catch (error) {
     return {
       statusCode: 500,
       headers: {
-        'content-type': 'application/json; charset=utf-8',
-        'cache-control': 'no-store'
+        'Content-Type': 'application/json; charset=utf-8',
+        'Cache-Control': 'no-store'
       },
       body: JSON.stringify({
         ok: false,

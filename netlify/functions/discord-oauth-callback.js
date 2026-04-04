@@ -9,7 +9,7 @@ exports.handler = async function (event) {
     if (!discordClientId) {
       return {
         statusCode: 500,
-        headers: { 'content-type': 'application/json; charset=utf-8' },
+        headers: { 'Content-Type': 'application/json; charset=utf-8' },
         body: JSON.stringify({ ok: false, error: 'Missing DISCORD_CLIENT_ID' })
       };
     }
@@ -17,7 +17,7 @@ exports.handler = async function (event) {
     if (!discordClientSecret) {
       return {
         statusCode: 500,
-        headers: { 'content-type': 'application/json; charset=utf-8' },
+        headers: { 'Content-Type': 'application/json; charset=utf-8' },
         body: JSON.stringify({ ok: false, error: 'Missing DISCORD_CLIENT_SECRET' })
       };
     }
@@ -25,7 +25,7 @@ exports.handler = async function (event) {
     if (!discordRedirectUri) {
       return {
         statusCode: 500,
-        headers: { 'content-type': 'application/json; charset=utf-8' },
+        headers: { 'Content-Type': 'application/json; charset=utf-8' },
         body: JSON.stringify({ ok: false, error: 'Missing DISCORD_REDIRECT_URI' })
       };
     }
@@ -39,7 +39,7 @@ exports.handler = async function (event) {
     if (!code) {
       return {
         statusCode: 400,
-        headers: { 'content-type': 'application/json; charset=utf-8' },
+        headers: { 'Content-Type': 'application/json; charset=utf-8' },
         body: JSON.stringify({ ok: false, error: 'Missing OAuth code' })
       };
     }
@@ -58,7 +58,7 @@ exports.handler = async function (event) {
     const tokenRes = await fetch('https://discord.com/api/oauth2/token', {
       method: 'POST',
       headers: {
-        'content-type': 'application/x-www-form-urlencoded'
+        'Content-Type': 'application/x-www-form-urlencoded'
       },
       body: new URLSearchParams({
         client_id: discordClientId,
@@ -74,7 +74,7 @@ exports.handler = async function (event) {
     if (!tokenRes.ok || !tokenJson.access_token) {
       return {
         statusCode: 500,
-        headers: { 'content-type': 'application/json; charset=utf-8' },
+        headers: { 'Content-Type': 'application/json; charset=utf-8' },
         body: JSON.stringify({
           ok: false,
           error: 'Failed to exchange Discord OAuth code',
@@ -85,7 +85,7 @@ exports.handler = async function (event) {
 
     const meRes = await fetch('https://discord.com/api/users/@me', {
       headers: {
-        authorization: `Bearer ${tokenJson.access_token}`
+        Authorization: `Bearer ${tokenJson.access_token}`
       }
     });
 
@@ -94,7 +94,7 @@ exports.handler = async function (event) {
     if (!meRes.ok || !meJson.id) {
       return {
         statusCode: 500,
-        headers: { 'content-type': 'application/json; charset=utf-8' },
+        headers: { 'Content-Type': 'application/json; charset=utf-8' },
         body: JSON.stringify({
           ok: false,
           error: 'Failed to fetch Discord user profile',
@@ -115,12 +115,17 @@ exports.handler = async function (event) {
       JSON.stringify(sessionPayload)
     ).toString('base64url');
 
+    const cookie = `${COOKIE_NAME}=${encodeURIComponent(sessionValue)}; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=2592000`;
+
     return {
       statusCode: 302,
       headers: {
-        location: returnTo,
-        'cache-control': 'no-store',
-        'set-cookie': `${COOKIE_NAME}=${encodeURIComponent(sessionValue)}; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=2592000`
+        Location: returnTo,
+        'Cache-Control': 'no-store',
+        'Set-Cookie': cookie
+      },
+      multiValueHeaders: {
+        'Set-Cookie': [cookie]
       },
       body: ''
     };
@@ -128,8 +133,8 @@ exports.handler = async function (event) {
     return {
       statusCode: 500,
       headers: {
-        'content-type': 'application/json; charset=utf-8',
-        'cache-control': 'no-store'
+        'Content-Type': 'application/json; charset=utf-8',
+        'Cache-Control': 'no-store'
       },
       body: JSON.stringify({
         ok: false,
