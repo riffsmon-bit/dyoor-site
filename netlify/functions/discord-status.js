@@ -1,22 +1,48 @@
-const { json } = require('./_verify/http');
-const { getSessionFromEvent } = require('./_verify/session');
-const { getLinkByDiscordUserId } = require('./_verify/linking');
+const COOKIE_NAME = process.env.VERIFY_SESSION_COOKIE || 'dyoor_verify_session';
 
-exports.handler = async (event) => {
+function getCookie(event, name) {
+  const raw = event.headers?.cookie || event.headers?.Cookie || '';
+  const parts = raw.split(';').map((p) => p.trim());
+  for (const part of parts) {
+    const idx = part.indexOf('=');
+    if (idx === -1) continue;
+    const k = part.slice(0, idx).trim();
+    const v = part.slice(idx + 1).trim();
+    if (k === name) return decodeURIComponent(v);
+  }
+  return '';
+}
+
+exports.handler = async function (event) {
   try {
-    const { session } = await getSessionFromEvent(event);
-    if (!session?.discordUser) {
-      return json(200, { discordUser: null, wallet: null, snapshot: null });
-    }
+    const session = getCookie(event, COOKIE_NAME);
 
-    const link = await getLinkByDiscordUserId(session.discordUser.id);
-
-    return json(200, {
-      discordUser: session.discordUser,
-      wallet: link?.wallet || session.wallet || null,
-      snapshot: link?.snapshot || null,
-    });
+    return {
+      statusCode: 200,
+      headers: {
+        'content-type': 'application/json; charset=utf-8',
+        'cache-control': 'no-store'
+      },
+      body: JSON.stringify({
+        ok: true,
+        backendReachable: true,
+        discordConnected: !!session,
+        walletLinked: false,
+        roles: [],
+        sessionPresent: !!session
+      })
+    };
   } catch (error) {
-    return json(500, { error: error.message });
+    return {
+      statusCode: 500,
+      headers: {
+        'content-type': 'application/json; charset=utf-8',
+        'cache-control': 'no-store'
+      },
+      body: JSON.stringify({
+        ok: false,
+        error: error?.message || 'discord-status failed'
+      })
+    };
   }
 };

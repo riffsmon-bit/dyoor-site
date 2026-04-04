@@ -1,23 +1,46 @@
-const { redirect } = require('./_verify/http');
-const { createOAuthState } = require('./_verify/oauth-state');
-const config = require('./_verify/config');
+const { discordClientId, discordRedirectUri } = require('./_verify/config');
 
-exports.handler = async (event) => {
+exports.handler = async function (event) {
   try {
-    const returnTo = event.queryStringParameters?.returnTo || '/';
-    const state = await createOAuthState(returnTo);
+    const returnTo =
+      event.queryStringParameters?.returnTo ||
+      process.env.URL ||
+      'https://dyoor.netlify.app/';
 
-    const params = new URLSearchParams({
-      client_id: config.discordClientId,
-      response_type: 'code',
-      redirect_uri: config.discordRedirectUri,
-      scope: 'identify',
-      state,
-      prompt: 'consent',
-    });
+    const statePayload = {
+      returnTo,
+      t: Date.now()
+    };
 
-    return redirect(`https://discord.com/api/oauth2/authorize?${params.toString()}`);
+    const state = Buffer.from(JSON.stringify(statePayload)).toString('base64url');
+
+    const authUrl = new URL('https://discord.com/oauth2/authorize');
+    authUrl.searchParams.set('client_id', discordClientId);
+    authUrl.searchParams.set('response_type', 'code');
+    authUrl.searchParams.set('redirect_uri', discordRedirectUri);
+    authUrl.searchParams.set('scope', 'identify guilds');
+    authUrl.searchParams.set('state', state);
+    authUrl.searchParams.set('prompt', 'consent');
+
+    return {
+      statusCode: 302,
+      headers: {
+        location: authUrl.toString(),
+        'cache-control': 'no-store'
+      },
+      body: ''
+    };
   } catch (error) {
-    return redirect(`/?verifyError=${encodeURIComponent(error.message)}`);
+    return {
+      statusCode: 500,
+      headers: {
+        'content-type': 'application/json; charset=utf-8',
+        'cache-control': 'no-store'
+      },
+      body: JSON.stringify({
+        ok: false,
+        error: error?.message || 'discord-login-start failed'
+      })
+    };
   }
 };
