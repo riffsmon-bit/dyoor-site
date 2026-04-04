@@ -1,9 +1,40 @@
-const { discordClientId, discordRedirectUri } = require('./_verify/config');
-
 exports.handler = async function (event) {
   try {
+    const discordClientId = process.env.DISCORD_CLIENT_ID;
+    const discordRedirectUri = process.env.DISCORD_REDIRECT_URI;
+
+    if (!discordClientId) {
+      return {
+        statusCode: 500,
+        headers: {
+          'content-type': 'application/json; charset=utf-8',
+          'cache-control': 'no-store'
+        },
+        body: JSON.stringify({
+          ok: false,
+          error: 'Missing DISCORD_CLIENT_ID'
+        })
+      };
+    }
+
+    if (!discordRedirectUri) {
+      return {
+        statusCode: 500,
+        headers: {
+          'content-type': 'application/json; charset=utf-8',
+          'cache-control': 'no-store'
+        },
+        body: JSON.stringify({
+          ok: false,
+          error: 'Missing DISCORD_REDIRECT_URI'
+        })
+      };
+    }
+
     const returnTo =
-      event?.queryStringParameters?.returnTo ||
+      (event &&
+        event.queryStringParameters &&
+        event.queryStringParameters.returnTo) ||
       process.env.URL ||
       'https://dyoor.netlify.app/';
 
@@ -39,7 +70,7 @@ exports.handler = async function (event) {
       },
       body: JSON.stringify({
         ok: false,
-        error: error?.message || 'discord-login-start failed'
+        error: error && error.message ? error.message : 'discord-login-start failed'
       })
     };
   }
