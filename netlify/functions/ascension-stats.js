@@ -9,10 +9,12 @@ exports.handler = async function (event) {
     // stakedBalance(address)
     const STAKED_BALANCE_SELECTOR = "0x60217267";
 
-    // derive event topic from actual signature
+    // candidate event topics
     const POINTS_CLAIMED_TOPIC = ethers.id("PointsClaimed(address,uint256)");
+    const CLAIMED_TOPIC = ethers.id("Claimed(address,uint256)");
+    const REWARDS_CLAIMED_TOPIC = ethers.id("RewardsClaimed(address,uint256)");
+    const ENERGY_CLAIMED_TOPIC = ethers.id("EnergyClaimed(address,uint256)");
 
-    // wallets seen staking into this contract
     const stakers = [
       "0x245E3D068bCD5dD059bB8c23cCa1Af6d2877a3bE",
       "0x48477b50818b75f4b4a5c86d5fcbb35d3c0fb14d",
@@ -38,10 +40,6 @@ exports.handler = async function (event) {
       return "0x" + blockNumber.toString(16);
     }
 
-    function formatEtherFromBigInt(value) {
-      return ethers.formatEther(value);
-    }
-
     async function rpc(method, params) {
       const res = await fetch(rpcUrl, {
         method: "POST",
@@ -55,9 +53,7 @@ exports.handler = async function (event) {
       });
 
       const json = await res.json();
-      if (json.error) {
-        throw new Error(json.error.message || "RPC error");
-      }
+      if (json.error) throw new Error(json.error.message || "RPC error");
       return json.result;
     }
 
@@ -65,13 +61,13 @@ exports.handler = async function (event) {
       return rpc("eth_call", [{ to: contract, data }, "latest"]);
     }
 
+    async function getLogs(params) {
+      return rpc("eth_getLogs", [params]);
+    }
+
     async function getLatestBlockNumber() {
       const hex = await rpc("eth_blockNumber", []);
       return parseInt(hex, 16);
-    }
-
-    async function getLogs(params) {
-      return rpc("eth_getLogs", [params]);
     }
 
     async function getTotalStaked() {
@@ -87,17 +83,30 @@ exports.handler = async function (event) {
       return totalStaked;
     }
 
-    async function getHarvestedForWallet(address) {
-      const normalized = normalizeAddress(address);
-      if (!normalized) {
-        throw new Error("Invalid address");
-      }
+    function parseAmountFromLog(log) {
+      try {
+        if (log?.data && log.data !== "0x") {
+          return BigInt(log.data);
+        }
 
+        if (Array.isArray(log?.topics) && log.topics.length > 2 && log.topics[2] && log.topics[2] !== "0x") {
+          return BigInt(log.topics[2]);
+        }
+
+        return 0n;
+      } catch {
+        return 0n;
+      }
+    }
+
+    async function scanTopicForWallet(topic0, address) {
       const latestBlock = await getLatestBlockNumber();
       const chunkSize = 25000;
+      const userTopic = "0x" + encodeAddress(address);
 
       let harvested = 0n;
-      const userTopic = "0x" + encodeAddress(normalized);
+      let logCount = 0;
+      const sample = [];
 
       for (let fromBlock = 0; fromBlock <= latestBlock; fromBlock += chunkSize) {
         const toBlock = Math.min(fromBlock + chunkSize - 1, latestBlock);
@@ -106,58 +115,118 @@ exports.handler = async function (event) {
           address: contract,
           fromBlock: toHexBlock(fromBlock),
           toBlock: toHexBlock(toBlock),
-          topics: [POINTS_CLAIMED_TOPIC, userTopic]
+          topics: [topic0, userTopic]
         });
 
+        logCount += logs.length;
+
         for (const log of logs) {
-          if (log && typeof log.data === "string" && log.data !== "0x") {
-            harvested += BigInt(log.data);
+          const amount = parseAmountFromLog(log);
+          harvested += amount;
+
+          if (sample.length < 5) {
+            sample.push({
+              blockNumber: parseInt(log.blockNumber, 16),
+              txHash: log.transactionHash,
+              topic0: log.topics?.[0] || null,
+              topic1: log.topics?.[1] || null,
+              topic2: log.topics?.[2] || null,
+              data: log.data,
+              parsedAmount: amount.toString()
+            });
           }
         }
       }
 
-      return harvested;
+      return {
+        harvested,
+        logCount,
+        sample
+      };
     }
 
     const totalStaked = await getTotalStaked();
     const percent = Number(((totalStaked / maxSupply) * 100).toFixed(2));
-
     const address = normalizeAddress(event?.queryStringParameters?.address || "");
 
-    if (address) {
-      const harvestedRaw = await getHarvestedForWallet(address);
-
+    if (!address) {
       return {
         statusCode: 200,
         headers: {
           "content-type": "application/json",
-          "cache-control": "public, max-age=30"
+          "cache-control": "public, max-age=60"
         },
         body: JSON.stringify({
           ok: true,
-          address,
           totalStaked,
           maxSupply,
           percent,
-          eventTopic: POINTS_CLAIMED_TOPIC,
-          harvestedRaw: harvestedRaw.toString(),
-          harvestedEnergy: formatEtherFromBigInt(harvestedRaw)
+          topics: {
+            POINTS_CLAIMED_TOPIC,
+            CLAIMED_TOPIC,
+            REWARDS_CLAIMED_TOPIC,
+            ENERGY_CLAIMED_TOPIC
+          }
         })
       };
+    }
+
+    const scans = {
+      pointsClaimed: await scanTopicForWallet(POINTS_CLAIMED_TOPIC, address),
+      claimed: await scanTopicForWallet(CLAIMED_TOPIC, address),
+      rewardsClaimed: await scanTopicForWallet(REWARDS_CLAIMED_TOPIC, address),
+      energyClaimed: await scanTopicForWallet(ENERGY_CLAIMED_TOPIC, address)
+    };
+
+    let best = scans.pointsClaimed;
+    for (const value of Object.values(scans)) {
+      if (value.harvested > best.harvested) best = value;
     }
 
     return {
       statusCode: 200,
       headers: {
         "content-type": "application/json",
-        "cache-control": "public, max-age=60"
+        "cache-control": "public, max-age=15"
       },
       body: JSON.stringify({
         ok: true,
+        address,
         totalStaked,
         maxSupply,
         percent,
-        eventTopic: POINTS_CLAIMED_TOPIC
+        harvestedRaw: best.harvested.toString(),
+        harvestedEnergy: ethers.formatEther(best.harvested),
+        scans: {
+          pointsClaimed: {
+            topic: POINTS_CLAIMED_TOPIC,
+            logCount: scans.pointsClaimed.logCount,
+            harvestedRaw: scans.pointsClaimed.harvested.toString(),
+            harvestedEnergy: ethers.formatEther(scans.pointsClaimed.harvested),
+            sample: scans.pointsClaimed.sample
+          },
+          claimed: {
+            topic: CLAIMED_TOPIC,
+            logCount: scans.claimed.logCount,
+            harvestedRaw: scans.claimed.harvested.toString(),
+            harvestedEnergy: ethers.formatEther(scans.claimed.harvested),
+            sample: scans.claimed.sample
+          },
+          rewardsClaimed: {
+            topic: REWARDS_CLAIMED_TOPIC,
+            logCount: scans.rewardsClaimed.logCount,
+            harvestedRaw: scans.rewardsClaimed.harvested.toString(),
+            harvestedEnergy: ethers.formatEther(scans.rewardsClaimed.harvested),
+            sample: scans.rewardsClaimed.sample
+          },
+          energyClaimed: {
+            topic: ENERGY_CLAIMED_TOPIC,
+            logCount: scans.energyClaimed.logCount,
+            harvestedRaw: scans.energyClaimed.harvested.toString(),
+            harvestedEnergy: ethers.formatEther(scans.energyClaimed.harvested),
+            sample: scans.energyClaimed.sample
+          }
+        }
       })
     };
   } catch (err) {
