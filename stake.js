@@ -3,7 +3,6 @@ const CHAIN_ID_HEX = "0x8f";
 const NFT_ADDRESS = "0x2c79c9e233fea4b4dcfe6561d9209dc292cd932f";
 const STAKING_ADDRESS = "0xf9611226c1CcCcCa37951938d6f358D3d5106549";
 const MAX_SCAN = 1111;
-const BATCH_SIZE = 40;
 
 const stakingAbi = [
   "function deposit(uint256[] calldata tokenIds)",
@@ -111,27 +110,28 @@ function formatError(err, fallback = "Unknown error.") {
 
 function formatEnergyValue(value) {
   if (!Number.isFinite(value)) return "0.00";
-  if (Math.abs(value) >= 1000) {
-    return value.toLocaleString(undefined, {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2
-    });
-  }
-  return value.toFixed(2);
+  return value.toLocaleString(undefined, {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2
+  });
 }
 
 async function fetchHarvestedEnergyRaw(address) {
   if (!address) return 0n;
 
-  const res = await fetch(
-    `/.netlify/functions/ascension-stats?address=${encodeURIComponent(address)}`,
-    { cache: "no-store" }
-  );
+  const url = `/.netlify/functions/ascension-stats?address=${encodeURIComponent(address)}`;
+  const res = await fetch(url, { cache: "no-store" });
+  const text = await res.text();
 
-  const json = await res.json().catch(() => ({}));
+  let json = {};
+  try {
+    json = JSON.parse(text);
+  } catch {
+    throw new Error(`ascension-stats returned non-JSON: ${text.slice(0, 180)}`);
+  }
 
-  if (!res.ok) {
-    throw new Error(json?.error || "Failed to load harvested energy.");
+  if (!res.ok || json.ok === false) {
+    throw new Error(json?.error || `ascension-stats failed (${res.status})`);
   }
 
   return BigInt(json?.harvestedRaw || "0");
@@ -260,13 +260,7 @@ async function sendContractTx(to, abi, fnName, args = []) {
 
   const txHash = await injected.request({
     method: "eth_sendTransaction",
-    params: [
-      {
-        from: userAddress,
-        to,
-        data
-      }
-    ]
+    params: [{ from: userAddress, to, data }]
   });
 
   return txHash;
@@ -305,10 +299,7 @@ async function fetchTokenMetadata(tokenId) {
     return result;
   } catch (err) {
     console.error("metadata error", tokenId, err);
-    const fallback = {
-      image: "",
-      name: `DYOOR #${tokenId}`
-    };
+    const fallback = { image: "", name: `DYOOR #${tokenId}` };
     metadataCache.set(cacheKey, fallback);
     return fallback;
   }
@@ -327,7 +318,7 @@ async function getOwnedNfts(owner) {
     async function ownerOfWithRetry(tokenId) {
       try {
         return await nft.ownerOf(tokenId);
-      } catch (err) {
+      } catch {
         try {
           await new Promise((resolve) => setTimeout(resolve, 50));
           return await nft.ownerOf(tokenId);
@@ -483,22 +474,15 @@ function updateButtons() {
 async function updateEnergy() {
   if (!userAddress) return;
 
-  try {
-    const staking = new ethers.Contract(STAKING_ADDRESS, stakingAbi, provider);
+  const staking = new ethers.Contract(STAKING_ADDRESS, stakingAbi, provider);
 
-    const [pending, stakedBalance, pointsPerDayRaw] = await Promise.all([
+  try {
+    const [pending, stakedBalance, pointsPerDayRaw, harvestedRaw] = await Promise.all([
       staking.pendingPoints(userAddress),
       staking.stakedBalance(userAddress),
-      staking.pointsPerDay()
+      staking.pointsPerDay(),
+      fetchHarvestedEnergyRaw(userAddress)
     ]);
-
-    let harvestedRaw = 0n;
-    try {
-      harvestedRaw = await fetchHarvestedEnergyRaw(userAddress);
-    } catch (harvestErr) {
-      console.warn("harvested energy lookup failed", harvestErr);
-      harvestedRaw = 0n;
-    }
 
     const pendingDisplay = Number(ethers.formatEther(pending));
     const harvestedDisplay = Number(ethers.formatEther(harvestedRaw));
@@ -509,18 +493,16 @@ async function updateEnergy() {
     pendingEnergy.textContent = formatEnergyValue(pendingDisplay);
     harvestedEnergy.textContent = formatEnergyValue(harvestedDisplay);
     lifetimeEnergy.textContent = formatEnergyValue(lifetimeDisplay);
-
-    if (Number.isInteger(totalRate)) {
-      energyRate.textContent = `${totalRate} / day`;
-    } else {
-      energyRate.textContent = `${totalRate.toFixed(2)} / day`;
-    }
+    energyRate.textContent = Number.isInteger(totalRate)
+      ? `${totalRate} / day`
+      : `${totalRate.toFixed(2)} / day`;
   } catch (err) {
     console.error("energy error", err);
     pendingEnergy.textContent = "0.00";
     harvestedEnergy.textContent = "0.00";
     lifetimeEnergy.textContent = "0.00";
     energyRate.textContent = "0 / day";
+    setStatus(`Energy load failed: ${formatError(err)}`);
   }
 }
 
@@ -754,8 +736,6 @@ async function ensureApproval() {
   const nftRead = new ethers.Contract(NFT_ADDRESS, nftAbi, provider);
   const approved = await nftRead.isApprovedForAll(userAddress, STAKING_ADDRESS);
 
-  console.log("isApprovedForAll before:", approved, "owner:", userAddress, "operator:", STAKING_ADDRESS);
-
   if (approved) return true;
 
   setStatus("Approval required.\nConfirm in wallet...");
@@ -766,12 +746,9 @@ async function ensureApproval() {
     [STAKING_ADDRESS, true]
   );
 
-  console.log("approval tx hash:", txHash);
   await waitForHash(txHash);
 
   const approvedAfter = await nftRead.isApprovedForAll(userAddress, STAKING_ADDRESS);
-  console.log("isApprovedForAll after:", approvedAfter);
-
   if (!approvedAfter) {
     throw new Error("Approval did not complete.");
   }
@@ -807,8 +784,6 @@ async function ascendTokenIds(tokenIds) {
         "transferFrom",
         [userAddress, STAKING_ADDRESS, id]
       );
-
-      console.log("deposit tx hash:", txHash, "token:", id.toString());
       await waitForHash(txHash);
     }
 
@@ -820,7 +795,6 @@ async function ascendTokenIds(tokenIds) {
       [normalizedIds]
     );
 
-    console.log("stakeDeposited tx hash:", registerHash);
     await waitForHash(registerHash);
 
     setStatus("Ascension complete.");
@@ -848,7 +822,6 @@ async function disconnectTokenIds(tokenIds) {
       [normalizedIds]
     );
 
-    console.log("unstake tx hash:", txHash);
     await waitForHash(txHash);
 
     setStatus("Disconnect complete.");
@@ -869,7 +842,6 @@ async function harvestEnergy() {
       []
     );
 
-    console.log("claimPoints tx hash:", txHash);
     await waitForHash(txHash);
 
     setStatus("Energy harvested.");
@@ -951,8 +923,6 @@ disconnectSelectedBtn.addEventListener("click", async () => {
 
 harvestBtn.addEventListener("click", harvestEnergy);
 
-// No auto-connect / no auto-restore on load.
-// Wait until the user explicitly clicks Connect Wallet.
 window.addEventListener("DOMContentLoaded", () => {
   syncStakeGlobals();
   updateButtons();
