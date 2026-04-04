@@ -1,4 +1,4 @@
-<!doctype html>
+<!doc<!doctype html>
 <html lang="en">
 <head>
 <meta charset="utf-8"/>
@@ -18,7 +18,7 @@
   .swapPill{padding:10px 14px;border-radius:999px;border:1px solid rgba(255,255,255,.10);background:rgba(255,255,255,.035);font-size:13px;font-weight:700;opacity:.92}
   .swapTopAction{margin-top:18px;display:flex;justify-content:center}
 
-  .swapGrid{display:grid;grid-template-columns:minmax(0,1.55fr) minmax(280px,.9fr);gap:20px;align-items:start}
+  .swapGrid{display:grid;grid-template-columns:minmax(0,1fr);gap:20px;align-items:start}
   .swapPanel{border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.04);border-radius:22px;padding:18px;box-shadow:var(--shadow)}
   .swapPanelTitle{margin:0 0 6px;font-size:24px;line-height:1.05}
   .swapPanelCopy{margin:0;opacity:.78;font-size:14px;line-height:1.5}
@@ -64,15 +64,6 @@
   .switch input:checked + .slider{background:rgba(0,255,199,.22);border-color:rgba(0,255,199,.35)}
   .switch input:checked + .slider:before{transform:translate(20px,-50%);background:rgba(0,0,0,.55);border-color:rgba(0,255,199,.35)}
 
-  .swapInfoStack{display:grid;gap:14px}
-  .swapInfoCard{border:1px solid rgba(255,255,255,.08);border-radius:16px;padding:14px;background:rgba(255,255,255,.025)}
-  .swapInfoCard h3{margin:0 0 8px;font-size:15px;letter-spacing:.04em;text-transform:uppercase;opacity:.9}
-  .swapInfoCard p{margin:0;font-size:14px;line-height:1.55;opacity:.8}
-  .swapInfoList{display:grid;gap:10px;margin:0}
-  .swapInfoList .row{display:flex;justify-content:space-between;gap:12px;align-items:center}
-  .swapInfoList .row span:first-child{opacity:.62;font-size:12px;letter-spacing:.08em;text-transform:uppercase}
-  .swapInfoList .row span:last-child{font-weight:700;text-align:right}
-
   @media (max-width:960px){
     .swapGrid{grid-template-columns:1fr}
   }
@@ -103,7 +94,7 @@
     <div class="swapKicker">Monad Router • DYOOR Treasury Support</div>
     <h1 class="swapTitle">Swap on Monad</h1>
     <p class="swapCopy">
-      Fast token routing, optional treasury support, and a cleaner page shell that matches the rest of DYOOR.
+      Fast token routing, optional treasury support if you’d like to support DYOOR favorite NFT on monad
     </p>
 
     <div class="swapHeroMeta">
@@ -228,46 +219,6 @@
         <div class="mini">Safety: DYOOR will never ask for your seed phrase. Verify you are on the real dyoor.xyz domain before signing.</div>
       </div>
     </section>
-
-    <aside class="swapPanel">
-      <div class="swapInfoStack">
-        <div class="swapInfoCard">
-          <h3>Page Notes</h3>
-          <p>
-            This version removes the oversized swap header image and brings the page back into the same centered, card-driven feel as the rest of the site.
-          </p>
-        </div>
-
-        <div class="swapInfoCard">
-          <h3>Router Details</h3>
-          <div class="swapInfoList">
-            <div class="row">
-              <span>Network</span>
-              <span>Monad Mainnet</span>
-            </div>
-            <div class="row">
-              <span>Chain ID</span>
-              <span>143</span>
-            </div>
-            <div class="row">
-              <span>Mode</span>
-              <span>Basic / Advanced</span>
-            </div>
-            <div class="row">
-              <span>Support</span>
-              <span>0.20% Optional</span>
-            </div>
-          </div>
-        </div>
-
-        <div class="swapInfoCard">
-          <h3>Why this fits better</h3>
-          <p>
-            The swap now opens with a cleaner title and intro instead of feeling like a separate landing page. The actual trading card stays the focus.
-          </p>
-        </div>
-      </div>
-    </aside>
   </div>
 </main>
 
