@@ -1,19 +1,19 @@
 const { ethers } = require("ethers");
 
 exports.handler = async function (event) {
+  const debug = {
+    stage: "start"
+  };
+
   try {
     const rpcUrl = "https://rpc.monad.xyz";
     const contract = "0xf9611226c1CcCcCa37951938d6f358D3d5106549";
     const maxSupply = 1111;
     const contractStartBlock = 62912794;
 
-    // stakedBalance(address)
     const STAKED_BALANCE_SELECTOR = "0x60217267";
-
-    // actual claim event topic
     const POINTS_CLAIMED_TOPIC = ethers.id("PointsClaimed(address,uint256)");
 
-    // wallets seen staking into this contract
     const stakers = [
       "0x245E3D068bCD5dD059bB8c23cCa1Af6d2877a3bE",
       "0x48477b50818b75f4b4a5c86d5fcbb35d3c0fb14d",
@@ -91,14 +91,23 @@ exports.handler = async function (event) {
       }
 
       const latestBlock = await getLatestBlockNumber();
-      const chunkSize = 100; // Monad RPC limit
+      const chunkSize = 100;
 
       let harvested = 0n;
       let logCount = 0;
+      let chunksScanned = 0;
       const userTopic = "0x" + encodeAddress(normalized);
+
+      debug.stage = "scan_logs";
+      debug.latestBlock = latestBlock;
+      debug.userTopic = userTopic;
+      debug.eventTopic = POINTS_CLAIMED_TOPIC;
+      debug.contractStartBlock = contractStartBlock;
+      debug.chunkSize = chunkSize;
 
       for (let fromBlock = contractStartBlock; fromBlock <= latestBlock; fromBlock += chunkSize) {
         const toBlock = Math.min(fromBlock + chunkSize - 1, latestBlock);
+        chunksScanned += 1;
 
         const logs = await getLogs({
           address: contract,
@@ -118,17 +127,20 @@ exports.handler = async function (event) {
 
       return {
         harvested,
-        logCount
+        logCount,
+        chunksScanned
       };
     }
 
+    debug.stage = "totals";
     const totalStaked = await getTotalStaked();
     const percent = Number(((totalStaked / maxSupply) * 100).toFixed(2));
 
     const address = normalizeAddress(event?.queryStringParameters?.address || "");
 
     if (address) {
-      const { harvested, logCount } = await getHarvestedForWallet(address);
+      debug.stage = "wallet_lookup";
+      const { harvested, logCount, chunksScanned } = await getHarvestedForWallet(address);
 
       return {
         statusCode: 200,
@@ -145,8 +157,10 @@ exports.handler = async function (event) {
           contractStartBlock,
           eventTopic: POINTS_CLAIMED_TOPIC,
           logCount,
+          chunksScanned,
           harvestedRaw: harvested.toString(),
-          harvestedEnergy: ethers.formatEther(harvested)
+          harvestedEnergy: ethers.formatEther(harvested),
+          debug
         })
       };
     }
@@ -163,11 +177,13 @@ exports.handler = async function (event) {
         maxSupply,
         percent,
         contractStartBlock,
-        eventTopic: POINTS_CLAIMED_TOPIC
+        eventTopic: POINTS_CLAIMED_TOPIC,
+        debug
       })
     };
   } catch (err) {
     console.error("ascension-stats error:", err);
+
     return {
       statusCode: 500,
       headers: {
@@ -175,7 +191,8 @@ exports.handler = async function (event) {
       },
       body: JSON.stringify({
         ok: false,
-        error: String(err && err.message ? err.message : err)
+        error: String(err && err.message ? err.message : err),
+        debug
       })
     };
   }
