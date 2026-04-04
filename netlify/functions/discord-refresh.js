@@ -10,6 +10,23 @@ const ERC721_ABI = [
   }
 ];
 
+const STAKING_ABI = [
+  {
+    type: 'function',
+    name: 'tokensOfStaker',
+    stateMutability: 'view',
+    inputs: [{ name: 'user', type: 'address' }],
+    outputs: [{ name: '', type: 'uint256[]' }]
+  },
+  {
+    type: 'function',
+    name: 'pendingPoints',
+    stateMutability: 'view',
+    inputs: [{ name: 'user', type: 'address' }],
+    outputs: [{ name: '', type: 'uint256' }]
+  }
+];
+
 function normalizeAddress(address) {
   if (!isAddress(address)) throw new Error('Invalid wallet address');
   return getAddress(address);
@@ -69,55 +86,30 @@ async function getWalletS1Balance(client, wallet) {
   });
 }
 
-async function getTransferLogs(client, fromBlock, toBlock, fromAddress, toAddress) {
-  return await client.getLogs({
-    address: normalizeAddress(process.env.S1_COLLECTION_ADDRESS),
-    event: {
-      type: 'event',
-      name: 'Transfer',
-      inputs: [
-        { type: 'address', name: 'from', indexed: true },
-        { type: 'address', name: 'to', indexed: true },
-        { type: 'uint256', name: 'tokenId', indexed: true }
-      ]
-    },
-    args: {
-      from: fromAddress ? normalizeAddress(fromAddress) : undefined,
-      to: toAddress ? normalizeAddress(toAddress) : undefined
-    },
-    fromBlock,
-    toBlock
+async function getStakedTokens(client, wallet) {
+  const tokens = await client.readContract({
+    address: normalizeAddress(process.env.ASCENSION_CONTRACT_ADDRESS),
+    abi: STAKING_ABI,
+    functionName: 'tokensOfStaker',
+    args: [wallet]
   });
+
+  return Array.isArray(tokens) ? tokens : [];
 }
 
-async function getCurrentStakedCountFast(client, wallet) {
-  const staking = normalizeAddress(process.env.ASCENSION_CONTRACT_ADDRESS);
-  const latestBlock = await client.getBlockNumber();
-  const startBlock = BigInt(process.env.SCAN_FROM_BLOCK || '0');
-  const chunkSize = 99n;
-  const maxChunks = 80;
+async function getPendingPoints(client, wallet) {
+  try {
+    const points = await client.readContract({
+      address: normalizeAddress(process.env.ASCENSION_CONTRACT_ADDRESS),
+      abi: STAKING_ABI,
+      functionName: 'pendingPoints',
+      args: [wallet]
+    });
 
-  let current = 0n;
-  let chunks = 0;
-
-  for (let start = startBlock; start <= latestBlock; start += chunkSize + 1n) {
-    const end = start + chunkSize > latestBlock ? latestBlock : start + chunkSize;
-
-    const deposits = await getTransferLogs(client, start, end, wallet, staking);
-    const withdrawals = await getTransferLogs(client, start, end, staking, wallet);
-
-    current += BigInt(deposits.length);
-    current -= BigInt(withdrawals.length);
-
-    chunks++;
-    if (chunks >= maxChunks) {
-      throw new Error(
-        `Stake scan exceeded safe limit. Move SCAN_FROM_BLOCK forward. Current start: ${startBlock.toString()}`
-      );
-    }
+    return points;
+  } catch (e) {
+    return 0n;
   }
-
-  return current < 0n ? 0n : current;
 }
 
 async function syncRoles(discordUserId, snapshot) {
@@ -180,30 +172,24 @@ exports.handler = async function (event) {
     });
 
     const walletBalance = await getWalletS1Balance(client, wallet);
-
-    let stakedBalance = 0n;
-    let stakedScanWarning = '';
-
-    try {
-      stakedBalance = await getCurrentStakedCountFast(client, wallet);
-    } catch (e) {
-      stakedScanWarning = e?.message || 'Staked scan timed out';
-    }
-
+    const stakedTokens = await getStakedTokens(client, wallet);
+    const stakedBalance = BigInt(stakedTokens.length);
     const totalBalance = walletBalance + stakedBalance;
+    const pendingPoints = await getPendingPoints(client, wallet);
 
     const snapshot = {
       wallet,
       walletBalance: walletBalance.toString(),
       stakedBalance: stakedBalance.toString(),
       totalBalance: totalBalance.toString(),
+      stakedTokenIds: stakedTokens.map((x) => x.toString()),
+      pendingPoints: pendingPoints.toString(),
       isHolder: walletBalance > 0n,
       isAscended: stakedBalance > 0n,
       isTwentyPlus: totalBalance >= 20n,
       isFiftyPlus: totalBalance >= 50n,
       updatedAt: Date.now(),
-      discordUserId,
-      stakedScanWarning
+      discordUserId
     };
 
     await syncRoles(discordUserId, snapshot);

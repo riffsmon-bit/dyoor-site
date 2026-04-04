@@ -10,6 +10,23 @@ const ERC721_ABI = [
   }
 ];
 
+const STAKING_ABI = [
+  {
+    type: 'function',
+    name: 'tokensOfStaker',
+    stateMutability: 'view',
+    inputs: [{ name: 'user', type: 'address' }],
+    outputs: [{ name: '', type: 'uint256[]' }]
+  },
+  {
+    type: 'function',
+    name: 'pendingPoints',
+    stateMutability: 'view',
+    inputs: [{ name: 'user', type: 'address' }],
+    outputs: [{ name: '', type: 'uint256' }]
+  }
+];
+
 function normalizeAddress(address) {
   if (!isAddress(address)) throw new Error('Invalid wallet address');
   return getAddress(address);
@@ -67,6 +84,36 @@ async function getWalletS1Balance(client, wallet) {
     functionName: 'balanceOf',
     args: [wallet]
   });
+}
+
+async function getStakedTokens(client, wallet) {
+  try {
+    const tokens = await client.readContract({
+      address: normalizeAddress(process.env.ASCENSION_CONTRACT_ADDRESS),
+      abi: STAKING_ABI,
+      functionName: 'tokensOfStaker',
+      args: [wallet]
+    });
+
+    return Array.isArray(tokens) ? tokens : [];
+  } catch (e) {
+    throw new Error(`tokensOfStaker failed: ${e?.message || e}`);
+  }
+}
+
+async function getPendingPoints(client, wallet) {
+  try {
+    const points = await client.readContract({
+      address: normalizeAddress(process.env.ASCENSION_CONTRACT_ADDRESS),
+      abi: STAKING_ABI,
+      functionName: 'pendingPoints',
+      args: [wallet]
+    });
+
+    return points;
+  } catch (e) {
+    return 0n;
+  }
 }
 
 async function syncRoles(discordUserId, snapshot) {
@@ -209,23 +256,24 @@ exports.handler = async function (event) {
     });
 
     const walletBalance = await getWalletS1Balance(client, wallet);
-
-    // Fast path: first verify uses wallet only, no live staking scan
-    const stakedBalance = 0n;
-    const totalBalance = walletBalance;
+    const stakedTokens = await getStakedTokens(client, wallet);
+    const stakedBalance = BigInt(stakedTokens.length);
+    const totalBalance = walletBalance + stakedBalance;
+    const pendingPoints = await getPendingPoints(client, wallet);
 
     const snapshot = {
       wallet,
       walletBalance: walletBalance.toString(),
       stakedBalance: stakedBalance.toString(),
       totalBalance: totalBalance.toString(),
+      stakedTokenIds: stakedTokens.map((x) => x.toString()),
+      pendingPoints: pendingPoints.toString(),
       isHolder: walletBalance > 0n,
-      isAscended: false,
+      isAscended: stakedBalance > 0n,
       isTwentyPlus: totalBalance >= 20n,
       isFiftyPlus: totalBalance >= 50n,
       updatedAt: Date.now(),
-      discordUserId,
-      stakedScanWarning: 'Skipped on first verify. Use Refresh Roles to sync staked balance.'
+      discordUserId
     };
 
     await syncRoles(discordUserId, snapshot);
