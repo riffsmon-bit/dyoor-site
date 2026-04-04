@@ -1,5 +1,4 @@
 const { createPublicClient, http, verifyMessage, getAddress, isAddress } = require('viem');
-const { getJson, setJson, deleteKey } = require('./_verify/storage');
 
 const ERC721_ABI = [
   {
@@ -129,17 +128,15 @@ async function syncRoles(discordUserId, snapshot) {
     } else {
       try {
         await removeRole(guildId, discordUserId, roleId);
-      } catch (e) {
-        // ignore remove failures
-      }
+      } catch (e) {}
     }
   }
 }
 
 exports.handler = async function (event) {
   try {
-    const cookieName = process.env.VERIFY_SESSION_COOKIE || 'dyoor_verify_session';
-    const sessionEncoded = getCookie(event, cookieName);
+    const sessionCookieName = process.env.VERIFY_SESSION_COOKIE || 'dyoor_verify_session';
+    const sessionEncoded = getCookie(event, sessionCookieName);
 
     if (!sessionEncoded) {
       return {
@@ -181,21 +178,21 @@ exports.handler = async function (event) {
       };
     }
 
-    const nonceRecord = await getJson(`nonce:${discordUserId}`, null);
-
-    if (!nonceRecord) {
+    const nonceEncoded = getCookie(event, 'dyoor_verify_nonce');
+    if (!nonceEncoded) {
       return {
         statusCode: 400,
         headers: {
           'Content-Type': 'application/json; charset=utf-8',
           'Cache-Control': 'no-store'
         },
-        body: JSON.stringify({ ok: false, error: 'Verification nonce not found' })
+        body: JSON.stringify({ ok: false, error: 'Verification nonce missing' })
       };
     }
 
+    const nonceRecord = JSON.parse(Buffer.from(nonceEncoded, 'base64url').toString('utf8'));
+
     if (Date.now() > Number(nonceRecord.expiresAt || 0)) {
-      await deleteKey(`nonce:${discordUserId}`);
       return {
         statusCode: 400,
         headers: {
@@ -269,14 +266,19 @@ exports.handler = async function (event) {
     };
 
     await syncRoles(discordUserId, snapshot);
-    await setJson(`link:${discordUserId}`, snapshot);
-    await deleteKey(`nonce:${discordUserId}`);
+
+    const clearNonceCookie =
+      'dyoor_verify_nonce=; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=0';
 
     return {
       statusCode: 200,
       headers: {
         'Content-Type': 'application/json; charset=utf-8',
-        'Cache-Control': 'no-store'
+        'Cache-Control': 'no-store',
+        'Set-Cookie': clearNonceCookie
+      },
+      multiValueHeaders: {
+        'Set-Cookie': [clearNonceCookie]
       },
       body: JSON.stringify({
         ok: true,

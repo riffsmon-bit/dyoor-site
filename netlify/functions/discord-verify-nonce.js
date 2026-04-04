@@ -1,20 +1,23 @@
-const { getJson, setJson } = require('./_verify/storage');
-
-function randomNonce(bytes = 16) {
-  return require('crypto').randomBytes(bytes).toString('hex');
-}
-
 exports.handler = async function (event) {
   try {
     const cookieName = process.env.VERIFY_SESSION_COOKIE || 'dyoor_verify_session';
     const rawCookie = event.headers?.cookie || event.headers?.Cookie || '';
 
-    const sessionCookie = rawCookie
-      .split(';')
-      .map((p) => p.trim())
-      .find((p) => p.startsWith(`${cookieName}=`));
+    function getCookie(name) {
+      const parts = rawCookie.split(';').map((p) => p.trim());
+      for (const part of parts) {
+        const idx = part.indexOf('=');
+        if (idx === -1) continue;
+        const k = part.slice(0, idx).trim();
+        const v = part.slice(idx + 1).trim();
+        if (k === name) return decodeURIComponent(v);
+      }
+      return '';
+    }
 
-    if (!sessionCookie) {
+    const sessionEncoded = getCookie(cookieName);
+
+    if (!sessionEncoded) {
       return {
         statusCode: 401,
         headers: {
@@ -28,8 +31,22 @@ exports.handler = async function (event) {
       };
     }
 
-    const encoded = decodeURIComponent(sessionCookie.split('=').slice(1).join('='));
-    const session = JSON.parse(Buffer.from(encoded, 'base64url').toString('utf8'));
+    let session;
+    try {
+      session = JSON.parse(Buffer.from(sessionEncoded, 'base64url').toString('utf8'));
+    } catch (e) {
+      return {
+        statusCode: 401,
+        headers: {
+          'Content-Type': 'application/json; charset=utf-8',
+          'Cache-Control': 'no-store'
+        },
+        body: JSON.stringify({
+          ok: false,
+          error: 'Invalid Discord session cookie'
+        })
+      };
+    }
 
     if (!session?.discordUserId) {
       return {
@@ -40,7 +57,7 @@ exports.handler = async function (event) {
         },
         body: JSON.stringify({
           ok: false,
-          error: 'Invalid Discord session'
+          error: 'Discord user missing from session'
         })
       };
     }
@@ -62,18 +79,21 @@ exports.handler = async function (event) {
       };
     }
 
-    const nonce = randomNonce(16);
+    const crypto = require('crypto');
+    const nonce = crypto.randomBytes(16).toString('hex');
     const ttlSeconds = Number(process.env.VERIFY_NONCE_TTL_SECONDS || '900');
     const expiresAt = Date.now() + ttlSeconds * 1000;
+    const chainId = Number(process.env.CHAIN_ID || '143');
 
-    await setJson(`nonce:${session.discordUserId}`, {
+    const noncePayload = {
       discordUserId: session.discordUserId,
+      username: session.username || session.globalName || 'unknown',
       wallet,
       nonce,
       expiresAt
-    });
+    };
 
-    const chainId = Number(process.env.CHAIN_ID || '143');
+    const nonceCookieValue = Buffer.from(JSON.stringify(noncePayload)).toString('base64url');
 
     const message = [
       'DYOOR Verification',
@@ -86,22 +106,29 @@ exports.handler = async function (event) {
       'Purpose: Verify DYOOR holder roles'
     ].join('\n');
 
+    const nonceCookieName = 'dyoor_verify_nonce';
+    const nonceCookie = `${nonceCookieName}=${encodeURIComponent(nonceCookieValue)}; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=${ttlSeconds}`;
+
     return {
       statusCode: 200,
       headers: {
         'Content-Type': 'application/json; charset=utf-8',
-        'Cache-Control': 'no-store'
+        'Cache-Control': 'no-store',
+        'Set-Cookie': nonceCookie
+      },
+      multiValueHeaders: {
+        'Set-Cookie': [nonceCookie]
       },
       body: JSON.stringify({
         ok: true,
-        message,
         nonce,
-        expiresAt
+        expiresAt,
+        message
       })
     };
   } catch (error) {
     return {
-      statusCode: 500,
+      statusCode: 502,
       headers: {
         'Content-Type': 'application/json; charset=utf-8',
         'Cache-Control': 'no-store'
