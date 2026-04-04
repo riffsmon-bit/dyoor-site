@@ -51,7 +51,7 @@ exports.handler = async function (event) {
         const parsed = JSON.parse(Buffer.from(state, 'base64url').toString('utf8'));
         if (parsed && parsed.returnTo) returnTo = parsed.returnTo;
       } catch (e) {
-        // ignore bad state and fall back
+        // ignore bad state
       }
     }
 
