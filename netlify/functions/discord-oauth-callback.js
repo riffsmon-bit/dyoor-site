@@ -1,15 +1,7 @@
-const COOKIE_NAME = process.env.VERIFY_SESSION_COOKIE || 'dyoor_verify_session';
-
-function toBase64Url(input) {
-  return Buffer.from(input).toString('base64url');
-}
-
-function fromBase64Url(input) {
-  return Buffer.from(input, 'base64url').toString('utf8');
-}
-
 exports.handler = async function (event) {
   try {
+    const COOKIE_NAME = process.env.VERIFY_SESSION_COOKIE || 'dyoor_verify_session';
+
     const discordClientId = process.env.DISCORD_CLIENT_ID;
     const discordClientSecret = process.env.DISCORD_CLIENT_SECRET;
     const discordRedirectUri = process.env.DISCORD_REDIRECT_URI;
@@ -38,8 +30,11 @@ exports.handler = async function (event) {
       };
     }
 
-    const code = event?.queryStringParameters?.code || '';
-    const state = event?.queryStringParameters?.state || '';
+    const code =
+      (event && event.queryStringParameters && event.queryStringParameters.code) || '';
+
+    const state =
+      (event && event.queryStringParameters && event.queryStringParameters.state) || '';
 
     if (!code) {
       return {
@@ -50,9 +45,10 @@ exports.handler = async function (event) {
     }
 
     let returnTo = process.env.URL || 'https://dyoor.netlify.app/';
+
     if (state) {
       try {
-        const parsed = JSON.parse(fromBase64Url(state));
+        const parsed = JSON.parse(Buffer.from(state, 'base64url').toString('utf8'));
         if (parsed && parsed.returnTo) returnTo = parsed.returnTo;
       } catch (e) {
         // ignore bad state and fall back
@@ -115,16 +111,16 @@ exports.handler = async function (event) {
       linkedAt: Date.now()
     };
 
-    const sessionValue = toBase64Url(JSON.stringify(sessionPayload));
+    const sessionValue = Buffer.from(
+      JSON.stringify(sessionPayload)
+    ).toString('base64url');
 
     return {
       statusCode: 302,
       headers: {
         location: returnTo,
         'cache-control': 'no-store',
-        'set-cookie': [
-          `${COOKIE_NAME}=${encodeURIComponent(sessionValue)}; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=2592000`
-        ]
+        'set-cookie': `${COOKIE_NAME}=${encodeURIComponent(sessionValue)}; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=2592000`
       },
       body: ''
     };
