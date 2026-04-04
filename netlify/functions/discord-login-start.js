@@ -3,7 +3,7 @@ const { discordClientId, discordRedirectUri } = require('./_verify/config');
 exports.handler = async function (event) {
   try {
     const returnTo =
-      event.queryStringParameters?.returnTo ||
+      event?.queryStringParameters?.returnTo ||
       process.env.URL ||
       'https://dyoor.netlify.app/';
 
