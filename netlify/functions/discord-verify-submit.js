@@ -1,4 +1,4 @@
-const { createPublicClient, http, verifyMessage, getAddress, isAddress } = require('viem');
+const { createPublicClient, http, getAddress, isAddress } = require('viem');
 
 const ERC721_ABI = [
   {
@@ -94,7 +94,9 @@ async function getCurrentStakedCount(client, wallet) {
   const staking = normalizeAddress(process.env.ASCENSION_CONTRACT_ADDRESS);
   const latestBlock = await client.getBlockNumber();
   const startBlock = BigInt(process.env.SCAN_FROM_BLOCK || '0');
-  const chunkSize = 50000n;
+
+  // Monad RPC in your screenshot is limited to 100 block ranges
+  const chunkSize = 99n;
 
   let current = 0n;
 
@@ -165,84 +167,6 @@ exports.handler = async function (event) {
 
     const body = event.body ? JSON.parse(event.body) : {};
     const wallet = normalizeAddress(String(body.wallet || '').trim());
-    const signature = String(body.signature || '').trim();
-
-    if (!signature) {
-      return {
-        statusCode: 400,
-        headers: {
-          'Content-Type': 'application/json; charset=utf-8',
-          'Cache-Control': 'no-store'
-        },
-        body: JSON.stringify({ ok: false, error: 'Missing signature' })
-      };
-    }
-
-    const nonceEncoded = getCookie(event, 'dyoor_verify_nonce');
-    if (!nonceEncoded) {
-      return {
-        statusCode: 400,
-        headers: {
-          'Content-Type': 'application/json; charset=utf-8',
-          'Cache-Control': 'no-store'
-        },
-        body: JSON.stringify({ ok: false, error: 'Verification nonce missing' })
-      };
-    }
-
-    const nonceRecord = JSON.parse(Buffer.from(nonceEncoded, 'base64url').toString('utf8'));
-
-    if (Date.now() > Number(nonceRecord.expiresAt || 0)) {
-      return {
-        statusCode: 400,
-        headers: {
-          'Content-Type': 'application/json; charset=utf-8',
-          'Cache-Control': 'no-store'
-        },
-        body: JSON.stringify({ ok: false, error: 'Verification nonce expired' })
-      };
-    }
-
-    if (normalizeAddress(nonceRecord.wallet) !== wallet) {
-      return {
-        statusCode: 400,
-        headers: {
-          'Content-Type': 'application/json; charset=utf-8',
-          'Cache-Control': 'no-store'
-        },
-        body: JSON.stringify({ ok: false, error: 'Wallet does not match nonce request' })
-      };
-    }
-
-    const chainId = Number(process.env.CHAIN_ID || '143');
-
-    const message = [
-      'DYOOR Verification',
-      `Discord User ID: ${discordUserId}`,
-      `Discord Username: ${session.username || session.globalName || 'unknown'}`,
-      `Wallet: ${wallet}`,
-      `Guild ID: ${process.env.DISCORD_GUILD_ID}`,
-      `Nonce: ${nonceRecord.nonce}`,
-      `Chain ID: ${chainId}`,
-      'Purpose: Verify DYOOR holder roles'
-    ].join('\n');
-
-    const valid = await verifyMessage({
-      address: wallet,
-      message,
-      signature
-    });
-
-    if (!valid) {
-      return {
-        statusCode: 400,
-        headers: {
-          'Content-Type': 'application/json; charset=utf-8',
-          'Cache-Control': 'no-store'
-        },
-        body: JSON.stringify({ ok: false, error: 'Signature verification failed' })
-      };
-    }
 
     const client = createPublicClient({
       transport: http(process.env.RPC_URL)
@@ -267,18 +191,11 @@ exports.handler = async function (event) {
 
     await syncRoles(discordUserId, snapshot);
 
-    const clearNonceCookie =
-      'dyoor_verify_nonce=; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=0';
-
     return {
       statusCode: 200,
       headers: {
         'Content-Type': 'application/json; charset=utf-8',
-        'Cache-Control': 'no-store',
-        'Set-Cookie': clearNonceCookie
-      },
-      multiValueHeaders: {
-        'Set-Cookie': [clearNonceCookie]
+        'Cache-Control': 'no-store'
       },
       body: JSON.stringify({
         ok: true,
@@ -294,7 +211,7 @@ exports.handler = async function (event) {
       },
       body: JSON.stringify({
         ok: false,
-        error: error?.message || 'discord-verify-submit failed'
+        error: error?.message || 'discord-refresh failed'
       })
     };
   }
