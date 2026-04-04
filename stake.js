@@ -48,6 +48,8 @@ const disconnectSelectedBtn = document.getElementById("disconnectSelectedBtn");
 const harvestBtn = document.getElementById("harvestBtn");
 const walletStatus = document.getElementById("walletStatus");
 const pendingEnergy = document.getElementById("pendingEnergy");
+const harvestedEnergy = document.getElementById("harvestedEnergy");
+const lifetimeEnergy = document.getElementById("lifetimeEnergy");
 const energyRate = document.getElementById("energyRate");
 const selectedCount = document.getElementById("selectedCount");
 const statusBox = document.getElementById("statusBox");
@@ -105,6 +107,34 @@ function formatError(err, fallback = "Unknown error.") {
     err?.message ||
     fallback
   );
+}
+
+function formatEnergyValue(value) {
+  if (!Number.isFinite(value)) return "0.00";
+  if (Math.abs(value) >= 1000) {
+    return value.toLocaleString(undefined, {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2
+    });
+  }
+  return value.toFixed(2);
+}
+
+async function fetchHarvestedEnergyRaw(address) {
+  if (!address) return 0n;
+
+  const res = await fetch(
+    `/.netlify/functions/ascension-stats?address=${encodeURIComponent(address)}`,
+    { cache: "no-store" }
+  );
+
+  const json = await res.json().catch(() => ({}));
+
+  if (!res.ok) {
+    throw new Error(json?.error || "Failed to load harvested energy.");
+  }
+
+  return BigInt(json?.harvestedRaw || "0");
 }
 
 function getInjectedProviderOrThrow() {
@@ -462,11 +492,23 @@ async function updateEnergy() {
       staking.pointsPerDay()
     ]);
 
-    const pointsPerDayPerNft = Number(ethers.formatEther(pointsPerDayRaw));
+    let harvestedRaw = 0n;
+    try {
+      harvestedRaw = await fetchHarvestedEnergyRaw(userAddress);
+    } catch (harvestErr) {
+      console.warn("harvested energy lookup failed", harvestErr);
+      harvestedRaw = 0n;
+    }
+
     const pendingDisplay = Number(ethers.formatEther(pending));
+    const harvestedDisplay = Number(ethers.formatEther(harvestedRaw));
+    const lifetimeDisplay = Number(ethers.formatEther(pending + harvestedRaw));
+    const pointsPerDayPerNft = Number(ethers.formatEther(pointsPerDayRaw));
     const totalRate = Number(stakedBalance) * pointsPerDayPerNft;
 
-    pendingEnergy.textContent = pendingDisplay.toFixed(2);
+    pendingEnergy.textContent = formatEnergyValue(pendingDisplay);
+    harvestedEnergy.textContent = formatEnergyValue(harvestedDisplay);
+    lifetimeEnergy.textContent = formatEnergyValue(lifetimeDisplay);
 
     if (Number.isInteger(totalRate)) {
       energyRate.textContent = `${totalRate} / day`;
@@ -476,6 +518,8 @@ async function updateEnergy() {
   } catch (err) {
     console.error("energy error", err);
     pendingEnergy.textContent = "0.00";
+    harvestedEnergy.textContent = "0.00";
+    lifetimeEnergy.textContent = "0.00";
     energyRate.textContent = "0 / day";
   }
 }
@@ -568,6 +612,8 @@ function clearWalletState(disconnectMessage = "Disconnected.") {
   walletStatus.textContent = "Not Connected";
   connectBtn.textContent = "Connect Wallet";
   pendingEnergy.textContent = "0.00";
+  harvestedEnergy.textContent = "0.00";
+  lifetimeEnergy.textContent = "0.00";
   energyRate.textContent = "0 / day";
   nftGrid.innerHTML = "";
   emptyState.style.display = "block";
