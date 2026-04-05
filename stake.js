@@ -116,44 +116,41 @@ function formatEnergyValue(value) {
   });
 }
 
-function getHarvestStorageKey(address) {
-  return `dyoor_harvested_${String(address || "").toLowerCase()}`;
-}
-
-function readHarvestedRawFromStorage(address) {
-  try {
-    const raw = localStorage.getItem(getHarvestStorageKey(address));
-    return raw ? BigInt(raw) : 0n;
-  } catch {
-    return 0n;
-  }
-}
-
-function writeHarvestedRawToStorage(address, amountRaw) {
-  try {
-    localStorage.setItem(getHarvestStorageKey(address), amountRaw.toString());
-  } catch {}
-}
-
 async function fetchHarvestedEnergyRaw(address) {
-  return readHarvestedRawFromStorage(address);
+  if (!address) return 0n;
+
+  const res = await fetch(
+    `/.netlify/functions/harvested-ledger?address=${encodeURIComponent(address)}`,
+    { cache: "no-store" }
+  );
+
+  const json = await res.json().catch(() => ({}));
+
+  if (!res.ok || json.ok === false) {
+    throw new Error(json?.error || "Failed to load harvested energy.");
+  }
+
+  return BigInt(json?.harvestedRaw || "0");
 }
 
 async function recordHarvest(address, amountRaw, txHash) {
-  const current = readHarvestedRawFromStorage(address);
-  const next = current + BigInt(amountRaw || 0n);
-  writeHarvestedRawToStorage(address, next);
+  const res = await fetch("/.netlify/functions/harvested-ledger", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({
+      action: "recordHarvest",
+      address,
+      amountRaw: amountRaw.toString(),
+      txHash
+    })
+  });
 
-  if (txHash) {
-    try {
-      localStorage.setItem(
-        `${getHarvestStorageKey(address)}_lastTx`,
-        String(txHash).toLowerCase()
-      );
-    } catch {}
+  const json = await res.json().catch(() => ({}));
+  if (!res.ok || json.ok === false) {
+    throw new Error(json?.error || "Failed to record harvest.");
   }
 
-  return next;
+  return BigInt(json?.harvestedRaw || "0");
 }
 
 async function seedKnownHistoricalHarvestIfNeeded(address) {
@@ -162,14 +159,18 @@ async function seedKnownHistoricalHarvestIfNeeded(address) {
 
   if (normalized !== target) return;
 
-  const seedFlag = `${getHarvestStorageKey(target)}_seed_fd96fc78`;
-  const alreadySeeded = localStorage.getItem(seedFlag);
-  if (alreadySeeded === "1") return;
-
-  const knownHistoricalRaw = 15003705173611111111107n;
-  const current = readHarvestedRawFromStorage(target);
-  writeHarvestedRawToStorage(target, current + knownHistoricalRaw);
-  localStorage.setItem(seedFlag, "1");
+  try {
+    await fetch("/.netlify/functions/harvested-ledger", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        action: "seedHarvest",
+        address: target,
+        txHash: "0xfd96fc78bc4663899e79f5135874209d31af4b5a856e583e2e29892f982118ad",
+        amountRaw: "15003705173611111111107"
+      })
+    });
+  } catch {}
 }
 
 function getInjectedProviderOrThrow() {
