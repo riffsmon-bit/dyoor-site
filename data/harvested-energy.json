@@ -130,5 +130,16 @@
         "recordedAt": "2026-04-05T02:53:18.197Z"
       }
     ]
+  },
+  "0x0857dadb540e0729e58561c16125174d47d34cec": {
+    "harvestedRaw": "10000000000000000000000",
+    "claims": [
+      {
+        "txHash": "seed-10000-single-wallet-2026-04-04-v1-0x0857dadb540e0729e58561c16125174d47d34cec",
+        "amountRaw": "10000000000000000000000",
+        "seeded": true,
+        "recordedAt": "2026-04-05T13:56:11.431Z"
+      }
+    ]
   }
 }
