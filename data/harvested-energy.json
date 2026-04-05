@@ -1,0 +1,13 @@
+{
+  "0xc7f55ce6a7df9a79cc4a643a5081230f890c7aa6": {
+    "harvestedRaw": "15003705173611111111107",
+    "claims": [
+      {
+        "txHash": "0xfd96fc78bc4663899e79f5135874209d31af4b5a856e583e2e29892f982118ad",
+        "amountRaw": "15003705173611111111107",
+        "seeded": true,
+        "recordedAt": "2026-04-05T02:51:25.832Z"
+      }
+    ]
+  }
+}
