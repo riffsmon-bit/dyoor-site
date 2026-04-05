@@ -26,7 +26,6 @@
   let snapshotBtn;
   let snapshotUnregisteredBtn;
 
-  let lastKnownUserPending = [];
   let uiBooted = false;
   let statusPatched = false;
   let loadStatePatched = false;
@@ -220,152 +219,20 @@
     downloadFile("dyoor_unregistered_deposits.csv", csv);
   }
 
-  function tokenIdTopic(tokenId) {
-    return ethers.zeroPadValue(ethers.toBeHex(tokenId), 32);
-  }
-
-  async function getLatestDepositorForToken(tokenId) {
-    if (!window.provider || !window.ethers) return null;
-
-    const provider = window.provider;
-    const transferTopic = ethers.id("Transfer(address,address,uint256)");
-    const stakingTopic = ethers.zeroPadValue(STAKING_ADDRESS, 32);
-    const topicTokenId = tokenIdTopic(tokenId);
-
-    try {
-      const logs = await provider.getLogs({
-        address: NFT_ADDRESS,
-        fromBlock: 0,
-        toBlock: "latest",
-        topics: [transferTopic, null, stakingTopic, topicTokenId]
-      });
-
-      if (!logs.length) return null;
-
-      const last = logs[logs.length - 1];
-      const fromTopic = last.topics[1];
-      const depositor = ethers.getAddress("0x" + fromTopic.slice(26));
-      return depositor;
-    } catch (err) {
-      console.warn(`Could not resolve depositor for token #${tokenId}`, err);
-      return null;
-    }
-  }
-
-  async function findPendingDepositsForCurrentWallet() {
-    if (!window.provider || !window.ethers || !window.userAddress) {
-      return { mine: [], all: [] };
-    }
-
-    const provider = window.provider;
-    const nft = new ethers.Contract(
-      NFT_ADDRESS,
-      ["function ownerOf(uint256 tokenId) view returns (address)"],
-      provider
-    );
-
-    const staking = new ethers.Contract(
-      STAKING_ADDRESS,
-      ["function stakeInfo(uint256 tokenId) view returns (address owner, uint64 stakedAt)"],
-      provider
-    );
-
-    const allPending = [];
-    const mine = [];
-
-    for (let tokenId = 1; tokenId <= MAX_SCAN; tokenId++) {
-      let owner;
-      try {
-        owner = await nft.ownerOf(tokenId);
-      } catch {
-        continue;
-      }
-
-      if (safeLower(owner) !== safeLower(STAKING_ADDRESS)) continue;
-
-      try {
-        const info = await staking.stakeInfo(tokenId);
-        if (info.owner && safeLower(info.owner) !== safeLower(ZERO)) {
-          continue;
-        }
-      } catch {
-        // treat as pending if stakeInfo can't be read cleanly
-      }
-
-      allPending.push(tokenId);
-
-      const depositor = await getLatestDepositorForToken(tokenId);
-      if (depositor && safeLower(depositor) === safeLower(window.userAddress)) {
-        mine.push(tokenId);
-      }
-    }
-
-    return { mine, all: allPending };
-  }
-
-  function renderRecovery(result) {
-    const mine = result?.mine || [];
-    const all = result?.all || [];
-    lastKnownUserPending = mine.slice();
-
-    if (!mine.length) {
-      recoveryPanel?.classList.add("hidden");
-      if (recoveryList) recoveryList.innerHTML = "";
-      return;
-    }
-
-    recoveryPanel?.classList.remove("hidden");
-
+  function renderRecoveryDisabled() {
+    if (recoveryPanel) recoveryPanel.classList.add("hidden");
+    if (recoveryList) recoveryList.innerHTML = "";
     if (recoveryText) {
-      recoveryText.textContent =
-        `NFTs you deposited into the staking contract but have not yet fully registered. ` +
-        `Detected ${mine.length} pending token${mine.length === 1 ? "" : "s"} for this wallet.`;
+      recoveryText.textContent = "Pending deposit recovery is temporarily disabled to avoid RPC log-range errors.";
     }
-
-    if (recoveryList) {
-      recoveryList.innerHTML = mine
-        .map((id) => `<span class="token-chip">#${id}</span>`)
-        .join("");
-    }
-
     if (fixAscensionBtn) {
-      fixAscensionBtn.textContent =
-        mine.length > 1 ? `Fix All (${mine.length})` : "Complete Registration";
-      fixAscensionBtn.disabled = mine.length === 0;
-      fixAscensionBtn.title =
-        all.length > mine.length
-          ? "Only your pending deposits are shown and fixable from this wallet."
-          : "Register your pending deposits.";
+      fixAscensionBtn.disabled = true;
+      fixAscensionBtn.title = "Recovery temporarily disabled.";
     }
   }
 
   async function handleFixRegistration() {
-    if (!lastKnownUserPending.length) {
-      alert("No pending deposits found for this wallet.");
-      return;
-    }
-
-    if (!window.userAddress || !window.ethereum || !window.ethers) {
-      alert("Connect wallet first.");
-      return;
-    }
-
-    const txHash = await window.ethereum.request({
-      method: "eth_sendTransaction",
-      params: [{
-        from: window.userAddress,
-        to: STAKING_ADDRESS,
-        gas: "0xC3500",
-        data: new ethers.Interface([
-          "function stakeDeposited(uint256[] calldata tokenIds)"
-        ]).encodeFunctionData("stakeDeposited", [lastKnownUserPending.map((x) => BigInt(x))])
-      }]
-    });
-
-    if (typeof window.waitForHash === "function") {
-      await window.waitForHash(txHash);
-    }
-    location.reload();
+    alert("Recovery is temporarily disabled on this build.");
   }
 
   function patchStatusForProgress() {
@@ -401,8 +268,7 @@
   async function refreshUiPanels() {
     updateBatteryFromPage();
     await showAdminIfOwner();
-    const pending = await findPendingDepositsForCurrentWallet();
-    renderRecovery(pending);
+    renderRecoveryDisabled();
   }
 
   function bindEvents() {
