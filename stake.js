@@ -116,39 +116,61 @@ function formatEnergyValue(value) {
   });
 }
 
-async function fetchWithTimeout(url, timeoutMs = 4500) {
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), timeoutMs);
-
-  try {
-    return await fetch(url, {
-      cache: "no-store",
-      signal: controller.signal
-    });
-  } finally {
-    clearTimeout(timer);
-  }
-}
-
 async function fetchHarvestedEnergyRaw(address) {
   if (!address) return 0n;
 
-  const url = `/.netlify/functions/ascension-stats?address=${encodeURIComponent(address)}`;
-  const res = await fetchWithTimeout(url, 4500);
-  const text = await res.text();
+  const res = await fetch(
+    `/.netlify/functions/ascension-stats?address=${encodeURIComponent(address)}`,
+    { cache: "no-store" }
+  );
 
-  let json = {};
-  try {
-    json = JSON.parse(text);
-  } catch {
-    throw new Error(`ascension-stats returned non-JSON`);
-  }
+  const json = await res.json().catch(() => ({}));
 
   if (!res.ok || json.ok === false) {
-    throw new Error(json?.error || `ascension-stats failed (${res.status})`);
+    throw new Error(json?.error || "Failed to load harvested energy.");
   }
 
   return BigInt(json?.harvestedRaw || "0");
+}
+
+async function recordHarvest(address, amountRaw, txHash) {
+  const res = await fetch("/.netlify/functions/ascension-stats", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({
+      action: "recordHarvest",
+      address,
+      amountRaw: amountRaw.toString(),
+      txHash
+    })
+  });
+
+  const json = await res.json().catch(() => ({}));
+  if (!res.ok || json.ok === false) {
+    throw new Error(json?.error || "Failed to record harvest.");
+  }
+
+  return BigInt(json?.harvestedRaw || "0");
+}
+
+async function seedKnownHistoricalHarvestIfNeeded(address) {
+  const normalized = String(address || "").toLowerCase();
+  const target = "0xc7f55ce6a7df9a79cc4a643a5081230f890c7aa6";
+
+  if (normalized !== target) return;
+
+  const res = await fetch("/.netlify/functions/ascension-stats", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({
+      action: "seedHarvest",
+      address: target,
+      txHash: "0xfd96fc78bc4663899e79f5135874209d31af4b5a856e583e2e29892f982118ad",
+      amountRaw: "15003705173611111111107"
+    })
+  });
+
+  await res.json().catch(() => ({}));
 }
 
 function getInjectedProviderOrThrow() {
@@ -491,34 +513,27 @@ async function updateEnergy() {
   const staking = new ethers.Contract(STAKING_ADDRESS, stakingAbi, provider);
 
   try {
-    const [pending, stakedBalance, pointsPerDayRaw] = await Promise.all([
+    await seedKnownHistoricalHarvestIfNeeded(userAddress);
+
+    const [pending, stakedBalance, pointsPerDayRaw, harvestedRaw] = await Promise.all([
       staking.pendingPoints(userAddress),
       staking.stakedBalance(userAddress),
-      staking.pointsPerDay()
+      staking.pointsPerDay(),
+      fetchHarvestedEnergyRaw(userAddress).catch(() => 0n)
     ]);
 
     const pendingDisplay = Number(ethers.formatEther(pending));
+    const harvestedDisplay = Number(ethers.formatEther(harvestedRaw));
+    const lifetimeDisplay = Number(ethers.formatEther(pending + harvestedRaw));
     const pointsPerDayPerNft = Number(ethers.formatEther(pointsPerDayRaw));
     const totalRate = Number(stakedBalance) * pointsPerDayPerNft;
 
     pendingEnergy.textContent = formatEnergyValue(pendingDisplay);
+    harvestedEnergy.textContent = formatEnergyValue(harvestedDisplay);
+    lifetimeEnergy.textContent = formatEnergyValue(lifetimeDisplay);
     energyRate.textContent = Number.isInteger(totalRate)
       ? `${totalRate} / day`
       : `${totalRate.toFixed(2)} / day`;
-
-    let harvestedRaw = 0n;
-    try {
-      harvestedRaw = await fetchHarvestedEnergyRaw(userAddress);
-    } catch (err) {
-      console.warn("harvested lookup failed", err);
-      harvestedRaw = 0n;
-    }
-
-    const harvestedDisplay = Number(ethers.formatEther(harvestedRaw));
-    const lifetimeDisplay = Number(ethers.formatEther(pending + harvestedRaw));
-
-    harvestedEnergy.textContent = formatEnergyValue(harvestedDisplay);
-    lifetimeEnergy.textContent = formatEnergyValue(lifetimeDisplay);
   } catch (err) {
     console.error("energy error", err);
     pendingEnergy.textContent = "0.00";
@@ -857,6 +872,9 @@ async function disconnectTokenIds(tokenIds) {
 
 async function harvestEnergy() {
   try {
+    const staking = new ethers.Contract(STAKING_ADDRESS, stakingAbi, provider);
+    const claimableBefore = await staking.pendingPoints(userAddress);
+
     setStatus("Harvesting Energy...");
     const txHash = await sendContractTx(
       STAKING_ADDRESS,
@@ -866,6 +884,14 @@ async function harvestEnergy() {
     );
 
     await waitForHash(txHash);
+
+    if (claimableBefore > 0n) {
+      try {
+        await recordHarvest(userAddress, claimableBefore, txHash);
+      } catch (recordErr) {
+        console.warn("recordHarvest failed", recordErr);
+      }
+    }
 
     setStatus("Energy harvested.");
     await loadState();
