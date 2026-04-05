@@ -116,41 +116,44 @@ function formatEnergyValue(value) {
   });
 }
 
-async function fetchHarvestedEnergyRaw(address) {
-  if (!address) return 0n;
+function getHarvestStorageKey(address) {
+  return `dyoor_harvested_${String(address || "").toLowerCase()}`;
+}
 
-  const res = await fetch(
-    `/.netlify/functions/ascension-stats?address=${encodeURIComponent(address)}`,
-    { cache: "no-store" }
-  );
-
-  const json = await res.json().catch(() => ({}));
-
-  if (!res.ok || json.ok === false) {
-    throw new Error(json?.error || "Failed to load harvested energy.");
+function readHarvestedRawFromStorage(address) {
+  try {
+    const raw = localStorage.getItem(getHarvestStorageKey(address));
+    return raw ? BigInt(raw) : 0n;
+  } catch {
+    return 0n;
   }
+}
 
-  return BigInt(json?.harvestedRaw || "0");
+function writeHarvestedRawToStorage(address, amountRaw) {
+  try {
+    localStorage.setItem(getHarvestStorageKey(address), amountRaw.toString());
+  } catch {}
+}
+
+async function fetchHarvestedEnergyRaw(address) {
+  return readHarvestedRawFromStorage(address);
 }
 
 async function recordHarvest(address, amountRaw, txHash) {
-  const res = await fetch("/.netlify/functions/ascension-stats", {
-    method: "POST",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify({
-      action: "recordHarvest",
-      address,
-      amountRaw: amountRaw.toString(),
-      txHash
-    })
-  });
+  const current = readHarvestedRawFromStorage(address);
+  const next = current + BigInt(amountRaw || 0n);
+  writeHarvestedRawToStorage(address, next);
 
-  const json = await res.json().catch(() => ({}));
-  if (!res.ok || json.ok === false) {
-    throw new Error(json?.error || "Failed to record harvest.");
+  if (txHash) {
+    try {
+      localStorage.setItem(
+        `${getHarvestStorageKey(address)}_lastTx`,
+        String(txHash).toLowerCase()
+      );
+    } catch {}
   }
 
-  return BigInt(json?.harvestedRaw || "0");
+  return next;
 }
 
 async function seedKnownHistoricalHarvestIfNeeded(address) {
@@ -159,18 +162,14 @@ async function seedKnownHistoricalHarvestIfNeeded(address) {
 
   if (normalized !== target) return;
 
-  const res = await fetch("/.netlify/functions/ascension-stats", {
-    method: "POST",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify({
-      action: "seedHarvest",
-      address: target,
-      txHash: "0xfd96fc78bc4663899e79f5135874209d31af4b5a856e583e2e29892f982118ad",
-      amountRaw: "15003705173611111111107"
-    })
-  });
+  const seedFlag = `${getHarvestStorageKey(target)}_seed_fd96fc78`;
+  const alreadySeeded = localStorage.getItem(seedFlag);
+  if (alreadySeeded === "1") return;
 
-  await res.json().catch(() => ({}));
+  const knownHistoricalRaw = 15003705173611111111107n;
+  const current = readHarvestedRawFromStorage(target);
+  writeHarvestedRawToStorage(target, current + knownHistoricalRaw);
+  localStorage.setItem(seedFlag, "1");
 }
 
 function getInjectedProviderOrThrow() {
