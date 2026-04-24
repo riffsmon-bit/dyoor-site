@@ -180,90 +180,6 @@ function getInjectedProviderOrThrow() {
   return injectedProvider;
 }
 
-function detectLegacyWalletName(providerLike) {
-  if (!providerLike) return "Injected Wallet";
-  if (providerLike.isBackpack) return "Backpack";
-  if (providerLike.isOkxWallet || providerLike.isOKExWallet) return "OKX Wallet";
-  if (providerLike.isTokenPocket || providerLike.isTPWallet) return "TokenPocket";
-  if (providerLike.isMetaMask) return "MetaMask";
-  if (providerLike.isPhantom) return "Phantom";
-  if (providerLike.isRabby) return "Rabby";
-  return "Injected Wallet";
-}
-
-function normalizeAnnouncedWallet(detail) {
-  if (!detail?.info || !detail?.provider) return null;
-
-  return {
-    uuid: detail.info.uuid || `${detail.info.name || "wallet"}-${Math.random()}`,
-    name: detail.info.name || "Injected Wallet",
-    icon: detail.info.icon || "",
-    rdns: detail.info.rdns || "",
-    provider: detail.provider
-  };
-}
-
-async function discoverWallets(timeoutMs = 500) {
-  const announced = new Map();
-
-  function onAnnounce(event) {
-    const wallet = normalizeAnnouncedWallet(event.detail);
-    if (!wallet) return;
-    announced.set(wallet.uuid, wallet);
-  }
-
-  window.addEventListener("eip6963:announceProvider", onAnnounce);
-  window.dispatchEvent(new Event("eip6963:requestProvider"));
-
-  await new Promise((resolve) => setTimeout(resolve, timeoutMs));
-
-  window.removeEventListener("eip6963:announceProvider", onAnnounce);
-
-  let wallets = Array.from(announced.values());
-
-  if (!wallets.length && window.ethereum) {
-    wallets = [
-      {
-        uuid: "legacy-window-ethereum",
-        name: detectLegacyWalletName(window.ethereum),
-        icon: "",
-        rdns: "",
-        provider: window.ethereum
-      }
-    ];
-  }
-
-  const seen = new Set();
-  wallets = wallets.filter((wallet) => {
-    const key = `${wallet.name}|${wallet.rdns}`;
-    if (seen.has(key)) return false;
-    seen.add(key);
-    return true;
-  });
-
-  return wallets;
-}
-
-async function pickWallet(wallets) {
-  if (!wallets.length) {
-    throw new Error("No compatible wallet found. Install Backpack, OKX, TokenPocket, MetaMask, or another EVM wallet.");
-  }
-
-  if (wallets.length === 1) {
-    return wallets[0];
-  }
-
-  const options = wallets.map((w, i) => `${i + 1}. ${w.name}`).join("\n");
-  const choice = window.prompt(`Choose wallet:\n${options}`, "1");
-  const index = Number(choice) - 1;
-
-  if (!wallets[index]) {
-    throw new Error("Invalid wallet selection.");
-  }
-
-  return wallets[index];
-}
-
 async function waitForHash(txHash, timeoutMs = 180000, pollMs = 1500) {
   if (!txHash) throw new Error("Missing transaction hash.");
 
@@ -475,7 +391,7 @@ function renderGrid() {
     card.dataset.id = item.tokenId;
 
     card.innerHTML = `
-      ${item.image ? `<img src="${item.image}" alt="${item.name}" loading="lazy" />` : `<div class="no-image">No Image</div>`}
+      ${item.image ? `<img src="${item.image}" alt="${item.name}" loading="lazy" />` : `<div class="no-image">Artwork unavailable</div>`}
       <div class="nft-name">${item.name}</div>
       <div class="nft-id">#${item.tokenId}</div>
     `;
@@ -728,45 +644,37 @@ function bindProviderEvents() {
 }
 
 async function connectWallet() {
+  connectBtn.disabled = true;
   try {
-    setStatus("Looking for wallets...");
-    const wallets = await discoverWallets();
-    const chosenWallet = await pickWallet(wallets);
+    setStatus("Opening wallet chooser...");
+    if (!window.DyoorWalletChooser?.connect) {
+      throw new Error("Wallet chooser failed to load.");
+    }
 
-    injectedProvider = chosenWallet.provider;
-    injectedWalletName = chosenWallet.name;
-
-    setStatus(`Connecting ${chosenWallet.name}...`);
-
-    const accounts = await injectedProvider.request({
-      method: "eth_requestAccounts"
+    const chosenWallet = await window.DyoorWalletChooser.connect({
+      title: "Connect Wallet",
+      copy: "Use the same Monad wallet flow across Ascension, swap, and verification."
     });
 
-    if (!accounts || !accounts.length) {
-      throw new Error("No accounts returned from wallet.");
-    }
-
-    provider = new ethers.BrowserProvider(injectedProvider);
-    signer = await provider.getSigner();
-    userAddress = accounts[0];
+    injectedProvider = chosenWallet.provider;
+    injectedWalletName = chosenWallet.label;
+    provider = chosenWallet.browserProvider;
+    signer = chosenWallet.signer;
+    userAddress = chosenWallet.account;
 
     walletStatus.textContent = shorten(userAddress);
-    connectBtn.textContent = `Connected: ${chosenWallet.name}`;
-
-    try {
-      await ensureMonadNetwork();
-    } catch (err) {
-      console.warn("Network switch skipped or failed:", err);
-    }
+    connectBtn.textContent = `Connected: ${chosenWallet.label}`;
 
     bindProviderEvents();
     syncStakeGlobals();
-    setStatus(`Wallet connected: ${chosenWallet.name}`);
+    setStatus(`Wallet connected: ${chosenWallet.label}`);
 
     await loadState();
   } catch (err) {
     console.error("connectWallet error:", err);
     setStatus(formatError(err, "Connection failed."));
+  } finally {
+    connectBtn.disabled = false;
   }
 }
 

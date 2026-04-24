@@ -1,7 +1,8 @@
 # DYOOR Site (Rebuilt)
 
 - One-page layout with a centered container system (no drifting sections)
-- Whitelist checker supports ERC-721 `balanceOf` checks for 3 collection contracts on Monad chainId 143
+- Homepage focused on live flows: swap, ascension, Discord verification, and collection preview
+- Stake page uses a real wallet chooser instead of the old prompt-based selector
 
 ## Deploy
 Upload the folder contents to Netlify as a static site.

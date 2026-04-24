@@ -3,168 +3,29 @@
 <head>
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"/>
-  <title>DYOOR</title>
+  <title>DYOOR | Monad NFT Community, Swap, and Ascension Protocol</title>
+  <meta name="description" content="DYOOR is a Monad-native NFT project with a sold-out S1 collection, live Ascension utility, Discord role sync, and a swap built to support the treasury."/>
+  <meta name="theme-color" content="#07070c"/>
+  <link rel="canonical" href="https://dyoor.xyz/"/>
+  <meta property="og:type" content="website"/>
+  <meta property="og:title" content="DYOOR"/>
+  <meta property="og:description" content="A Monad-native NFT project with a sold-out S1 collection, Ascension utility, role sync, and DYOOR Swap."/>
+  <meta property="og:image" content="https://dyoor.xyz/assets/home_banner.png"/>
+  <meta name="twitter:card" content="summary_large_image"/>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/style.css?v=home-glow-1"/>
-  <style>
-    .homeBatteryCard{
-      position: relative;
-      overflow: hidden;
-      margin: 20px auto 0;
-      max-width: 1100px;
-      padding: 22px;
-      border-radius: 26px;
-      border: 1px solid rgba(255,255,255,.10);
-      background:
-        radial-gradient(1200px 280px at 10% 0%, rgba(123,92,255,.18), transparent 45%),
-        radial-gradient(900px 220px at 100% 0%, rgba(67,241,200,.12), transparent 45%),
-        rgba(255,255,255,.045);
-      box-shadow:
-        0 18px 40px rgba(0,0,0,.34),
-        0 0 36px rgba(123,92,255,.14),
-        inset 0 1px 0 rgba(255,255,255,.05);
-      backdrop-filter: blur(10px);
-      -webkit-backdrop-filter: blur(10px);
-    }
-
-    .homeBatteryAura{
-      position: absolute;
-      inset: -35%;
-      background:
-        radial-gradient(circle at 25% 50%, rgba(140,92,255,.14), transparent 18%),
-        radial-gradient(circle at 70% 40%, rgba(110,180,255,.12), transparent 18%),
-        radial-gradient(circle at 55% 80%, rgba(95,235,190,.10), transparent 20%);
-      filter: blur(30px);
-      animation: homeBatteryAuraPulse 4.5s ease-in-out infinite;
-      pointer-events: none;
-    }
-
-    .homeBatteryTitle{
-      position: relative;
-      z-index: 1;
-      margin: 0 0 18px;
-      font-size: 24px;
-      line-height: 1.05;
-      font-weight: 900;
-      letter-spacing: -.02em;
-    }
-
-    .homeBatteryRow{
-      position: relative;
-      z-index: 1;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 14px;
-      margin-bottom: 12px;
-      flex-wrap: wrap;
-    }
-
-    .homeBatteryLabel{
-      font-size: 15px;
-      font-weight: 700;
-      opacity: .96;
-    }
-
-    .homeBatteryPct{
-      font-size: 13px;
-      font-weight: 900;
-      letter-spacing: .12em;
-      color: #9df7d7;
-      text-shadow: 0 0 10px rgba(157,247,215,.45);
-    }
-
-    .homeBatteryBar{
-      position: relative;
-      z-index: 1;
-      height: 20px;
-      width: 100%;
-      border-radius: 999px;
-      overflow: hidden;
-      background: rgba(255,255,255,.07);
-      border: 1px solid rgba(255,255,255,.10);
-      box-shadow:
-        inset 0 1px 2px rgba(0,0,0,.35),
-        0 0 24px rgba(115,167,255,.10);
-    }
-
-    .homeBatteryFill{
-      height: 100%;
-      width: 100%;
-      border-radius: 999px;
-      background:
-        linear-gradient(90deg, #8d5cff 0%, #73a7ff 35%, #69e2cf 70%, #72df8c 100%);
-      box-shadow:
-        0 0 18px rgba(115,167,255,.28),
-        0 0 28px rgba(105,226,207,.22),
-        0 0 42px rgba(114,223,140,.18);
-      background-size: 200% 100%;
-      animation:
-        homeBatteryFlow 2.8s linear infinite,
-        homeBatteryPulse 2.2s ease-in-out infinite;
-    }
-
-    .homeBatteryMeta{
-      position: relative;
-      z-index: 1;
-      margin-top: 14px;
-      font-size: 14px;
-      opacity: .92;
-      font-weight: 600;
-    }
-
-    .homeBatteryCtaWrap{
-      position: relative;
-      z-index: 1;
-      margin-top: 18px;
-    }
-
-    .homeBatteryCta{
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      padding: 12px 18px;
-      border-radius: 14px;
-      text-decoration: none;
-      font-weight: 800;
-      box-shadow: 0 0 24px rgba(123,92,255,.14);
-    }
-
-    @keyframes homeBatteryFlow{
-      0% { background-position: 0% 50%; }
-      100% { background-position: 200% 50%; }
-    }
-
-    @keyframes homeBatteryPulse{
-      0%,100% { filter: brightness(1); opacity: .92; }
-      50% { filter: brightness(1.15); opacity: 1; }
-    }
-
-    @keyframes homeBatteryAuraPulse{
-      0%,100% { transform: scale(1); opacity: .75; }
-      50% { transform: scale(1.05); opacity: 1; }
-    }
-
-    @media (max-width: 640px){
-      .homeBatteryCard{
-        padding: 18px;
-        border-radius: 22px;
-      }
-
-      .homeBatteryTitle{
-        font-size: 20px;
-      }
-    }
-  </style>
+  <link rel="stylesheet" href="/style.css?v=home-refresh-2"/>
 </head>
 <body>
   <div class="bg" aria-hidden="true"></div>
 
   <header class="topbar" id="top">
     <div class="container topbar__inner">
-      <a class="brand" href="/index.html">DYOOR</a>
+      <a class="brand" href="/index.html" aria-label="DYOOR home">
+        <img class="brand__logo" src="/assets/dyoor-logo.png" alt="" width="34" height="34"/>
+        <span class="brand__text">DYOOR</span>
+      </a>
       <nav class="nav" aria-label="Primary">
         <a href="/whitepaper.html">Whitepaper</a>
         <a href="/stake.html">Ascension Protocol</a>
@@ -180,11 +41,61 @@
         <div class="card hero__card">
           <img class="hero__img" src="/assets/home_banner.png" alt="DYOOR banner" loading="eager"/>
           <div class="hero__copy">
-            <h1>#DYOOR self a favor &amp; vibe | S1 SOLD OUT | Ascending To Solana</h1>
+            <p class="hero__eyebrow">S1 sold out • live on Monad</p>
+            <h1>Degen culture. Live product. Monad-native.</h1>
+            <p class="hero__subcopy">DYOOR is a sold-out S1 collection with live utility already in market: swap on Monad, move S1 into Ascension, and keep Discord roles synced to real wallet state.</p>
             <div class="hero__cta">
               <a class="btn btn--primary hero__btn" href="/swap/">Swap on Monad</a>
+              <a class="btn btn--ghost hero__btn hero__btn--secondary" href="/stake.html">Ascend S1</a>
+            </div>
+            <div class="hero__meta">
+              <span class="hero__metaPill">Swap live</span>
+              <span class="hero__metaPill">Role sync live</span>
+              <span class="hero__metaPill">Ascension live</span>
             </div>
           </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section reveal" id="operations">
+      <div class="container">
+        <div class="sectionLead sectionLead--center">
+          <p class="sectionLead__eyebrow">Live Stack</p>
+          <h2 class="section__title section__title--compact">Three live surfaces. One sharp DYOOR shell.</h2>
+          <p class="muted center sectionLead__copy">Trade, stake, and verify from one system built around the collection instead of a pile of disconnected pages.</p>
+        </div>
+
+        <div class="featureGrid">
+          <article class="card featureCard">
+            <img class="featureCard__img" src="/assets/swap_brand.jpg" alt="DYOOR Swap artwork" loading="lazy"/>
+            <div class="featureCard__body">
+              <span class="featureCard__tag">Swap Desk</span>
+              <h3 class="featureCard__title">Route Monad flow through the DYOOR desk</h3>
+              <p class="featureCard__copy">A cleaner router with searchable token selection, clearer transaction state, and an optional support route that feeds the treasury directly.</p>
+              <a class="btn btn--primary" href="/swap/">Open Swap</a>
+            </div>
+          </article>
+
+          <article class="card featureCard featureCard--ascension">
+            <img class="featureCard__img" src="/assets/ascension.jpg" alt="Ascension Protocol artwork" loading="lazy"/>
+            <div class="featureCard__body">
+              <span class="featureCard__tag">Ascension Chamber</span>
+              <h3 class="featureCard__title">Move S1 into Ascension and generate energy</h3>
+              <p class="featureCard__copy">Stake and unstake from one surface, track pending energy, and manage your S1 inventory without jumping between clunky contract views.</p>
+              <a class="btn btn--ghost" href="/stake.html">Open Ascension</a>
+            </div>
+          </article>
+
+          <article class="card featureCard">
+            <img class="featureCard__img" src="/assets/home_banner.png" alt="DYOOR community banner" loading="lazy"/>
+            <div class="featureCard__body">
+              <span class="featureCard__tag">Role Relay</span>
+              <h3 class="featureCard__title">Link Discord and refresh holder state on demand</h3>
+              <p class="featureCard__copy">Connect once, verify when needed, and keep Holder, Ascended, 20+, and 50+ roles aligned with live wallet balance and Ascension status.</p>
+              <a class="btn btn--ghost" href="#discord-verify">Verify Roles</a>
+            </div>
+          </article>
         </div>
       </div>
     </section>
@@ -220,7 +131,7 @@
     <section class="section reveal" id="discord-verify">
       <div class="container">
         <h2 class="section__title">Verify Your DYOOR Roles</h2>
-        <p class="muted center">Connect Discord, connect your wallet, and sync Holder, Ascended, 20+, and 50+ automatically.</p>
+        <p class="muted center">Link Discord, connect the wallet that holds your DYOORs, and sync the roles that match your current collection and Ascension state.</p>
 
         <div class="card verifyCard">
           <div class="verifyCard__glow" aria-hidden="true"></div>
@@ -242,7 +153,7 @@
             <div class="verifyPanel">
               <div class="verifyPanel__label">Discord</div>
               <div class="verifyValue" id="discordVerifyUser">Not connected</div>
-              <div class="verifySub" id="discordVerifySub">Login with Discord to link the exact account that should receive roles.</div>
+              <div class="verifySub" id="discordVerifySub">Connect the Discord account that should receive your holder and Ascension roles.</div>
               <div class="verifyActions">
                 <button class="btn btn--primary" id="btnConnectDiscord" type="button">Connect Discord</button>
               </div>
@@ -251,7 +162,7 @@
             <div class="verifyPanel">
               <div class="verifyPanel__label">Wallet</div>
               <div class="verifyValue" id="verifyWalletValue">Not connected</div>
-              <div class="verifySub" id="verifyWalletSub">Connect the wallet that holds or has ascended your DYOORs.</div>
+              <div class="verifySub" id="verifyWalletSub">Connect the wallet that holds your collection or currently has S1 in Ascension.</div>
               <div class="verifyActions">
                 <button class="btn btn--ghost" id="btnVerifyConnectWallet" type="button">Connect Wallet</button>
               </div>
@@ -282,7 +193,7 @@
             <button class="btn btn--ghost" id="btnRefreshRoles" type="button">Refresh Roles</button>
           </div>
 
-          <div class="verifyStatus" id="verifyStatusBox">Connect Discord and your wallet to begin verification.</div>
+          <div class="verifyStatus" id="verifyStatusBox">Connect Discord and your wallet to begin role verification.</div>
         </div>
       </div>
     </section>
@@ -290,7 +201,7 @@
     <section class="section reveal" id="collection">
       <div class="container">
         <h2 class="section__title">S1 Collection on Monad</h2>
-        <p class="muted">A live preview pulled from onchain metadata.</p>
+        <p class="muted center">A rotating preview pulled from onchain metadata across the sold-out S1 collection.</p>
         <div class="card">
           <div class="marquee" aria-label="DYOOR collection preview">
             <div class="marquee__track" id="collectionMarquee" role="list"></div>
@@ -306,18 +217,15 @@
           <div class="card">
             <img class="media" src="/assets/lore.jpeg" alt="Lore art" loading="lazy"/>
             <p class="muted">
-              DYOOR’s are an evolution of the human race, humans who have spent too much time in the trenches.
-              Degens by nature they are curious creatures, diving deep, catching FOMOing into whatever skibidi shit they see.
-              Their sense of community is unmatched, they band together they push forward they build their way to the top.
-              Every DYOOR has a purpose, what’s yours?
+              DYOOR came out of trench culture translated into character design: overclocked collectors, relentless builders, and market survivors shaped by volatility, repetition, and conviction.
+              The art carries that identity, but the goal is not just aesthetic nostalgia. Each DYOOR sits inside a broader system of products, roles, and collection utility that keeps the world active.
             </p>
           </div>
           <div class="card">
             <img class="media" src="/assets/founder.png" alt="Founder" loading="lazy"/>
-            <h3 class="card__title">Founder Facts</h3>
+            <h3 class="card__title">Project Direction</h3>
             <p class="muted">
-              I’m riffs.nad, leading the Rebrand &amp; CTO. I’ve been in crypto since 2013.
-              I started mining BTC and LTC, worked through DeFi cycles, and believe DYOOR can become something legendary.
+              DYOOR is being shaped by riffs.nad through the rebrand and technical direction. The focus is straightforward: sharpen the brand, tighten the product surfaces, and attach real utility to the collection without losing the culture that made it hit in the first place.
             </p>
           </div>
         </div>
@@ -327,7 +235,7 @@
     <section class="section reveal" id="links">
       <div class="container">
         <h2 class="section__title">Links</h2>
-        <p class="muted">Official socials + where to trade.</p>
+        <p class="muted">Official channels, collection access points, and the core surfaces tied to the project.</p>
 
         <div class="grid2">
           <div class="card">

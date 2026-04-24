@@ -1,0 +1,301 @@
+(function () {
+  const PROJECT_ID = "515640b93fcb56906722f2d6b44d2e47";
+  const CHAIN_ID_DEC = 143;
+  const CHAIN_ID_HEX = "0x8f";
+  const RPC_URL = "https://rpc.monad.xyz";
+  const EXPLORER_URL = "https://monadscan.com";
+
+  let wcProvider = null;
+
+  function isMobile() {
+    return /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+  }
+
+  function getInjectedProvider(type) {
+    const eth = window.ethereum;
+    if (!eth) return null;
+
+    const providers = Array.isArray(eth.providers) ? eth.providers : [eth];
+    const pick = (predicate) => providers.find((provider) => {
+      try {
+        return predicate(provider);
+      } catch (_err) {
+        return false;
+      }
+    });
+
+    switch ((type || "").toLowerCase()) {
+      case "backpack":
+        return pick((provider) => provider.isBackpack);
+      case "okx":
+        return (window.okxwallet && (window.okxwallet.ethereum || window.okxwallet))
+          || pick((provider) => provider.isOkxWallet || provider.isOKExWallet);
+      case "phantom":
+        return (window.phantom && window.phantom.ethereum)
+          || pick((provider) => provider.isPhantom);
+      case "metamask":
+        return pick((provider) => provider.isMetaMask);
+      case "tokenpocket":
+        return pick((provider) => provider.isTokenPocket || provider.isTPWallet);
+      case "rabby":
+        return pick((provider) => provider.isRabby);
+      case "injected":
+      default:
+        return eth;
+    }
+  }
+
+  function walletLabel(type) {
+    switch ((type || "").toLowerCase()) {
+      case "backpack": return "Backpack";
+      case "okx": return "OKX Wallet";
+      case "phantom": return "Phantom";
+      case "metamask": return "MetaMask";
+      case "tokenpocket": return "TokenPocket";
+      case "rabby": return "Rabby";
+      case "walletconnect": return "WalletConnect";
+      default: return "Injected Wallet";
+    }
+  }
+
+  async function ensureChain(browserProvider, eip1193) {
+    try {
+      const network = await browserProvider.getNetwork();
+      if (Number(network.chainId) === CHAIN_ID_DEC) return true;
+    } catch (_err) {}
+
+    if (!eip1193?.request) return false;
+
+    try {
+      await eip1193.request({
+        method: "wallet_switchEthereumChain",
+        params: [{ chainId: CHAIN_ID_HEX }]
+      });
+      return true;
+    } catch (_switchErr) {
+      try {
+        await eip1193.request({
+          method: "wallet_addEthereumChain",
+          params: [{
+            chainId: CHAIN_ID_HEX,
+            chainName: "Monad",
+            rpcUrls: [RPC_URL],
+            nativeCurrency: { name: "MON", symbol: "MON", decimals: 18 },
+            blockExplorerUrls: [EXPLORER_URL]
+          }]
+        });
+        await eip1193.request({
+          method: "wallet_switchEthereumChain",
+          params: [{ chainId: CHAIN_ID_HEX }]
+        });
+        return true;
+      } catch (_addErr) {
+        return false;
+      }
+    }
+  }
+
+  async function initWalletConnect() {
+    if (wcProvider) return wcProvider;
+    if (!window.WalletConnectEthereumProvider) {
+      throw new Error("WalletConnect library not loaded.");
+    }
+
+    wcProvider = await window.WalletConnectEthereumProvider.init({
+      projectId: PROJECT_ID,
+      chains: [CHAIN_ID_DEC],
+      optionalChains: [CHAIN_ID_DEC],
+      rpcMap: {
+        [CHAIN_ID_DEC]: RPC_URL
+      },
+      showQrModal: true,
+      methods: ["eth_sendTransaction", "personal_sign", "eth_signTypedData", "eth_signTypedData_v4"],
+      events: ["chainChanged", "accountsChanged", "disconnect"]
+    });
+
+    return wcProvider;
+  }
+
+  function ensureModal(opts) {
+    let root = document.getElementById("walletModal");
+    if (root) {
+      const title = root.querySelector(".wallet-modal__title");
+      const note = root.querySelector(".wallet-modal__note");
+      if (title && opts?.title) title.textContent = opts.title;
+      if (note && opts?.copy) note.innerHTML = opts.copy;
+      return root;
+    }
+
+    root = document.createElement("div");
+    root.id = "walletModal";
+    root.className = "wallet-modal";
+    root.setAttribute("aria-hidden", "true");
+    root.innerHTML = `
+      <div class="wallet-modal__backdrop" data-close="1"></div>
+      <div class="wallet-modal__panel" role="dialog" aria-modal="true" aria-label="Connect wallet">
+        <div class="wallet-modal__header">
+          <div class="wallet-modal__title">${opts?.title || "Connect Wallet"}</div>
+          <button type="button" class="wallet-modal__close" data-close="1" aria-label="Close">✕</button>
+        </div>
+        <div class="wallet-modal__grid">
+          <button type="button" class="wallet-option" data-wallet="backpack">Backpack</button>
+          <button type="button" class="wallet-option" data-wallet="metamask">MetaMask</button>
+          <button type="button" class="wallet-option" data-wallet="phantom">Phantom (EVM)</button>
+          <button type="button" class="wallet-option" data-wallet="okx">OKX Wallet</button>
+          <button type="button" class="wallet-option" data-wallet="tokenpocket">TokenPocket</button>
+          <button type="button" class="wallet-option" data-wallet="injected">Other Injected</button>
+          <button type="button" class="wallet-option wallet-option--wc" data-wallet="walletconnect">WalletConnect (QR)</button>
+        </div>
+        <div id="walletModalHint" class="wallet-modal__hint" style="display:none;">
+          On mobile Safari, injected wallets are unreliable. Use <strong>WalletConnect</strong> or open this site inside your wallet app browser.
+        </div>
+        <div id="walletDeepLinks" class="wallet-modal__deeplinks" style="display:none;">
+          <a href="#" id="openInMetaMask" class="wallet-deeplink">Open in MetaMask</a>
+          <a href="#" id="openInOKX" class="wallet-deeplink">Open in OKX</a>
+          <a href="#" id="openInPhantom" class="wallet-deeplink">Open in Phantom</a>
+        </div>
+        <div class="wallet-modal__note">${opts?.copy || "Connect on Monad using an injected wallet or WalletConnect."}</div>
+      </div>
+    `;
+
+    document.body.appendChild(root);
+    return root;
+  }
+
+  function applyDeepLinks(root) {
+    const dappUrl = encodeURIComponent(window.location.href);
+    const metamask = root.querySelector("#openInMetaMask");
+    const okx = root.querySelector("#openInOKX");
+    const phantom = root.querySelector("#openInPhantom");
+
+    if (metamask) metamask.href = `https://metamask.app.link/dapp/${window.location.host}${window.location.pathname}${window.location.search}`;
+    if (okx) okx.href = `okx://wallet/dapp/url?dappUrl=${dappUrl}`;
+    if (phantom) phantom.href = `https://phantom.app/ul/browse/${encodeURIComponent(window.location.href)}?ref=${encodeURIComponent(window.location.origin)}`;
+  }
+
+  function openModal(root) {
+    root.classList.add("is-open");
+    root.setAttribute("aria-hidden", "false");
+    document.body.classList.add("modal-open");
+
+    const hint = root.querySelector("#walletModalHint");
+    const links = root.querySelector("#walletDeepLinks");
+    const hasInjected = !!window.ethereum
+      || !!(window.okxwallet && (window.okxwallet.ethereum || window.okxwallet))
+      || !!(window.phantom && window.phantom.ethereum);
+    const mobileNoInjected = isMobile() && !hasInjected;
+
+    if (hint) hint.style.display = mobileNoInjected ? "block" : "none";
+    if (links) links.style.display = mobileNoInjected ? "flex" : "none";
+
+    root.querySelectorAll(".wallet-option[data-wallet]").forEach((btn) => {
+      const type = (btn.getAttribute("data-wallet") || "").toLowerCase();
+      const needsInjected = type !== "walletconnect";
+      if (mobileNoInjected && needsInjected) {
+        btn.setAttribute("disabled", "disabled");
+        btn.classList.add("is-disabled");
+      } else {
+        btn.removeAttribute("disabled");
+        btn.classList.remove("is-disabled");
+      }
+    });
+  }
+
+  function closeModal(root) {
+    root.classList.remove("is-open");
+    root.setAttribute("aria-hidden", "true");
+    document.body.classList.remove("modal-open");
+  }
+
+  async function connectType(type) {
+    let eip1193;
+    if (type === "walletconnect") {
+      const wc = await initWalletConnect();
+      await wc.enable();
+      eip1193 = wc;
+    } else {
+      eip1193 = getInjectedProvider(type);
+      if (!eip1193?.request) {
+        throw new Error(`${walletLabel(type)} not detected in this browser.`);
+      }
+    }
+
+    if (!window.ethers?.BrowserProvider) {
+      throw new Error("Ethers failed to load.");
+    }
+
+    let accounts = await eip1193.request({ method: "eth_requestAccounts" });
+    if (!accounts?.[0]) {
+      throw new Error("Wallet did not return an account.");
+    }
+
+    const browserProvider = new window.ethers.BrowserProvider(eip1193, "any");
+    const okChain = await ensureChain(browserProvider, eip1193);
+    if (!okChain) {
+      throw new Error("Please switch to Monad in your wallet.");
+    }
+
+    const signer = await browserProvider.getSigner();
+    const account = accounts[0];
+
+    return {
+      type,
+      label: walletLabel(type),
+      provider: eip1193,
+      browserProvider,
+      signer,
+      account
+    };
+  }
+
+  async function connect(opts = {}) {
+    const root = ensureModal(opts);
+    applyDeepLinks(root);
+    openModal(root);
+
+    return new Promise((resolve, reject) => {
+      let done = false;
+
+      const cleanup = () => {
+        root.querySelectorAll("[data-close='1']").forEach((node) => node.removeEventListener("click", handleClose));
+        root.querySelectorAll(".wallet-option[data-wallet]").forEach((node) => node.removeEventListener("click", handlePick));
+        document.removeEventListener("keydown", handleKey);
+      };
+
+      const finish = (fn, value) => {
+        if (done) return;
+        done = true;
+        cleanup();
+        closeModal(root);
+        fn(value);
+      };
+
+      const handleClose = () => finish(reject, new Error("Wallet connection canceled."));
+      const handleKey = (event) => {
+        if (event.key === "Escape") handleClose();
+      };
+
+      const handlePick = async (event) => {
+        const button = event.currentTarget;
+        const type = (button.getAttribute("data-wallet") || "").toLowerCase();
+        try {
+          button.setAttribute("disabled", "disabled");
+          const result = await connectType(type);
+          finish(resolve, result);
+        } catch (err) {
+          button.removeAttribute("disabled");
+          const note = root.querySelector(".wallet-modal__note");
+          if (note) note.innerHTML = err?.message || "Wallet connection failed.";
+        }
+      };
+
+      root.querySelectorAll("[data-close='1']").forEach((node) => node.addEventListener("click", handleClose));
+      root.querySelectorAll(".wallet-option[data-wallet]").forEach((node) => node.addEventListener("click", handlePick));
+      document.addEventListener("keydown", handleKey);
+    });
+  }
+
+  window.DyoorWalletChooser = {
+    connect
+  };
+})();

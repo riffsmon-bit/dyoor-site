@@ -9,112 +9,128 @@
       "name": "Wrapped MON",
       "address": "0x3bd359C1119dA7Da1D913D1C4D2B7c461115433A",
       "chainId": 143,
-      "decimals": 18
+      "decimals": 18,
+      "logoURI": "https://raw.githubusercontent.com/monad-crypto/token-list/main/mainnet/WMON/logo.svg"
     },
     {
       "symbol": "USDC",
       "name": "USD Coin",
       "address": "0x754704Bc059F8C67012fEd69BC8A327a5aafb603",
       "chainId": 143,
-      "decimals": 6
+      "decimals": 6,
+      "logoURI": "https://tokens.pancakeswap.finance/images/eth/0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48.png"
     },
     {
       "symbol": "USDT0",
       "name": "Tether USD",
       "address": "0xe7cd86e13AC4309349F30B3435a9d337750fC82D",
       "chainId": 143,
-      "decimals": 6
+      "decimals": 6,
+      "logoURI": "https://tokens.pancakeswap.finance/images/eth/0xdAC17F958D2ee523a2206206994597C13D831ec7.png"
     },
     {
       "symbol": "AUSD",
       "name": "Agora USD",
       "address": "0x00000000eFE302BEAA2b3e6e1b18d08D69a9012a",
       "chainId": 143,
-      "decimals": 6
+      "decimals": 6,
+      "logoURI": "https://raw.githubusercontent.com/monad-crypto/token-list/main/mainnet/AUSD/logo.svg"
     },
     {
       "symbol": "USD1",
       "name": "USD1",
       "address": "0x111111d2bf19e43C34263401e0CAd979eD1cdb61",
       "chainId": 143,
-      "decimals": 6
+      "decimals": 6,
+      "logoURI": "https://raw.githubusercontent.com/monad-crypto/token-list/main/mainnet/USD1/logo.svg"
     },
     {
       "symbol": "WETH",
       "name": "Wrapped Ether",
       "address": "0xEE8c0E9f1BFFb4Eb878d8f15f368A02a35481242",
       "chainId": 143,
-      "decimals": 18
+      "decimals": 18,
+      "logoURI": "https://tokens.pancakeswap.finance/images/eth/0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2.png"
     },
     {
       "symbol": "wstETH",
       "name": "Lido Wrapped Staked ETH",
       "address": "0x10Aeaf63194db8d453d4D85a06E5eFE1dd0b5417",
       "chainId": 143,
-      "decimals": 18
+      "decimals": 18,
+      "logoURI": "https://tokens.pancakeswap.finance/images/eth/0x7f39C581F595B53c5cb19bD0b3f8dA6c935E2Ca0.png"
     },
     {
       "symbol": "WBTC",
       "name": "Wrapped Bitcoin",
       "address": "0x0555E30da8f98308EdB960aa94C0Db47230d2B9c",
       "chainId": 143,
-      "decimals": 8
+      "decimals": 8,
+      "logoURI": "https://tokens.pancakeswap.finance/images/eth/0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599.png"
     },
     {
       "symbol": "WSOL",
       "name": "Wrapped SOL",
       "address": "0xea17E5a9efEBf1477dB45082d67010E2245217f1",
       "chainId": 143,
-      "decimals": 18
+      "decimals": 18,
+      "logoURI": "https://raw.githubusercontent.com/monad-crypto/token-list/main/mainnet/SOL/logo.svg"
     },
     {
       "symbol": "LBTC",
       "name": "Lombard Staked Bitcoin",
       "address": "0xecAc9C5F704e954931349Da37F60E39f515c11c1",
       "chainId": 143,
-      "decimals": 8
+      "decimals": 8,
+      "logoURI": "https://raw.githubusercontent.com/monad-crypto/token-list/main/mainnet/LBTC/logo.svg"
     },
     {
       "symbol": "BTC.b",
       "name": "BTC.b",
       "address": "0xB0F70C0bD6FD87dbEb7C10dC692a2a6106817072",
       "chainId": 143,
-      "decimals": 18
+      "decimals": 18,
+      "logoURI": "/assets/tokens/btcb.svg"
     },
     {
       "symbol": "weETH",
       "name": "Wrapped EtherFi ETH",
       "address": "0xA3D68b74bF0528fdD07263c60d6488749044914b",
       "chainId": 143,
-      "decimals": 18
+      "decimals": 18,
+      "logoURI": "https://tokens.pancakeswap.finance/images/eth/0xCd5fE23C85820F7B72D0926FC9b05b43E359b7ee.png"
     },
     {
       "symbol": "ezETH",
       "name": "Renzo Restaked ETH",
       "address": "0x2416092f143378750bb29b79eD961ab195CcEea5",
       "chainId": 143,
-      "decimals": 18
+      "decimals": 18,
+      "logoURI": "https://raw.githubusercontent.com/monad-crypto/token-list/main/mainnet/ezETH/logo.svg"
     },
     {
       "symbol": "thBILL",
       "name": "Theo Short Duration UST Fund",
       "address": "0xfDD22Ce6D1F66bc0Ec89b20BF16CcB6670F55A5a",
       "chainId": 143,
-      "decimals": 6
+      "decimals": 6,
+      "logoURI": "https://raw.githubusercontent.com/monad-crypto/token-list/main/mainnet/thBILL/logo.svg"
     },
     {
       "symbol": "yzUSD",
       "name": "Yuzu USD",
       "address": "0x9dcB0D17eDDE04D27F387c89fECb78654C373858",
       "chainId": 143,
-      "decimals": 6
+      "decimals": 6,
+      "logoURI": "https://raw.githubusercontent.com/monad-crypto/token-list/main/mainnet/yzUSD/logo.svg"
     },
     {
       "symbol": "wsrUSD",
       "name": "Wrapped srUSD",
       "address": "0x4809010926aec940b550D34a46A52739f996D75D",
       "chainId": 143,
-      "decimals": 6
+      "decimals": 6,
+      "logoURI": "https://raw.githubusercontent.com/monad-crypto/token-list/main/mainnet/wsrUSD/logo.svg"
     }
   ]
 }

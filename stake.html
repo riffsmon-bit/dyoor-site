@@ -7,40 +7,68 @@
   <link rel="stylesheet" href="/style.css" />
   <style>
     .stake-shell {
-      max-width: 1200px;
+      max-width: 1240px;
       margin: 0 auto;
-      padding: 32px 20px 80px;
+      padding: 30px 20px 88px;
     }
 
     .stake-hero {
+      position: relative;
+      overflow: hidden;
       text-align: center;
-      margin-bottom: 28px;
+      margin-bottom: 22px;
+      padding: 72px 24px;
+      border: 1px solid rgba(190,224,255,0.12);
+      border-radius: 28px;
+      background:
+        linear-gradient(180deg, rgba(7,10,14,0.25), rgba(7,10,14,0.86)),
+        url('/assets/ascension.jpg') center 28% / cover no-repeat;
+      box-shadow: 0 24px 70px rgba(0,0,0,0.42);
+    }
+
+    .stake-hero::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background:
+        radial-gradient(520px 240px at 18% 76%, rgba(66,241,200,0.14), transparent 58%),
+        radial-gradient(420px 220px at 82% 20%, rgba(255,83,216,0.12), transparent 58%);
+      pointer-events: none;
     }
 
     .stake-kicker {
+      position: relative;
+      z-index: 1;
       display: inline-block;
       margin-bottom: 10px;
-      padding: 6px 12px;
-      border: 1px solid rgba(255,255,255,0.15);
+      padding: 8px 14px;
+      border: 1px solid rgba(190,224,255,0.16);
       border-radius: 999px;
       font-size: 12px;
-      letter-spacing: 0.12em;
+      letter-spacing: 0.2em;
       text-transform: uppercase;
-      opacity: 0.8;
+      opacity: 0.9;
+      background: rgba(8,12,18,0.58);
     }
 
     .stake-title {
-      font-size: clamp(34px, 6vw, 72px);
-      line-height: 1;
-      margin: 0 0 12px;
+      position: relative;
+      z-index: 1;
+      max-width: 12ch;
+      margin: 0 auto 12px;
+      font-size: clamp(40px, 6vw, 84px);
+      line-height: 0.94;
+      letter-spacing: -0.05em;
     }
 
     .stake-copy {
+      position: relative;
+      z-index: 1;
       max-width: 760px;
       margin: 0 auto;
-      opacity: 0.82;
-      font-size: 16px;
-      line-height: 1.6;
+      color: rgba(245,247,255,0.82);
+      font-size: 17px;
+      line-height: 1.7;
     }
 
     .stake-grid {
@@ -51,11 +79,15 @@
     }
 
     .panel {
-      border: 1px solid rgba(255,255,255,0.12);
-      border-radius: 20px;
+      border: 1px solid rgba(190,224,255,0.12);
+      border-radius: 24px;
       padding: 20px;
-      background: rgba(255,255,255,0.03);
-      backdrop-filter: blur(10px);
+      background:
+        radial-gradient(700px 220px at 100% 0%, rgba(255,83,216,0.10), transparent 52%),
+        radial-gradient(620px 220px at 0% 40%, rgba(66,241,200,0.08), transparent 50%),
+        rgba(11,15,21,0.78);
+      backdrop-filter: blur(14px);
+      box-shadow: 0 18px 48px rgba(0,0,0,0.34);
     }
 
     .panel h2, .panel h3 {
@@ -107,6 +139,9 @@
       border-radius: 14px;
       padding: 14px 16px;
       font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      font-size: 12px;
       cursor: pointer;
       transition: transform 0.15s ease, opacity 0.15s ease;
     }
@@ -114,11 +149,15 @@
     .stake-btn:hover { transform: translateY(-1px); }
     .stake-btn:disabled { opacity: 0.45; cursor: not-allowed; transform: none; }
 
-    .stake-btn-primary { background: #9c7cff; color: #fff; }
-    .stake-btn-secondary {
-      background: rgba(255,255,255,0.08);
+    .stake-btn-primary {
+      background: linear-gradient(135deg, rgba(255,83,216,0.26), rgba(157,104,255,0.94) 44%, rgba(92,95,255,0.84));
       color: #fff;
-      border: 1px solid rgba(255,255,255,0.12);
+      border: 1px solid rgba(157,104,255,0.5);
+    }
+    .stake-btn-secondary {
+      background: rgba(12,16,22,0.86);
+      color: #fff;
+      border: 1px solid rgba(190,224,255,0.12);
     }
 
     .status-box {
@@ -283,10 +322,13 @@
 
   <header class="topbar" id="top">
     <div class="container topbar__inner">
-      <a class="brand" href="/index.html">DYOOR</a>
+      <a class="brand" href="/index.html" aria-label="DYOOR home">
+        <img class="brand__logo" src="/assets/dyoor-logo.png" alt="" width="34" height="34"/>
+        <span class="brand__text">DYOOR</span>
+      </a>
       <nav class="nav" aria-label="Primary">
         <a href="/whitepaper.html">Whitepaper</a>
-        <a href="/stake.html">Stake</a>
+        <a href="/stake.html" class="is-active">Ascension</a>
         <a href="/swap/">Swap</a>
       </nav>
     </div>
@@ -457,6 +499,8 @@
   </main>
 
   <script src="https://cdn.jsdelivr.net/npm/ethers@6.13.2/dist/ethers.umd.min.js"></script>
+  <script src="https://unpkg.com/@walletconnect/ethereum-provider@2.23.1/dist/index.umd.js"></script>
+  <script src="/wallet-chooser.js"></script>
   <script src="/stake.js"></script>
   <script src="/stake-ui.js"></script>
 </body>

@@ -1,4 +1,4 @@
-<!doc<!doctype html>
+<!doctype html>
 <html lang="en">
 <head>
 <meta charset="utf-8"/>
@@ -9,22 +9,61 @@
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="/style.css"/>
 <style>
-  .swapWrap{max-width:1200px;margin:0 auto;padding:32px 16px 72px}
-  .swapHeroLite{text-align:center;margin:0 0 26px}
-  .swapKicker{display:inline-block;margin-bottom:10px;padding:6px 12px;border:1px solid rgba(255,255,255,.15);border-radius:999px;font-weight:800;font-size:12px;letter-spacing:.12em;text-transform:uppercase;opacity:.82}
-  .swapTitle{margin:0 0 12px;font-size:clamp(34px,6vw,68px);line-height:1;letter-spacing:-.02em}
-  .swapCopy{max-width:760px;margin:0 auto;opacity:.82;font-size:16px;line-height:1.6}
+  .swapWrap{max-width:1240px;margin:0 auto;padding:30px 16px 80px}
+  .swapHeroLite{
+    position:relative;
+    overflow:hidden;
+    text-align:center;
+    margin:0 0 22px;
+    padding:72px 24px;
+    border:1px solid rgba(190,224,255,.12);
+    border-radius:28px;
+    background:
+      linear-gradient(180deg, rgba(7,10,14,.28), rgba(7,10,14,.86)),
+      url('/assets/swap_brand.jpg') center center / cover no-repeat;
+    box-shadow:0 24px 70px rgba(0,0,0,.42);
+  }
+  .swapHeroLite::after{
+    content:'';
+    position:absolute;
+    inset:0;
+    background:
+      radial-gradient(580px 240px at 18% 74%, rgba(66,241,200,.14), transparent 58%),
+      radial-gradient(460px 220px at 82% 20%, rgba(255,83,216,.12), transparent 58%);
+    pointer-events:none;
+  }
+  .swapKicker{display:inline-block;position:relative;z-index:1;margin-bottom:10px;padding:8px 14px;border:1px solid rgba(190,224,255,.16);border-radius:999px;font-weight:800;font-size:12px;letter-spacing:.2em;text-transform:uppercase;opacity:.9;background:rgba(8,12,18,.58)}
+  .swapTitle{position:relative;z-index:1;max-width:11ch;margin:0 auto 12px;font-size:clamp(40px,6vw,84px);line-height:.94;letter-spacing:-.05em}
+  .swapCopy{position:relative;z-index:1;max-width:760px;margin:0 auto;color:rgba(245,247,255,.82);font-size:17px;line-height:1.7}
   .swapHeroMeta{margin-top:18px;display:flex;justify-content:center;gap:12px;flex-wrap:wrap}
-  .swapPill{padding:10px 14px;border-radius:999px;border:1px solid rgba(255,255,255,.10);background:rgba(255,255,255,.035);font-size:13px;font-weight:700;opacity:.92}
+  .swapHeroMeta,.swapTopAction{position:relative;z-index:1}
+  .swapPill{padding:10px 14px;border-radius:999px;border:1px solid rgba(190,224,255,.10);background:rgba(8,12,18,.62);font-size:12px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;opacity:.96}
   .swapTopAction{margin-top:18px;display:flex;justify-content:center}
+  .swapTopAction .btn{min-width:210px}
 
   .swapGrid{display:grid;grid-template-columns:minmax(0,1fr);gap:20px;align-items:start}
-  .swapPanel{border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.04);border-radius:22px;padding:18px;box-shadow:var(--shadow)}
-  .swapPanelTitle{margin:0 0 6px;font-size:24px;line-height:1.05}
-  .swapPanelCopy{margin:0;opacity:.78;font-size:14px;line-height:1.5}
+  .swapPanel{
+    position:relative;
+    overflow:hidden;
+    border:1px solid rgba(190,224,255,.12);
+    background:
+      radial-gradient(1200px 400px at 80% 0%, rgba(157,104,255,.18), transparent 55%),
+      radial-gradient(800px 320px at 0% 40%, rgba(66,241,200,.08), transparent 52%),
+      rgba(11,15,21,.82);
+    border-radius:26px;
+    padding:20px;
+    box-shadow:var(--shadow)
+  }
+  .swapPanelTitle{margin:0 0 6px;font-size:28px;line-height:1;letter-spacing:-.04em}
+  .swapPanelCopy{margin:0;opacity:.8;font-size:15px;line-height:1.55}
 
   .swapRow{display:flex;gap:14px;flex-wrap:wrap;align-items:center}
-  .swapCard2{border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.04);border-radius:18px;padding:16px}
+  .swapCard2{
+    border:1px solid rgba(190,224,255,.12);
+    background:linear-gradient(180deg, rgba(255,255,255,.04), rgba(255,255,255,.025));
+    border-radius:22px;
+    padding:18px
+  }
   .swapCardHead{display:flex;justify-content:space-between;gap:12px;align-items:flex-start;margin-bottom:14px;flex-wrap:wrap}
   .swapStatLine{display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap;margin-bottom:10px}
   .swapMiniLabel{opacity:.65;font-size:12px;letter-spacing:.08em;text-transform:uppercase}
@@ -37,8 +76,101 @@
   .err{border:1px solid rgba(255,90,90,.35);background:rgba(255,90,90,.08);padding:10px 12px;border-radius:14px}
   .ok{border:1px solid rgba(80,255,170,.28);background:rgba(80,255,170,.06);padding:10px 12px;border-radius:14px}
 
+  .swapTokenBlock{
+    border:1px solid rgba(190,224,255,.10);
+    border-radius:20px;
+    background:rgba(9,12,18,.72);
+    padding:14px;
+  }
+  .swapTokenHeader{
+    display:flex;
+    justify-content:space-between;
+    gap:12px;
+    align-items:center;
+    margin-bottom:10px;
+  }
+  .swapTokenTitle{
+    opacity:.72;
+    font-size:13px;
+    font-weight:700;
+  }
+  .swapTokenBalance{
+    color:rgba(255,255,255,.72);
+    font-size:13px;
+    font-weight:700;
+  }
   .tokSel{display:flex;align-items:center;gap:10px}
-  .tokLogo{width:22px;height:22px;border-radius:999px;flex:0 0 auto;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.14);object-fit:cover}
+  .tokLogo{
+    width:28px;
+    height:28px;
+    border-radius:999px;
+    flex:0 0 auto;
+    background:rgba(255,255,255,.08);
+    border:1px solid rgba(255,255,255,.14);
+    object-fit:cover
+  }
+  .tokenTrigger{
+    width:100%;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:12px;
+    padding:14px 14px;
+    border-radius:16px;
+    border:1px solid rgba(190,224,255,.16);
+    background:linear-gradient(180deg, rgba(16,20,28,.96), rgba(10,13,18,.96));
+    color:#fff;
+    cursor:pointer;
+    transition:border-color .12s ease, transform .12s ease, background .12s ease;
+  }
+  .tokenTrigger:hover{
+    transform:translateY(-1px);
+    border-color:rgba(157,104,255,.45);
+    background:linear-gradient(180deg, rgba(20,24,32,.98), rgba(12,15,21,.98));
+  }
+  .tokenTrigger__asset{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    min-width:0;
+  }
+  .tokenTrigger__labelWrap{
+    display:flex;
+    flex-direction:column;
+    align-items:flex-start;
+    min-width:0;
+  }
+  .tokenTrigger__label{
+    font-size:24px;
+    font-weight:900;
+    line-height:1;
+    letter-spacing:-.02em;
+  }
+  .tokenTrigger__name{
+    margin-top:4px;
+    color:rgba(255,255,255,.58);
+    font-size:12px;
+    font-weight:700;
+    white-space:nowrap;
+    overflow:hidden;
+    text-overflow:ellipsis;
+    max-width:180px;
+  }
+  .tokLogo--fallback{
+    box-shadow:0 6px 18px rgba(0,0,0,.22);
+  }
+  .tokenTrigger__chev{
+    color:rgba(255,255,255,.64);
+    font-size:18px;
+    font-weight:900;
+  }
+  .tokenNativeSelect{
+    position:absolute;
+    opacity:0;
+    pointer-events:none;
+    width:1px;
+    height:1px;
+  }
   .routeLine{opacity:.8;font-size:12px;margin-top:6px}
   .amtWrap{position:relative}
   .maxBtn{position:absolute;right:10px;top:10px;padding:6px 10px;border-radius:999px;font-weight:900;font-size:12px}
@@ -55,6 +187,219 @@
   .segToggle button.is-on{background:rgba(140,90,255,.28);opacity:1;box-shadow:inset 0 0 0 1px rgba(140,90,255,.45)}
   .chip{border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.04);color:var(--text);border-radius:999px;padding:8px 12px;font-weight:800;cursor:pointer}
   .chip--active,.chip.is-on{border-color:rgba(0,255,199,.35);background:rgba(0,255,199,.10);color:var(--text)}
+  .swapInfoCard{
+    border:1px solid rgba(190,224,255,.08);
+    background:rgba(8,12,18,.56);
+    border-radius:18px;
+    padding:14px;
+  }
+  .swapSectionLabel{
+    opacity:.72;
+    font-size:12px;
+    letter-spacing:.1em;
+    text-transform:uppercase;
+    margin-bottom:10px;
+  }
+  .swapOutput{
+    min-height:78px;
+    display:flex;
+    align-items:center;
+    border:1px solid rgba(255,255,255,.1);
+    border-radius:16px;
+    padding:0 16px;
+    background:rgba(14,14,20,.82);
+    font-size:32px;
+    font-weight:900;
+    letter-spacing:-.03em;
+  }
+  .swapStatusBox{
+    min-height:42px;
+    display:flex;
+    align-items:center;
+    padding:0 14px;
+    border-radius:16px;
+    border:1px solid rgba(78,227,180,.35);
+    background:rgba(41,70,77,.36);
+    font-size:15px;
+    font-weight:800;
+  }
+  .swapStatusBox.warn{
+    border-color:rgba(255,210,94,.35);
+    background:rgba(255,210,94,.08);
+  }
+  .swapStatusBox.err{
+    border-color:rgba(255,90,90,.35);
+    background:rgba(255,90,90,.08);
+  }
+  .swapStatusBox.ok{
+    border-color:rgba(80,255,170,.28);
+    background:rgba(80,255,170,.08);
+  }
+
+  .tokenModal{
+    position:fixed;
+    inset:0;
+    z-index:9999;
+    display:none;
+  }
+  .tokenModal.isOpen{display:block}
+  .tokenModal__backdrop{
+    position:absolute;
+    inset:0;
+    background:rgba(5,5,12,.74);
+    backdrop-filter:blur(10px);
+  }
+  .tokenModal__panel{
+    position:relative;
+    width:min(560px, calc(100vw - 28px));
+    margin:7vh auto 0;
+    padding:18px;
+    border-radius:24px;
+    border:1px solid rgba(255,255,255,.12);
+    background:linear-gradient(180deg, rgba(25,24,35,.98), rgba(17,16,24,.98));
+    box-shadow:0 28px 70px rgba(0,0,0,.48);
+  }
+  .tokenModal__header{
+    display:flex;
+    justify-content:space-between;
+    gap:12px;
+    align-items:flex-start;
+    margin-bottom:14px;
+  }
+  .tokenModal__title{
+    margin:0;
+    font-size:22px;
+  }
+  .tokenModal__copy{
+    margin:6px 0 0;
+    color:rgba(255,255,255,.66);
+    font-size:13px;
+    line-height:1.45;
+  }
+  .tokenModal__close{
+    width:40px;
+    height:40px;
+    border:0;
+    border-radius:12px;
+    background:rgba(255,255,255,.08);
+    color:#fff;
+    cursor:pointer;
+  }
+  .tokenSearch{
+    width:100%;
+    border:1px solid rgba(255,255,255,.12);
+    border-radius:16px;
+    background:rgba(10,10,16,.9);
+    color:#fff;
+    padding:14px 16px;
+    font-size:15px;
+    font-weight:700;
+  }
+  .tokenModalTabs{
+    display:flex;
+    gap:8px;
+    margin:14px 0 12px;
+    flex-wrap:wrap;
+  }
+  .tokenTab{
+    border:1px solid rgba(255,255,255,.12);
+    background:rgba(255,255,255,.04);
+    color:#fff;
+    border-radius:999px;
+    padding:9px 12px;
+    font-size:13px;
+    font-weight:800;
+    cursor:pointer;
+  }
+  .tokenTab.isOn{
+    border-color:rgba(143,99,255,.35);
+    background:rgba(143,99,255,.16);
+  }
+  .tokenQuickRow{
+    display:flex;
+    gap:8px;
+    flex-wrap:wrap;
+    margin-bottom:12px;
+  }
+  .tokenQuick{
+    border:1px solid rgba(255,255,255,.12);
+    background:rgba(255,255,255,.04);
+    color:#fff;
+    border-radius:999px;
+    padding:8px 12px;
+    font-size:12px;
+    font-weight:900;
+    cursor:pointer;
+  }
+  .tokenList{
+    max-height:52vh;
+    overflow:auto;
+    display:grid;
+    gap:8px;
+    padding-right:2px;
+  }
+  .tokenRow{
+    width:100%;
+    display:grid;
+    grid-template-columns:auto minmax(0,1fr) auto;
+    gap:12px;
+    align-items:center;
+    text-align:left;
+    padding:12px 14px;
+    border-radius:16px;
+    border:1px solid rgba(255,255,255,.08);
+    background:rgba(255,255,255,.03);
+    color:#fff;
+    cursor:pointer;
+  }
+  .tokenRow:hover{
+    border-color:rgba(143,99,255,.34);
+    background:rgba(143,99,255,.08);
+  }
+  .tokenRow__icon{
+    width:36px;
+    height:36px;
+    border-radius:999px;
+    background:rgba(255,255,255,.08);
+    border:1px solid rgba(255,255,255,.12);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-size:12px;
+    font-weight:900;
+    background-size:cover;
+    background-position:center;
+  }
+  .tokenRow__icon--fallback{
+    color:#fff;
+    text-shadow:0 1px 2px rgba(0,0,0,.28);
+  }
+  .tokenRow__meta{min-width:0}
+  .tokenRow__sym{
+    font-size:16px;
+    font-weight:900;
+    line-height:1.1;
+  }
+  .tokenRow__name{
+    margin-top:4px;
+    color:rgba(255,255,255,.62);
+    font-size:13px;
+    white-space:nowrap;
+    overflow:hidden;
+    text-overflow:ellipsis;
+  }
+  .tokenRow__addr{
+    color:rgba(255,255,255,.52);
+    font-size:12px;
+    font-weight:700;
+  }
+  .tokenEmpty{
+    padding:16px;
+    border-radius:16px;
+    border:1px solid rgba(255,255,255,.08);
+    background:rgba(255,255,255,.03);
+    color:rgba(255,255,255,.66);
+  }
 
   .addrMono{font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,'Liberation Mono','Courier New',monospace;opacity:.95}
   .switch{position:relative;display:inline-block;width:46px;height:26px;flex:0 0 auto}
@@ -72,6 +417,9 @@
     .swapTitle{font-size:clamp(30px,10vw,48px)}
     .swapPanel,.swapCard2{padding:16px}
     .segToggle button{padding:9px 12px;font-size:13px}
+    .tokenTrigger__label{font-size:20px}
+    .swapOutput{font-size:26px;min-height:68px}
+    .tokenModal__panel{margin-top:4vh}
   }
 </style>
 </head>
@@ -80,10 +428,13 @@
 
 <header class="topbar" id="top">
   <div class="container topbar__inner">
-    <a class="brand" href="/index.html">DYOOR</a>
+    <a class="brand" href="/index.html" aria-label="DYOOR home">
+      <img class="brand__logo" src="/assets/dyoor-logo.png" alt="" width="34" height="34"/>
+      <span class="brand__text">DYOOR</span>
+    </a>
     <nav class="nav" aria-label="Primary">
       <a href="/whitepaper.html">Whitepaper</a>
-      <a href="/stake.html">Stake</a>
+      <a href="/stake.html">Ascension</a>
       <a href="/swap/" class="is-active">Swap</a>
     </nav>
   </div>
@@ -94,7 +445,7 @@
     <div class="swapKicker">Monad Router • DYOOR Treasury Support</div>
     <h1 class="swapTitle">Swap on Monad</h1>
     <p class="swapCopy">
-      Fast token routing, optional treasury support if you’d like to support DYOOR favorite NFT on monad
+      Fast token routing on Monad, with optional treasury support if you want your swap flow to also feed DYOOR.
     </p>
 
     <div class="swapHeroMeta">
@@ -113,7 +464,7 @@
       <div class="swapCardHead">
         <div>
           <h2 class="swapPanelTitle">Router</h2>
-          <p class="swapPanelCopy">Same swap logic, cleaner DYOOR shell.</p>
+          <p class="swapPanelCopy">Monad routing with cleaner controls, better token picking, and clearer transaction state.</p>
         </div>
 
         <div class="segToggle" role="tablist" aria-label="Swap view">
@@ -134,12 +485,25 @@
         <div class="swapPair">
           <div class="swapRow" style="gap:10px">
             <div style="flex:1;min-width:220px">
-              <div class="mini" style="margin-bottom:6px">From</div>
-              <div class="tokSel">
-                <img id="fromLogo" class="tokLogo" alt="" />
-                <select id="fromToken" class="sel" style="width:100%"></select>
+              <div class="swapTokenBlock">
+                <div class="swapTokenHeader">
+                  <div class="swapTokenTitle">From</div>
+                  <div class="swapTokenBalance" id="fromBal">Balance: —</div>
+                </div>
+                <div class="tokSel">
+                  <button id="fromTokenBtn" class="tokenTrigger" type="button" aria-haspopup="dialog">
+                    <span class="tokenTrigger__asset">
+                      <img id="fromLogo" class="tokLogo" alt="" />
+                      <span class="tokenTrigger__labelWrap">
+                        <span id="fromTokenLabel" class="tokenTrigger__label">MON</span>
+                        <span id="fromTokenName" class="tokenTrigger__name">Monad</span>
+                      </span>
+                    </span>
+                    <span class="tokenTrigger__chev">▾</span>
+                  </button>
+                  <select id="fromToken" class="sel tokenNativeSelect" aria-hidden="true" tabindex="-1"></select>
+                </div>
               </div>
-              <div class="mini" id="fromBal" style="margin-top:6px">Balance: —</div>
             </div>
 
             <div style="flex:2;min-width:260px">
@@ -160,16 +524,29 @@
 
           <div class="swapRow" style="gap:10px">
             <div style="flex:1;min-width:220px">
-              <div class="mini" style="margin-bottom:6px">To</div>
-              <div class="tokSel">
-                <img id="toLogo" class="tokLogo" alt="" />
-                <select id="toToken" class="sel" style="width:100%"></select>
+              <div class="swapTokenBlock">
+                <div class="swapTokenHeader">
+                  <div class="swapTokenTitle">To</div>
+                  <div class="swapTokenBalance" id="toBal">Balance: —</div>
+                </div>
+                <div class="tokSel">
+                  <button id="toTokenBtn" class="tokenTrigger" type="button" aria-haspopup="dialog">
+                    <span class="tokenTrigger__asset">
+                      <img id="toLogo" class="tokLogo" alt="" />
+                      <span class="tokenTrigger__labelWrap">
+                        <span id="toTokenLabel" class="tokenTrigger__label">USDC</span>
+                        <span id="toTokenName" class="tokenTrigger__name">USD Coin</span>
+                      </span>
+                    </span>
+                    <span class="tokenTrigger__chev">▾</span>
+                  </button>
+                  <select id="toToken" class="sel tokenNativeSelect" aria-hidden="true" tabindex="-1"></select>
+                </div>
               </div>
-              <div class="mini" id="toBal" style="margin-top:6px">Balance: —</div>
             </div>
             <div style="flex:2;min-width:260px">
-              <div class="mini" style="margin-bottom:6px">You receive (est.)</div>
-              <div id="toAmt" class="inp" style="display:flex;align-items:center">—</div>
+              <div class="swapSectionLabel">You receive (est.)</div>
+              <div id="toAmt" class="swapOutput">—</div>
             </div>
           </div>
         </div>
@@ -204,7 +581,7 @@
 
         <div style="height:12px"></div>
 
-        <div id="statusBox" class="mini">Enter an amount — quote updates automatically.</div>
+        <div id="statusBox" class="swapStatusBox">Enter an amount — quote updates automatically.</div>
         <div id="routeLine" class="routeLine">Route: —</div>
         <div id="routeBox" class="routeLine"></div>
 
@@ -222,19 +599,44 @@
   </div>
 </main>
 
+<div id="tokenModal" class="tokenModal" aria-hidden="true">
+  <div class="tokenModal__backdrop" data-token-close="1"></div>
+  <div class="tokenModal__panel" role="dialog" aria-modal="true" aria-label="Choose token">
+    <div class="tokenModal__header">
+      <div>
+        <h2 class="tokenModal__title">Select a token</h2>
+        <p class="tokenModal__copy">Search by symbol, name, or contract address.</p>
+      </div>
+      <button type="button" class="tokenModal__close" data-token-close="1" aria-label="Close">✕</button>
+    </div>
+
+    <input id="tokenSearch" class="tokenSearch" type="text" placeholder="Search name or paste address"/>
+
+    <div class="tokenModalTabs">
+      <button id="tabPopular" class="tokenTab isOn" type="button">Popular</button>
+      <button id="tabAll" class="tokenTab" type="button">All tokens</button>
+    </div>
+
+    <div id="tokenQuickRow" class="tokenQuickRow"></div>
+    <div id="tokenList" class="tokenList"></div>
+  </div>
+</div>
+
+<script src="https://unpkg.com/@walletconnect/ethereum-provider@2.23.1/dist/index.umd.js"></script>
+<script src="/wallet-chooser.js"></script>
 <script>
 (() => {
   // Token sources (GitHub-backed)
   const PANCAKE_EXTENDED = 'https://tokens.pancakeswap.finance/pancakeswap-extended.json';
   const MONAD_COMMUNITY = 'https://raw.githubusercontent.com/monad-crypto/token-list/main/tokenlist.json';
   const LOCAL_FALLBACK = '/tokenlist.monad.json';
-  const TOKEN_CACHE_KEY = 'dyoor_tokens_143_cache_v1';
+  const TOKEN_CACHE_KEY = 'dyoor_tokens_143_cache_v2';
 
   // Minimal always-present fallbacks (in case any list fetch fails)
   const BASE_TOKENS = [
-    { symbol: 'MON', name: 'Monad', address: '0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee', decimals: 18, logoURI: '' },
-    { symbol: 'WMON', name: 'Wrapped MON', address: '0x3bd359C1119dA7Da1D913D1C4D2B7c461115433A', chainId: 143, decimals: 18, logoURI: '' },
-    { symbol: 'USDC', name: 'USD Coin', address: '0x754704Bc059F8C67012fEd69BC8A327a5aafb603', chainId: 143, decimals: 6, logoURI: '' }
+    { symbol: 'MON', name: 'Monad', address: '0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee', decimals: 18, logoURI: 'https://raw.githubusercontent.com/monad-crypto/token-list/main/mainnet/MON/logo.svg' },
+    { symbol: 'WMON', name: 'Wrapped MON', address: '0x3bd359C1119dA7Da1D913D1C4D2B7c461115433A', chainId: 143, decimals: 18, logoURI: 'https://raw.githubusercontent.com/monad-crypto/token-list/main/mainnet/WMON/logo.svg' },
+    { symbol: 'USDC', name: 'USD Coin', address: '0x754704Bc059F8C67012fEd69BC8A327a5aafb603', chainId: 143, decimals: 6, logoURI: 'https://tokens.pancakeswap.finance/images/eth/0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48.png' }
   ];
 
   // Tokens to hide from the UI (by contract address). Requested: remove CHOG.
@@ -262,6 +664,20 @@
   const fromBal = document.getElementById('fromBal');
   const toBal = document.getElementById('toBal');
   const routeLine = document.getElementById('routeLine');
+  const fromTokenBtn = document.getElementById('fromTokenBtn');
+  const toTokenBtn = document.getElementById('toTokenBtn');
+  const fromTokenLabel = document.getElementById('fromTokenLabel');
+  const toTokenLabel = document.getElementById('toTokenLabel');
+  const fromTokenName = document.getElementById('fromTokenName');
+  const toTokenName = document.getElementById('toTokenName');
+  const tokenModal = document.getElementById('tokenModal');
+  const tokenSearch = document.getElementById('tokenSearch');
+  const tokenList = document.getElementById('tokenList');
+  const tokenQuickRow = document.getElementById('tokenQuickRow');
+  const tabPopular = document.getElementById('tabPopular');
+  const tabAll = document.getElementById('tabAll');
+  let tokenPickerTarget = 'from';
+  let tokenPickerTab = 'popular';
 
   // View toggle (Basic / Advanced)
   const modeBasic = document.getElementById('modeBasic');
@@ -289,12 +705,19 @@
   let lastFromBalRaw = null;
 
   function setStatus(html, cls) {
-    statusBox.className = cls ? cls : 'mini';
+    statusBox.className = cls ? `swapStatusBox ${cls}` : 'swapStatusBox';
     statusBox.textContent = html;
   }
 
   function setRoute(text) {
     routeLine.textContent = text || 'Route: —';
+  }
+
+  function setTokenTrigger(kind, token) {
+    const labelEl = kind === 'from' ? fromTokenLabel : toTokenLabel;
+    const nameEl = kind === 'from' ? fromTokenName : toTokenName;
+    if (labelEl) labelEl.textContent = token?.symbol || 'TOKEN';
+    if (nameEl) nameEl.textContent = token?.name || 'Token asset';
   }
 
   function flipTokens() {
@@ -315,6 +738,109 @@
     scheduleQuote();
   }
 
+  function getVisibleTokenList() {
+    if (tokenPickerTab === 'all') return TOKENS;
+    const priority = ['MON', 'WMON', 'USDC', 'USDT0', 'WETH', 'WBTC'];
+    const picked = [];
+    for (const symbol of priority) {
+      const token = TOKENS.find((item) => item.symbol === symbol);
+      if (token) picked.push(token);
+    }
+    for (const token of TOKENS) {
+      if (picked.length >= 18) break;
+      if (!picked.find((item) => item.address.toLowerCase() === token.address.toLowerCase())) {
+        picked.push(token);
+      }
+    }
+    return picked;
+  }
+
+  function openTokenModal(target) {
+    tokenPickerTarget = target;
+    tokenModal.classList.add('isOpen');
+    tokenModal.setAttribute('aria-hidden', 'false');
+    tokenSearch.value = '';
+    renderTokenList();
+    setTimeout(() => tokenSearch.focus(), 30);
+  }
+
+  function closeTokenModal() {
+    tokenModal.classList.remove('isOpen');
+    tokenModal.setAttribute('aria-hidden', 'true');
+  }
+
+  function pickToken(address) {
+    const select = tokenPickerTarget === 'from' ? fromSel : toSel;
+    select.value = address;
+    select.dispatchEvent(new Event('change'));
+    closeTokenModal();
+  }
+
+  function renderQuickTokens() {
+    tokenQuickRow.innerHTML = '';
+    const quickSymbols = ['MON', 'WMON', 'USDC', 'USDT0', 'WETH', 'WBTC'];
+    for (const symbol of quickSymbols) {
+      const token = TOKENS.find((item) => item.symbol === symbol);
+      if (!token) continue;
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.className = 'tokenQuick';
+      button.textContent = symbol;
+      button.addEventListener('click', () => pickToken(token.address));
+      tokenQuickRow.appendChild(button);
+    }
+  }
+
+  function renderTokenList() {
+    const query = tokenSearch.value.trim().toLowerCase();
+    const tokens = getVisibleTokenList().filter((token) => {
+      if (!query) return true;
+      return [token.symbol, token.name, token.address]
+        .filter(Boolean)
+        .some((value) => String(value).toLowerCase().includes(query));
+    });
+
+    tokenList.innerHTML = '';
+
+    if (!tokens.length) {
+      const empty = document.createElement('div');
+      empty.className = 'tokenEmpty';
+      empty.textContent = 'No tokens match that search.';
+      tokenList.appendChild(empty);
+      return;
+    }
+
+    for (const token of tokens) {
+      const row = document.createElement('button');
+      row.type = 'button';
+      row.className = 'tokenRow';
+      row.addEventListener('click', () => pickToken(token.address));
+
+      const icon = document.createElement('div');
+      icon.className = 'tokenRow__icon';
+      if (token.logoURI) {
+        icon.style.backgroundImage = `url("${token.logoURI}")`;
+      } else {
+        icon.classList.add('tokenRow__icon--fallback');
+        icon.style.backgroundImage = `url("${badgeDataURI(token.symbol || 'TK')}")`;
+        icon.textContent = '';
+      }
+
+      const meta = document.createElement('div');
+      meta.className = 'tokenRow__meta';
+      meta.innerHTML = `<div class="tokenRow__sym">${token.symbol}</div><div class="tokenRow__name">${token.name}</div>`;
+
+      const address = document.createElement('div');
+      address.className = 'tokenRow__addr';
+      address.textContent = `${token.address.slice(0, 6)}…${token.address.slice(-4)}`;
+
+      row.appendChild(icon);
+      row.appendChild(meta);
+      row.appendChild(address);
+      tokenList.appendChild(row);
+    }
+  }
+
   function normalizeLogoURI(uri) {
     if (!uri) return '';
     if (uri.startsWith('ipfs://')) {
@@ -322,6 +848,12 @@
       return 'https://ipfs.io/ipfs/' + path;
     }
     return uri;
+  }
+
+  function badgeDataURI(symbol, tint = '#8f63ff') {
+    const label = String(symbol || 'TK').slice(0, 3).toUpperCase();
+    const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 96"><defs><linearGradient id="g" x1="0" x2="1" y1="0" y2="1"><stop offset="0%" stop-color="${tint}"/><stop offset="100%" stop-color="#25e3a6"/></linearGradient></defs><circle cx="48" cy="48" r="48" fill="url(#g)"/><circle cx="48" cy="48" r="42" fill="rgba(11,11,18,0.14)"/><text x="48" y="57" text-anchor="middle" font-family="Inter, Arial, sans-serif" font-size="27" font-weight="800" fill="white">${label}</text></svg>`;
+    return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
   }
 
   async function fetchJSON(url, timeoutMs=7000) {
@@ -425,6 +957,7 @@
     fromSel.value = "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"; // MON
     toSel.value = TOKENS.find(t=>t.symbol==="USDC")?.address || TOKENS[1].address;
     updateTokenUI();
+    renderQuickTokens();
     updateCTA().catch(()=>{});
   }
 
@@ -436,15 +969,24 @@
     const addr = (token?.address || '').toLowerCase();
     const local = addr && addr.startsWith('0x') ? (`/assets/tokens/${addr}.png`) : '';
     const remote = normalizeLogoURI(token?.logoURI || '');
+    const fallback = badgeDataURI(token?.symbol || 'TK');
+    imgEl.classList.remove('tokLogo--fallback');
     // Try local first (most reliable in wallet browsers), then fall back to remote list logoURI.
     if (local) {
       imgEl.onerror = () => {
         if (remote) {
-          imgEl.onerror = null;
+          imgEl.onerror = () => {
+            imgEl.onerror = null;
+            imgEl.classList.add('tokLogo--fallback');
+            imgEl.src = fallback;
+            imgEl.style.visibility = 'visible';
+          };
           imgEl.src = remote;
           imgEl.style.visibility = 'visible';
         } else {
-          imgEl.style.visibility = 'hidden';
+          imgEl.classList.add('tokLogo--fallback');
+          imgEl.src = fallback;
+          imgEl.style.visibility = 'visible';
         }
       };
       imgEl.src = local;
@@ -452,18 +994,27 @@
       return;
     }
     if (remote) {
-      imgEl.onerror = null;
+      imgEl.onerror = () => {
+        imgEl.onerror = null;
+        imgEl.classList.add('tokLogo--fallback');
+        imgEl.src = fallback;
+      };
       imgEl.src = remote;
       imgEl.style.visibility = 'visible';
     } else {
-      imgEl.removeAttribute('src');
-      imgEl.style.visibility = 'hidden';
+      imgEl.classList.add('tokLogo--fallback');
+      imgEl.src = fallback;
+      imgEl.style.visibility = 'visible';
     }
   }
 
   function updateTokenUI() {
-    setLogo(fromLogo, getToken(fromSel.value));
-    setLogo(toLogo, getToken(toSel.value));
+    const fromToken = getToken(fromSel.value);
+    const toToken = getToken(toSel.value);
+    setLogo(fromLogo, fromToken);
+    setLogo(toLogo, toToken);
+    setTokenTrigger('from', fromToken);
+    setTokenTrigger('to', toToken);
     refreshBalances();
   }
 
@@ -622,21 +1173,31 @@
   }
 
   async function connect() {
-    if (!await ensureProvider()) return;
-    const okChain = await ensureChain();
-    if (!okChain) return;
     try {
-      const accts = await provider.request({ method: 'eth_requestAccounts' });
-      account = accts && accts[0] ? accts[0] : null;
+      if (window.DyoorWalletChooser?.connect) {
+        const chosenWallet = await window.DyoorWalletChooser.connect({
+          title: 'Connect Wallet',
+          copy: 'Use the same Monad wallet flow across swap, Ascension, and verification.'
+        });
+        provider = chosenWallet.provider;
+        account = chosenWallet.account;
+      } else {
+        if (!await ensureProvider()) return;
+        const okChain = await ensureChain();
+        if (!okChain) return;
+        const accts = await provider.request({ method: 'eth_requestAccounts' });
+        account = accts && accts[0] ? accts[0] : null;
+      }
+
       if (account) {
-        connectBtn.textContent = 'Connected';
+        connectBtn.textContent = `${account.slice(0,6)}…${account.slice(-4)}`;
         accountLine.textContent = account.slice(0,6) + '…' + account.slice(-4);
         setStatus('Connected. Enter an amount — quote updates automatically.', 'ok');
         swapBtn.disabled = true;
         updateTokenUI();
       }
     } catch(e) {
-      setStatus('Wallet connection canceled.', 'err');
+      setStatus((e && e.message) ? e.message : 'Wallet connection canceled.', 'err');
     }
   }
 
@@ -646,7 +1207,7 @@
       const accts = await provider.request({ method: 'eth_accounts' });
       if (accts && accts[0]) {
         account = accts[0];
-        connectBtn.textContent = 'Connected';
+        connectBtn.textContent = `${account.slice(0,6)}…${account.slice(-4)}`;
         accountLine.textContent = account.slice(0,6) + '…' + account.slice(-4);
         updateTokenUI();
       }
@@ -726,7 +1287,7 @@
       const route = data?.route?.label || data?.route?.version || '—';
       setRoute(`Route: ${route}`);
       const warnTxt = (data.warnings && data.warnings.length) ? data.warnings.join(' • ') : '';
-      const msg = `${pi ? `Price impact ~${pi}%` : 'Quote ready.'}${warnTxt ? ` — ${warnTxt}` : ''}`;
+      const msg = `${pi ? `Price impact ~${pi}%` : 'Quote loaded.'}${warnTxt ? ` — ${warnTxt}` : ''}`;
       setStatus(msg, (data.warnings && data.warnings.length) ? 'warn' : 'ok');
 
       // Update main CTA based on allowance/connection
@@ -1068,6 +1629,27 @@
     });
   });
   document.querySelector('[data-slip="0.5"]')?.classList.add('chip--active');
+  fromTokenBtn.addEventListener('click', () => openTokenModal('from'));
+  toTokenBtn.addEventListener('click', () => openTokenModal('to'));
+  tokenModal.addEventListener('click', (event) => {
+    if (event.target.closest('[data-token-close="1"]')) closeTokenModal();
+  });
+  tokenSearch.addEventListener('input', renderTokenList);
+  tabPopular.addEventListener('click', () => {
+    tokenPickerTab = 'popular';
+    tabPopular.classList.add('isOn');
+    tabAll.classList.remove('isOn');
+    renderTokenList();
+  });
+  tabAll.addEventListener('click', () => {
+    tokenPickerTab = 'all';
+    tabAll.classList.add('isOn');
+    tabPopular.classList.remove('isOn');
+    renderTokenList();
+  });
+  document.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape' && tokenModal.classList.contains('isOpen')) closeTokenModal();
+  });
 
   connectBtn.addEventListener('click', connect);
   swapBtn.addEventListener('click', () => {

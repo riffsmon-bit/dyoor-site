@@ -11,8 +11,5 @@
 /swap/
   Cache-Control: no-store
 
-/swap/index.html
-  Cache-Control: no-store
-
 /swap.html
   Cache-Control: no-store

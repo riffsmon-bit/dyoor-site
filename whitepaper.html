@@ -12,15 +12,18 @@
 <body>
 <header class="topbar" id="top">
     <div class="container topbar__inner">
-      <a class="brand" href="/index.html">DYOOR</a>
-      <nav class="nav">
+      <a class="brand" href="/index.html" aria-label="DYOOR home">
+        <img class="brand__logo" src="/assets/dyoor-logo.png" alt="" width="34" height="34"/>
+        <span class="brand__text">DYOOR</span>
+      </a>
+      <nav class="nav" aria-label="Primary">
         <a href="/whitepaper.html" class="is-active">Whitepaper</a>
-        <a href="/stake.html">Stake</a>
+        <a href="/stake.html">Ascension</a>
         <a href="/swap/">Swap</a>
       </nav>
     </div>
   </header>
-  
+
   <main class="page" id="top">
 
     <!-- HERO -->
@@ -29,11 +32,13 @@
         <div class="card hero__card">
           <img class="hero__img" src="/assets/home_banner.png" alt="DYOOR banner" loading="eager"/>
           <div class="hero__copy">
-            <h1>DYOOR — Do Your Own Obvious Research</h1>
-            <p class="muted"><em>(Or don’t, we’re not your dad.)</em></p>
+            <p class="hero__eyebrow">Protocol brief</p>
+            <h1>The DYOOR field manual.</h1>
+            <p class="hero__subcopy">A concise view of the collection, the treasury model, the governance structure, and how swap plus Ascension fit into the live DYOOR stack on Monad.</p>
 
             <div class="hero__cta">
               <a class="btn btn--primary hero__btn" href="/swap/">Swap on Monad</a>
+              <a class="btn btn--ghost hero__btn hero__btn--secondary" href="/stake.html">Open Ascension</a>
             </div>
           </div>
         </div>
@@ -42,21 +47,17 @@
 
     <section class="section reveal" id="whitepaper-intro">
       <div class="container">
-        <h2 class="sectionTitle">Overview</h2>
+        <h2 class="section__title section__title--compact">Overview</h2>
         <div class="card">
-          <p><strong>Supply:</strong> 1,111<br><span class="muted">Scarce. Sacred. Screenshot-worthy.</span></p>
-          <p><strong>Mint Price:</strong> FREE<br><span class="muted">Zero cost. Maximum cope if you fade.</span></p>
+          <p><strong>Supply:</strong> 1,111<br><span class="muted">Fixed collection size with the full supply already minted.</span></p>
+          <p><strong>Mint Price:</strong> Free mint at launch<br><span class="muted">The collection launched as a free mint and is now fully sold out.</span></p>
 
           <p class="muted">
-            Built for OGs, Chads, and Valley of Heroes gigabrains.<br>
-            WL is earned — not begged for in Discord DMs.
+            DYOOR is a Monad-native collection built around live product surfaces, treasury-backed utility, and a holder base that can direct where the project goes next. The goal is to move beyond static profile-picture status and into repeat use across the collection experience.
           </p>
 
           <p class="muted">
-            This project is 100% community-focused and built for the Monad ecosystem.<br>
-            No VCs.<br>
-            No mystery wallets.<br>
-            No team allocation jump scare.
+            The operating model is simple: grow the treasury, ship product around the collection, and let holders decide what gets prioritized next.
           </p>
         </div>
       </div>
@@ -64,13 +65,13 @@
 
     <section class="section reveal" id="about">
       <div class="container">
-        <h2 class="sectionTitle">About DYOOR NFT</h2>
+        <h2 class="section__title section__title--compact">About DYOOR NFT</h2>
         <div class="card">
-          <p>DYOOR does <strong>not</strong> launch with a native token.</p>
-          <p class="muted">There is no tokenomics scheme. No emissions. No inflation games.</p>
-          <p class="muted">This is an NFT-first ecosystem built around sustainable revenue mechanics — not speculative token mechanics.</p>
+          <p>DYOOR does <strong>not</strong> rely on a native token.</p>
+          <p class="muted">There is no emissions schedule, inflation loop, or token launch dependency underneath the collection.</p>
+          <p class="muted">The project is built as an NFT-first ecosystem with treasury-backed product mechanics rather than token-first speculation.</p>
 
-          <p><strong>Where the money goes (read slowly):</strong></p>
+          <p><strong>Revenue sources:</strong></p>
           <ul class="trustList">
             <li><strong>DEX Router:</strong> 75% of Support DYOOR swap fees go directly into the Community Fund.</li>
             <li><strong>Secondary Royalties:</strong> 75% go directly into the Community Fund.</li>
@@ -85,33 +86,34 @@
             <span class="tiny muted" id="copyStatus" aria-live="polite" style="margin-left:10px;"></span>
           </div>
 
-          <p class="muted">The treasury exists to power long-term ecosystem growth, product expansion, and future utilities.</p>
+          <p class="muted">The treasury funds ecosystem growth, new utility, and future product work tied directly to the collection.</p>
 
-          <p><strong>We stack the treasury.</strong><br><strong>Then holders decide what happens next.</strong></p>
+          <p><strong>Treasury growth comes first.</strong><br><strong>Holder governance decides what gets built next.</strong></p>
         </div>
       </div>
     </section>
 
     <section class="section reveal" id="governance">
       <div class="container">
-        <h2 class="sectionTitle">Governance &amp; Utilities</h2>
+        <h2 class="section__title section__title--compact">Governance &amp; Utilities</h2>
         <div class="card">
-          <p class="muted">Treasury allocation and future utilities are decided through DAO voting.</p>
+          <p class="muted">Treasury allocation and future utility direction are decided through holder governance.</p>
           <ul class="trustList">
             <li><strong>Only holders vote.</strong></li>
-            <li>No vibe-based direction.</li>
-            <li>No Twitter governance.</li>
+            <li>Direction is decided through holder proposals and DAO voting.</li>
+            <li>Off-chain sentiment does not replace on-chain governance.</li>
           </ul>
-          <p class="muted">Utilities are built by the community, for the community.</p>
-          <p><strong>Degen-brained.</strong><br><strong>But launching free and structured.</strong></p>
+          <p class="muted">The goal is a collection that can fund, guide, and sustain its own next phase rather than peak at mint and stall.</p>
+          <p><strong>Community-native.</strong><br><strong>Structured to outlast the initial mint cycle.</strong></p>
         </div>
       </div>
     </section>
 
     <section class="section reveal" id="wl">
       <div class="container">
-        <h2 class="sectionTitle">WL Breakdown</h2>
+        <h2 class="section__title section__title--compact">Mint Structure</h2>
         <div class="card">
+          <p class="muted">Historical mint limits for the sold-out launch:</p>
           <ul class="trustList">
             <li><strong>Whitelist:</strong> 20 mints per wallet</li>
             <li><strong>Public:</strong> 10 mints per wallet</li>
@@ -122,23 +124,23 @@
 
     <section class="section reveal" id="dex-router">
       <div class="container">
-        <h2 class="sectionTitle">DEX Router</h2>
+        <h2 class="section__title section__title--compact">DEX Router</h2>
         <div class="card">
-          <p class="muted">DYOOR Swap is powered by a PancakeSwap-based router for fast, familiar DeFi swaps.</p>
-          <p>Users can optionally flip the <strong>“Support DYOOR”</strong> toggle.</p>
+          <p class="muted">DYOOR Swap uses a PancakeSwap-based routing layer to keep trading familiar while giving the project its own branded shell on top.</p>
+          <p>Users can optionally enable the <strong>Support DYOOR</strong> route.</p>
           <p class="muted">When enabled:</p>
           <ul class="trustList">
             <li>An additional fee is applied</li>
             <li>75% of that fee goes directly to the Community Fund (Treasury)</li>
           </ul>
-          <p class="muted">You trade anyway.<br>You might as well support the treasury while doing it.</p>
+          <p class="muted">Support routing is optional. When enabled, part of each swap feeds the treasury that funds future product, collection utility, and community work.</p>
         </div>
       </div>
     </section>
 
     </main>
 
-
+  <script defer src="https://cdn.jsdelivr.net/npm/ethers@6.11.1/dist/ethers.umd.min.js"></script>
   <script defer src="https://unpkg.com/@walletconnect/ethereum-provider@2.23.1/dist/index.umd.js"></script>
   <script defer src="/script.js?v=fix3"></script>
 
