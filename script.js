@@ -195,6 +195,9 @@ function syncWalletGlobals(){
     window.provider = provider;
     window.signer = signer;
     window.userAddress = userAddress;
+    window.dispatchEvent(new CustomEvent('dyoor:wallet', {
+      detail: { eip1193: __activeEvmProvider, provider, signer, userAddress }
+    }));
   } catch (e) {}
 }
 // ---------- Helpers ----------
@@ -321,8 +324,9 @@ async function connectWallet(providerOverride, options = {}) {
 
 function updateWalletUI(){
   const addr = userAddress;
-  const connectSwap = qs('#swapConnectBtn');
-  const connectVerify = qs('#btnVerifyConnectWallet');
+  const connectHome = qs('#homeWalletBtn');
+  const connectSwapContext = qs('#swapContextWalletBtn');
+  const connectVerifyContext = qs('#verifyContextWalletBtn');
   // Some pages have additional connect buttons; keep this function safe.
   const connectCasino = qs('#btnConnectCasino');
   const chainPill = qs('#chainPill');
@@ -330,8 +334,9 @@ function updateWalletUI(){
   const verifyWalletSub = qs('#verifyWalletSub');
 
   if (connectCasino) connectCasino.textContent = addr ? `Connected: ${shortAddr(addr)}` : 'Connect Wallet';
-  if (connectSwap) connectSwap.textContent = addr ? `Connected: ${shortAddr(addr)}` : 'Connect wallet';
-  if (connectVerify) connectVerify.textContent = addr ? `Connected: ${shortAddr(addr)}` : 'Connect Wallet';
+  if (connectHome) connectHome.textContent = addr ? shortAddr(addr) : 'Connect Wallet';
+  if (connectSwapContext) connectSwapContext.textContent = addr ? `Connected: ${shortAddr(addr)}` : 'Connect Wallet to Swap';
+  if (connectVerifyContext) connectVerifyContext.textContent = addr ? `Connected: ${shortAddr(addr)}` : 'Connect Wallet to Verify';
   if (chainPill) chainPill.textContent = addr ? `Monad • ${shortAddr(addr)}` : 'Monad';
   if (verifyWalletValue) verifyWalletValue.textContent = addr ? shortAddr(addr) : 'Not connected';
   if (verifyWalletSub) verifyWalletSub.textContent = addr
@@ -374,27 +379,6 @@ document.addEventListener('DOMContentLoaded', () => {
     closeWalletModal();
   };
 
-  qs('#swapConnectBtn')?.addEventListener('click', async (e) => {
-    e.preventDefault();
-
-    const okxProv =
-      getInjectedProvider('okx') ||
-      (window.okxwallet && (window.okxwallet.ethereum || window.okxwallet)) ||
-      window.ethereum;
-
-    if (detectOKXInjected() && okxProv && okxProv.request) {
-      try {
-        await connectWallet(okxProv);
-        return;
-      } catch (err) {
-        console.warn('Direct OKX connect failed, falling back to modal:', err);
-      }
-    }
-
-    openWalletModal();
-  });
-
-  bindClick('#btnVerifyConnectWallet', safeOpenWalletModal);
   bindClick('[data-open-wallet]', safeOpenWalletModal);
 
   bindClick('#walletModal [data-close]', safeCloseWalletModal);
@@ -788,14 +772,12 @@ async function verifyRolesFlow(mode = 'verify'){
 
 function initHomepageVerifier(){
   const discordBtn = document.getElementById('btnConnectDiscord');
-  const connectWalletBtn = document.getElementById('btnVerifyConnectWallet');
   const verifyBtn = document.getElementById('btnVerifyRoles');
   const refreshBtn = document.getElementById('btnRefreshRoles');
 
-  if(!discordBtn || !connectWalletBtn || !verifyBtn || !refreshBtn) return;
+  if(!discordBtn || !verifyBtn || !refreshBtn) return;
 
   discordBtn.addEventListener('click', startDiscordLogin);
-  connectWalletBtn.addEventListener('click', ()=>openWalletModal());
   verifyBtn.addEventListener('click', ()=>verifyRolesFlow('verify'));
   refreshBtn.addEventListener('click', ()=>verifyRolesFlow('refresh'));
 

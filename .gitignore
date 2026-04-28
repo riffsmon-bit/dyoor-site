@@ -1,5 +1,10 @@
 .env
 .DS_Store
+node_modules/
 *backup*.html
 *backup*.js
 *backup*.css
+
+# Local Netlify folder
+.netlify
+deno.lock

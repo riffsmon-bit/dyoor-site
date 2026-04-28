@@ -1,4 +1,4 @@
-/swap      /swap.html   200
-/swap/     /swap.html   200
+/swap      /#swap   301
+/swap/     /#swap   301
 /stake      /stake.html   200
 /stake/     /stake.html   200

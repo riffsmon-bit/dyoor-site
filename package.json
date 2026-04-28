@@ -2,9 +2,18 @@
   "name": "dyoor-site",
   "private": true,
   "type": "module",
+  "scripts": {
+    "dev": "PORT=5173 node local-dev-server.js",
+    "netlify:dev": "netlify dev --port 8888 --offline --skip-gitignore --no-open",
+    "serve": "python3 -m http.server 4173 --bind 127.0.0.1",
+    "check": "node --check script.js && node --check swap-module.js && node --check wallet-chooser.js && node --check local-dev-server.js && node --check netlify/functions/quote.js"
+  },
   "dependencies": {
     "@netlify/blobs": "^7.4.0",
     "ethers": "^6.13.0",
     "viem": "^2.47.6"
+  },
+  "devDependencies": {
+    "netlify-cli": "^25.6.1"
   }
 }

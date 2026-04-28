@@ -1,8 +1,8 @@
 {
   "name": "DYOOR Monad Top Tokens",
-  "timestamp": "2026-02-06T01:03:26.184869Z",
+  "timestamp": "2026-04-27T13:45:00.000000Z",
   "chainId": 143,
-  "source": "Curated from Monad Foundation token list + popular Monad assets",
+  "source": "Curated from Monad Foundation token list + Kuru popular pools",
   "tokens": [
     {
       "symbol": "WMON",
@@ -18,7 +18,31 @@
       "address": "0x754704Bc059F8C67012fEd69BC8A327a5aafb603",
       "chainId": 143,
       "decimals": 6,
-      "logoURI": "https://tokens.pancakeswap.finance/images/eth/0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48.png"
+      "logoURI": "https://raw.githubusercontent.com/monad-crypto/token-list/main/mainnet/USDC/logo.svg"
+    },
+    {
+      "symbol": "BOB",
+      "name": "BOB",
+      "address": "0x21E325B059Cd83d4037C82F0F5998Ba2dF3d7777",
+      "chainId": 143,
+      "decimals": 18,
+      "logoURI": "/assets/tokens/bob.svg"
+    },
+    {
+      "symbol": "CHOG",
+      "name": "Chog",
+      "address": "0x350035555E10D9aFaF1566aAEBFCeD5Ba6C27777",
+      "chainId": 143,
+      "decimals": 18,
+      "logoURI": "https://coin-images.coingecko.com/coins/images/70930/large/chog.png?1764628221"
+    },
+    {
+      "symbol": "emo",
+      "name": "emonad",
+      "address": "0x81a224F8A62f52BDe942DBf23A56Df77a10b7777",
+      "chainId": 143,
+      "decimals": 18,
+      "logoURI": "https://coin-images.coingecko.com/coins/images/102172808/large/wi13repazwee6wximmko4nk8jfbo.?1775837251"
     },
     {
       "symbol": "USDT0",
@@ -26,7 +50,7 @@
       "address": "0xe7cd86e13AC4309349F30B3435a9d337750fC82D",
       "chainId": 143,
       "decimals": 6,
-      "logoURI": "https://tokens.pancakeswap.finance/images/eth/0xdAC17F958D2ee523a2206206994597C13D831ec7.png"
+      "logoURI": ""
     },
     {
       "symbol": "AUSD",
@@ -50,7 +74,39 @@
       "address": "0xEE8c0E9f1BFFb4Eb878d8f15f368A02a35481242",
       "chainId": 143,
       "decimals": 18,
-      "logoURI": "https://tokens.pancakeswap.finance/images/eth/0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2.png"
+      "logoURI": "https://coin-images.coingecko.com/coins/images/70824/large/weth_2.jpg?1764040144"
+    },
+    {
+      "symbol": "sMON",
+      "name": "Kintsu Staked Monad",
+      "address": "0xA3227C5969757783154C60bF0bC1944180ed81b9",
+      "chainId": 143,
+      "decimals": 18,
+      "logoURI": "https://coin-images.coingecko.com/coins/images/70835/large/sMON_%281%29.png?1764091581"
+    },
+    {
+      "symbol": "gMON",
+      "name": "gMON",
+      "address": "0x8498312A6B3cbD158Bf0C93AbdCf29e6e4F55081",
+      "chainId": 143,
+      "decimals": 18,
+      "logoURI": "https://coin-images.coingecko.com/coins/images/39746/large/gMonad_200px.png?1723781729"
+    },
+    {
+      "symbol": "shMON",
+      "name": "ShMonad",
+      "address": "0x1B68626dCa36c7Fe922fD2d55E4f631d962dE19c",
+      "chainId": 143,
+      "decimals": 18,
+      "logoURI": "https://coin-images.coingecko.com/coins/images/70837/large/SHMONAD_ICON_%281%29.png?1764108788"
+    },
+    {
+      "symbol": "CETES",
+      "name": "Etherfuse CETES",
+      "address": "0x834df4C1D8f51bE24322E39E4766697BE015512f",
+      "chainId": 143,
+      "decimals": 6,
+      "logoURI": "https://coin-images.coingecko.com/coins/images/37855/large/cetes.png?1715788161"
     },
     {
       "symbol": "wstETH",
@@ -58,7 +114,7 @@
       "address": "0x10Aeaf63194db8d453d4D85a06E5eFE1dd0b5417",
       "chainId": 143,
       "decimals": 18,
-      "logoURI": "https://tokens.pancakeswap.finance/images/eth/0x7f39C581F595B53c5cb19bD0b3f8dA6c935E2Ca0.png"
+      "logoURI": ""
     },
     {
       "symbol": "WBTC",
@@ -66,7 +122,7 @@
       "address": "0x0555E30da8f98308EdB960aa94C0Db47230d2B9c",
       "chainId": 143,
       "decimals": 8,
-      "logoURI": "https://tokens.pancakeswap.finance/images/eth/0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599.png"
+      "logoURI": ""
     },
     {
       "symbol": "WSOL",
@@ -98,7 +154,7 @@
       "address": "0xA3D68b74bF0528fdD07263c60d6488749044914b",
       "chainId": 143,
       "decimals": 18,
-      "logoURI": "https://tokens.pancakeswap.finance/images/eth/0xCd5fE23C85820F7B72D0926FC9b05b43E359b7ee.png"
+      "logoURI": ""
     },
     {
       "symbol": "ezETH",

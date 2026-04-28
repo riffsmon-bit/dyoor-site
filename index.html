@@ -3,13 +3,13 @@
 <head>
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"/>
-  <title>DYOOR | Monad NFT Community, Swap, and Ascension Protocol</title>
-  <meta name="description" content="DYOOR is a Monad-native NFT project with a sold-out S1 collection, live Ascension utility, Discord role sync, and a swap built to support the treasury."/>
+  <title>DYOOR | Monad NFT Community and Ascension Protocol</title>
+  <meta name="description" content="DYOOR is a Monad-native NFT project with a sold-out S1 collection, Kuru Flow swap access, live Ascension utility, and Discord role sync."/>
   <meta name="theme-color" content="#07070c"/>
   <link rel="canonical" href="https://dyoor.xyz/"/>
   <meta property="og:type" content="website"/>
   <meta property="og:title" content="DYOOR"/>
-  <meta property="og:description" content="A Monad-native NFT project with a sold-out S1 collection, Ascension utility, role sync, and DYOOR Swap."/>
+  <meta property="og:description" content="A Monad-native NFT project with a sold-out S1 collection, Ascension utility, role sync, and Kuru Flow swaps."/>
   <meta property="og:image" content="https://dyoor.xyz/assets/home_banner.png"/>
   <meta name="twitter:card" content="summary_large_image"/>
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -29,7 +29,7 @@
       <nav class="nav" aria-label="Primary">
         <a href="/whitepaper.html">Whitepaper</a>
         <a href="/stake.html">Ascension Protocol</a>
-        <a href="/swap/">Swap</a>
+        <button class="btn btn--ghost navWalletBtn" id="homeWalletBtn" type="button" data-open-wallet>Connect Wallet</button>
       </nav>
     </div>
   </header>
@@ -45,7 +45,6 @@
             <h1>Degen culture. Live product. Monad-native.</h1>
             <p class="hero__subcopy">DYOOR is a sold-out S1 collection with live utility already in market: swap on Monad, move S1 into Ascension, and keep Discord roles synced to real wallet state.</p>
             <div class="hero__cta">
-              <a class="btn btn--primary hero__btn" href="/swap/">Swap on Monad</a>
               <a class="btn btn--ghost hero__btn hero__btn--secondary" href="/stake.html">Ascend S1</a>
             </div>
             <div class="hero__meta">
@@ -58,25 +57,129 @@
       </div>
     </section>
 
+    <section class="section reveal" id="swap">
+      <div class="container">
+        <div class="homeSwapShell" id="kuruSwap" data-fee-bps="20" data-treasury="">
+          <div class="homeSwapIntro">
+            <p class="sectionLead__eyebrow">Kuru Flow Router</p>
+            <h2 class="section__title section__title--compact">Swap DYOOR Tewkens</h2>
+            <p class="muted center">Powered by Kuru Flow. Routes and liquidity are provided by Kuru Flow and third-party Monad liquidity sources.</p>
+          </div>
+
+          <div class="homeSwapGrid">
+            <section class="swapPanel" aria-label="Swap DYOOR Tewkens">
+              <div class="swapCardHead">
+                <div>
+                  <h3 class="swapPanelTitle">Swap DYOOR Tewkens</h3>
+                  <p class="swapPanelCopy">Powered by Kuru Flow</p>
+                </div>
+                <button id="swapContextWalletBtn" class="btn btn--ghost" type="button" data-open-wallet>Connect Wallet to Swap</button>
+              </div>
+
+              <div class="swapStatLine">
+                <div>
+                  <div class="swapMiniLabel">Network</div>
+                  <div class="mini">Monad (143)</div>
+                </div>
+                <div class="mini" id="swapAccountLine">Not connected</div>
+              </div>
+
+              <div class="swapTokenBlock">
+                <div class="swapTokenHeader">
+                  <div class="swapTokenTitle">Token input</div>
+                  <div class="swapTokenBalance" id="fromBal">Balance: -</div>
+                </div>
+                <div class="swapInputRow">
+                  <button id="fromTokenBtn" class="tokenTrigger" type="button" aria-haspopup="dialog">
+                    <span class="tokenTrigger__asset">
+                      <img id="fromLogo" class="tokLogo" alt=""/>
+                      <span class="tokenTrigger__labelWrap">
+                        <span id="fromTokenLabel" class="tokenTrigger__label">MON</span>
+                        <span id="fromTokenName" class="tokenTrigger__name">Monad</span>
+                      </span>
+                    </span>
+                    <span class="tokenTrigger__chev">▾</span>
+                  </button>
+                  <div class="amtWrap">
+                    <input id="fromAmt" class="inp" inputmode="decimal" autocomplete="off" placeholder="0.0"/>
+                    <button id="maxBtn" class="btn btn--ghost maxBtn" type="button">MAX</button>
+                  </div>
+                </div>
+              </div>
+
+              <div class="flipSeam">
+                <button id="flipBtn" class="flipBtn" type="button" aria-label="Flip tokens" title="Flip tokens">⇅</button>
+              </div>
+
+              <div class="swapTokenBlock">
+                <div class="swapTokenHeader">
+                  <div class="swapTokenTitle">Token output</div>
+                  <div class="swapTokenBalance" id="toBal">Balance: -</div>
+                </div>
+                <div class="swapInputRow">
+                  <button id="toTokenBtn" class="tokenTrigger" type="button" aria-haspopup="dialog">
+                    <span class="tokenTrigger__asset">
+                      <img id="toLogo" class="tokLogo" alt=""/>
+                      <span class="tokenTrigger__labelWrap">
+                        <span id="toTokenLabel" class="tokenTrigger__label">USDC</span>
+                        <span id="toTokenName" class="tokenTrigger__name">USD Coin</span>
+                      </span>
+                    </span>
+                    <span class="tokenTrigger__chev">▾</span>
+                  </button>
+                  <div id="toAmt" class="swapOutput" aria-live="polite">-</div>
+                </div>
+              </div>
+
+              <div class="swapControls">
+                <label class="swapControl">
+                  <span>Slippage</span>
+                  <input id="slippageInput" class="miniInput" type="number" min="0.01" max="50" step="0.1" value="0.5"/>
+                  <span>%</span>
+                </label>
+                <div class="supportBadge" aria-live="polite">DYOOR support built in</div>
+              </div>
+
+              <div class="swapSupportCopy">
+                <strong>Support DYOOR</strong>
+                <span>By using the DYOOR swap, you support DYOOR and the Monad ecosystem through a transparent treasury fee when configured.</span>
+                <span id="supportHint">Fee: 0.20% | Treasury: not configured</span>
+              </div>
+
+              <div class="swapMeta">
+                <div id="routeLine">Route: -</div>
+                <div id="priceImpactLine">Price impact: unavailable</div>
+                <div id="approvalLine">Approval: connect wallet</div>
+                <div id="quoteDebugLine">Quote API: waiting</div>
+              </div>
+
+              <div id="statusBox" class="swapStatusBox">Enter an amount. Quotes update automatically.</div>
+              <button id="swapBtn" class="btn btn--primary btnFull" type="button" disabled>Connect wallet to swap</button>
+
+              <p class="swapSafety">Not financial advice. Always verify token addresses before swapping.</p>
+            </section>
+
+            <aside class="homeSwapAside">
+              <img src="/assets/swap_brand.jpg" alt="DYOOR swap artwork" loading="lazy"/>
+              <div class="homeSwapAside__copy">
+                <h3>Native flow, less noise.</h3>
+                <p>Kuru Flow aggregates Monad liquidity for any-token-to-any-token routes. DYOOR support is transparent and shown before you sign.</p>
+              </div>
+            </aside>
+          </div>
+        </div>
+      </div>
+    </section>
+
     <section class="section reveal" id="operations">
       <div class="container">
         <div class="sectionLead sectionLead--center">
           <p class="sectionLead__eyebrow">Live Stack</p>
-          <h2 class="section__title section__title--compact">Three live surfaces. One sharp DYOOR shell.</h2>
-          <p class="muted center sectionLead__copy">Trade, stake, and verify from one system built around the collection instead of a pile of disconnected pages.</p>
+          <h2 class="section__title section__title--compact">Core live surfaces. Cleaner DYOOR shell.</h2>
+          <p class="muted center sectionLead__copy">Swap from the homepage, ascend from the protocol page, and verify roles from the dedicated sync panel below.</p>
         </div>
 
-        <div class="featureGrid">
-          <article class="card featureCard">
-            <img class="featureCard__img" src="/assets/swap_brand.jpg" alt="DYOOR Swap artwork" loading="lazy"/>
-            <div class="featureCard__body">
-              <span class="featureCard__tag">Swap Desk</span>
-              <h3 class="featureCard__title">Route Monad flow through the DYOOR desk</h3>
-              <p class="featureCard__copy">A cleaner router with searchable token selection, clearer transaction state, and an optional support route that feeds the treasury directly.</p>
-              <a class="btn btn--primary" href="/swap/">Open Swap</a>
-            </div>
-          </article>
-
+        <div class="featureGrid featureGrid--single">
           <article class="card featureCard featureCard--ascension">
             <img class="featureCard__img" src="/assets/ascension.jpg" alt="Ascension Protocol artwork" loading="lazy"/>
             <div class="featureCard__body">
@@ -84,16 +187,6 @@
               <h3 class="featureCard__title">Move S1 into Ascension and generate energy</h3>
               <p class="featureCard__copy">Stake and unstake from one surface, track pending energy, and manage your S1 inventory without jumping between clunky contract views.</p>
               <a class="btn btn--ghost" href="/stake.html">Open Ascension</a>
-            </div>
-          </article>
-
-          <article class="card featureCard">
-            <img class="featureCard__img" src="/assets/home_banner.png" alt="DYOOR community banner" loading="lazy"/>
-            <div class="featureCard__body">
-              <span class="featureCard__tag">Role Relay</span>
-              <h3 class="featureCard__title">Link Discord and refresh holder state on demand</h3>
-              <p class="featureCard__copy">Connect once, verify when needed, and keep Holder, Ascended, 20+, and 50+ roles aligned with live wallet balance and Ascension status.</p>
-              <a class="btn btn--ghost" href="#discord-verify">Verify Roles</a>
             </div>
           </article>
         </div>
@@ -164,7 +257,7 @@
               <div class="verifyValue" id="verifyWalletValue">Not connected</div>
               <div class="verifySub" id="verifyWalletSub">Connect the wallet that holds your collection or currently has S1 in Ascension.</div>
               <div class="verifyActions">
-                <button class="btn btn--ghost" id="btnVerifyConnectWallet" type="button">Connect Wallet</button>
+                <button class="btn btn--ghost" id="verifyContextWalletBtn" type="button" data-open-wallet>Connect Wallet to Verify</button>
               </div>
             </div>
           </div>
@@ -297,7 +390,29 @@
 
   <script defer src="https://cdn.jsdelivr.net/npm/ethers@6.11.1/dist/ethers.umd.min.js"></script>
   <script defer src="https://unpkg.com/@walletconnect/ethereum-provider@2.23.1/dist/index.umd.js"></script>
+  <script defer src="/wallet-chooser.js"></script>
   <script defer src="/script.js?v=home-glow-verify-1"></script>
+  <script defer src="/swap-module.js?v=kuru-flow-3"></script>
+
+  <div id="tokenModal" class="tokenModal" aria-hidden="true">
+    <div class="tokenModal__backdrop" data-token-close="1"></div>
+    <div class="tokenModal__panel" role="dialog" aria-modal="true" aria-label="Choose token">
+      <div class="tokenModal__header">
+        <div>
+          <h2 class="tokenModal__title">Select a token</h2>
+          <p class="tokenModal__copy">Search by symbol, name, or paste a Monad token address.</p>
+        </div>
+        <button type="button" class="tokenModal__close" data-token-close="1" aria-label="Close">✕</button>
+      </div>
+      <input id="tokenSearch" class="tokenSearch" type="text" placeholder="Search or paste token address"/>
+      <div class="tokenModalTabs">
+        <button id="tabPopular" class="tokenTab isOn" type="button">Popular</button>
+        <button id="tabAll" class="tokenTab" type="button">All tokens</button>
+      </div>
+      <div id="tokenQuickRow" class="tokenQuickRow"></div>
+      <div id="tokenList" class="tokenList"></div>
+    </div>
+  </div>
 
   <div id="walletModal" class="wallet-modal" aria-hidden="true">
     <div class="wallet-modal__backdrop" data-close="1"></div>
