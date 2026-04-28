@@ -2,6 +2,7 @@ const CHAIN_ID = 143;
 const CHAIN_ID_HEX = "0x8f";
 const NFT_ADDRESS = "0x2c79c9e233fea4b4dcfe6561d9209dc292cd932f";
 const STAKING_ADDRESS = "0xf9611226c1CcCcCa37951938d6f358D3d5106549";
+const ENERGY_BANK_ADDRESS = "0x291a8cC0FCa08EBd64a0e4d67B4455d24e9E6767";
 const MAX_SCAN = 1111;
 
 const stakingAbi = [
@@ -16,6 +17,13 @@ const stakingAbi = [
   "function paused() view returns (bool)",
   "function s1Nft() view returns (address)",
   "function pointsPerDay() view returns (uint256)"
+];
+
+const energyBankAbi = [
+  "function creditWithAuthorization(address user,uint256 amount,bytes32 claimTxHash,uint256 nonce,uint256 deadline,bytes signature)",
+  "function spendableEnergy(address user) view returns (uint256)",
+  "function lifetimeEnergy(address user) view returns (uint256)",
+  "function totalSpent(address user) view returns (uint256)"
 ];
 
 const nftAbi = [
@@ -49,6 +57,8 @@ const walletStatus = document.getElementById("walletStatus");
 const pendingEnergy = document.getElementById("pendingEnergy");
 const harvestedEnergy = document.getElementById("harvestedEnergy");
 const lifetimeEnergy = document.getElementById("lifetimeEnergy");
+const bankedEnergy = document.getElementById("bankedEnergy");
+const bankedLifetimeEnergy = document.getElementById("bankedLifetimeEnergy");
 const energyRate = document.getElementById("energyRate");
 const selectedCount = document.getElementById("selectedCount");
 const statusBox = document.getElementById("statusBox");
@@ -151,6 +161,64 @@ async function recordHarvest(address, amountRaw, txHash) {
   }
 
   return BigInt(json?.harvestedRaw || "0");
+}
+
+async function requestEnergyBankAuthorization(address, amountRaw, txHash) {
+  const res = await fetch("/.netlify/functions/energy-bank-credit", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({
+      user: address,
+      amountRaw: amountRaw.toString(),
+      txHash
+    })
+  });
+
+  const json = await res.json().catch(() => ({}));
+  if (!res.ok || json.ok === false) {
+    throw new Error(json?.error || "Failed to authorize Energy Bank credit.");
+  }
+
+  return json;
+}
+
+async function creditEnergyBank(address, amountRaw, txHash) {
+  setStatus("Preparing on-chain Energy Bank credit...");
+  const auth = await requestEnergyBankAuthorization(address, amountRaw, txHash);
+
+  setStatus("Confirm Energy Bank credit in your wallet...");
+  const creditTxHash = await sendContractTx(
+    auth.energyBankAddress,
+    energyBankAbi,
+    "creditWithAuthorization",
+    [
+      auth.user,
+      BigInt(auth.amountRaw),
+      auth.claimTxHash,
+      BigInt(auth.nonce),
+      BigInt(auth.deadline),
+      auth.signature
+    ]
+  );
+
+  await waitForHash(creditTxHash);
+  return creditTxHash;
+}
+
+async function fetchEnergyBankState(address) {
+  const energyBankAddress = window.ENERGY_BANK_ADDRESS || ENERGY_BANK_ADDRESS;
+  if (!address || !energyBankAddress || !ethers.isAddress(energyBankAddress)) {
+    return { spendable: 0n, lifetime: 0n, spent: 0n };
+  }
+
+  const bank = new ethers.Contract(energyBankAddress, energyBankAbi, provider);
+  const [spendable, lifetime, spent] = await Promise.all([
+    bank.spendableEnergy(address),
+    bank.lifetimeEnergy(address),
+    bank.totalSpent(address)
+  ]);
+
+  return { spendable, lifetime, spent };
 }
 
 async function seedKnownHistoricalHarvestIfNeeded(address) {
@@ -431,11 +499,12 @@ async function updateEnergy() {
   try {
     await seedKnownHistoricalHarvestIfNeeded(userAddress);
 
-    const [pending, stakedBalance, pointsPerDayRaw, harvestedRaw] = await Promise.all([
+    const [pending, stakedBalance, pointsPerDayRaw, harvestedRaw, bankState] = await Promise.all([
       staking.pendingPoints(userAddress),
       staking.stakedBalance(userAddress),
       staking.pointsPerDay(),
-      fetchHarvestedEnergyRaw(userAddress).catch(() => 0n)
+      fetchHarvestedEnergyRaw(userAddress).catch(() => 0n),
+      fetchEnergyBankState(userAddress).catch(() => ({ spendable: 0n, lifetime: 0n, spent: 0n }))
     ]);
 
     const pendingDisplay = Number(ethers.formatEther(pending));
@@ -447,6 +516,8 @@ async function updateEnergy() {
     pendingEnergy.textContent = formatEnergyValue(pendingDisplay);
     harvestedEnergy.textContent = formatEnergyValue(harvestedDisplay);
     lifetimeEnergy.textContent = formatEnergyValue(lifetimeDisplay);
+    if (bankedEnergy) bankedEnergy.textContent = formatEnergyValue(Number(ethers.formatEther(bankState.spendable)));
+    if (bankedLifetimeEnergy) bankedLifetimeEnergy.textContent = formatEnergyValue(Number(ethers.formatEther(bankState.lifetime)));
     energyRate.textContent = Number.isInteger(totalRate)
       ? `${totalRate} / day`
       : `${totalRate.toFixed(2)} / day`;
@@ -455,6 +526,8 @@ async function updateEnergy() {
     pendingEnergy.textContent = "0.00";
     harvestedEnergy.textContent = "0.00";
     lifetimeEnergy.textContent = "0.00";
+    if (bankedEnergy) bankedEnergy.textContent = "0.00";
+    if (bankedLifetimeEnergy) bankedLifetimeEnergy.textContent = "0.00";
     energyRate.textContent = "0 / day";
     setStatus(`Energy load failed: ${formatError(err)}`);
   }
@@ -799,9 +872,17 @@ async function harvestEnergy() {
       } catch (recordErr) {
         console.warn("recordHarvest failed", recordErr);
       }
-    }
 
-    setStatus("Energy harvested.");
+      try {
+        const bankTxHash = await creditEnergyBank(userAddress, claimableBefore, txHash);
+        setStatus(`Energy harvested and banked on-chain.\n${bankTxHash.slice(0, 10)}...`);
+      } catch (bankErr) {
+        console.warn("creditEnergyBank failed", bankErr);
+        setStatus(`Energy harvested. On-chain bank credit not completed: ${formatError(bankErr)}`);
+      }
+    } else {
+      setStatus("Energy harvested.");
+    }
     await loadState();
   } catch (err) {
     console.error("harvestEnergy error", err);

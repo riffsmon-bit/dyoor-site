@@ -6,7 +6,11 @@
     "dev": "PORT=5173 node local-dev-server.js",
     "netlify:dev": "netlify dev --port 8888 --offline --skip-gitignore --no-open",
     "serve": "python3 -m http.server 4173 --bind 127.0.0.1",
-    "check": "node --check script.js && node --check swap-module.js && node --check wallet-chooser.js && node --check local-dev-server.js && node --check netlify/functions/quote.js"
+    "check": "node --check script.js && node --check swap-module.js && node --check wallet-chooser.js && node --check local-dev-server.js && node --check netlify/functions/quote.js && node --check netlify/functions/energy-bank-credit.js",
+    "compile:contracts": "hardhat compile",
+    "deploy:energy-bank": "hardhat run scripts/deploy-energy-bank.js --network monad",
+    "backfill:energy-bank": "hardhat run scripts/backfill-energy-bank.js --network monad",
+    "backfill:energy-bank:execute": "EXECUTE_BACKFILL=1 hardhat run scripts/backfill-energy-bank.js --network monad"
   },
   "dependencies": {
     "@netlify/blobs": "^7.4.0",
@@ -14,6 +18,10 @@
     "viem": "^2.47.6"
   },
   "devDependencies": {
+    "@nomicfoundation/hardhat-ethers": "^4.0.9",
+    "@openzeppelin/contracts": "^5.6.1",
+    "dotenv": "^17.4.2",
+    "hardhat": "^3.4.2",
     "netlify-cli": "^25.6.1"
   }
 }
