@@ -259,6 +259,7 @@ select:focus-visible{
 .sectionLead--center{
   text-align:center;
 }
+
 .sectionLead__eyebrow{
   margin:0 0 10px;
   color:#b4fff0;
@@ -349,6 +350,11 @@ select:focus-visible{
   color:rgba(255,255,255,.82);
   line-height:1.65;
   max-width:34ch;
+}
+.featureCard__actions{
+  display:flex;
+  flex-wrap:wrap;
+  gap:10px;
 }
 
 .homeBatteryCard{
@@ -1004,6 +1010,218 @@ select:focus-visible{
   top:0;
   color:rgba(113, 255, 197, 0.9);
   font-weight:800;
+}
+
+/* Season 2 Whitepaper */
+.seasonPaper{
+  display:grid;
+  gap:18px;
+}
+.seasonPaper__intro,
+.seasonBlock,
+.seasonCard,
+.seasonDisclaimer{
+  border:1px solid rgba(182,214,255,.10);
+  border-radius:24px;
+  background:
+    linear-gradient(180deg, rgba(255,255,255,.052), rgba(255,255,255,.018)),
+    linear-gradient(135deg, rgba(255,83,216,.045), transparent 34%, rgba(66,241,200,.035) 76%, transparent 100%);
+  box-shadow:var(--shadow);
+}
+.seasonPaper__intro{
+  padding:clamp(22px, 4vw, 38px);
+}
+.seasonPaper__intro .section__title{
+  max-width:900px;
+  margin-left:0;
+  margin-right:0;
+  text-align:left;
+}
+.seasonPaper__intro p,
+.seasonBlock > p,
+.seasonCard p,
+.seasonDisclaimer p{
+  color:rgba(245,247,255,.82);
+  line-height:1.7;
+}
+.seasonPaper__intro p{
+  max-width:860px;
+  font-size:17px;
+}
+.seasonGrid{
+  display:grid;
+  gap:18px;
+}
+.seasonGrid--two{
+  grid-template-columns:repeat(2, minmax(0, 1fr));
+}
+.seasonCard,
+.seasonBlock,
+.seasonDisclaimer{
+  padding:22px;
+}
+.seasonCard__kicker{
+  display:inline-flex;
+  margin-bottom:10px;
+  color:#b4fff0;
+  font-size:12px;
+  font-weight:900;
+  letter-spacing:.2em;
+  text-transform:uppercase;
+  font-family:"Orbitron","Space Grotesk",sans-serif;
+}
+.seasonCard h3,
+.seasonBlock h3,
+.seasonDisclaimer h3{
+  margin:0 0 12px;
+  font-size:clamp(22px, 3vw, 34px);
+  line-height:1;
+  letter-spacing:-.045em;
+}
+.seasonBlock__head{
+  max-width:820px;
+  margin-bottom:10px;
+}
+.fundGrid{
+  display:grid;
+  grid-template-columns:1.4fr .85fr .85fr;
+  gap:14px;
+  margin-top:18px;
+}
+.fundCard,
+.visionCard{
+  border:1px solid rgba(182,214,255,.10);
+  border-radius:18px;
+  background:rgba(8,12,18,.62);
+  padding:16px;
+}
+.fundCard__top{
+  display:grid;
+  gap:5px;
+}
+.fundCard__top strong{
+  font-size:clamp(32px, 5vw, 56px);
+  line-height:.9;
+  color:#b4fff0;
+  letter-spacing:-.05em;
+}
+.fundCard__top span{
+  font-weight:900;
+  letter-spacing:.04em;
+  text-transform:uppercase;
+}
+.fundBar{
+  height:10px;
+  margin:14px 0;
+  border-radius:999px;
+  background:rgba(255,255,255,.08);
+  overflow:hidden;
+}
+.fundBar span{
+  display:block;
+  height:100%;
+  border-radius:999px;
+  background:linear-gradient(90deg, rgba(66,241,200,.9), rgba(157,104,255,.92), rgba(255,83,216,.78));
+}
+.fundCard p,
+.visionCard p{
+  margin:0;
+  color:rgba(245,247,255,.76);
+  line-height:1.6;
+}
+.traitGrid{
+  display:grid;
+  grid-template-columns:repeat(7, minmax(0, 1fr));
+  gap:10px;
+  margin-top:18px;
+}
+.traitChip,
+.utilityGrid span{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  min-height:58px;
+  padding:12px;
+  border:1px solid rgba(182,214,255,.10);
+  border-radius:16px;
+  background:rgba(8,12,18,.62);
+  color:rgba(245,247,255,.9);
+  font-weight:900;
+  text-align:center;
+}
+.traitChip--core{
+  border-color:rgba(66,241,200,.34);
+  background:rgba(66,241,200,.10);
+  color:#d9fff4;
+}
+.visionGrid{
+  display:grid;
+  grid-template-columns:repeat(4, minmax(0, 1fr));
+  gap:12px;
+  margin-top:18px;
+}
+.visionCard h4{
+  margin:0 0 8px;
+  font-size:15px;
+  line-height:1.2;
+}
+.utilityGrid{
+  display:grid;
+  grid-template-columns:repeat(5, minmax(0, 1fr));
+  gap:10px;
+  margin-top:18px;
+}
+.principleList{
+  grid-template-columns:repeat(2, minmax(0, 1fr));
+}
+.seasonBlock--principles blockquote{
+  margin:18px 0 0;
+  padding:16px 18px;
+  border-left:3px solid rgba(66,241,200,.62);
+  border-radius:16px;
+  background:rgba(66,241,200,.08);
+  color:rgba(245,247,255,.94);
+  font-size:18px;
+  font-weight:900;
+}
+.seasonDisclaimer{
+  border-color:rgba(255,200,0,.24);
+  background:
+    linear-gradient(180deg, rgba(255,200,0,.08), rgba(255,255,255,.018)),
+    rgba(8,12,18,.72);
+}
+
+@media (max-width: 980px){
+  .seasonGrid--two,
+  .fundGrid{
+    grid-template-columns:1fr;
+  }
+  .traitGrid{
+    grid-template-columns:repeat(2, minmax(0, 1fr));
+  }
+  .visionGrid,
+  .utilityGrid{
+    grid-template-columns:repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 620px){
+  .seasonPaper__intro,
+  .seasonCard,
+  .seasonBlock,
+  .seasonDisclaimer{
+    border-radius:18px;
+    padding:18px;
+  }
+  .seasonPaper__intro .section__title{
+    font-size:clamp(30px, 10vw, 44px);
+  }
+  .traitGrid,
+  .visionGrid,
+  .utilityGrid,
+  .principleList{
+    grid-template-columns:1fr;
+  }
 }
 .trustCTA{
   display:flex;

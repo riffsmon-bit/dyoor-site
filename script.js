@@ -1,4 +1,4 @@
-// ---------- Shared wallet helpers (homepage verifier) ----------
+// ---------- Shared wallet helpers ----------
 // WalletConnect v2 project id (public) – required for WalletConnect QR/deeplinks.
 const WALLETCONNECT_PROJECT_ID = "515640b93fcb56906722f2d6b44d2e47";
 
@@ -614,7 +614,7 @@ document.addEventListener("DOMContentLoaded", () => {
 });
 
 
-// ---------- HOMEPAGE DISCORD VERIFIER ----------
+// ---------- DISCORD VERIFIER ----------
 const VERIFY_API = {
   status: '/.netlify/functions/discord-status',
   loginStart: '/.netlify/functions/discord-login-start',
@@ -771,11 +771,12 @@ async function verifyRolesFlow(mode = 'verify'){
 }
 
 function initHomepageVerifier(){
+  const verifierRoot = document.getElementById('discord-verify');
   const discordBtn = document.getElementById('btnConnectDiscord');
   const verifyBtn = document.getElementById('btnVerifyRoles');
   const refreshBtn = document.getElementById('btnRefreshRoles');
 
-  if(!discordBtn || !verifyBtn || !refreshBtn) return;
+  if(!verifierRoot || !discordBtn || !verifyBtn || !refreshBtn) return;
 
   discordBtn.addEventListener('click', startDiscordLogin);
   verifyBtn.addEventListener('click', ()=>verifyRolesFlow('verify'));

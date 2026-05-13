@@ -29,6 +29,7 @@
       <nav class="nav" aria-label="Primary">
         <a href="/whitepaper.html">Whitepaper</a>
         <a href="/stake.html">Ascension Protocol</a>
+        <a href="/verify.html">Verify Discord</a>
         <button class="btn btn--ghost navWalletBtn" id="homeWalletBtn" type="button" data-open-wallet>Connect Wallet</button>
       </nav>
     </div>
@@ -176,7 +177,7 @@
         <div class="sectionLead sectionLead--center">
           <p class="sectionLead__eyebrow">Live Stack</p>
           <h2 class="section__title section__title--compact">Core live surfaces. Cleaner DYOOR shell.</h2>
-          <p class="muted center sectionLead__copy">Swap from the homepage, ascend from the protocol page, and verify roles from the dedicated sync panel below.</p>
+          <p class="muted center sectionLead__copy">Swap from the homepage, ascend from the protocol page, and verify Discord roles from the dedicated sync page.</p>
         </div>
 
         <div class="featureGrid featureGrid--single">
@@ -186,7 +187,10 @@
               <span class="featureCard__tag">Ascension Chamber</span>
               <h3 class="featureCard__title">Move S1 into Ascension and generate energy</h3>
               <p class="featureCard__copy">Stake and unstake from one surface, track pending energy, and manage your S1 inventory without jumping between clunky contract views.</p>
-              <a class="btn btn--ghost" href="/stake.html">Open Ascension</a>
+              <div class="featureCard__actions">
+                <a class="btn btn--ghost" href="/stake.html">Open Ascension</a>
+                <a class="btn btn--ghost" href="/verify.html">Verify Discord</a>
+              </div>
             </div>
           </article>
         </div>
@@ -216,77 +220,6 @@
           <div class="homeBatteryCtaWrap">
             <a class="btn btn--primary homeBatteryCta" href="/stake.html">Go to Ascension Protocol</a>
           </div>
-        </div>
-      </div>
-    </section>
-
-
-    <section class="section reveal" id="discord-verify">
-      <div class="container">
-        <h2 class="section__title">Verify Your DYOOR Roles</h2>
-        <p class="muted center">Link Discord, connect the wallet that holds your DYOORs, and sync the roles that match your current collection and Ascension state.</p>
-
-        <div class="card verifyCard">
-          <div class="verifyCard__glow" aria-hidden="true"></div>
-
-          <div class="verifyCard__head">
-            <div>
-              <div class="verifyCard__eyebrow">Discord + Wallet Sync</div>
-              <h3 class="verifyCard__title">Verify on first connect. Refresh anytime. Auto-sync every hour.</h3>
-            </div>
-            <div class="verifyPills">
-              <span class="verifyPill">Holder</span>
-              <span class="verifyPill">Ascended</span>
-              <span class="verifyPill">20+</span>
-              <span class="verifyPill">50+</span>
-            </div>
-          </div>
-
-          <div class="verifyGrid">
-            <div class="verifyPanel">
-              <div class="verifyPanel__label">Discord</div>
-              <div class="verifyValue" id="discordVerifyUser">Not connected</div>
-              <div class="verifySub" id="discordVerifySub">Connect the Discord account that should receive your holder and Ascension roles.</div>
-              <div class="verifyActions">
-                <button class="btn btn--primary" id="btnConnectDiscord" type="button">Connect Discord</button>
-              </div>
-            </div>
-
-            <div class="verifyPanel">
-              <div class="verifyPanel__label">Wallet</div>
-              <div class="verifyValue" id="verifyWalletValue">Not connected</div>
-              <div class="verifySub" id="verifyWalletSub">Connect the wallet that holds your collection or currently has S1 in Ascension.</div>
-              <div class="verifyActions">
-                <button class="btn btn--ghost" id="verifyContextWalletBtn" type="button" data-open-wallet>Connect Wallet to Verify</button>
-              </div>
-            </div>
-          </div>
-
-          <div class="verifyStats" id="verifyStats">
-            <div class="verifyStat">
-              <span class="verifyStat__k">Wallet S1</span>
-              <span class="verifyStat__v" id="verifyWalletCount">—</span>
-            </div>
-            <div class="verifyStat">
-              <span class="verifyStat__k">Staked S1</span>
-              <span class="verifyStat__v" id="verifyStakedCount">—</span>
-            </div>
-            <div class="verifyStat">
-              <span class="verifyStat__k">Total Counted</span>
-              <span class="verifyStat__v" id="verifyTotalCount">—</span>
-            </div>
-            <div class="verifyStat">
-              <span class="verifyStat__k">Active Roles</span>
-              <span class="verifyStat__v" id="verifyRolesText">Not synced</span>
-            </div>
-          </div>
-
-          <div class="verifyActions verifyActions--main">
-            <button class="btn btn--primary" id="btnVerifyRoles" type="button">Verify Roles</button>
-            <button class="btn btn--ghost" id="btnRefreshRoles" type="button">Refresh Roles</button>
-          </div>
-
-          <div class="verifyStatus" id="verifyStatusBox">Connect Discord and your wallet to begin role verification.</div>
         </div>
       </div>
     </section>

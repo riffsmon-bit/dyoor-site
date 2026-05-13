@@ -1,0 +1,171 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"/>
+  <title>DYOOR | Verify Discord Roles</title>
+  <meta name="description" content="Link Discord, connect your DYOOR wallet, and sync holder and Ascension roles."/>
+  <meta name="theme-color" content="#07070c"/>
+  <link rel="canonical" href="https://dyoor.xyz/verify.html"/>
+  <meta property="og:type" content="website"/>
+  <meta property="og:title" content="DYOOR Discord Verification"/>
+  <meta property="og:description" content="Verify DYOOR holder and Ascension roles with Discord and your Monad wallet."/>
+  <meta property="og:image" content="https://dyoor.xyz/assets/home_banner.png"/>
+  <meta name="twitter:card" content="summary_large_image"/>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/style.css?v=verify-1"/>
+</head>
+<body>
+  <div class="bg" aria-hidden="true"></div>
+
+  <header class="topbar" id="top">
+    <div class="container topbar__inner">
+      <a class="brand" href="/index.html" aria-label="DYOOR home">
+        <img class="brand__logo" src="/assets/dyoor-logo.png" alt="" width="34" height="34"/>
+        <span class="brand__text">DYOOR</span>
+      </a>
+      <nav class="nav" aria-label="Primary">
+        <a href="/whitepaper.html">Whitepaper</a>
+        <a href="/stake.html">Ascension Protocol</a>
+        <a href="/verify.html" class="is-active">Verify Discord</a>
+        <button class="btn btn--ghost navWalletBtn" id="homeWalletBtn" type="button" data-open-wallet>Connect Wallet</button>
+      </nav>
+    </div>
+  </header>
+
+  <main class="page">
+    <section class="section hero reveal">
+      <div class="container">
+        <div class="card hero__card">
+          <img class="hero__img" src="/assets/home_banner.png" alt="DYOOR banner" loading="eager"/>
+          <div class="hero__copy">
+            <p class="hero__eyebrow">Discord + Wallet Sync</p>
+            <h1>Verify Your DYOOR Roles</h1>
+            <p class="hero__subcopy">Link Discord, connect the wallet that holds your DYOORs, and sync roles that match your current collection and Ascension state.</p>
+            <div class="hero__cta">
+              <a class="btn btn--ghost hero__btn hero__btn--secondary" href="/index.html">Back Home</a>
+            </div>
+            <div class="hero__meta">
+              <span class="hero__metaPill">Holder</span>
+              <span class="hero__metaPill">Ascended</span>
+              <span class="hero__metaPill">Hourly sync</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section reveal" id="discord-verify">
+      <div class="container">
+        <div class="card verifyCard">
+          <div class="verifyCard__glow" aria-hidden="true"></div>
+
+          <div class="verifyCard__head">
+            <div>
+              <div class="verifyCard__eyebrow">Discord + Wallet Sync</div>
+              <h3 class="verifyCard__title">Verify on first connect. Refresh anytime. Auto-sync every hour.</h3>
+            </div>
+            <div class="verifyPills">
+              <span class="verifyPill">Holder</span>
+              <span class="verifyPill">Ascended</span>
+              <span class="verifyPill">20+</span>
+              <span class="verifyPill">50+</span>
+            </div>
+          </div>
+
+          <div class="verifyGrid">
+            <div class="verifyPanel">
+              <div class="verifyPanel__label">Discord</div>
+              <div class="verifyValue" id="discordVerifyUser">Not connected</div>
+              <div class="verifySub" id="discordVerifySub">Connect the Discord account that should receive your holder and Ascension roles.</div>
+              <div class="verifyActions">
+                <button class="btn btn--primary" id="btnConnectDiscord" type="button">Connect Discord</button>
+              </div>
+            </div>
+
+            <div class="verifyPanel">
+              <div class="verifyPanel__label">Wallet</div>
+              <div class="verifyValue" id="verifyWalletValue">Not connected</div>
+              <div class="verifySub" id="verifyWalletSub">Connect the wallet that holds your collection or currently has S1 in Ascension.</div>
+              <div class="verifyActions">
+                <button class="btn btn--ghost" id="verifyContextWalletBtn" type="button" data-open-wallet>Connect Wallet to Verify</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="verifyStats" id="verifyStats">
+            <div class="verifyStat">
+              <span class="verifyStat__k">Wallet S1</span>
+              <span class="verifyStat__v" id="verifyWalletCount">-</span>
+            </div>
+            <div class="verifyStat">
+              <span class="verifyStat__k">Staked S1</span>
+              <span class="verifyStat__v" id="verifyStakedCount">-</span>
+            </div>
+            <div class="verifyStat">
+              <span class="verifyStat__k">Total Counted</span>
+              <span class="verifyStat__v" id="verifyTotalCount">-</span>
+            </div>
+            <div class="verifyStat">
+              <span class="verifyStat__k">Active Roles</span>
+              <span class="verifyStat__v" id="verifyRolesText">Not synced</span>
+            </div>
+          </div>
+
+          <div class="verifyActions verifyActions--main">
+            <button class="btn btn--primary" id="btnVerifyRoles" type="button">Verify Roles</button>
+            <button class="btn btn--ghost" id="btnRefreshRoles" type="button">Refresh Roles</button>
+          </div>
+
+          <div class="verifyStatus" id="verifyStatusBox">Connect Discord and your wallet to begin role verification.</div>
+        </div>
+      </div>
+    </section>
+
+    <footer class="footer">
+      <div class="container footer__inner">
+        <span>© 2026 DYOOR</span>
+        <a href="/index.html" class="tiny muted">Back home</a>
+      </div>
+    </footer>
+  </main>
+
+  <script defer src="https://cdn.jsdelivr.net/npm/ethers@6.11.1/dist/ethers.umd.min.js"></script>
+  <script defer src="https://unpkg.com/@walletconnect/ethereum-provider@2.23.1/dist/index.umd.js"></script>
+  <script defer src="/wallet-chooser.js"></script>
+  <script defer src="/script.js?v=verify-1"></script>
+
+  <div id="walletModal" class="wallet-modal" aria-hidden="true">
+    <div class="wallet-modal__backdrop" data-close="1"></div>
+    <div class="wallet-modal__panel" role="dialog" aria-modal="true" aria-label="Connect wallet">
+      <div class="wallet-modal__header">
+        <div class="wallet-modal__title">Connect Wallet</div>
+        <button type="button" class="wallet-modal__close" data-close="1" aria-label="Close">x</button>
+      </div>
+      <div class="wallet-modal__grid">
+        <button type="button" class="wallet-option" data-wallet="metamask">MetaMask</button>
+        <button type="button" class="wallet-option" data-wallet="phantom">Phantom (EVM)</button>
+        <button type="button" class="wallet-option" data-wallet="okx">OKX Wallet</button>
+        <button type="button" class="wallet-option" data-wallet="injected">Other Injected</button>
+        <button type="button" class="wallet-option wallet-option--wc" data-wallet="walletconnect">WalletConnect (QR)</button>
+      </div>
+
+      <div id="walletModalHint" class="wallet-modal__hint" style="display:none;">
+        On iOS Safari, MetaMask/OKX usually do not inject directly. Connect via <strong>WalletConnect</strong>, or open this site inside your wallet app browser.
+      </div>
+
+      <div id="walletDeepLinks" class="wallet-modal__deeplinks" style="display:none;">
+        <a href="#" id="openInMetaMask" class="wallet-deeplink">Open in MetaMask</a>
+        <a href="#" id="openInOKX" class="wallet-deeplink">Open in OKX</a>
+        <a href="#" id="openInPhantom" class="wallet-deeplink">Open in Phantom</a>
+      </div>
+
+      <div class="wallet-modal__note">
+        We will <strong>never</strong> ask for your seed phrase.
+      </div>
+    </div>
+  </div>
+</body>
+</html>

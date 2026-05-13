@@ -170,6 +170,11 @@ const server = createServer(async (req, res) => {
       return;
     }
 
+    if (req.url === "/verify" || req.url === "/verify/") {
+      send(res, 200, await readFile(path.join(root, "verify.html")), { "content-type": "text/html; charset=utf-8" });
+      return;
+    }
+
     const filePath = safeFilePath(req.url || "/");
     if (!filePath || !existsSync(filePath)) {
       send(res, 404, "Not found", { "content-type": "text/plain; charset=utf-8" });

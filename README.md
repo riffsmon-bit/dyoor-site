@@ -1,7 +1,8 @@
 # DYOOR Site (Rebuilt)
 
 - One-page layout with a centered container system (no drifting sections)
-- Homepage focused on live flows: swap, ascension, Discord verification, and collection preview
+- Homepage focused on live flows: swap, ascension, and collection preview
+- Discord verification lives on `/verify.html`
 - Stake page uses a real wallet chooser instead of the old prompt-based selector
 
 ## Deploy
