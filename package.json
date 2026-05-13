@@ -6,7 +6,7 @@
     "dev": "PORT=5173 node local-dev-server.js",
     "netlify:dev": "netlify dev --port 8888 --offline --skip-gitignore --no-open",
     "serve": "python3 -m http.server 4173 --bind 127.0.0.1",
-    "check": "node --check script.js && node --check swap-module.js && node --check wallet-chooser.js && node --check local-dev-server.js && node --check netlify/functions/quote.js && node --check netlify/functions/energy-bank-credit.js",
+    "check": "node --check script.js && node --check swap-module.js && node --check wallet-chooser.js && node --check stake.js && node --check stake-ui.js && node --check local-dev-server.js && node --check netlify/functions/quote.js && node --check netlify/functions/energy-bank-credit.js && node --check netlify/functions/ascension-stats.js",
     "compile:contracts": "hardhat compile",
     "deploy:energy-bank": "hardhat run scripts/deploy-energy-bank.js --network monad",
     "backfill:energy-bank": "hardhat run scripts/backfill-energy-bank.js --network monad",

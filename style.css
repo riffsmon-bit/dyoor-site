@@ -813,6 +813,14 @@ select:focus-visible{
 .reveal{opacity:0; transform: translateY(14px); transition: opacity .5s ease, transform .5s ease}
 .reveal.is-in{opacity:1; transform: translateY(0)}
 
+@media (max-width: 760px), (prefers-reduced-motion: reduce){
+  .reveal{
+    opacity:1;
+    transform:none;
+    transition:none;
+  }
+}
+
 @keyframes homeBatteryFlow{
   0% { background-position: 0% 50%; }
   100% { background-position: 200% 50%; }
@@ -1206,6 +1214,27 @@ select:focus-visible{
 }
 
 @media (max-width: 620px){
+  #season-two,
+  #season-two .container,
+  .seasonPaper,
+  .seasonGrid,
+  .fundGrid,
+  .traitGrid,
+  .visionGrid,
+  .utilityGrid{
+    display:grid;
+    width:100%;
+    max-width:100%;
+    min-height:0;
+    overflow:visible;
+    position:relative;
+    z-index:1;
+  }
+
+  #season-two{
+    display:block;
+  }
+
   .seasonPaper__intro,
   .seasonCard,
   .seasonBlock,

@@ -172,6 +172,36 @@
       padding: 12px 14px;
     }
 
+    .load-meta {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      margin: 10px 0 0;
+      color: rgba(245,247,255,0.62);
+      font-size: 12px;
+      line-height: 1.4;
+    }
+
+    .retry-btn {
+      appearance: none;
+      border: 1px solid rgba(190,224,255,0.14);
+      border-radius: 999px;
+      padding: 8px 11px;
+      background: rgba(255,255,255,0.04);
+      color: #fff;
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      cursor: pointer;
+    }
+
+    .retry-btn[hidden] {
+      display: none;
+    }
+
     .tabs {
       display: flex;
       gap: 10px;
@@ -431,10 +461,14 @@
         </div>
 
         <div class="status-box" id="statusBox">Awaiting connection.</div>
+        <div class="load-meta">
+          <span id="loadMeta">Connect wallet to scan Ascension state.</span>
+          <button class="retry-btn" id="retryLoadBtn" type="button" hidden>Retry</button>
+        </div>
 
         <div class="note">
-          Ascension can require multiple confirmations. First time users may approve the collection,
-          then deposit NFTs into the vault, then register them on-chain to begin energy generation.
+          Multiple wallet prompts are expected during Ascension: approval → deposit → registration.
+          Let each transaction confirm before starting another action.
         </div>
       </aside>
 

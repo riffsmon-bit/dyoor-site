@@ -287,6 +287,7 @@
       await refreshUiPanels();
       return result;
     };
+    window.loadState.__dyoorBaseLoadState = originalLoadState;
   }
 
   function coreReady() {

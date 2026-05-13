@@ -4,6 +4,12 @@ const NFT_ADDRESS = "0x2c79c9e233fea4b4dcfe6561d9209dc292cd932f";
 const STAKING_ADDRESS = "0xf9611226c1CcCcCa37951938d6f358D3d5106549";
 const ENERGY_BANK_ADDRESS = "0x291a8cC0FCa08EBd64a0e4d67B4455d24e9E6767";
 const MAX_SCAN = 1111;
+const WALLET_SCAN_CACHE_MS = 60000;
+const STAKED_CACHE_MS = 20000;
+const ENERGY_CACHE_MS = 15000;
+const FETCH_TIMEOUT_MS = 8000;
+const CONTRACT_TIMEOUT_MS = 12000;
+const LOAD_DEBOUNCE_MS = 250;
 
 const stakingAbi = [
   "function deposit(uint256[] calldata tokenIds)",
@@ -27,6 +33,7 @@ const energyBankAbi = [
 ];
 
 const nftAbi = [
+  "function balanceOf(address owner) view returns (uint256)",
   "function ownerOf(uint256 tokenId) view returns (address)",
   "function tokenURI(uint256 tokenId) view returns (string)",
   "function isApprovedForAll(address owner, address operator) view returns (bool)",
@@ -47,6 +54,15 @@ let injectedWalletName = null;
 let removeWalletListeners = null;
 
 const metadataCache = new Map();
+const walletNftCache = new Map();
+const stakedIdsCache = new Map();
+const energyCache = new Map();
+let activeLoadId = 0;
+let activeFetchController = null;
+let loadStatePromise = null;
+let loadDebounceTimer = null;
+let lastLoadFailed = false;
+let lastLoadStartedAt = 0;
 
 const connectBtn = document.getElementById("connectBtn");
 const ascendSelectedBtn = document.getElementById("ascendSelectedBtn");
@@ -64,6 +80,8 @@ const selectedCount = document.getElementById("selectedCount");
 const statusBox = document.getElementById("statusBox");
 const nftGrid = document.getElementById("nftGrid");
 const emptyState = document.getElementById("emptyState");
+const loadMeta = document.getElementById("loadMeta");
+const retryLoadBtn = document.getElementById("retryLoadBtn");
 
 function syncStakeGlobals() {
   window.provider = provider;
@@ -72,7 +90,9 @@ function syncStakeGlobals() {
   window.ownedNfts = ownedNfts;
   window.stakedNfts = stakedNfts;
   window.selectedIds = selectedIds;
-  window.loadState = loadState;
+  if (!window.loadState || window.loadState === loadState || window.loadState.__dyoorBaseLoadState === loadState) {
+    window.loadState = loadState;
+  }
   window.setStatus = setStatus;
   window.waitForHash = waitForHash;
   window.currentTab = currentTab;
@@ -82,6 +102,96 @@ function syncStakeGlobals() {
 
 function setStatus(message) {
   statusBox.textContent = message;
+}
+
+function setLoadMeta(message, options = {}) {
+  if (loadMeta) loadMeta.textContent = message;
+  if (retryLoadBtn) retryLoadBtn.hidden = !options.retry;
+}
+
+function formatLastUpdated(date = new Date()) {
+  return `Last updated ${date.toLocaleTimeString([], { hour: "numeric", minute: "2-digit", second: "2-digit" })}`;
+}
+
+function cacheKey(address) {
+  return String(address || "").toLowerCase();
+}
+
+function getFreshCache(map, key, ttlMs) {
+  const entry = map.get(key);
+  if (!entry || Date.now() - entry.time > ttlMs) return null;
+  return entry.value;
+}
+
+function setCache(map, key, value) {
+  map.set(key, { value, time: Date.now() });
+  return value;
+}
+
+function clearWalletCaches(address) {
+  const key = cacheKey(address);
+  if (!key) return;
+  walletNftCache.delete(key);
+  stakedIdsCache.delete(key);
+  energyCache.delete(key);
+}
+
+function resetVisibleDataForWalletChange() {
+  ownedNfts = [];
+  stakedNfts = [];
+  selectedIds.clear();
+  pendingEnergy.textContent = "0.00";
+  harvestedEnergy.textContent = "0.00";
+  lifetimeEnergy.textContent = "0.00";
+  if (bankedEnergy) bankedEnergy.textContent = "0.00";
+  if (bankedLifetimeEnergy) bankedLifetimeEnergy.textContent = "0.00";
+  energyRate.textContent = "0 / day";
+  updateSelectedCount();
+  renderGrid();
+  updateButtons();
+  syncStakeGlobals();
+}
+
+function withTimeout(promise, timeoutMs, label) {
+  let timer;
+  const timeout = new Promise((_, reject) => {
+    timer = setTimeout(() => reject(new Error(`${label} timed out.`)), timeoutMs);
+  });
+  return Promise.race([promise, timeout]).finally(() => clearTimeout(timer));
+}
+
+async function fetchJsonWithTimeout(url, options = {}, timeoutMs = FETCH_TIMEOUT_MS) {
+  const controller = new AbortController();
+  const externalSignal = options.signal;
+  const abortFromExternal = () => controller.abort(externalSignal.reason);
+  if (externalSignal) {
+    if (externalSignal.aborted) controller.abort(externalSignal.reason);
+    else externalSignal.addEventListener("abort", abortFromExternal, { once: true });
+  }
+
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    const res = await fetch(url, { ...options, signal: controller.signal });
+    const json = await res.json().catch(() => ({}));
+    return { res, json };
+  } finally {
+    clearTimeout(timer);
+    if (externalSignal) externalSignal.removeEventListener("abort", abortFromExternal);
+  }
+}
+
+function isCurrentLoad(loadId, address) {
+  return loadId === activeLoadId && cacheKey(address) === cacheKey(userAddress);
+}
+
+function scheduleLoadState(reason = "refresh", options = {}) {
+  if (!userAddress) return Promise.resolve();
+  clearTimeout(loadDebounceTimer);
+  return new Promise((resolve) => {
+    loadDebounceTimer = setTimeout(() => {
+      loadState({ ...options, reason }).then(resolve).catch(resolve);
+    }, options.immediate ? 0 : LOAD_DEBOUNCE_MS);
+  });
 }
 
 function shorten(addr) {
@@ -126,21 +236,23 @@ function formatEnergyValue(value) {
   });
 }
 
-async function fetchHarvestedEnergyRaw(address) {
+async function fetchHarvestedEnergyRaw(address, options = {}) {
   if (!address) return 0n;
+  const key = cacheKey(address);
+  const cached = !options.force ? getFreshCache(energyCache, `harvested:${key}`, ENERGY_CACHE_MS) : null;
+  if (cached !== null) return cached;
 
-  const res = await fetch(
+  const { res, json } = await fetchJsonWithTimeout(
     `/.netlify/functions/harvested-ledger?address=${encodeURIComponent(address)}`,
-    { cache: "no-store" }
+    { cache: "no-store", signal: options.signal },
+    FETCH_TIMEOUT_MS
   );
-
-  const json = await res.json().catch(() => ({}));
 
   if (!res.ok || json.ok === false) {
     throw new Error(json?.error || "Failed to load harvested energy.");
   }
 
-  return BigInt(json?.harvestedRaw || "0");
+  return setCache(energyCache, `harvested:${key}`, BigInt(json?.harvestedRaw || "0"));
 }
 
 async function recordHarvest(address, amountRaw, txHash) {
@@ -205,20 +317,23 @@ async function creditEnergyBank(address, amountRaw, txHash) {
   return creditTxHash;
 }
 
-async function fetchEnergyBankState(address) {
+async function fetchEnergyBankState(address, options = {}) {
   const energyBankAddress = window.ENERGY_BANK_ADDRESS || ENERGY_BANK_ADDRESS;
   if (!address || !energyBankAddress || !ethers.isAddress(energyBankAddress)) {
     return { spendable: 0n, lifetime: 0n, spent: 0n };
   }
+  const key = cacheKey(address);
+  const cached = !options.force ? getFreshCache(energyCache, `bank:${key}`, ENERGY_CACHE_MS) : null;
+  if (cached) return cached;
 
   const bank = new ethers.Contract(energyBankAddress, energyBankAbi, provider);
-  const [spendable, lifetime, spent] = await Promise.all([
+  const [spendable, lifetime, spent] = await withTimeout(Promise.all([
     bank.spendableEnergy(address),
     bank.lifetimeEnergy(address),
     bank.totalSpent(address)
-  ]);
+  ]), CONTRACT_TIMEOUT_MS, "Energy Bank");
 
-  return { spendable, lifetime, spent };
+  return setCache(energyCache, `bank:${key}`, { spendable, lifetime, spent });
 }
 
 async function seedKnownHistoricalHarvestIfNeeded(address) {
@@ -307,8 +422,8 @@ async function fetchTokenMetadata(tokenId) {
       };
     } else {
       uri = normalizeIpfs(uri);
-      const res = await fetch(uri, { cache: "force-cache" });
-      const json = await res.json();
+      const { res, json } = await fetchJsonWithTimeout(uri, { cache: "force-cache" }, FETCH_TIMEOUT_MS);
+      if (!res.ok) throw new Error(`Metadata HTTP ${res.status}`);
       result = {
         image: normalizeIpfs(json.image || ""),
         name: json.name || `DYOOR #${tokenId}`
@@ -325,23 +440,41 @@ async function fetchTokenMetadata(tokenId) {
   }
 }
 
-async function getOwnedNfts(owner) {
+async function getOwnedNfts(owner, options = {}) {
   try {
+    const key = cacheKey(owner);
+    const cached = !options.force ? getFreshCache(walletNftCache, key, WALLET_SCAN_CACHE_MS) : null;
+    if (cached) {
+      setStatus("Showing cached wallet scan while refreshing...");
+      return cached;
+    }
+
     const nft = new ethers.Contract(NFT_ADDRESS, nftAbi, provider);
     const tokenIds = [];
     const ownerChecksum = ethers.getAddress(owner);
-    const scanBatchSize = 50;
-    const metadataBatchSize = 12;
+    const scanBatchSize = 75;
+    const metadataBatchSize = 16;
 
-    setStatus("Scanning collection ownership...");
+    setStatus("Scanning wallet...");
+    setLoadMeta("Checking wallet balance before full scan...");
+
+    try {
+      const balance = await withTimeout(nft.balanceOf(owner), CONTRACT_TIMEOUT_MS, "Wallet balance");
+      if (balance === 0n) {
+        return setCache(walletNftCache, key, []);
+      }
+    } catch (err) {
+      console.warn("balanceOf precheck failed; falling back to owner scan", err);
+      setLoadMeta("RPC is slow, scanning directly...");
+    }
 
     async function ownerOfWithRetry(tokenId) {
       try {
-        return await nft.ownerOf(tokenId);
+        return await withTimeout(nft.ownerOf(tokenId), CONTRACT_TIMEOUT_MS, `ownerOf #${tokenId}`);
       } catch {
         try {
           await new Promise((resolve) => setTimeout(resolve, 50));
-          return await nft.ownerOf(tokenId);
+          return await withTimeout(nft.ownerOf(tokenId), CONTRACT_TIMEOUT_MS, `ownerOf retry #${tokenId}`);
         } catch {
           return null;
         }
@@ -349,8 +482,10 @@ async function getOwnedNfts(owner) {
     }
 
     for (let start = 1; start <= MAX_SCAN; start += scanBatchSize) {
+      if (options.loadId && !isCurrentLoad(options.loadId, owner)) return [];
       const end = Math.min(start + scanBatchSize - 1, MAX_SCAN);
-      setStatus(`Scanning collection ownership...\n${start}-${end} / ${MAX_SCAN}`);
+      setStatus(`Scanning wallet...\n${start}-${end} / ${MAX_SCAN}`);
+      setLoadMeta(`Scanning wallet range ${start}-${end}. Already-loaded data stays visible.`);
 
       const batch = [];
       for (let tokenId = start; tokenId <= end; tokenId++) {
@@ -374,12 +509,13 @@ async function getOwnedNfts(owner) {
       await new Promise((resolve) => setTimeout(resolve, 15));
     }
 
-    if (!tokenIds.length) return [];
+    if (!tokenIds.length) return setCache(walletNftCache, key, []);
 
     setStatus(`Found ${tokenIds.length} DYOOR.\nLoading metadata...`);
 
     const items = [];
     for (let i = 0; i < tokenIds.length; i += metadataBatchSize) {
+      if (options.loadId && !isCurrentLoad(options.loadId, owner)) return [];
       const slice = tokenIds.slice(i, i + metadataBatchSize);
 
       const chunk = await Promise.all(
@@ -405,19 +541,22 @@ async function getOwnedNfts(owner) {
       await new Promise((resolve) => setTimeout(resolve, 10));
     }
 
-    return items;
+    return setCache(walletNftCache, key, items);
   } catch (err) {
     console.error("getOwnedNfts error", err);
     throw new Error("Wallet connected, but direct NFT scan failed.");
   }
 }
 
-async function getStakedTokenIds(owner) {
+async function getStakedTokenIds(owner, options = {}) {
+  const key = cacheKey(owner);
+  const cached = !options.force ? getFreshCache(stakedIdsCache, key, STAKED_CACHE_MS) : null;
+  if (cached) return cached;
   const staking = new ethers.Contract(STAKING_ADDRESS, stakingAbi, provider);
 
   try {
-    const ids = await staking.tokensOfStaker(owner);
-    return ids.map((x) => x.toString());
+    const ids = await withTimeout(staking.tokensOfStaker(owner), CONTRACT_TIMEOUT_MS, "Ascension status");
+    return setCache(stakedIdsCache, key, ids.map((x) => x.toString()));
   } catch (err) {
     console.error("getStakedTokenIds error", err);
     throw new Error("Wallet connected, but staked NFT loading failed.");
@@ -426,14 +565,19 @@ async function getStakedTokenIds(owner) {
 
 async function enrichStakedTokenIds(tokenIds) {
   const items = [];
-  for (const tokenId of tokenIds) {
-    const meta = await fetchTokenMetadata(tokenId);
-    items.push({
-      tokenId,
-      source: "staked",
-      name: meta.name,
-      image: meta.image
-    });
+  const metadataBatchSize = 16;
+  for (let i = 0; i < tokenIds.length; i += metadataBatchSize) {
+    const slice = tokenIds.slice(i, i + metadataBatchSize);
+    const chunk = await Promise.all(slice.map(async (tokenId) => {
+      const meta = await fetchTokenMetadata(tokenId);
+      return {
+        tokenId,
+        source: "staked",
+        name: meta.name,
+        image: meta.image
+      };
+    }));
+    items.push(...chunk);
   }
   return items;
 }
@@ -481,6 +625,12 @@ function renderGrid() {
   }
 }
 
+function setGridLoading(message) {
+  if (getVisibleItems().length) return;
+  emptyState.style.display = "block";
+  emptyState.textContent = message;
+}
+
 function updateButtons() {
   const hasWalletItems = ownedNfts.length > 0;
   const selectedVisible = getVisibleItems().filter((x) => selectedIds.has(x.tokenId)).length > 0;
@@ -491,88 +641,166 @@ function updateButtons() {
   harvestBtn.disabled = !userAddress;
 }
 
-async function updateEnergy() {
+async function updateEnergy(options = {}) {
   if (!userAddress) return;
+
+  const address = userAddress;
+  const key = cacheKey(address);
+  const cached = !options.force ? getFreshCache(energyCache, `summary:${key}`, ENERGY_CACHE_MS) : null;
+  if (cached) {
+    applyEnergySummary(cached);
+    return cached;
+  }
 
   const staking = new ethers.Contract(STAKING_ADDRESS, stakingAbi, provider);
 
   try {
-    await seedKnownHistoricalHarvestIfNeeded(userAddress);
+    setLoadMeta("Fetching energy...");
+    await seedKnownHistoricalHarvestIfNeeded(address);
 
-    const [pending, stakedBalance, pointsPerDayRaw, harvestedRaw, bankState] = await Promise.all([
-      staking.pendingPoints(userAddress),
-      staking.stakedBalance(userAddress),
-      staking.pointsPerDay(),
-      fetchHarvestedEnergyRaw(userAddress).catch(() => 0n),
-      fetchEnergyBankState(userAddress).catch(() => ({ spendable: 0n, lifetime: 0n, spent: 0n }))
+    const results = await Promise.allSettled([
+      withTimeout(staking.pendingPoints(address), CONTRACT_TIMEOUT_MS, "Pending Energy"),
+      withTimeout(staking.stakedBalance(address), CONTRACT_TIMEOUT_MS, "Ascension balance"),
+      withTimeout(staking.pointsPerDay(), CONTRACT_TIMEOUT_MS, "Energy rate"),
+      fetchHarvestedEnergyRaw(address, options),
+      fetchEnergyBankState(address, options)
     ]);
 
-    const pendingDisplay = Number(ethers.formatEther(pending));
-    const harvestedDisplay = Number(ethers.formatEther(harvestedRaw));
-    const lifetimeDisplay = Number(ethers.formatEther(pending + harvestedRaw));
-    const pointsPerDayPerNft = Number(ethers.formatEther(pointsPerDayRaw));
-    const totalRate = Number(stakedBalance) * pointsPerDayPerNft;
+    const pending = results[0].status === "fulfilled" ? results[0].value : 0n;
+    const stakedBalance = results[1].status === "fulfilled" ? results[1].value : BigInt(stakedNfts.length);
+    const pointsPerDayRaw = results[2].status === "fulfilled" ? results[2].value : ethers.parseEther("24");
+    const harvestedRaw = results[3].status === "fulfilled" ? results[3].value : 0n;
+    const bankState = results[4].status === "fulfilled" ? results[4].value : { spendable: 0n, lifetime: 0n, spent: 0n };
 
-    pendingEnergy.textContent = formatEnergyValue(pendingDisplay);
-    harvestedEnergy.textContent = formatEnergyValue(harvestedDisplay);
-    lifetimeEnergy.textContent = formatEnergyValue(lifetimeDisplay);
-    if (bankedEnergy) bankedEnergy.textContent = formatEnergyValue(Number(ethers.formatEther(bankState.spendable)));
-    if (bankedLifetimeEnergy) bankedLifetimeEnergy.textContent = formatEnergyValue(Number(ethers.formatEther(bankState.lifetime)));
-    energyRate.textContent = Number.isInteger(totalRate)
-      ? `${totalRate} / day`
-      : `${totalRate.toFixed(2)} / day`;
+    const failed = results.filter((result) => result.status === "rejected");
+    if (failed.length) {
+      console.warn("partial energy load failure", failed.map((result) => result.reason));
+      setLoadMeta("RPC is slow, showing partial energy data.");
+    }
+
+    const summary = { pending, stakedBalance, pointsPerDayRaw, harvestedRaw, bankState };
+    setCache(energyCache, `summary:${key}`, summary);
+    applyEnergySummary(summary);
+    return summary;
   } catch (err) {
     console.error("energy error", err);
-    pendingEnergy.textContent = "0.00";
-    harvestedEnergy.textContent = "0.00";
-    lifetimeEnergy.textContent = "0.00";
-    if (bankedEnergy) bankedEnergy.textContent = "0.00";
-    if (bankedLifetimeEnergy) bankedLifetimeEnergy.textContent = "0.00";
-    energyRate.textContent = "0 / day";
     setStatus(`Energy load failed: ${formatError(err)}`);
   }
 }
 
-async function loadState() {
+function applyEnergySummary(summary) {
+  const pending = summary?.pending || 0n;
+  const harvestedRaw = summary?.harvestedRaw || 0n;
+  const bankState = summary?.bankState || { spendable: 0n, lifetime: 0n };
+  const stakedBalance = summary?.stakedBalance || 0n;
+  const pointsPerDayRaw = summary?.pointsPerDayRaw || ethers.parseEther("24");
+  const pendingDisplay = Number(ethers.formatEther(pending));
+  const harvestedDisplay = Number(ethers.formatEther(harvestedRaw));
+  const lifetimeDisplay = Number(ethers.formatEther(pending + harvestedRaw));
+  const pointsPerDayPerNft = Number(ethers.formatEther(pointsPerDayRaw));
+  const totalRate = Number(stakedBalance) * pointsPerDayPerNft;
+
+  pendingEnergy.textContent = formatEnergyValue(pendingDisplay);
+  harvestedEnergy.textContent = formatEnergyValue(harvestedDisplay);
+  lifetimeEnergy.textContent = formatEnergyValue(lifetimeDisplay);
+  if (bankedEnergy) bankedEnergy.textContent = formatEnergyValue(Number(ethers.formatEther(bankState.spendable || 0n)));
+  if (bankedLifetimeEnergy) bankedLifetimeEnergy.textContent = formatEnergyValue(Number(ethers.formatEther(bankState.lifetime || 0n)));
+  energyRate.textContent = Number.isInteger(totalRate)
+    ? `${totalRate} / day`
+    : `${totalRate.toFixed(2)} / day`;
+}
+
+async function loadState(options = {}) {
   if (!userAddress || !provider) {
     syncStakeGlobals();
     return;
   }
 
+  if (loadStatePromise && !options.force) return loadStatePromise;
+
+  const loadId = ++activeLoadId;
+  const address = userAddress;
+  lastLoadStartedAt = Date.now();
+  lastLoadFailed = false;
+  if (activeFetchController) activeFetchController.abort();
+  activeFetchController = new AbortController();
+
+  const nextLoadPromise = (async () => {
   try {
-    setStatus("Loading ascended NFTs...");
-    const stakedIds = await getStakedTokenIds(userAddress);
-    stakedNfts = await enrichStakedTokenIds(stakedIds);
+    setStatus("Checking Ascension status...");
+    setLoadMeta("Checking Ascension status...");
+    setGridLoading("Checking Ascension status...");
+
+    const stakedTask = (async () => {
+      const stakedIds = await getStakedTokenIds(address, options);
+      const items = await enrichStakedTokenIds(stakedIds);
+      if (!isCurrentLoad(loadId, address)) return null;
+      stakedNfts = items;
+      selectedIds.clear();
+      updateSelectedCount();
+      renderGrid();
+      updateButtons();
+      syncStakeGlobals();
+      setLoadMeta("Ascended NFTs loaded. Fetching energy...");
+      return items;
+    })();
+
+    const energyTask = updateEnergy({
+      ...options,
+      signal: activeFetchController.signal
+    }).catch((err) => {
+      console.warn("energy task failed", err);
+      setLoadMeta("Energy RPC is slow, keeping the previous values visible.");
+      return null;
+    });
+
+    await Promise.allSettled([stakedTask, energyTask]);
+    if (!isCurrentLoad(loadId, address)) return;
+
+    setStatus("Scanning wallet...");
+    setGridLoading("Scanning wallet...");
+    const existingWalletCache = getFreshCache(walletNftCache, cacheKey(address), WALLET_SCAN_CACHE_MS);
+    if (existingWalletCache) {
+      ownedNfts = existingWalletCache;
+      renderGrid();
+      updateButtons();
+      syncStakeGlobals();
+      setLoadMeta("Showing cached wallet data while checking for updates...");
+    }
+
+    const walletItems = await getOwnedNfts(address, {
+      ...options,
+      loadId,
+      signal: activeFetchController.signal
+    });
+    if (!isCurrentLoad(loadId, address)) return;
+    ownedNfts = walletItems;
 
     selectedIds.clear();
     updateSelectedCount();
     renderGrid();
     updateButtons();
-    await updateEnergy();
-    syncStakeGlobals();
-
-    setStatus("Loading wallet NFTs...");
-    ownedNfts = await getOwnedNfts(userAddress);
-
-    selectedIds.clear();
-    updateSelectedCount();
-    renderGrid();
-    updateButtons();
-    await updateEnergy();
     syncStakeGlobals();
 
     setStatus("Ascension state synchronized.");
+    setLoadMeta(formatLastUpdated());
   } catch (err) {
+    if (!isCurrentLoad(loadId, address)) return;
     console.error("loadState error", err);
-    ownedNfts = [];
-    stakedNfts = [];
-    selectedIds.clear();
-    updateSelectedCount();
-    renderGrid();
-    updateButtons();
+    lastLoadFailed = true;
     syncStakeGlobals();
     setStatus(formatError(err, "Failed to load wallet state."));
+    setLoadMeta("Load failed. Already-loaded data is still shown when available.", { retry: true });
+  } finally {
+    if (isCurrentLoad(loadId, address)) {
+      lastLoadStartedAt = 0;
+    }
+    if (loadStatePromise === nextLoadPromise) loadStatePromise = null;
   }
+  })();
+
+  loadStatePromise = nextLoadPromise;
+  return loadStatePromise;
 }
 
 async function ensureMonadNetwork() {
@@ -611,6 +839,10 @@ async function ensureMonadNetwork() {
 }
 
 function clearWalletState(disconnectMessage = "Disconnected.") {
+  activeLoadId++;
+  if (activeFetchController) activeFetchController.abort();
+  loadStatePromise = null;
+  clearTimeout(loadDebounceTimer);
   userAddress = null;
   signer = null;
   provider = null;
@@ -623,6 +855,8 @@ function clearWalletState(disconnectMessage = "Disconnected.") {
   pendingEnergy.textContent = "0.00";
   harvestedEnergy.textContent = "0.00";
   lifetimeEnergy.textContent = "0.00";
+  if (bankedEnergy) bankedEnergy.textContent = "0.00";
+  if (bankedLifetimeEnergy) bankedLifetimeEnergy.textContent = "0.00";
   energyRate.textContent = "0 / day";
   nftGrid.innerHTML = "";
   emptyState.style.display = "block";
@@ -641,6 +875,7 @@ function clearWalletState(disconnectMessage = "Disconnected.") {
 
   syncStakeGlobals();
   setStatus(disconnectMessage);
+  setLoadMeta("Connect wallet to scan Ascension state.");
 }
 
 function bindProviderEvents() {
@@ -665,9 +900,10 @@ function bindProviderEvents() {
       walletStatus.textContent = shorten(userAddress);
       connectBtn.textContent = `Connected: ${injectedWalletName || "Wallet"}`;
 
-      syncStakeGlobals();
+      resetVisibleDataForWalletChange();
       setStatus("Account changed.");
-      await loadState();
+      clearWalletCaches(userAddress);
+      await scheduleLoadState("account changed", { force: true, immediate: true });
     } catch (err) {
       console.error("accountsChanged error", err);
       setStatus("Failed to refresh wallet session.");
@@ -690,9 +926,11 @@ function bindProviderEvents() {
       syncStakeGlobals();
       walletStatus.textContent = shorten(userAddress);
       connectBtn.textContent = `Connected: ${injectedWalletName || "Wallet"}`;
+      resetVisibleDataForWalletChange();
       setStatus("Network changed.");
 
-      await loadState();
+      clearWalletCaches(userAddress);
+      await scheduleLoadState("network changed", { force: true, immediate: true });
     } catch (err) {
       console.error("chainChanged error", err);
       setStatus("Switch to Monad Mainnet to continue.");
@@ -739,10 +977,10 @@ async function connectWallet() {
     connectBtn.textContent = `Connected: ${chosenWallet.label}`;
 
     bindProviderEvents();
-    syncStakeGlobals();
+    resetVisibleDataForWalletChange();
     setStatus(`Wallet connected: ${chosenWallet.label}`);
 
-    await loadState();
+    await scheduleLoadState("connect", { force: true, immediate: true });
   } catch (err) {
     console.error("connectWallet error:", err);
     setStatus(formatError(err, "Connection failed."));
@@ -817,7 +1055,8 @@ async function ascendTokenIds(tokenIds) {
     await waitForHash(registerHash);
 
     setStatus("Ascension complete.");
-    await loadState();
+    clearWalletCaches(userAddress);
+    await loadState({ force: true });
   } catch (err) {
     console.error("ascendTokenIds error", err);
     setStatus(`Ascension failed: ${formatError(err, "Unknown staking error.")}`);
@@ -844,7 +1083,8 @@ async function disconnectTokenIds(tokenIds) {
     await waitForHash(txHash);
 
     setStatus("Disconnect complete.");
-    await loadState();
+    clearWalletCaches(userAddress);
+    await loadState({ force: true });
   } catch (err) {
     console.error("disconnectTokenIds error", err);
     setStatus(`Disconnect failed: ${formatError(err, "Unknown unstake error.")}`);
@@ -883,7 +1123,8 @@ async function harvestEnergy() {
     } else {
       setStatus("Energy harvested.");
     }
-    await loadState();
+    clearWalletCaches(userAddress);
+    await loadState({ force: true });
   } catch (err) {
     console.error("harvestEnergy error", err);
     setStatus(`Harvest failed: ${formatError(err, "Unknown claim error.")}`);
@@ -927,7 +1168,12 @@ document.getElementById("clearSelectionBtn").addEventListener("click", () => {
 
 document.getElementById("refreshBtn").addEventListener("click", async () => {
   if (!userAddress) return;
-  await loadState();
+  await loadState({ force: true });
+});
+
+retryLoadBtn?.addEventListener("click", async () => {
+  if (!userAddress) return;
+  await loadState({ force: true });
 });
 
 connectBtn.addEventListener("click", connectWallet);

@@ -1,11 +1,11 @@
 const { getStore } = require("@netlify/blobs");
 
-function json(statusCode, body) {
+function json(statusCode, body, cacheControl = "no-store") {
   return {
     statusCode,
     headers: {
       "content-type": "application/json; charset=utf-8",
-      "cache-control": "no-store"
+      "cache-control": cacheControl
     },
     body: JSON.stringify(body)
   };
@@ -29,6 +29,15 @@ function safeBigInt(value, fallback = 0n) {
   }
 }
 
+function formatUnits(raw, decimals = 18) {
+  const value = safeBigInt(raw);
+  const base = 10n ** BigInt(decimals);
+  const whole = value / base;
+  const fraction = value % base;
+  const fractionText = fraction.toString().padStart(decimals, "0").replace(/0+$/, "");
+  return fractionText ? `${whole.toString()}.${fractionText}` : whole.toString();
+}
+
 exports.handler = async function (event) {
   try {
     const store = getStore("ascension-energy-ledger");
@@ -46,9 +55,14 @@ exports.handler = async function (event) {
       return json(200, {
         ok: true,
         address,
+        totalStaked: null,
+        maxSupply: 1111,
+        percent: null,
         harvestedRaw,
-        harvestedEnergy: harvestedRaw
-      });
+        harvestedEnergy: formatUnits(harvestedRaw),
+        apiStatus: "partial",
+        apiMessage: "Harvested Energy loaded. Global Ascension stats are not configured in this function."
+      }, "public, max-age=10, stale-while-revalidate=30");
     }
 
     if (method === "POST") {
