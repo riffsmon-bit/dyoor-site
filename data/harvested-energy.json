@@ -167,13 +167,19 @@
     ]
   },
   "0xbac19aaf7b6112f8018406e02b4ca2f09467b906": {
-    "harvestedRaw": "93333333333333333",
+    "harvestedRaw": "3024549166666666666666",
     "claims": [
       {
         "txHash": "0x9012eb55b2d2bf6b241c33c0e25a9ee518b0a9a40df600988463bd0170f83c81",
         "amountRaw": "93333333333333333",
         "seeded": false,
         "recordedAt": "2026-04-07T13:12:45.059Z"
+      },
+      {
+        "txHash": "0x9b84905a3fbf131e8242e0fb1fd7f762099dea5ee494acb583e0b89168ae8ab2",
+        "amountRaw": "3024455833333333333333",
+        "seeded": false,
+        "recordedAt": "2026-05-22T12:02:32.485Z"
       }
     ]
   },
