@@ -22,7 +22,8 @@ const stakingAbi = [
   "function owner() view returns (address)",
   "function paused() view returns (bool)",
   "function s1Nft() view returns (address)",
-  "function pointsPerDay() view returns (uint256)"
+  "function pointsPerDay() view returns (uint256)",
+  "event PointsClaimed(address indexed user,uint256 amount)"
 ];
 
 const energyBankAbi = [
@@ -63,6 +64,8 @@ let loadStatePromise = null;
 let loadDebounceTimer = null;
 let lastLoadFailed = false;
 let lastLoadStartedAt = 0;
+let isHarvesting = false;
+let lastPendingRaw = 0n;
 
 const connectBtn = document.getElementById("connectBtn");
 const ascendSelectedBtn = document.getElementById("ascendSelectedBtn");
@@ -75,6 +78,7 @@ const harvestedEnergy = document.getElementById("harvestedEnergy");
 const lifetimeEnergy = document.getElementById("lifetimeEnergy");
 const bankedEnergy = document.getElementById("bankedEnergy");
 const bankedLifetimeEnergy = document.getElementById("bankedLifetimeEnergy");
+const lastHarvestedEnergy = document.getElementById("lastHarvestedEnergy");
 const energyRate = document.getElementById("energyRate");
 const selectedCount = document.getElementById("selectedCount");
 const statusBox = document.getElementById("statusBox");
@@ -145,6 +149,8 @@ function resetVisibleDataForWalletChange() {
   lifetimeEnergy.textContent = "0.00";
   if (bankedEnergy) bankedEnergy.textContent = "0.00";
   if (bankedLifetimeEnergy) bankedLifetimeEnergy.textContent = "0.00";
+  if (lastHarvestedEnergy) lastHarvestedEnergy.textContent = "0.00";
+  lastPendingRaw = 0n;
   energyRate.textContent = "0 / day";
   updateSelectedCount();
   renderGrid();
@@ -253,6 +259,33 @@ async function fetchHarvestedEnergyRaw(address, options = {}) {
   }
 
   return setCache(energyCache, `harvested:${key}`, BigInt(json?.harvestedRaw || "0"));
+}
+
+async function fetchAscensionStats(address, options = {}) {
+  if (!address) return null;
+  const key = cacheKey(address);
+  const cached = !options.force ? getFreshCache(energyCache, `stats:${key}`, ENERGY_CACHE_MS) : null;
+  if (cached) return cached;
+
+  const { res, json } = await fetchJsonWithTimeout(
+    `/.netlify/functions/ascension-stats?address=${encodeURIComponent(address)}`,
+    { cache: "no-store", signal: options.signal },
+    Math.max(FETCH_TIMEOUT_MS, 20000)
+  );
+
+  if (!res.ok || json.ok === false) {
+    throw new Error(json?.error || "Failed to load Ascension stats.");
+  }
+
+  return setCache(energyCache, `stats:${key}`, json);
+}
+
+function bigIntFromJson(value) {
+  try {
+    return BigInt(String(value || "0"));
+  } catch {
+    return 0n;
+  }
 }
 
 async function recordHarvest(address, amountRaw, txHash) {
@@ -399,6 +432,23 @@ async function sendContractTx(to, abi, fnName, args = []) {
   });
 
   return txHash;
+}
+
+function getHarvestAmountFromReceipt(receipt) {
+  const iface = new ethers.Interface(stakingAbi);
+  const user = userAddress ? ethers.getAddress(userAddress) : "";
+
+  for (const log of receipt?.logs || []) {
+    try {
+      if (String(log.address || "").toLowerCase() !== STAKING_ADDRESS.toLowerCase()) continue;
+      const parsed = iface.parseLog(log);
+      if (parsed?.name !== "PointsClaimed") continue;
+      if (ethers.getAddress(parsed.args.user) !== user) continue;
+      return parsed.args.amount;
+    } catch {}
+  }
+
+  return 0n;
 }
 
 async function fetchTokenMetadata(tokenId) {
@@ -638,7 +688,11 @@ function updateButtons() {
   ascendSelectedBtn.disabled = !(currentTab === "wallet" && selectedVisible && userAddress);
   ascendAllBtn.disabled = !(currentTab === "wallet" && hasWalletItems && userAddress);
   disconnectSelectedBtn.disabled = !(currentTab === "staked" && selectedVisible && userAddress);
-  harvestBtn.disabled = !userAddress;
+  harvestBtn.textContent = isHarvesting ? "Harvesting..." : "Harvest Energy";
+  harvestBtn.disabled = !userAddress || isHarvesting || lastPendingRaw <= 0n;
+  harvestBtn.title = lastPendingRaw <= 0n && userAddress
+    ? "No pending Energy to harvest."
+    : "";
 }
 
 async function updateEnergy(options = {}) {
@@ -657,6 +711,30 @@ async function updateEnergy(options = {}) {
   try {
     setLoadMeta("Fetching energy...");
     await seedKnownHistoricalHarvestIfNeeded(address);
+
+    try {
+      const stats = await fetchAscensionStats(address, options);
+      if (stats) {
+        const summary = {
+          pending: bigIntFromJson(stats.pendingRaw),
+          stakedBalance: bigIntFromJson(stats.totalStakedRaw ?? stats.totalStaked),
+          pointsPerDayRaw: bigIntFromJson(stats.pointsPerDayRaw) || ethers.parseEther("24"),
+          harvestedRaw: bigIntFromJson(stats.harvestedRaw),
+          lifetimeRaw: bigIntFromJson(stats.lifetimeRaw),
+          lastHarvestRaw: bigIntFromJson(stats.lastHarvestRaw),
+          bankState: {
+            spendable: bigIntFromJson(stats.bankedRaw),
+            lifetime: bigIntFromJson(stats.bankLifetimeRaw),
+            spent: bigIntFromJson(stats.bankSpentRaw)
+          }
+        };
+        setCache(energyCache, `summary:${key}`, summary);
+        applyEnergySummary(summary);
+        return summary;
+      }
+    } catch (statsErr) {
+      console.warn("ascension stats load failed; falling back to direct reads", statsErr);
+    }
 
     const results = await Promise.allSettled([
       withTimeout(staking.pendingPoints(address), CONTRACT_TIMEOUT_MS, "Pending Energy"),
@@ -678,7 +756,15 @@ async function updateEnergy(options = {}) {
       setLoadMeta("RPC is slow, showing partial energy data.");
     }
 
-    const summary = { pending, stakedBalance, pointsPerDayRaw, harvestedRaw, bankState };
+    const summary = {
+      pending,
+      stakedBalance,
+      pointsPerDayRaw,
+      harvestedRaw,
+      lifetimeRaw: pending + harvestedRaw,
+      lastHarvestRaw: 0n,
+      bankState
+    };
     setCache(energyCache, `summary:${key}`, summary);
     applyEnergySummary(summary);
     return summary;
@@ -691,12 +777,15 @@ async function updateEnergy(options = {}) {
 function applyEnergySummary(summary) {
   const pending = summary?.pending || 0n;
   const harvestedRaw = summary?.harvestedRaw || 0n;
+  const lifetimeRaw = summary?.lifetimeRaw ?? (pending + harvestedRaw);
+  const lastHarvestRaw = summary?.lastHarvestRaw || 0n;
   const bankState = summary?.bankState || { spendable: 0n, lifetime: 0n };
   const stakedBalance = summary?.stakedBalance || 0n;
   const pointsPerDayRaw = summary?.pointsPerDayRaw || ethers.parseEther("24");
   const pendingDisplay = Number(ethers.formatEther(pending));
   const harvestedDisplay = Number(ethers.formatEther(harvestedRaw));
-  const lifetimeDisplay = Number(ethers.formatEther(pending + harvestedRaw));
+  const lifetimeDisplay = Number(ethers.formatEther(lifetimeRaw));
+  const lastHarvestDisplay = Number(ethers.formatEther(lastHarvestRaw));
   const pointsPerDayPerNft = Number(ethers.formatEther(pointsPerDayRaw));
   const totalRate = Number(stakedBalance) * pointsPerDayPerNft;
 
@@ -705,9 +794,12 @@ function applyEnergySummary(summary) {
   lifetimeEnergy.textContent = formatEnergyValue(lifetimeDisplay);
   if (bankedEnergy) bankedEnergy.textContent = formatEnergyValue(Number(ethers.formatEther(bankState.spendable || 0n)));
   if (bankedLifetimeEnergy) bankedLifetimeEnergy.textContent = formatEnergyValue(Number(ethers.formatEther(bankState.lifetime || 0n)));
+  if (lastHarvestedEnergy) lastHarvestedEnergy.textContent = formatEnergyValue(lastHarvestDisplay);
   energyRate.textContent = Number.isInteger(totalRate)
     ? `${totalRate} / day`
     : `${totalRate.toFixed(2)} / day`;
+  lastPendingRaw = pending;
+  updateButtons();
 }
 
 async function loadState(options = {}) {
@@ -857,6 +949,8 @@ function clearWalletState(disconnectMessage = "Disconnected.") {
   lifetimeEnergy.textContent = "0.00";
   if (bankedEnergy) bankedEnergy.textContent = "0.00";
   if (bankedLifetimeEnergy) bankedLifetimeEnergy.textContent = "0.00";
+  if (lastHarvestedEnergy) lastHarvestedEnergy.textContent = "0.00";
+  lastPendingRaw = 0n;
   energyRate.textContent = "0 / day";
   nftGrid.innerHTML = "";
   emptyState.style.display = "block";
@@ -1092,10 +1186,21 @@ async function disconnectTokenIds(tokenIds) {
 }
 
 async function harvestEnergy() {
+  if (isHarvesting) return;
+
   try {
     const staking = new ethers.Contract(STAKING_ADDRESS, stakingAbi, provider);
     const claimableBefore = await staking.pendingPoints(userAddress);
+    lastPendingRaw = claimableBefore;
+    updateButtons();
 
+    if (claimableBefore <= 0n) {
+      setStatus("No pending Energy to harvest.");
+      return;
+    }
+
+    isHarvesting = true;
+    updateButtons();
     setStatus("Harvesting Energy...");
     const txHash = await sendContractTx(
       STAKING_ADDRESS,
@@ -1104,17 +1209,18 @@ async function harvestEnergy() {
       []
     );
 
-    await waitForHash(txHash);
+    const receipt = await waitForHash(txHash);
+    const harvestedAmount = getHarvestAmountFromReceipt(receipt) || claimableBefore;
 
-    if (claimableBefore > 0n) {
+    if (harvestedAmount > 0n) {
       try {
-        await recordHarvest(userAddress, claimableBefore, txHash);
+        await recordHarvest(userAddress, harvestedAmount, txHash);
       } catch (recordErr) {
         console.warn("recordHarvest failed", recordErr);
       }
 
       try {
-        const bankTxHash = await creditEnergyBank(userAddress, claimableBefore, txHash);
+        const bankTxHash = await creditEnergyBank(userAddress, harvestedAmount, txHash);
         setStatus(`Energy harvested and banked on-chain.\n${bankTxHash.slice(0, 10)}...`);
       } catch (bankErr) {
         console.warn("creditEnergyBank failed", bankErr);
@@ -1128,6 +1234,9 @@ async function harvestEnergy() {
   } catch (err) {
     console.error("harvestEnergy error", err);
     setStatus(`Harvest failed: ${formatError(err, "Unknown claim error.")}`);
+  } finally {
+    isHarvesting = false;
+    updateButtons();
   }
 }
 

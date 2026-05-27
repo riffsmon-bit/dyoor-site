@@ -1,5 +1,21 @@
 const { getStore } = require("@netlify/blobs");
 
+const CHAIN_ID = 143;
+const DEFAULT_RPC = "https://rpc.monad.xyz";
+const DEFAULT_ASCENSION_STAKING = "0xf9611226c1CcCcCa37951938d6f358D3d5106549";
+const DEFAULT_ENERGY_BANK = "0x291a8cC0FCa08EBd64a0e4d67B4455d24e9E6767";
+const MAX_SUPPLY = 1111;
+const DEFAULT_LOG_CHUNK_SIZE = 5000n;
+const POINTS_CLAIMED_TOPIC = "0xba953728785de35be3827ee7a7a7867a8472947562602939440e6c0bdbf4725e";
+const SELECTORS = {
+  pendingPoints: "0xc4950aab",
+  stakedBalance: "0x60217267",
+  pointsPerDay: "0x3bb1bde7",
+  spendableEnergy: "0xac75ff1a",
+  lifetimeEnergy: "0x662163a3",
+  totalSpent: "0xa8949b46"
+};
+
 function json(statusCode, body, cacheControl = "no-store") {
   return {
     statusCode,
@@ -38,6 +54,160 @@ function formatUnits(raw, decimals = 18) {
   return fractionText ? `${whole.toString()}.${fractionText}` : whole.toString();
 }
 
+function isTxHash(value) {
+  return /^0x[a-fA-F0-9]{64}$/.test(String(value || ""));
+}
+
+function toHex(value) {
+  return `0x${safeBigInt(value).toString(16)}`;
+}
+
+function normalizeHexQuantity(value) {
+  return toHex(value || 0n);
+}
+
+function decodeUint256(hex) {
+  if (!hex || hex === "0x") return 0n;
+  return safeBigInt(hex);
+}
+
+function encodeAddressArg(address) {
+  return address.toLowerCase().replace(/^0x/, "").padStart(64, "0");
+}
+
+function addressTopic(address) {
+  return `0x${encodeAddressArg(address)}`;
+}
+
+async function rpc(method, params = []) {
+  const rpcUrl = process.env.MONAD_RPC_URL || DEFAULT_RPC;
+  const response = await fetch(rpcUrl, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({
+      jsonrpc: "2.0",
+      id: Date.now(),
+      method,
+      params
+    })
+  });
+
+  const body = await response.json().catch(() => ({}));
+  if (!response.ok || body.error) {
+    throw new Error(body?.error?.message || `RPC ${method} failed`);
+  }
+  return body.result;
+}
+
+async function ethCall(to, selector, addressArg = "") {
+  const data = `${selector}${addressArg ? encodeAddressArg(addressArg) : ""}`;
+  const result = await rpc("eth_call", [{ to, data }, "latest"]);
+  return decodeUint256(result);
+}
+
+async function safeEthCall(to, selector, addressArg = "") {
+  try {
+    return await ethCall(to, selector, addressArg);
+  } catch {
+    return 0n;
+  }
+}
+
+async function getLogsChunk(filter, fromBlock, toBlock) {
+  try {
+    return await rpc("eth_getLogs", [{
+      ...filter,
+      fromBlock: normalizeHexQuantity(fromBlock),
+      toBlock: normalizeHexQuantity(toBlock)
+    }]);
+  } catch (err) {
+    if (fromBlock >= toBlock) throw err;
+    const midBlock = (fromBlock + toBlock) / 2n;
+    const [left, right] = await Promise.all([
+      getLogsChunk(filter, fromBlock, midBlock),
+      getLogsChunk(filter, midBlock + 1n, toBlock)
+    ]);
+    return [].concat(left || [], right || []);
+  }
+}
+
+async function scanHarvestLogs(address) {
+  const stakingAddress = normalizeAddress(process.env.ASCENSION_STAKING_ADDRESS || DEFAULT_ASCENSION_STAKING);
+  const latestBlock = safeBigInt(await rpc("eth_blockNumber"));
+  const startBlock = safeBigInt(process.env.ASCENSION_START_BLOCK || "0");
+  const chunkSize = safeBigInt(process.env.ASCENSION_LOG_CHUNK_SIZE || DEFAULT_LOG_CHUNK_SIZE.toString(), DEFAULT_LOG_CHUNK_SIZE);
+  const safeChunkSize = chunkSize > 0n ? chunkSize : DEFAULT_LOG_CHUNK_SIZE;
+  let fromBlock = startBlock;
+  let harvestedRaw = 0n;
+  let lastHarvestRaw = 0n;
+  let lastHarvestTxHash = "";
+  let lastHarvestBlock = null;
+  let logsScanned = 0;
+  let chunksScanned = 0;
+
+  if (!stakingAddress || fromBlock > latestBlock) {
+    return {
+      harvestedRaw,
+      lastHarvestRaw,
+      lastHarvestTxHash,
+      lastHarvestBlock,
+      logsScanned,
+      chunksScanned,
+      fromBlock,
+      toBlock: latestBlock
+    };
+  }
+
+  while (fromBlock <= latestBlock) {
+    const toBlock = fromBlock + safeChunkSize - 1n > latestBlock
+      ? latestBlock
+      : fromBlock + safeChunkSize - 1n;
+
+    const logs = await getLogsChunk({
+      address: stakingAddress,
+      topics: [POINTS_CLAIMED_TOPIC, addressTopic(address)]
+    }, fromBlock, toBlock);
+
+    for (const log of logs || []) {
+      const amountRaw = decodeUint256(log.data);
+      harvestedRaw += amountRaw;
+      logsScanned += 1;
+      lastHarvestRaw = amountRaw;
+      lastHarvestTxHash = String(log.transactionHash || "");
+      lastHarvestBlock = safeBigInt(log.blockNumber).toString();
+    }
+
+    chunksScanned += 1;
+    fromBlock = toBlock + 1n;
+  }
+
+  return {
+    harvestedRaw,
+    lastHarvestRaw,
+    lastHarvestTxHash,
+    lastHarvestBlock,
+    logsScanned,
+    chunksScanned,
+    fromBlock: startBlock,
+    toBlock: latestBlock
+  };
+}
+
+function ledgerScanFallback(record) {
+  const claims = Array.isArray(record?.claims) ? record.claims : [];
+  const lastClaim = claims[claims.length - 1] || {};
+  return {
+    harvestedRaw: safeBigInt(record?.harvestedRaw || "0"),
+    lastHarvestRaw: safeBigInt(lastClaim.amountRaw || "0"),
+    lastHarvestTxHash: String(lastClaim.txHash || ""),
+    lastHarvestBlock: null,
+    logsScanned: claims.length,
+    chunksScanned: 0,
+    fromBlock: 0n,
+    toBlock: 0n
+  };
+}
+
 exports.handler = async function (event) {
   try {
     const store = getStore("ascension-energy-ledger");
@@ -50,18 +220,71 @@ exports.handler = async function (event) {
       }
 
       const record = await store.get(`${address}.json`, { type: "json" });
-      const harvestedRaw = safeBigInt(record?.harvestedRaw || "0").toString();
+      const stakingAddress = normalizeAddress(process.env.ASCENSION_STAKING_ADDRESS || DEFAULT_ASCENSION_STAKING);
+      const energyBankAddress = normalizeAddress(process.env.ENERGY_BANK_ADDRESS || DEFAULT_ENERGY_BANK);
+      let apiStatus = "ok";
+      let apiMessage = "Energy totals loaded from Ascension harvest events with chunked RPC log scans.";
+      let logs;
+      try {
+        logs = await scanHarvestLogs(address);
+      } catch (scanErr) {
+        logs = ledgerScanFallback(record);
+        apiStatus = "partial";
+        apiMessage = `RPC harvest log scan failed; using the off-chain harvest ledger fallback. ${String(scanErr?.message || scanErr)}`;
+      }
+      const pendingRaw = stakingAddress
+        ? await safeEthCall(stakingAddress, SELECTORS.pendingPoints, address)
+        : 0n;
+      const totalStakedRaw = stakingAddress
+        ? await safeEthCall(stakingAddress, SELECTORS.stakedBalance, address)
+        : 0n;
+      const pointsPerDayRaw = stakingAddress
+        ? await safeEthCall(stakingAddress, SELECTORS.pointsPerDay)
+        : 0n;
+      const bankedRaw = energyBankAddress
+        ? await safeEthCall(energyBankAddress, SELECTORS.spendableEnergy, address)
+        : logs.harvestedRaw;
+      const bankLifetimeRaw = energyBankAddress
+        ? await safeEthCall(energyBankAddress, SELECTORS.lifetimeEnergy, address)
+        : logs.harvestedRaw;
+      const bankSpentRaw = energyBankAddress
+        ? await safeEthCall(energyBankAddress, SELECTORS.totalSpent, address)
+        : 0n;
+      const harvestedRaw = logs.harvestedRaw;
+      const lifetimeRaw = harvestedRaw + pendingRaw;
 
       return json(200, {
         ok: true,
         address,
-        totalStaked: null,
-        maxSupply: 1111,
-        percent: null,
-        harvestedRaw,
+        chainId: CHAIN_ID,
+        stakingAddress,
+        energyBankAddress,
+        pendingRaw: pendingRaw.toString(),
+        pendingEnergy: formatUnits(pendingRaw),
+        harvestedRaw: harvestedRaw.toString(),
         harvestedEnergy: formatUnits(harvestedRaw),
-        apiStatus: "partial",
-        apiMessage: "Harvested Energy loaded. Global Ascension stats are not configured in this function."
+        lifetimeRaw: lifetimeRaw.toString(),
+        lifetimeEnergy: formatUnits(lifetimeRaw),
+        bankedRaw: bankedRaw.toString(),
+        bankedEnergy: formatUnits(bankedRaw),
+        bankLifetimeRaw: bankLifetimeRaw.toString(),
+        bankLifetimeEnergy: formatUnits(bankLifetimeRaw),
+        bankSpentRaw: bankSpentRaw.toString(),
+        totalStakedRaw: totalStakedRaw.toString(),
+        totalStaked: totalStakedRaw.toString(),
+        pointsPerDayRaw: pointsPerDayRaw.toString(),
+        maxSupply: MAX_SUPPLY,
+        percent: MAX_SUPPLY ? Number(totalStakedRaw) / MAX_SUPPLY : null,
+        lastHarvestRaw: logs.lastHarvestRaw.toString(),
+        lastHarvestedEnergy: formatUnits(logs.lastHarvestRaw),
+        lastHarvestTxHash: logs.lastHarvestTxHash,
+        lastHarvestBlock: logs.lastHarvestBlock,
+        logsScanned: logs.logsScanned,
+        chunksScanned: logs.chunksScanned,
+        fromBlock: logs.fromBlock.toString(),
+        toBlock: logs.toBlock.toString(),
+        apiStatus,
+        apiMessage
       }, "public, max-age=10, stale-while-revalidate=30");
     }
 
@@ -89,6 +312,9 @@ exports.handler = async function (event) {
         };
 
         const txHash = String(body.txHash || "").toLowerCase();
+        if (txHash && !isTxHash(txHash)) {
+          return json(400, { ok: false, error: "Invalid txHash" });
+        }
         const existingClaims = Array.isArray(existing.claims) ? existing.claims : [];
 
         if (txHash && existingClaims.some((c) => String(c.txHash || "").toLowerCase() === txHash)) {
