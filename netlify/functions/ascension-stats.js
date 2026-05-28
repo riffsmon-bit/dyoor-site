@@ -4,6 +4,7 @@ const CHAIN_ID = 143;
 const DEFAULT_RPC = "https://rpc.monad.xyz";
 const DEFAULT_ASCENSION_STAKING = "0xf9611226c1CcCcCa37951938d6f358D3d5106549";
 const DEFAULT_ENERGY_BANK = "0x291a8cC0FCa08EBd64a0e4d67B4455d24e9E6767";
+const DEFAULT_LEDGER_URL = "https://raw.githubusercontent.com/riffsmon-bit/dyoor-site/main/data/harvested-energy.json";
 const MAX_SUPPLY = 1111;
 const DEFAULT_LOG_CHUNK_SIZE = 5000n;
 const POINTS_CLAIMED_TOPIC = "0xba953728785de35be3827ee7a7a7867a8472947562602939440e6c0bdbf4725e";
@@ -208,9 +209,27 @@ function ledgerScanFallback(record) {
   };
 }
 
-exports.handler = async function (event) {
+async function getLedgerRecord(address) {
   try {
     const store = getStore("ascension-energy-ledger");
+    const record = await store.get(`${address}.json`, { type: "json" });
+    if (record) return record;
+  } catch {}
+
+  try {
+    const response = await fetch(process.env.HARVEST_LEDGER_URL || DEFAULT_LEDGER_URL, {
+      headers: { accept: "application/json" }
+    });
+    if (!response.ok) return null;
+    const ledger = await response.json();
+    return ledger?.[address] || null;
+  } catch {
+    return null;
+  }
+}
+
+exports.handler = async function (event) {
+  try {
     const method = (event.httpMethod || "GET").toUpperCase();
 
     if (method === "GET") {
@@ -219,18 +238,24 @@ exports.handler = async function (event) {
         return json(400, { ok: false, error: "Missing or invalid address" });
       }
 
-      const record = await store.get(`${address}.json`, { type: "json" });
+      const record = await getLedgerRecord(address);
       const stakingAddress = normalizeAddress(process.env.ASCENSION_STAKING_ADDRESS || DEFAULT_ASCENSION_STAKING);
       const energyBankAddress = normalizeAddress(process.env.ENERGY_BANK_ADDRESS || DEFAULT_ENERGY_BANK);
-      let apiStatus = "ok";
-      let apiMessage = "Energy totals loaded from Ascension harvest events with chunked RPC log scans.";
-      let logs;
-      try {
-        logs = await scanHarvestLogs(address);
-      } catch (scanErr) {
-        logs = ledgerScanFallback(record);
-        apiStatus = "partial";
-        apiMessage = `RPC harvest log scan failed; using the off-chain harvest ledger fallback. ${String(scanErr?.message || scanErr)}`;
+      const shouldScanLogs = event?.queryStringParameters?.scanLogs === "1";
+      let apiStatus = shouldScanLogs ? "ok" : "partial";
+      let apiMessage = shouldScanLogs
+        ? "Energy totals loaded from Ascension harvest events with chunked RPC log scans."
+        : "Energy totals loaded from the harvest ledger and Energy Bank contract. Add scanLogs=1 to force a harvest-event scan.";
+      let logs = ledgerScanFallback(record);
+
+      if (shouldScanLogs) {
+        try {
+          logs = await scanHarvestLogs(address);
+        } catch (scanErr) {
+          logs = ledgerScanFallback(record);
+          apiStatus = "partial";
+          apiMessage = `RPC harvest log scan failed; using the off-chain harvest ledger fallback. ${String(scanErr?.message || scanErr)}`;
+        }
       }
       const pendingRaw = stakingAddress
         ? await safeEthCall(stakingAddress, SELECTORS.pendingPoints, address)
@@ -289,6 +314,7 @@ exports.handler = async function (event) {
     }
 
     if (method === "POST") {
+      const store = getStore("ascension-energy-ledger");
       const body = JSON.parse(event.body || "{}");
       const action = String(body.action || "").trim();
 
