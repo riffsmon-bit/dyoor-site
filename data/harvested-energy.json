@@ -113,7 +113,7 @@
     ]
   },
   "0x49b9e94f9841da5df27cb44ede19d963b8ff6e78": {
-    "harvestedRaw": "30121934444444444444443",
+    "harvestedRaw": "30750249722222222222220",
     "claims": [
       {
         "txHash": "seed-10000-stakers-no-riffs-2026-04-04-v1-0x49b9e94f9841da5df27cb44ede19d963b8ff6e78",
@@ -144,6 +144,12 @@
         "amountRaw": "273696944444444444444",
         "seeded": false,
         "recordedAt": "2026-05-28T13:01:05.072Z"
+      },
+      {
+        "txHash": "0xc1a8062eb1207bffe51cefda51522be28de14cddaa2c9cb44bf576e495116712",
+        "amountRaw": "628315277777777777777",
+        "seeded": false,
+        "recordedAt": "2026-05-30T13:20:59.904Z"
       }
     ]
   },
