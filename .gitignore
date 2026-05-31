@@ -1,6 +1,8 @@
 .env
 .DS_Store
+*.icloud
 node_modules/
+dyoor-builder/layers/_disabled/
 *backup*.html
 *backup*.js
 *backup*.css

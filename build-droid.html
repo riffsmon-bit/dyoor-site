@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"/>
+  <title>DYOOR | Build D.Y.O.O.R Droid</title>
+  <meta name="description" content="Build your own D.Y.O.O.R Droid. Mix traits, preview the art, and save your custom PFP."/>
+  <meta name="theme-color" content="#07070c"/>
+  <link rel="canonical" href="https://dyoor.xyz/build-droid.html"/>
+  <meta property="og:type" content="website"/>
+  <meta property="og:title" content="Build D.Y.O.O.R Droid"/>
+  <meta property="og:description" content="Mix D.Y.O.O.R Droid traits, preview the art, and download your custom PFP."/>
+  <meta property="og:image" content="https://dyoor.xyz/assets/home_banner.png"/>
+  <meta name="twitter:card" content="summary_large_image"/>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/style.css?v=builder-1"/>
+</head>
+<body>
+  <div class="bg" aria-hidden="true"></div>
+
+  <header class="topbar" id="top">
+    <div class="container topbar__inner">
+      <a class="brand" href="/index.html" aria-label="DYOOR home">
+        <img class="brand__logo" src="/assets/dyoor-logo.png" alt="" width="34" height="34"/>
+        <span class="brand__text">DYOOR</span>
+      </a>
+      <nav class="nav" aria-label="Primary">
+        <a href="/whitepaper.html">Whitepaper</a>
+        <a href="/stake.html">Ascension Protocol</a>
+        <a href="/build-droid.html" class="is-active">Build Droid</a>
+        <a href="/verify.html">Verify Discord</a>
+        <button class="btn btn--ghost navWalletBtn" id="homeWalletBtn" type="button" data-open-wallet>Connect Wallet</button>
+      </nav>
+    </div>
+  </header>
+
+  <main class="page builderPage">
+    <section class="section builderHero reveal">
+      <div class="container">
+        <div class="builderHero__inner">
+          <p class="hero__eyebrow">D.Y.O.O.R Droid Lab</p>
+          <h1>Build D.Y.O.O.R Droid</h1>
+          <p class="hero__subcopy">Build your own D.Y.O.O.R Droid. Mix traits, preview the art, and save your custom PFP.</p>
+          <div class="hero__meta">
+            <span class="hero__metaPill">Layered PNG</span>
+            <span class="hero__metaPill">Local preview</span>
+            <span class="hero__metaPill">PFP export</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section reveal">
+      <div class="container">
+        <div class="builderShell">
+          <section class="builderPreviewPanel" aria-label="DYOOR Droid preview">
+            <div class="builderPreviewFrame">
+              <canvas id="droidCanvas" class="builderCanvas" width="1024" height="1024" aria-label="Layered DYOOR Droid preview"></canvas>
+            </div>
+            <div class="builderPreviewMeta">
+              <div>
+                <span class="builderMiniLabel">Selected Build</span>
+                <p id="builderSelected" class="builderSelected">No traits selected</p>
+              </div>
+              <div id="builderStatus" class="builderStatus">Loading builder.</div>
+            </div>
+            <div class="builderActions">
+              <button class="btn btn--primary" id="randomizeDroidBtn" type="button">Randomize</button>
+              <button class="btn btn--ghost" id="resetDroidBtn" type="button">Reset</button>
+              <button class="btn btn--ghost" id="copyDroidBtn" type="button">Copy Build</button>
+              <button class="btn btn--primary" id="downloadDroidBtn" type="button">Download PNG</button>
+            </div>
+          </section>
+
+          <section class="builderControls card" aria-label="DYOOR Droid trait controls">
+            <div class="builderControls__head">
+              <div>
+                <span class="builderMiniLabel">Trait Stack</span>
+                <h2>Layer Controls</h2>
+              </div>
+              <span class="builderBadge">Allowlist Only</span>
+            </div>
+
+            <div class="builderTabs" id="builderTabs" role="tablist" aria-label="Trait categories"></div>
+            <div class="builderWarning" id="builderWarning" hidden></div>
+
+            <div class="builderOptionHead">
+              <h3 id="activeTraitTitle">Trait Options</h3>
+              <span>Invalid combos are disabled.</span>
+            </div>
+            <div class="traitOptions" id="traitOptions"></div>
+          </section>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <div class="container footer__inner">
+      <span>© 2026 DYOOR</span>
+      <a href="#top" class="tiny muted">Back to top ↑</a>
+    </div>
+  </footer>
+
+  <script defer src="/script.js?v=builder-1"></script>
+  <script type="module" src="/dyoor-builder.js?v=builder-1"></script>
+</body>
+</html>
