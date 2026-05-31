@@ -58,6 +58,10 @@ function ruleConflict(candidate) {
   const nextSelected = { ...state.selected, [candidate.category]: candidate.file };
 
   for (const rule of DYOOR_BUILDER_RULES) {
+    if (rule?.type === "disabled" && sameTrait(rule.trait, candidate)) {
+      return rule.message || "This trait is disabled for the public builder.";
+    }
+
     if (!rule || !sameTrait(rule.trait, candidate)) continue;
 
     if (rule.type === "incompatible" && nextSelected[rule.with?.category] === rule.with?.file) {

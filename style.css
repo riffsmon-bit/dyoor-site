@@ -2356,7 +2356,7 @@ details.faq-item p {
   border:1px solid rgba(182,214,255,.12);
   background:
     linear-gradient(180deg, rgba(5,7,12,.12), rgba(5,7,12,.84)),
-    url("/assets/ascension.jpg") center 30% / cover no-repeat;
+    url("/assets/dyoor_builder.PNG") center 42% / cover no-repeat;
   box-shadow:var(--shadow);
 }
 

@@ -3,6 +3,12 @@
 //
 // Supported rule shapes:
 // {
+//   type: "disabled",
+//   trait: { category: "Mouth", file: "example.png" },
+//   message: "This trait is disabled for the public builder."
+// }
+//
+// {
 //   type: "incompatible",
 //   trait: { category: "Hat", file: "example.png" },
 //   with: { category: "Eyes", file: "example-eyes.png" },
@@ -24,4 +30,10 @@
 //   ],
 //   message: "These eyes only work with selected hats."
 // }
-export const DYOOR_BUILDER_RULES = [];
+export const DYOOR_BUILDER_RULES = [
+  {
+    type: "disabled",
+    trait: { category: "Mouth", file: "Bendette.png" },
+    message: "This mouth trait is disabled for the public builder."
+  }
+];
