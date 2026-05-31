@@ -49,6 +49,31 @@ function isSelected(trait) {
   return state.selected[trait.category] === trait.file;
 }
 
+function selectedCategoriesForRule(rule) {
+  const traits = [];
+  if (rule?.with) traits.push(rule.with);
+  if (rule?.requires) traits.push(rule.requires);
+  if (Array.isArray(rule?.allowedWith)) traits.push(...rule.allowedWith);
+  if (Array.isArray(rule?.allowedEmptyCategories)) {
+    traits.push(...rule.allowedEmptyCategories.map((category) => ({ category })));
+  }
+  return [...new Set(traits.map((trait) => trait?.category).filter(Boolean))];
+}
+
+function onlyWithRuleSatisfied(rule, selected) {
+  const allowed = Array.isArray(rule.allowedWith) ? rule.allowedWith : [];
+  const allowedEmpty = Array.isArray(rule.allowedEmptyCategories) ? rule.allowedEmptyCategories : [];
+
+  for (const category of selectedCategoriesForRule(rule)) {
+    const selectedFile = selected[category] || "";
+    if (!selectedFile && allowedEmpty.includes(category)) continue;
+    if (allowed.some((item) => item.category === category && item.file === selectedFile)) continue;
+    return false;
+  }
+
+  return true;
+}
+
 function selectedTrait(category) {
   const file = state.selected[category];
   return file ? { category, file } : null;
@@ -73,9 +98,7 @@ function ruleConflict(candidate) {
     }
 
     if (rule.type === "onlyWith") {
-      const allowed = Array.isArray(rule.allowedWith) ? rule.allowedWith : [];
-      const matches = allowed.some((item) => nextSelected[item.category] === item.file);
-      if (allowed.length && !matches) {
+      if (!onlyWithRuleSatisfied(rule, nextSelected)) {
         return rule.message || "This trait only works with selected matching traits.";
       }
     }
@@ -99,10 +122,7 @@ function ruleConflict(candidate) {
     }
 
     if (rule.type === "onlyWith") {
-      const allowed = Array.isArray(rule.allowedWith) ? rule.allowedWith : [];
-      const appliesToCategory = allowed.some((item) => item.category === candidate.category);
-      const allowedCandidate = allowed.some((item) => sameTrait(item, candidate));
-      if (appliesToCategory && !allowedCandidate) {
+      if (!onlyWithRuleSatisfied(rule, nextSelected)) {
         return rule.message || "The current build only works with selected matching traits.";
       }
     }
