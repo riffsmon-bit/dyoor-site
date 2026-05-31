@@ -9,6 +9,16 @@ export const DYOOR_BUILDER_LAYER_ORDER = [
   "Accessories"
 ];
 
+export const DYOOR_BUILDER_RANDOMIZER = {
+  requiredCategories: ["Background", "Droid", "Eyes", "Mouth"],
+  optionalCategoryChances: {
+    Condition: 0.35,
+    Clothes: 0.78,
+    Hat: 0.42,
+    Accessories: 0.22
+  }
+};
+
 // Public builder allowlist. Add more PNG filenames here when you are ready to expose them.
 // Files should live at /dyoor-builder/layers/{Category}/{filename}.
 export const DYOOR_BUILDER_TRAITS = {

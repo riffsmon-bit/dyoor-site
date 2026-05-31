@@ -1,4 +1,4 @@
-import { DYOOR_BUILDER_LAYER_ORDER, DYOOR_BUILDER_TRAITS } from "/src/config/dyoorBuilderTraits.js";
+import { DYOOR_BUILDER_LAYER_ORDER, DYOOR_BUILDER_RANDOMIZER, DYOOR_BUILDER_TRAITS } from "/src/config/dyoorBuilderTraits.js";
 import { DYOOR_BUILDER_RULES } from "/src/config/dyoorBuilderRules.js";
 
 const CANVAS_SIZE = 1024;
@@ -297,7 +297,14 @@ function resetBuild() {
 
 function randomizeBuild() {
   const next = {};
+  const required = new Set(DYOOR_BUILDER_RANDOMIZER?.requiredCategories || []);
+  const chances = DYOOR_BUILDER_RANDOMIZER?.optionalCategoryChances || {};
+
   for (const category of availableCategories()) {
+    const isRequired = required.has(category);
+    const chance = Number.isFinite(chances[category]) ? chances[category] : 0.5;
+    if (!isRequired && Math.random() > chance) continue;
+
     const traits = DYOOR_BUILDER_TRAITS[category] || [];
     const options = traits.filter((file) => {
       const previous = state.selected;
