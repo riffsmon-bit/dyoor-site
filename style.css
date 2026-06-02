@@ -2888,6 +2888,21 @@ details.faq-item p {
   line-height:1.55;
 }
 
+.adminJsonPreview{
+  max-height:520px;
+  overflow:auto;
+  margin:14px 0 0;
+  padding:14px;
+  border-radius:16px;
+  border:1px solid rgba(182,214,255,.12);
+  background:rgba(3,7,12,.84);
+  color:rgba(240,244,255,.82);
+  font-size:12px;
+  line-height:1.55;
+  white-space:pre-wrap;
+  overflow-wrap:anywhere;
+}
+
 @media (max-width: 860px){
   .checkerShell,
   .checkerTraits{

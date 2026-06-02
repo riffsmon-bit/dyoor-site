@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"/>
+  <title>DYOOR | Ascension Admin</title>
+  <meta name="robots" content="noindex,nofollow"/>
+  <meta name="theme-color" content="#07070c"/>
+  <link rel="stylesheet" href="/style.css?v=ascension-blueprint-1"/>
+</head>
+<body>
+  <div class="bg" aria-hidden="true"></div>
+  <main class="page">
+    <section class="section">
+      <div class="container checkerShell">
+        <section class="checkerPanel">
+          <span class="builderMiniLabel">Private Export</span>
+          <h1>Ascension Admin</h1>
+          <p class="muted">Enter the admin token from Netlify env, then export live Blueprint data from Netlify Blobs.</p>
+          <div class="checkerForm">
+            <input class="checkerInput" id="adminTokenInput" type="password" autocomplete="off" placeholder="Admin token"/>
+            <button class="btn btn--primary" id="exportBlueprintsBtn" type="button">Export Full Blueprints JSON</button>
+            <button class="btn btn--ghost" id="exportWalletsBtn" type="button">Export Wallets JSON</button>
+          </div>
+          <div class="checkerResult" id="adminExportStatus">Waiting for admin token.</div>
+        </section>
+
+        <section class="checkerPanel">
+          <span class="builderMiniLabel">Preview</span>
+          <h2>Latest Export</h2>
+          <pre class="adminJsonPreview" id="adminJsonPreview">{}</pre>
+        </section>
+      </div>
+    </section>
+  </main>
+  <script type="module" src="/admin-ascension.js?v=ascension-blueprint-1"></script>
+</body>
+</html>
