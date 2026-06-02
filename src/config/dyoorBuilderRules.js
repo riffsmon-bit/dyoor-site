@@ -58,6 +58,46 @@ export const DYOOR_BUILDER_RULES = [
     }
   ]),
   ...[
+    "Build Anything Glasses.png",
+    "Monad Specs Black.png",
+    "Monad Specs Gold.png",
+    "Neverland Specs.png",
+    "Ricky V.png",
+    "Sunglasses.png",
+    "Tri-Specs.png",
+    "VR Headset.png"
+  ].flatMap((eyeFile) => [
+    {
+      type: "incompatible",
+      trait: { category: "Eyes", file: eyeFile },
+      with: { category: "Hat", file: "Black Shystie.png" },
+      message: "Glasses and specs do not work with ski masks."
+    },
+    {
+      type: "incompatible",
+      trait: { category: "Eyes", file: eyeFile },
+      with: { category: "Hat", file: "Pink Shystie.png" },
+      message: "Glasses and specs do not work with ski masks."
+    }
+  ]),
+  ...[
+    "Black Shystie.png",
+    "Pink Shystie.png"
+  ].flatMap((hatFile) => [
+    {
+      type: "incompatible",
+      trait: { category: "Hat", file: hatFile },
+      with: { category: "Accessories", file: "Bandaid.png" },
+      message: "Bandaid does not work with ski masks."
+    },
+    {
+      type: "incompatible",
+      trait: { category: "Hat", file: hatFile },
+      with: { category: "Mouth", file: "Displeased toothpick.png" },
+      message: "Toothpick does not work with ski masks."
+    }
+  ]),
+  ...[
     "Bandana Black.png",
     "Bandana Pink.png"
   ].flatMap((mouthFile) => [
