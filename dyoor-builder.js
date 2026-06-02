@@ -1,5 +1,12 @@
 import { DYOOR_BUILDER_LAYER_ORDER, DYOOR_BUILDER_RANDOMIZER, DYOOR_BUILDER_TRAITS } from "/src/config/dyoorBuilderTraits.js";
 import { DYOOR_BUILDER_RULES } from "/src/config/dyoorBuilderRules.js";
+import {
+  ASCENSION_BLUEPRINT_LAUNCH_ISO,
+  ASCENSION_BLUEPRINT_LIMIT,
+  ascensionBlueprintSignMessage,
+  normalizeBlueprintTraits,
+  normalizeWalletAddress
+} from "/src/ascensionBlueprintHelpers.js";
 
 const CANVAS_SIZE = 1024;
 const LAYER_BASE_PATH = "/dyoor-builder/layers";
@@ -21,6 +28,25 @@ const randomizeBtn = document.getElementById("randomizeDroidBtn");
 const resetBtn = document.getElementById("resetDroidBtn");
 const downloadBtn = document.getElementById("downloadDroidBtn");
 const copyBtn = document.getElementById("copyDroidBtn");
+const saveBlueprintBtn = document.getElementById("saveBlueprintBtn");
+const blueprintStatusEl = document.getElementById("blueprintStatus");
+const blueprintCounterEl = document.getElementById("blueprintCounter");
+const badgeMetaEl = document.getElementById("ascensionBadgeMeta");
+const countdownEls = {
+  days: document.getElementById("countdownDays"),
+  hours: document.getElementById("countdownHours"),
+  minutes: document.getElementById("countdownMinutes"),
+  seconds: document.getElementById("countdownSeconds")
+};
+
+const campaignState = {
+  wallet: "",
+  launchOpen: false,
+  remaining: ASCENSION_BLUEPRINT_LIMIT,
+  full: false,
+  registration: null,
+  saving: false
+};
 
 function traitPath(category, file) {
   return `${LAYER_BASE_PATH}/${encodeURIComponent(category)}/${encodeURIComponent(file)}`;
@@ -32,6 +58,14 @@ function fileLabel(file) {
     .replace(/[_-]+/g, " ")
     .replace(/\s+/g, " ")
     .trim();
+}
+
+function selectedBlueprintTraits() {
+  const traits = {};
+  for (const category of DYOOR_BUILDER_LAYER_ORDER) {
+    traits[category.toLowerCase()] = state.selected[category] ? fileLabel(state.selected[category]) : "";
+  }
+  return normalizeBlueprintTraits(traits);
 }
 
 function availableCategories() {
@@ -200,6 +234,10 @@ function setStatus(message) {
   if (statusEl) statusEl.textContent = message;
 }
 
+function setBlueprintStatus(message) {
+  if (blueprintStatusEl) blueprintStatusEl.textContent = message;
+}
+
 function setWarning(message) {
   if (!warningEl) return;
   warningEl.textContent = message || "";
@@ -283,6 +321,88 @@ function renderSelectedSummary() {
   summaryEl.textContent = parts.length ? parts.join(" / ") : "No traits selected";
 }
 
+function renderBlueprintCampaign() {
+  const remaining = Math.max(0, Number(campaignState.remaining || 0));
+  if (blueprintCounterEl) {
+    blueprintCounterEl.textContent = `Ascension Blueprint spots remaining: ${remaining} / ${ASCENSION_BLUEPRINT_LIMIT}`;
+  }
+
+  if (campaignState.registration) {
+    const rank = Number(campaignState.registration.rank || 0);
+    const blueprintId = campaignState.registration.blueprintId || "";
+    if (saveBlueprintBtn) {
+      saveBlueprintBtn.disabled = true;
+      saveBlueprintBtn.textContent = "Ascension Blueprint Secured";
+    }
+    if (badgeMetaEl) badgeMetaEl.textContent = `${blueprintId} / Rank #${rank}`;
+    setBlueprintStatus(`Blueprint ID: ${blueprintId} | Rank: #${rank}`);
+    return;
+  }
+
+  if (badgeMetaEl) badgeMetaEl.textContent = "Blueprint ID / Rank pending";
+
+  if (campaignState.full) {
+    if (saveBlueprintBtn) {
+      saveBlueprintBtn.disabled = true;
+      saveBlueprintBtn.textContent = "Ascension Blueprint campaign complete";
+    }
+    setBlueprintStatus("Wallets after 500 can still build and download PNGs, but do not receive badge eligibility.");
+    return;
+  }
+
+  if (!campaignState.launchOpen) {
+    if (saveBlueprintBtn) {
+      saveBlueprintBtn.disabled = true;
+      saveBlueprintBtn.textContent = "Save Ascension Blueprint";
+    }
+    setBlueprintStatus("Save unlocks at launch. Preview and PNG download remain available.");
+    return;
+  }
+
+  if (saveBlueprintBtn) {
+    saveBlueprintBtn.disabled = campaignState.saving;
+    saveBlueprintBtn.textContent = campaignState.saving ? "Saving Blueprint..." : "Save Ascension Blueprint";
+  }
+  setBlueprintStatus(campaignState.wallet ? "Connected wallet can save one Ascension Blueprint." : "Connect wallet to save one Ascension Blueprint.");
+}
+
+function renderCountdown() {
+  const launchMs = Date.parse(ASCENSION_BLUEPRINT_LAUNCH_ISO);
+  const remainingMs = launchMs - Date.now();
+  campaignState.launchOpen = remainingMs <= 0;
+
+  const totalSeconds = Math.max(0, Math.floor(remainingMs / 1000));
+  const days = Math.floor(totalSeconds / 86400);
+  const hours = Math.floor((totalSeconds % 86400) / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  const seconds = totalSeconds % 60;
+
+  if (countdownEls.days) countdownEls.days.textContent = String(days).padStart(2, "0");
+  if (countdownEls.hours) countdownEls.hours.textContent = String(hours).padStart(2, "0");
+  if (countdownEls.minutes) countdownEls.minutes.textContent = String(minutes).padStart(2, "0");
+  if (countdownEls.seconds) countdownEls.seconds.textContent = String(seconds).padStart(2, "0");
+
+  renderBlueprintCampaign();
+}
+
+async function loadBlueprintStatus() {
+  if (!saveBlueprintBtn) return;
+  const walletQuery = campaignState.wallet ? `?wallet=${encodeURIComponent(campaignState.wallet)}` : "";
+  try {
+    const response = await fetch(`/.netlify/functions/ascension-blueprints${walletQuery}`, { cache: "no-store" });
+    if (!response.ok) throw new Error("Status unavailable.");
+    const data = await response.json();
+    campaignState.remaining = data.remaining ?? ASCENSION_BLUEPRINT_LIMIT;
+    campaignState.full = Boolean(data.full);
+    campaignState.registration = data.registration || null;
+  } catch (err) {
+    console.warn("Ascension Blueprint status failed", err);
+    campaignState.remaining = ASCENSION_BLUEPRINT_LIMIT;
+    campaignState.full = false;
+  }
+  renderBlueprintCampaign();
+}
+
 function render() {
   renderTabs();
   renderOptions();
@@ -345,6 +465,48 @@ async function copyBuild() {
   }
 }
 
+async function saveBlueprint() {
+  if (!campaignState.launchOpen || campaignState.full || campaignState.registration || campaignState.saving) {
+    renderBlueprintCampaign();
+    return;
+  }
+
+  const wallet = normalizeWalletAddress(window.userAddress || "");
+  const signer = window.signer;
+  if (!wallet || !signer?.signMessage) {
+    setBlueprintStatus("Connect wallet first.");
+    document.getElementById("homeWalletBtn")?.click();
+    return;
+  }
+
+  const traits = selectedBlueprintTraits();
+  campaignState.saving = true;
+  renderBlueprintCampaign();
+
+  try {
+    const message = await ascensionBlueprintSignMessage(wallet, traits);
+    const signature = await signer.signMessage(message);
+    const response = await fetch("/.netlify/functions/ascension-blueprints", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ wallet, traits, message, signature })
+    });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok || data.ok === false) throw new Error(data.error || "Blueprint save failed.");
+
+    campaignState.remaining = data.remaining ?? campaignState.remaining;
+    campaignState.full = Boolean(data.full);
+    campaignState.registration = data.registration || null;
+    setBlueprintStatus(campaignState.registration ? "Ascension Blueprint Secured" : "Blueprint status updated.");
+  } catch (err) {
+    console.warn("save blueprint failed", err);
+    setBlueprintStatus(err?.message || "Could not save Ascension Blueprint.");
+  } finally {
+    campaignState.saving = false;
+    renderBlueprintCampaign();
+  }
+}
+
 function loadBuildFromUrl() {
   const params = new URLSearchParams(window.location.search);
   for (const category of DYOOR_BUILDER_LAYER_ORDER) {
@@ -366,6 +528,14 @@ function init() {
   resetBtn?.addEventListener("click", resetBuild);
   downloadBtn?.addEventListener("click", downloadBuild);
   copyBtn?.addEventListener("click", copyBuild);
+  saveBlueprintBtn?.addEventListener("click", saveBlueprint);
+  window.addEventListener("dyoor:wallet", (event) => {
+    campaignState.wallet = normalizeWalletAddress(event?.detail?.userAddress || window.userAddress || "");
+    loadBlueprintStatus();
+  });
+  renderCountdown();
+  setInterval(renderCountdown, 1000);
+  loadBlueprintStatus();
 }
 
 init();

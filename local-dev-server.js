@@ -1,8 +1,10 @@
 import { createServer } from "node:http";
+import { createHash } from "node:crypto";
 import "dotenv/config";
 import { readFile, writeFile } from "node:fs/promises";
 import { existsSync } from "node:fs";
 import path from "node:path";
+import { verifyMessage } from "ethers";
 import quoteHandler from "./netlify/functions/quote.js";
 import energyBankCreditHandler from "./netlify/functions/energy-bank-credit.js";
 
@@ -57,6 +59,136 @@ async function handleFunction(req, res, handler) {
 function normalizeAddress(address) {
   const trimmed = String(address || "").trim();
   return /^0x[a-fA-F0-9]{40}$/.test(trimmed) ? trimmed.toLowerCase() : "";
+}
+
+const BLUEPRINT_LIMIT = 500;
+const BLUEPRINT_LAUNCH_AT = "2026-06-05T19:00:00-04:00";
+const BLUEPRINT_TRAITS = ["background", "droid", "condition", "eyes", "clothes", "mouth", "hat", "accessories"];
+
+function normalizeBlueprintTraits(traits = {}) {
+  return BLUEPRINT_TRAITS.reduce((acc, trait) => {
+    acc[trait] = String(traits?.[trait] || "").trim();
+    return acc;
+  }, {});
+}
+
+function blueprintId(rank) {
+  return `AB-${String(rank).padStart(4, "0")}`;
+}
+
+function blueprintTraitHash(traits) {
+  return createHash("sha256").update(JSON.stringify(normalizeBlueprintTraits(traits))).digest("hex");
+}
+
+function blueprintSignMessage(wallet, traits) {
+  return [
+    "DYOOR Ascension Blueprint",
+    `Wallet: ${wallet}`,
+    `Traits: ${blueprintTraitHash(traits)}`,
+    `Launch: ${BLUEPRINT_LAUNCH_AT}`
+  ].join("\n");
+}
+
+async function readLocalBlueprints() {
+  try {
+    const text = await readFile(path.join(root, "data/ascension-blueprints.json"), "utf8");
+    const parsed = JSON.parse(text || "[]");
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
+async function writeLocalBlueprints(blueprints) {
+  const wallets = blueprints.map((entry) => normalizeAddress(entry.wallet)).filter(Boolean);
+  await writeFile(path.join(root, "data/ascension-blueprints.json"), `${JSON.stringify(blueprints, null, 2)}\n`, "utf8");
+  await writeFile(path.join(root, "data/ascension-blueprint-wallets.json"), `${JSON.stringify(wallets, null, 2)}\n`, "utf8");
+}
+
+function blueprintStatus(blueprints, wallet = "") {
+  const normalized = normalizeAddress(wallet);
+  const registration = normalized ? blueprints.find((entry) => normalizeAddress(entry.wallet) === normalized) || null : null;
+  return {
+    ok: true,
+    launchAt: BLUEPRINT_LAUNCH_AT,
+    limit: BLUEPRINT_LIMIT,
+    registeredCount: blueprints.length,
+    remaining: Math.max(0, BLUEPRINT_LIMIT - blueprints.length),
+    full: blueprints.length >= BLUEPRINT_LIMIT,
+    registration,
+    wallets: blueprints.map((entry) => normalizeAddress(entry.wallet)).filter(Boolean)
+  };
+}
+
+async function handleLocalAscensionBlueprints(req, res) {
+  const url = new URL(req.url, `http://${req.headers.host || `localhost:${preferredPort}`}`);
+  const blueprints = await readLocalBlueprints();
+
+  if (req.method === "GET") {
+    send(res, 200, JSON.stringify(blueprintStatus(blueprints, url.searchParams.get("wallet"))), { "content-type": "application/json; charset=utf-8" });
+    return;
+  }
+
+  if (req.method !== "POST") {
+    send(res, 405, JSON.stringify({ ok: false, error: "Method not allowed" }), { "content-type": "application/json; charset=utf-8" });
+    return;
+  }
+
+  if (process.env.ASCENSION_BLUEPRINT_BYPASS_LAUNCH !== "1" && Date.now() < Date.parse(BLUEPRINT_LAUNCH_AT)) {
+    send(res, 403, JSON.stringify({ ok: false, error: "Ascension Blueprint registration has not opened yet.", launchAt: BLUEPRINT_LAUNCH_AT }), { "content-type": "application/json; charset=utf-8" });
+    return;
+  }
+
+  const body = JSON.parse((await readRequestBody(req)).toString("utf8") || "{}");
+  const wallet = normalizeAddress(body.wallet);
+  const traits = normalizeBlueprintTraits(body.traits);
+  const message = String(body.message || "");
+  const signature = String(body.signature || "");
+
+  if (!wallet) {
+    send(res, 400, JSON.stringify({ ok: false, error: "Missing or invalid wallet." }), { "content-type": "application/json; charset=utf-8" });
+    return;
+  }
+
+  if (message !== blueprintSignMessage(wallet, traits)) {
+    send(res, 400, JSON.stringify({ ok: false, error: "Blueprint signature message mismatch." }), { "content-type": "application/json; charset=utf-8" });
+    return;
+  }
+
+  let recovered = "";
+  try {
+    recovered = normalizeAddress(verifyMessage(message, signature));
+  } catch {}
+
+  if (recovered !== wallet) {
+    send(res, 401, JSON.stringify({ ok: false, error: "Signature does not match connected wallet." }), { "content-type": "application/json; charset=utf-8" });
+    return;
+  }
+
+  const existing = blueprints.find((entry) => normalizeAddress(entry.wallet) === wallet);
+  if (existing) {
+    send(res, 200, JSON.stringify({ ...blueprintStatus(blueprints, wallet), duplicate: true, registration: existing }), { "content-type": "application/json; charset=utf-8" });
+    return;
+  }
+
+  if (blueprints.length >= BLUEPRINT_LIMIT) {
+    send(res, 409, JSON.stringify({ ...blueprintStatus(blueprints, wallet), ok: false, error: "Ascension Blueprint campaign complete." }), { "content-type": "application/json; charset=utf-8" });
+    return;
+  }
+
+  const rank = blueprints.length + 1;
+  const registration = {
+    rank,
+    wallet,
+    blueprintId: blueprintId(rank),
+    createdAt: new Date().toISOString(),
+    ascensionBlueprint: true,
+    badgeTrait: { trait_type: "Ascension Blueprint", value: "Architect" },
+    traits
+  };
+  const next = blueprints.concat(registration);
+  await writeLocalBlueprints(next);
+  send(res, 200, JSON.stringify({ ...blueprintStatus(next, wallet), registration }), { "content-type": "application/json; charset=utf-8" });
 }
 
 function toBigInt(value) {
@@ -165,6 +297,11 @@ const server = createServer(async (req, res) => {
       return;
     }
 
+    if (req.url?.startsWith("/.netlify/functions/ascension-blueprints")) {
+      await handleLocalAscensionBlueprints(req, res);
+      return;
+    }
+
     if (req.url === "/swap" || req.url === "/swap/") {
       send(res, 302, "", { location: "/#swap" });
       return;
@@ -172,6 +309,11 @@ const server = createServer(async (req, res) => {
 
     if (req.url === "/verify" || req.url === "/verify/") {
       send(res, 200, await readFile(path.join(root, "verify.html")), { "content-type": "text/html; charset=utf-8" });
+      return;
+    }
+
+    if (req.url === "/blueprint-checker" || req.url === "/blueprint-checker/") {
+      send(res, 200, await readFile(path.join(root, "blueprint-checker.html")), { "content-type": "text/html; charset=utf-8" });
       return;
     }
 

@@ -37,6 +37,43 @@ export const DYOOR_BUILDER_RULES = [
     trait: { category: "Mouth", file: "Bendette.png" },
     message: "This mouth trait is disabled for the public builder."
   },
+  ...[
+    "Abyss Laser.png",
+    "Lazy Laser.png",
+    "Radiation Glow.png",
+    "Radiation Glow (Red).png",
+    "Radiation Glow (Red)Laser.png"
+  ].flatMap((eyeFile) => [
+    {
+      type: "incompatible",
+      trait: { category: "Eyes", file: eyeFile },
+      with: { category: "Hat", file: "Black Shystie.png" },
+      message: "Laser eyes do not work with ski masks."
+    },
+    {
+      type: "incompatible",
+      trait: { category: "Eyes", file: eyeFile },
+      with: { category: "Hat", file: "Pink Shystie.png" },
+      message: "Laser eyes do not work with ski masks."
+    }
+  ]),
+  ...[
+    "Bandana Black.png",
+    "Bandana Pink.png"
+  ].flatMap((mouthFile) => [
+    {
+      type: "incompatible",
+      trait: { category: "Hat", file: "BOB Mask.png" },
+      with: { category: "Mouth", file: mouthFile },
+      message: "BOB Mask does not work with bandannas."
+    },
+    {
+      type: "incompatible",
+      trait: { category: "Accessories", file: "BOB-chain.png" },
+      with: { category: "Mouth", file: mouthFile },
+      message: "BOB Chain does not work with bandannas."
+    }
+  ]),
   {
     type: "onlyWith",
     trait: { category: "Accessories", file: "BOB-chain.png" },

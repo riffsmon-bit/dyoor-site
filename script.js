@@ -432,16 +432,18 @@ document.addEventListener('DOMContentLoaded', () => {
     updateWalletUI();
   };
 
-  trySilent();
+  if (!window.DYOOR_DISABLE_AUTO_CONNECT) {
+    trySilent();
 
-  let tries = 0;
-  const iv = setInterval(async () => {
-    tries++;
-    await trySilent();
-    if ((typeof userAddress !== 'undefined' && userAddress) || tries >= 8) {
-      clearInterval(iv);
-    }
-  }, 300);
+    let tries = 0;
+    const iv = setInterval(async () => {
+      tries++;
+      await trySilent();
+      if ((typeof userAddress !== 'undefined' && userAddress) || tries >= 8) {
+        clearInterval(iv);
+      }
+    }, 300);
+  }
 
   updateWalletUI();
 

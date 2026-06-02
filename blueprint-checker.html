@@ -1,0 +1,123 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"/>
+  <title>DYOOR | Blueprint Checker</title>
+  <meta name="description" content="Preview exact Ascension Blueprint matches for Season 2 Droid metadata."/>
+  <meta name="theme-color" content="#07070c"/>
+  <link rel="canonical" href="https://dyoor.xyz/blueprint-checker"/>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/style.css?v=ascension-blueprint-1"/>
+</head>
+<body>
+  <div class="bg" aria-hidden="true"></div>
+
+  <header class="topbar" id="top">
+    <div class="container topbar__inner">
+      <a class="brand" href="/index.html" aria-label="DYOOR home">
+        <img class="brand__logo" src="/assets/dyoor-logo.png" alt="" width="34" height="34"/>
+        <span class="brand__text">DYOOR</span>
+      </a>
+      <nav class="nav" aria-label="Primary">
+        <a href="/whitepaper.html">Whitepaper</a>
+        <a href="/stake.html">Ascension Protocol</a>
+        <a href="/build-droid.html">Ascension Blueprint</a>
+        <a href="/blueprint-checker" class="is-active">Blueprint Checker</a>
+        <button class="btn btn--ghost navWalletBtn" id="homeWalletBtn" type="button" data-open-wallet>Connect Wallet</button>
+      </nav>
+    </div>
+  </header>
+
+  <main class="page builderPage">
+    <section class="section builderHero reveal">
+      <div class="container">
+        <div class="builderHero__inner">
+          <p class="hero__eyebrow">Season 2 verification preview</p>
+          <h1>Blueprint Checker</h1>
+          <p class="hero__subcopy">Check whether a minted Season 2 Droid exactly matches a registered Ascension Blueprint.</p>
+          <div class="hero__meta">
+            <span class="hero__metaPill">Exact traits only</span>
+            <span class="hero__metaPill">Frontend preview</span>
+            <span class="hero__metaPill">Admin confirmed</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section reveal">
+      <div class="container checkerShell">
+        <section class="checkerPanel">
+          <div class="builderControls__head">
+            <div>
+              <span class="builderMiniLabel">Wallet + Token</span>
+              <h2>Match Check</h2>
+            </div>
+          </div>
+          <div class="checkerForm">
+            <button class="btn btn--ghost" type="button" data-open-wallet>Connect wallet</button>
+            <input class="checkerInput" id="tokenIdInput" inputmode="numeric" autocomplete="off" placeholder="Token ID"/>
+            <button class="btn btn--primary" id="checkBlueprintBtn" type="button">Check Blueprint Match</button>
+          </div>
+          <div class="checkerResult" id="checkerStatus">
+            Frontend checker results are for preview/confirmation. Final prizes must be confirmed by admin script or server-side data after reveal.
+          </div>
+        </section>
+
+        <section class="checkerPanel">
+          <span class="builderMiniLabel">Result</span>
+          <h2>Trait Comparison</h2>
+          <div class="checkerResult" id="checkerResult">Connect wallet and enter a token ID.</div>
+          <h3>Saved Blueprint Traits</h3>
+          <div class="checkerTraits" id="blueprintTraits"></div>
+          <h3>Minted NFT Traits</h3>
+          <div class="checkerTraits" id="mintedTraits"></div>
+        </section>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <div class="container footer__inner">
+      <span>© 2026 DYOOR</span>
+      <a href="#top" class="tiny muted">Back to top ↑</a>
+    </div>
+  </footer>
+
+  <script>window.DYOOR_DISABLE_AUTO_CONNECT = true;</script>
+  <script defer src="https://cdn.jsdelivr.net/npm/ethers@6.11.1/dist/ethers.umd.min.js"></script>
+  <script defer src="https://unpkg.com/@walletconnect/ethereum-provider@2.23.1/dist/index.umd.js"></script>
+  <script defer src="/script.js?v=ascension-blueprint-1"></script>
+  <script type="module" src="/blueprint-checker.js?v=ascension-blueprint-1"></script>
+
+  <div id="walletModal" class="wallet-modal" aria-hidden="true">
+    <div class="wallet-modal__backdrop"></div>
+    <div class="wallet-modal__panel" role="dialog" aria-modal="true" aria-label="Connect wallet">
+      <div class="wallet-modal__header">
+        <div class="wallet-modal__title">Connect Wallet</div>
+        <button class="wallet-modal__close" data-close="1" aria-label="Close">x</button>
+      </div>
+      <div class="wallet-modal__grid">
+        <button class="wallet-option" data-wallet="metamask">MetaMask</button>
+        <button class="wallet-option" data-wallet="phantom">Phantom (EVM)</button>
+        <button class="wallet-option" data-wallet="okx">OKX Wallet</button>
+        <button class="wallet-option" data-wallet="injected">Other Injected</button>
+        <button class="wallet-option wallet-option--wc" data-wallet="walletconnect">WalletConnect (QR)</button>
+      </div>
+      <div id="walletModalHint" class="wallet-modal__hint" style="display:none;">
+        On iOS Safari, injected wallets are unreliable. Use <strong>WalletConnect</strong>, or open this site inside your wallet app browser.
+      </div>
+      <div id="walletDeepLinks" class="wallet-modal__deeplinks" style="display:none;">
+        <a href="#" id="openInMetaMask" class="wallet-deeplink">Open in MetaMask</a>
+        <a href="#" id="openInOKX" class="wallet-deeplink">Open in OKX</a>
+        <a href="#" id="openInPhantom" class="wallet-deeplink">Open in Phantom</a>
+      </div>
+      <div class="wallet-modal__note">
+        We will <strong>never</strong> ask for your seed phrase.
+      </div>
+    </div>
+  </div>
+</body>
+</html>

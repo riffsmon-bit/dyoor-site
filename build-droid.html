@@ -3,13 +3,13 @@
 <head>
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"/>
-  <title>DYOOR | Build D.Y.O.O.R Droid</title>
-  <meta name="description" content="Build your own D.Y.O.O.R Droid. Mix traits, preview the art, and save your custom PFP."/>
+  <title>DYOOR | Ascension Blueprint</title>
+  <meta name="description" content="Design your future Droid. Save your Blueprint. The first 500 wallets become Architects."/>
   <meta name="theme-color" content="#07070c"/>
   <link rel="canonical" href="https://dyoor.xyz/build-droid.html"/>
   <meta property="og:type" content="website"/>
-  <meta property="og:title" content="Build D.Y.O.O.R Droid"/>
-  <meta property="og:description" content="Mix D.Y.O.O.R Droid traits, preview the art, and download your custom PFP."/>
+  <meta property="og:title" content="Ascension Blueprint"/>
+  <meta property="og:description" content="Design your future Droid. Save your Blueprint. The first 500 wallets become Architects."/>
   <meta property="og:image" content="https://dyoor.xyz/assets/dyoor_builder.PNG"/>
   <meta name="twitter:card" content="summary_large_image"/>
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -29,7 +29,8 @@
       <nav class="nav" aria-label="Primary">
         <a href="/whitepaper.html">Whitepaper</a>
         <a href="/stake.html">Ascension Protocol</a>
-        <a href="/build-droid.html" class="is-active">Build Droid</a>
+        <a href="/build-droid.html" class="is-active">Ascension Blueprint</a>
+        <a href="/blueprint-checker">Blueprint Checker</a>
         <a href="/verify.html">Verify Discord</a>
         <button class="btn btn--ghost navWalletBtn" id="homeWalletBtn" type="button" data-open-wallet>Connect Wallet</button>
       </nav>
@@ -41,11 +42,11 @@
       <div class="container">
         <div class="builderHero__inner">
           <p class="hero__eyebrow">D.Y.O.O.R Droid Lab</p>
-          <h1>Build D.Y.O.O.R Droid</h1>
-          <p class="hero__subcopy">Build your own D.Y.O.O.R Droid. Mix traits, preview the art, and save your custom PFP.</p>
+          <h1>Ascension Blueprint</h1>
+          <p class="hero__subcopy">Design your future Droid. Save your Blueprint. The first 500 wallets become Architects.</p>
           <div class="hero__meta">
             <span class="hero__metaPill">Layered PNG</span>
-            <span class="hero__metaPill">Local preview</span>
+            <span class="hero__metaPill">Architect badge</span>
             <span class="hero__metaPill">PFP export</span>
           </div>
         </div>
@@ -72,6 +73,36 @@
               <button class="btn btn--ghost" id="copyDroidBtn" type="button">Copy Build</button>
               <button class="btn btn--primary" id="downloadDroidBtn" type="button">Download PNG</button>
             </div>
+            <section class="ascensionPanel" aria-label="Ascension Blueprint registration">
+              <div class="ascensionPanel__top">
+                <div>
+                  <span class="builderMiniLabel">FCFS Launch</span>
+                  <h2>Ascension Blueprint</h2>
+                </div>
+                <span class="builderBadge">500 Architects</span>
+              </div>
+              <div class="countdownPanel">
+                <span class="builderMiniLabel">Ascension Blueprint Terminal Opens In</span>
+                <div class="countdownGrid" id="blueprintCountdown" aria-live="polite">
+                  <div><strong id="countdownDays">--</strong><span>Days</span></div>
+                  <div><strong id="countdownHours">--</strong><span>Hours</span></div>
+                  <div><strong id="countdownMinutes">--</strong><span>Minutes</span></div>
+                  <div><strong id="countdownSeconds">--</strong><span>Seconds</span></div>
+                </div>
+                <p class="countdownMeta">Launch date: June 5, 2026 at 7:00 PM EST</p>
+              </div>
+              <p class="ascensionCounter" id="blueprintCounter">Ascension Blueprint spots remaining: -- / 500</p>
+              <div class="ascensionBadge" id="ascensionBadgePreview" aria-label="Ascension Blueprint Architect badge preview">
+                <div class="ascensionBadge__mark">AB</div>
+                <div>
+                  <strong>ASCENSION BLUEPRINT</strong>
+                  <span>ARCHITECT</span>
+                  <small id="ascensionBadgeMeta">Blueprint ID / Rank pending</small>
+                </div>
+              </div>
+              <button class="btn btn--primary ascensionSaveBtn" id="saveBlueprintBtn" type="button" disabled>Save Ascension Blueprint</button>
+              <p class="ascensionStatus" id="blueprintStatus">Connect wallet when the terminal opens to save one Blueprint.</p>
+            </section>
           </section>
 
           <section class="builderControls card" aria-label="DYOOR Droid trait controls">
@@ -104,7 +135,38 @@
     </div>
   </footer>
 
-  <script defer src="/script.js?v=builder-1"></script>
-  <script type="module" src="/dyoor-builder.js?v=builder-1"></script>
+  <script>window.DYOOR_DISABLE_AUTO_CONNECT = true;</script>
+  <script defer src="https://cdn.jsdelivr.net/npm/ethers@6.11.1/dist/ethers.umd.min.js"></script>
+  <script defer src="https://unpkg.com/@walletconnect/ethereum-provider@2.23.1/dist/index.umd.js"></script>
+  <script defer src="/script.js?v=ascension-blueprint-1"></script>
+  <script type="module" src="/dyoor-builder.js?v=ascension-blueprint-1"></script>
+
+  <div id="walletModal" class="wallet-modal" aria-hidden="true">
+    <div class="wallet-modal__backdrop"></div>
+    <div class="wallet-modal__panel" role="dialog" aria-modal="true" aria-label="Connect wallet">
+      <div class="wallet-modal__header">
+        <div class="wallet-modal__title">Connect Wallet</div>
+        <button class="wallet-modal__close" data-close="1" aria-label="Close">x</button>
+      </div>
+      <div class="wallet-modal__grid">
+        <button class="wallet-option" data-wallet="metamask">MetaMask</button>
+        <button class="wallet-option" data-wallet="phantom">Phantom (EVM)</button>
+        <button class="wallet-option" data-wallet="okx">OKX Wallet</button>
+        <button class="wallet-option" data-wallet="injected">Other Injected</button>
+        <button class="wallet-option wallet-option--wc" data-wallet="walletconnect">WalletConnect (QR)</button>
+      </div>
+      <div id="walletModalHint" class="wallet-modal__hint" style="display:none;">
+        On iOS Safari, injected wallets are unreliable. Use <strong>WalletConnect</strong>, or open this site inside your wallet app browser.
+      </div>
+      <div id="walletDeepLinks" class="wallet-modal__deeplinks" style="display:none;">
+        <a href="#" id="openInMetaMask" class="wallet-deeplink">Open in MetaMask</a>
+        <a href="#" id="openInOKX" class="wallet-deeplink">Open in OKX</a>
+        <a href="#" id="openInPhantom" class="wallet-deeplink">Open in Phantom</a>
+      </div>
+      <div class="wallet-modal__note">
+        We will <strong>never</strong> ask for your seed phrase. Saving a Blueprint requires a wallet signature.
+      </div>
+    </div>
+  </div>
 </body>
 </html>
