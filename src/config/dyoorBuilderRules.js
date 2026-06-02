@@ -95,6 +95,24 @@ export const DYOOR_BUILDER_RULES = [
       trait: { category: "Hat", file: hatFile },
       with: { category: "Mouth", file: "Displeased toothpick.png" },
       message: "Toothpick does not work with ski masks."
+    },
+    {
+      type: "incompatible",
+      trait: { category: "Hat", file: hatFile },
+      with: { category: "Mouth", file: "Cigar Mouth.png" },
+      message: "Cigar does not work with ski masks."
+    },
+    {
+      type: "incompatible",
+      trait: { category: "Hat", file: hatFile },
+      with: { category: "Mouth", file: "Meh Cigarette.png" },
+      message: "Cigarette does not work with ski masks."
+    },
+    {
+      type: "incompatible",
+      trait: { category: "Hat", file: hatFile },
+      with: { category: "Mouth", file: "Gold Bar.png" },
+      message: "Gold bar does not work with ski masks."
     }
   ]),
   ...[
