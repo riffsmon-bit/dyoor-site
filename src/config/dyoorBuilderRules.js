@@ -128,6 +128,12 @@ export const DYOOR_BUILDER_RULES = [
     withFiles: FACE_MASKS,
     message: "Bandaid does not work with face masks."
   }),
+  {
+    type: "incompatible",
+    trait: { category: "Accessories", file: "Bandaid.png" },
+    with: { category: "Eyes", file: "VR Headset.png" },
+    message: "Bandaid does not work with VR headset."
+  },
   ...incompatibleWithMany({
     category: "Mouth",
     files: FACE_COVERING_MOUTHS,
