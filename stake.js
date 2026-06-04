@@ -328,7 +328,27 @@ async function requestEnergyBankAuthorization(address, amountRaw, txHash) {
 }
 
 async function creditEnergyBank(address, amountRaw, txHash) {
-  setStatus("Preparing on-chain Energy Bank credit...");
+  setStatus("Crediting Energy Bank...");
+  try {
+    const res = await fetch("/.netlify/functions/energy-bank-direct-credit", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        user: address,
+        amountRaw: amountRaw.toString(),
+        txHash
+      })
+    });
+    const json = await res.json().catch(() => ({}));
+    if (res.ok && json.ok !== false) {
+      return json.creditTxHash || txHash;
+    }
+    console.warn("direct Energy Bank credit unavailable", json?.error || res.status);
+  } catch (err) {
+    console.warn("direct Energy Bank credit failed", err);
+  }
+
+  setStatus("Preparing fallback Energy Bank credit...");
   const auth = await requestEnergyBankAuthorization(address, amountRaw, txHash);
 
   setStatus("Confirm Energy Bank credit in your wallet...");
