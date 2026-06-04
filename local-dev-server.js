@@ -62,7 +62,7 @@ function normalizeAddress(address) {
 }
 
 const BLUEPRINT_LIMIT = 500;
-const BLUEPRINT_LAUNCH_AT = "2026-06-05T19:00:00-04:00";
+const BLUEPRINT_LAUNCH_AT = "2026-06-10T12:00:00-04:00";
 const BLUEPRINT_TRAITS = ["background", "droid", "condition", "eyes", "clothes", "mouth", "hat", "accessories"];
 
 function normalizeBlueprintTraits(traits = {}) {

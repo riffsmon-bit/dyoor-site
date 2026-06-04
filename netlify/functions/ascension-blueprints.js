@@ -3,7 +3,7 @@ const { getStore } = require("@netlify/blobs");
 const { ethers } = require("ethers");
 
 const LIMIT = 500;
-const LAUNCH_AT = "2026-06-05T19:00:00-04:00";
+const LAUNCH_AT = "2026-06-10T12:00:00-04:00";
 const STORE_NAME = "ascension-blueprints";
 const BLUEPRINTS_KEY = "ascension-blueprints.json";
 const TRAITS = [
