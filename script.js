@@ -117,6 +117,12 @@ async function connectWithWallet(type) {
     // Close behavior should always work
     const t = (type || '').toLowerCase();
 
+    if (window.DyoorWalletChooser?.connectType) {
+      const connected = await window.DyoorWalletChooser.connectType(t);
+      applyConnectedWallet(connected);
+      return;
+    }
+
     if (t === 'walletconnect') {
       const wc = await initWalletConnect();
       await connectWallet(wc);
@@ -199,6 +205,42 @@ function syncWalletGlobals(){
       detail: { eip1193: __activeEvmProvider, provider, signer, userAddress }
     }));
   } catch (e) {}
+}
+
+function bindConnectedWalletEvents(eth) {
+  if (!eth || typeof eth.on !== 'function' || eth.__dyoorMainWalletBound) return;
+  eth.__dyoorMainWalletBound = true;
+
+  eth.on('accountsChanged', (accts) => {
+    userAddress = (accts && accts[0]) ? accts[0] : null;
+    syncWalletGlobals();
+    updateWalletUI();
+  });
+  eth.on('chainChanged', () => updateWalletUI());
+  eth.on('disconnect', () => {
+    provider = null;
+    signer = null;
+    userAddress = null;
+    __activeEvmProvider = null;
+    syncWalletGlobals();
+    updateWalletUI();
+  });
+}
+
+function applyConnectedWallet(connected) {
+  if (!connected?.provider || !connected?.browserProvider || !connected?.signer || !connected?.account) {
+    throw new Error('Wallet did not return a usable connection.');
+  }
+
+  __activeEvmProvider = connected.provider;
+  provider = connected.browserProvider;
+  signer = connected.signer;
+  userAddress = connected.account;
+
+  syncWalletGlobals();
+  updateWalletUI();
+  closeWalletModal();
+  bindConnectedWalletEvents(connected.provider);
 }
 // ---------- Helpers ----------
 function qs(sel){ return document.querySelector(sel); }
@@ -302,20 +344,7 @@ async function connectWallet(providerOverride, options = {}) {
     updateWalletUI();
     closeWalletModal();
 
-    // Keep UI in sync
-    if (eth && typeof eth.on === 'function') {
-      eth.on('accountsChanged', (accts) => {
-        userAddress = (accts && accts[0]) ? accts[0] : null;
-        syncWalletGlobals();
-        updateWalletUI();
-      });
-      eth.on('chainChanged', () => updateWalletUI());
-      eth.on('disconnect', () => {
-        provider = null; signer = null; userAddress = null; __activeEvmProvider = null;
-        syncWalletGlobals();
-        updateWalletUI();
-      });
-    }
+    bindConnectedWalletEvents(eth);
   } catch (err) {
     console.error('Wallet connect error:', err);
     if(!silent) alert('Could not connect wallet. On iOS Safari: use WalletConnect or open this site inside your wallet app browser.'); else console.warn('Could not connect wallet. On iOS Safari: use WalletConnect or open this site inside your wallet app browser.');

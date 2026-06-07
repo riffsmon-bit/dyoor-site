@@ -35,6 +35,7 @@ const energyBankAbi = [
 
 const nftAbi = [
   "function balanceOf(address owner) view returns (uint256)",
+  "function tokenOfOwnerByIndex(address owner, uint256 index) view returns (uint256)",
   "function ownerOf(uint256 tokenId) view returns (address)",
   "function tokenURI(uint256 tokenId) view returns (string)",
   "function isApprovedForAll(address owner, address operator) view returns (bool)",
@@ -523,19 +524,51 @@ async function getOwnedNfts(owner, options = {}) {
     const tokenIds = [];
     const ownerChecksum = ethers.getAddress(owner);
     const scanBatchSize = 75;
+    const enumerateBatchSize = 24;
     const metadataBatchSize = 16;
 
     setStatus("Scanning wallet...");
     setLoadMeta("Checking wallet balance before full scan...");
 
+    let balance = null;
     try {
-      const balance = await withTimeout(nft.balanceOf(owner), CONTRACT_TIMEOUT_MS, "Wallet balance");
+      balance = await withTimeout(nft.balanceOf(owner), CONTRACT_TIMEOUT_MS, "Wallet balance");
       if (balance === 0n) {
         return setCache(walletNftCache, key, []);
       }
     } catch (err) {
       console.warn("balanceOf precheck failed; falling back to owner scan", err);
       setLoadMeta("RPC is slow, scanning directly...");
+    }
+
+    if (balance !== null) {
+      try {
+        setStatus(`Loading ${balance.toString()} wallet NFT(s)...`);
+        setLoadMeta("Reading wallet tokens by index...");
+
+        for (let start = 0n; start < balance; start += BigInt(enumerateBatchSize)) {
+          if (options.loadId && !isCurrentLoad(options.loadId, owner)) return [];
+          const end = start + BigInt(enumerateBatchSize) > balance
+            ? balance
+            : start + BigInt(enumerateBatchSize);
+          const calls = [];
+
+          for (let index = start; index < end; index++) {
+            calls.push(
+              withTimeout(nft.tokenOfOwnerByIndex(owner, index), CONTRACT_TIMEOUT_MS, `tokenOfOwnerByIndex #${index.toString()}`)
+                .then((tokenId) => tokenId.toString())
+            );
+          }
+
+          tokenIds.push(...await Promise.all(calls));
+          setLoadMeta(`Loaded ${tokenIds.length} / ${balance.toString()} wallet token IDs...`);
+          await new Promise((resolve) => setTimeout(resolve, 20));
+        }
+      } catch (err) {
+        tokenIds.length = 0;
+        console.warn("tokenOfOwnerByIndex unavailable; falling back to owner scan", err);
+        setLoadMeta("Wallet index scan unavailable, scanning the full collection...");
+      }
     }
 
     async function ownerOfWithRetry(tokenId) {
@@ -551,42 +584,47 @@ async function getOwnedNfts(owner, options = {}) {
       }
     }
 
-    for (let start = 1; start <= MAX_SCAN; start += scanBatchSize) {
-      if (options.loadId && !isCurrentLoad(options.loadId, owner)) return [];
-      const end = Math.min(start + scanBatchSize - 1, MAX_SCAN);
-      setStatus(`Scanning wallet...\n${start}-${end} / ${MAX_SCAN}`);
-      setLoadMeta(`Scanning wallet range ${start}-${end}. Already-loaded data stays visible.`);
+    if (!tokenIds.length) {
+      for (let start = 1; start <= MAX_SCAN; start += scanBatchSize) {
+        if (options.loadId && !isCurrentLoad(options.loadId, owner)) return [];
+        const end = Math.min(start + scanBatchSize - 1, MAX_SCAN);
+        setStatus(`Scanning wallet...\n${start}-${end} / ${MAX_SCAN}`);
+        setLoadMeta(`Scanning wallet range ${start}-${end}. Already-loaded data stays visible.`);
 
-      const batch = [];
-      for (let tokenId = start; tokenId <= end; tokenId++) {
-        batch.push(
-          ownerOfWithRetry(tokenId).then((currentOwner) => {
-            if (!currentOwner) return null;
-            try {
-              return ethers.getAddress(currentOwner) === ownerChecksum ? String(tokenId) : null;
-            } catch {
-              return null;
-            }
-          })
-        );
+        const batch = [];
+        for (let tokenId = start; tokenId <= end; tokenId++) {
+          batch.push(
+            ownerOfWithRetry(tokenId).then((currentOwner) => {
+              if (!currentOwner) return null;
+              try {
+                return ethers.getAddress(currentOwner) === ownerChecksum ? String(tokenId) : null;
+              } catch {
+                return null;
+              }
+            })
+          );
+        }
+
+        const results = await Promise.all(batch);
+        for (const tokenId of results) {
+          if (tokenId) tokenIds.push(tokenId);
+        }
+
+        await new Promise((resolve) => setTimeout(resolve, 15));
       }
-
-      const results = await Promise.all(batch);
-      for (const tokenId of results) {
-        if (tokenId) tokenIds.push(tokenId);
-      }
-
-      await new Promise((resolve) => setTimeout(resolve, 15));
     }
 
-    if (!tokenIds.length) return setCache(walletNftCache, key, []);
+    const uniqueTokenIds = Array.from(new Set(tokenIds))
+      .sort((a, b) => BigInt(a) < BigInt(b) ? -1 : BigInt(a) > BigInt(b) ? 1 : 0);
 
-    setStatus(`Found ${tokenIds.length} DYOOR.\nLoading metadata...`);
+    if (!uniqueTokenIds.length) return setCache(walletNftCache, key, []);
+
+    setStatus(`Found ${uniqueTokenIds.length} DYOOR.\nLoading metadata...`);
 
     const items = [];
-    for (let i = 0; i < tokenIds.length; i += metadataBatchSize) {
+    for (let i = 0; i < uniqueTokenIds.length; i += metadataBatchSize) {
       if (options.loadId && !isCurrentLoad(options.loadId, owner)) return [];
-      const slice = tokenIds.slice(i, i + metadataBatchSize);
+      const slice = uniqueTokenIds.slice(i, i + metadataBatchSize);
 
       const chunk = await Promise.all(
         slice.map(async (tokenId) => {

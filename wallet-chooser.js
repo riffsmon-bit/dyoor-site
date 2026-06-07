@@ -1,11 +1,13 @@
 (function () {
   const PROJECT_ID = "515640b93fcb56906722f2d6b44d2e47";
+  const PROJECT_ID_CONFIG_URL = "/.netlify/functions/wallet-config";
   const CHAIN_ID_DEC = 143;
   const CHAIN_ID_HEX = "0x8f";
   const RPC_URL = "https://rpc.monad.xyz";
   const EXPLORER_URL = "https://monadscan.com";
 
   let wcProvider = null;
+  let projectIdPromise = null;
 
   function isMobile() {
     return /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
@@ -101,8 +103,9 @@
       throw new Error("WalletConnect library not loaded.");
     }
 
+    const projectId = await getWalletConnectProjectId();
     wcProvider = await window.WalletConnectEthereumProvider.init({
-      projectId: PROJECT_ID,
+      projectId,
       chains: [CHAIN_ID_DEC],
       optionalChains: [CHAIN_ID_DEC],
       rpcMap: {
@@ -114,6 +117,32 @@
     });
 
     return wcProvider;
+  }
+
+  async function getWalletConnectProjectId() {
+    if (projectIdPromise) return projectIdPromise;
+
+    projectIdPromise = (async () => {
+      const globalProjectId = String(
+        window.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID ||
+        window.WALLETCONNECT_PROJECT_ID ||
+        ""
+      ).trim();
+      if (globalProjectId) return globalProjectId;
+
+      try {
+        const res = await fetch(PROJECT_ID_CONFIG_URL, { cache: "no-store" });
+        const json = await res.json().catch(() => ({}));
+        const envProjectId = String(json?.projectId || "").trim();
+        if (res.ok && envProjectId) return envProjectId;
+      } catch (err) {
+        console.warn("WalletConnect config endpoint unavailable; using fallback project id.", err);
+      }
+
+      return PROJECT_ID;
+    })();
+
+    return projectIdPromise;
   }
 
   function ensureModal(opts) {
@@ -296,6 +325,7 @@
   }
 
   window.DyoorWalletChooser = {
-    connect
+    connect,
+    connectType
   };
 })();

@@ -496,11 +496,14 @@
         <div class="panel-stack">
           <div class="panel hidden" id="recoveryPanel">
             <h3 class="mini-title">Pending Deposits / Recovery</h3>
-            <p class="muted">NFTs found inside the staking contract but not yet fully registered.</p>
+            <p class="muted" id="recoverySummary">NFTs found inside the staking contract but not yet fully registered.</p>
             <div class="token-chip-list" id="recoveryList"></div>
             <div class="recovery-actions" style="margin-top:12px;">
-              <button class="stake-btn stake-btn-secondary" id="fixAscensionBtn">Complete Registration</button>
+              <button class="stake-btn stake-btn-secondary" id="fixAscensionBtn">Approve Recovery</button>
+              <button class="stake-btn stake-btn-secondary" id="copyRecoveryBtn">Copy Approval</button>
+              <button class="stake-btn stake-btn-secondary" id="downloadRecoveryBtn">Download JSON</button>
             </div>
+            <div class="tiny muted" id="recoveryStatus" style="margin-top:10px;"></div>
           </div>
 
           <div class="panel hidden" id="adminPanel">
@@ -508,7 +511,11 @@
             <div class="admin-actions">
               <button class="stake-btn stake-btn-secondary hidden" id="snapshotBtn">Download Snapshot</button>
               <button class="stake-btn stake-btn-secondary hidden" id="snapshotUnregisteredBtn">Download Unregistered</button>
+              <button class="stake-btn stake-btn-secondary hidden" id="scanUnregisteredBtn">Scan Recovery</button>
+              <button class="stake-btn stake-btn-secondary hidden" id="recoverUnregisteredBtn" disabled>Recover Found NFTs</button>
             </div>
+            <div class="token-chip-list" id="adminRecoveryList" style="margin-top:12px;"></div>
+            <div class="tiny muted" id="adminRecoveryStatus" style="margin-top:10px;"></div>
             <div class="tiny muted" style="margin-top:10px;">Visible only to the staking contract owner.</div>
           </div>
 
@@ -525,7 +532,7 @@
             <details class="faq-item">
               <summary>What happens if a transaction stops halfway?</summary>
               <p>
-                Your NFT may be deposited but not yet registered. The recovery panel on this page will detect that state and let you complete registration.
+                Your NFT may be deposited but not yet registered. The recovery panel on this page will detect that state and let you sign an approval record for manual recovery.
               </p>
             </details>
 
