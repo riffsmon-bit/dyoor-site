@@ -50,7 +50,6 @@ export const DYOOR_BUILDER_TRAITS = {
     "Yellow.png"
   ],
   Condition: [
-    "Choker Necklace.png",
     "Dirty-Broken.png",
     "DYOOR Chest Tat.png",
     "S1 Skin.png"
@@ -203,6 +202,7 @@ export const DYOOR_BUILDER_TRAITS = {
   ],
   Accessories: [
     "Bandaid.png",
-    "BOB-chain.png"
+    "BOB-chain.png",
+    "Choker Necklace.png"
   ]
 };

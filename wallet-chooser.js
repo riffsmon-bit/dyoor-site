@@ -5,12 +5,25 @@
   const CHAIN_ID_HEX = "0x8f";
   const RPC_URL = "https://rpc.monad.xyz";
   const EXPLORER_URL = "https://monadscan.com";
+  const METAMASK_WALLET_ID = "c57ca95b47569778a828d19178114f4db188b89b763c899ba0be274e97267d96";
 
   let wcProvider = null;
   let projectIdPromise = null;
 
   function isMobile() {
     return /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+  }
+
+  function appMetadata() {
+    return {
+      name: "DYOOR",
+      description: "DYOOR Monad NFT community and Ascension Protocol",
+      url: window.location.origin,
+      icons: [`${window.location.origin}/assets/dyoor-logo.png`],
+      redirect: {
+        universal: window.location.href
+      }
+    };
   }
 
   function getInjectedProvider(type) {
@@ -106,12 +119,19 @@
     const projectId = await getWalletConnectProjectId();
     wcProvider = await window.WalletConnectEthereumProvider.init({
       projectId,
+      metadata: appMetadata(),
       chains: [CHAIN_ID_DEC],
       optionalChains: [CHAIN_ID_DEC],
       rpcMap: {
         [CHAIN_ID_DEC]: RPC_URL
       },
       showQrModal: true,
+      qrModalOptions: {
+        themeMode: "dark",
+        explorerRecommendedWalletIds: "NONE",
+        explorerExcludedWalletIds: [METAMASK_WALLET_ID],
+        enableExplorer: false
+      },
       methods: ["eth_sendTransaction", "personal_sign", "eth_signTypedData", "eth_signTypedData_v4"],
       events: ["chainChanged", "accountsChanged", "disconnect"]
     });
