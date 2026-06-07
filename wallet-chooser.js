@@ -14,6 +14,12 @@
     return /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
   }
 
+  function isMobileSafari() {
+    return /iPhone|iPad|iPod/i.test(navigator.userAgent)
+      && /Safari/i.test(navigator.userAgent)
+      && !/CriOS|FxiOS|EdgiOS|OPiOS/i.test(navigator.userAgent);
+  }
+
   function appMetadata() {
     return {
       name: "DYOOR",
@@ -110,12 +116,13 @@
     }
   }
 
-  async function initWalletConnect() {
+  async function initWalletConnect(options = {}) {
     if (wcProvider) return wcProvider;
     if (!window.WalletConnectEthereumProvider) {
       throw new Error("WalletConnect library not loaded.");
     }
 
+    const manualMobileLink = !!options.manualMobileLink;
     const projectId = await getWalletConnectProjectId();
     wcProvider = await window.WalletConnectEthereumProvider.init({
       projectId,
@@ -125,7 +132,7 @@
       rpcMap: {
         [CHAIN_ID_DEC]: RPC_URL
       },
-      showQrModal: true,
+      showQrModal: !manualMobileLink,
       qrModalOptions: {
         themeMode: "dark",
         explorerRecommendedWalletIds: "NONE",
@@ -137,6 +144,96 @@
     });
 
     return wcProvider;
+  }
+
+  function onceProviderEvent(provider, eventName, timeoutMs = 12000) {
+    return new Promise((resolve) => {
+      let timer;
+      const cleanup = () => {
+        clearTimeout(timer);
+        try {
+          provider?.off?.(eventName, handler);
+          provider?.removeListener?.(eventName, handler);
+        } catch (_err) {}
+      };
+      const handler = (value) => {
+        cleanup();
+        resolve(value);
+      };
+
+      provider?.on?.(eventName, handler);
+      timer = setTimeout(() => {
+        cleanup();
+        resolve("");
+      }, timeoutMs);
+    });
+  }
+
+  function setWalletNote(content) {
+    const note = document.querySelector("#walletModal .wallet-modal__note");
+    if (!note) return null;
+    note.innerHTML = "";
+    if (typeof content === "string") {
+      note.textContent = content;
+      return note;
+    }
+    note.appendChild(content);
+    return note;
+  }
+
+  function showMobileWalletConnectPrompt(uri) {
+    const wrap = document.createElement("div");
+    wrap.className = "wallet-mobile-wc";
+
+    const title = document.createElement("strong");
+    title.textContent = "Keep this Safari tab open.";
+
+    const copy = document.createElement("p");
+    copy.textContent = "Open MetaMask only to approve the WalletConnect request, then return to Safari.";
+
+    const actions = document.createElement("div");
+    actions.className = "wallet-mobile-wc__actions";
+
+    const open = document.createElement("a");
+    open.className = "wallet-deeplink";
+    open.href = `metamask://wc?uri=${encodeURIComponent(uri)}`;
+    open.textContent = "Open MetaMask Approval";
+
+    const copyBtn = document.createElement("button");
+    copyBtn.type = "button";
+    copyBtn.className = "wallet-deeplink";
+    copyBtn.textContent = "Copy WalletConnect URI";
+    copyBtn.addEventListener("click", async () => {
+      try {
+        await navigator.clipboard.writeText(uri);
+        copyBtn.textContent = "Copied";
+      } catch (_err) {
+        copyBtn.textContent = "Copy failed";
+      }
+    });
+
+    actions.appendChild(open);
+    actions.appendChild(copyBtn);
+    wrap.appendChild(title);
+    wrap.appendChild(copy);
+    wrap.appendChild(actions);
+    setWalletNote(wrap);
+  }
+
+  async function enableWalletConnectMobileSafari() {
+    const wc = await initWalletConnect({ manualMobileLink: true });
+    const uriPromise = onceProviderEvent(wc, "display_uri");
+    const enablePromise = wc.enable();
+    const uri = await uriPromise;
+
+    if (uri) {
+      showMobileWalletConnectPrompt(uri);
+    } else {
+      setWalletNote("Waiting for WalletConnect approval. Return to Safari after approving in your wallet.");
+    }
+
+    await enablePromise;
+    return wc;
   }
 
   async function getWalletConnectProjectId() {
@@ -196,7 +293,7 @@
           <button type="button" class="wallet-option wallet-option--wc" data-wallet="walletconnect">WalletConnect (QR)</button>
         </div>
         <div id="walletModalHint" class="wallet-modal__hint" style="display:none;">
-          On mobile Safari, injected wallets are unreliable. Use <strong>WalletConnect</strong> or open this site inside your wallet app browser.
+          On mobile Safari, use <strong>WalletConnect</strong> to keep this site in Safari. Your wallet app opens only for approval.
         </div>
         <div id="walletDeepLinks" class="wallet-modal__deeplinks" style="display:none;">
           <a href="#" id="openInMetaMask" class="wallet-deeplink">Open in MetaMask</a>
@@ -235,7 +332,7 @@
     const mobileNoInjected = isMobile() && !hasInjected;
 
     if (hint) hint.style.display = mobileNoInjected ? "block" : "none";
-    if (links) links.style.display = mobileNoInjected ? "flex" : "none";
+    if (links) links.style.display = "none";
 
     root.querySelectorAll(".wallet-option[data-wallet]").forEach((btn) => {
       const type = (btn.getAttribute("data-wallet") || "").toLowerCase();
@@ -259,8 +356,10 @@
   async function connectType(type) {
     let eip1193;
     if (type === "walletconnect") {
-      const wc = await initWalletConnect();
-      await wc.enable();
+      const wc = isMobileSafari()
+        ? await enableWalletConnectMobileSafari()
+        : await initWalletConnect();
+      if (!isMobileSafari()) await wc.enable();
       eip1193 = wc;
     } else {
       eip1193 = getInjectedProvider(type);

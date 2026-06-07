@@ -1386,6 +1386,21 @@ select:focus-visible{
 }
 .wallet-deeplink:active{ transform: scale(.98); }
 
+.wallet-mobile-wc p{
+  margin: 8px 0 0;
+}
+.wallet-mobile-wc__actions{
+  display:flex;
+  gap:10px;
+  flex-wrap:wrap;
+  margin-top: 12px;
+}
+.wallet-mobile-wc__actions .wallet-deeplink{
+  appearance:none;
+  cursor:pointer;
+  font: inherit;
+}
+
 .wallet-option.is-disabled, .wallet-option:disabled{
   opacity: .45;
   cursor: not-allowed;

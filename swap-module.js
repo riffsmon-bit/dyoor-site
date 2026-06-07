@@ -219,7 +219,7 @@
         account = connected.account;
       } else {
         provider = window.ethereum;
-        if (!provider?.request) throw new Error("No wallet detected. Use WalletConnect or a wallet browser.");
+        if (!provider?.request) throw new Error("No wallet detected. Use WalletConnect to stay in Safari.");
         await ensureChain();
         const accounts = await provider.request({ method: "eth_requestAccounts" });
         account = accounts?.[0] || null;

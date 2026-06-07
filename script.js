@@ -92,7 +92,7 @@ function openWalletModal() {
   const hasInjected = !!window.ethereum || (!!window.okxwallet && !!window.okxwallet.ethereum) || (!!window.phantom && !!window.phantom.ethereum);
   const mobileNoInjected = isMobile() && !hasInjected;
   if (hint) hint.style.display = mobileNoInjected ? "block" : "none";
-  if (links) links.style.display = mobileNoInjected ? "block" : "none";
+  if (links) links.style.display = "none";
   // If no injected wallet, disable injected-only options to avoid "nothing happens".
   document.querySelectorAll(".wallet-option[data-wallet=\"metamask\"], .wallet-option[data-wallet=\"okx\"], .wallet-option[data-wallet=\"phantom\"], .wallet-option[data-wallet=\"injected\"]")
     .forEach(btn => { if (mobileNoInjected) { btn.setAttribute("disabled","disabled"); btn.classList.add("is-disabled"); } else { btn.removeAttribute("disabled"); btn.classList.remove("is-disabled"); } });
@@ -175,7 +175,7 @@ async function connectWithWallet(type) {
     else if (t === 'injected') injected = getInjectedProvider('injected');
     else injected = window.ethereum;
     if (!injected) {
-      alert('No injected wallet detected. Use WalletConnect or open in your wallet browser.');
+      alert('No injected wallet detected. Use WalletConnect to stay in Safari.');
       return;
     }
     await connectWallet(injected);
@@ -302,7 +302,7 @@ async function connectWallet(providerOverride, options = {}) {
 
     const eth = providerOverride || (typeof window !== 'undefined' ? window.ethereum : null);
     if (!hasEthereum(eth)) {
-      if(!silent) alert('No wallet detected. Use WalletConnect or open this site inside your wallet browser.'); else console.warn('No wallet detected. Use WalletConnect or open this site inside your wallet browser.');
+      if(!silent) alert('No wallet detected. Use WalletConnect to stay in Safari.'); else console.warn('No wallet detected. Use WalletConnect to stay in Safari.');
       return;
     }
 
@@ -321,7 +321,7 @@ async function connectWallet(providerOverride, options = {}) {
     }
 
     if (!accounts || accounts.length === 0) {
-      if(!silent) alert('Wallet did not return any accounts. Try WalletConnect or open in your wallet browser.'); else console.warn('Wallet did not return any accounts. Try WalletConnect or open in your wallet browser.');
+      if(!silent) alert('Wallet did not return any accounts. Try WalletConnect to stay in Safari.'); else console.warn('Wallet did not return any accounts. Try WalletConnect to stay in Safari.');
       return;
     }
 
@@ -347,7 +347,7 @@ async function connectWallet(providerOverride, options = {}) {
     bindConnectedWalletEvents(eth);
   } catch (err) {
     console.error('Wallet connect error:', err);
-    if(!silent) alert('Could not connect wallet. On iOS Safari: use WalletConnect or open this site inside your wallet app browser.'); else console.warn('Could not connect wallet. On iOS Safari: use WalletConnect or open this site inside your wallet app browser.');
+    if(!silent) alert('Could not connect wallet. On iOS Safari, use WalletConnect to stay in Safari.'); else console.warn('Could not connect wallet. On iOS Safari, use WalletConnect to stay in Safari.');
   }
 }
 
