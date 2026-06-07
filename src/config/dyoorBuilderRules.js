@@ -155,6 +155,13 @@ export const DYOOR_BUILDER_RULES = [
     withFiles: FACE_COVERING_MOUTHS,
     message: "BOB Chain does not work with bandannas."
   }),
+  ...incompatibleWithMany({
+    category: "Accessories",
+    files: ["Choker Necklace.png"],
+    withCategory: "Mouth",
+    withFiles: FACE_COVERING_MOUTHS,
+    message: "Choker Necklace does not work with bandannas."
+  }),
   {
     type: "onlyWith",
     trait: { category: "Accessories", file: "BOB-chain.png" },
