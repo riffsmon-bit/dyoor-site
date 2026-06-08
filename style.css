@@ -622,7 +622,8 @@ select:focus-visible{
 .tokenList{max-height:52vh;overflow:auto;display:grid;gap:8px;padding-right:2px}
 .tokenRow{width:100%;display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:12px;align-items:center;text-align:left;padding:12px 14px;border-radius:16px;border:1px solid rgba(255,255,255,.08);background:rgba(255,255,255,.03);color:#fff;cursor:pointer}
 .tokenRow:hover{border-color:rgba(143,99,255,.34);background:rgba(143,99,255,.08)}
-.tokenRow__icon{width:36px;height:36px;border-radius:999px;background:rgba(255,255,255,.08);background-size:cover;background-position:center;border:1px solid rgba(255,255,255,.12)}
+.tokenRow__icon{width:36px;height:36px;border-radius:999px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.12);overflow:hidden}
+.tokenRow__logo{display:block;width:100%;height:100%;object-fit:cover}
 .tokenRow__meta{min-width:0}
 .tokenRow__sym{font-size:16px;font-weight:900;line-height:1.1}
 .tokenRow__name{margin-top:4px;color:rgba(255,255,255,.62);font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}

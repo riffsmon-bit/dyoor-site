@@ -30,7 +30,8 @@ function send(res, status, body, headers = {}) {
 
 function safeFilePath(urlPath) {
   const cleanPath = decodeURIComponent(urlPath.split("?")[0]);
-  const filePath = cleanPath === "/" ? "/index.html" : cleanPath;
+  const publicTokenPath = cleanPath.startsWith("/tokens/") ? `/public${cleanPath}` : "";
+  const filePath = publicTokenPath || (cleanPath === "/" ? "/index.html" : cleanPath);
   const resolved = path.resolve(root, `.${filePath}`);
   if (!resolved.startsWith(root)) return null;
   return resolved;

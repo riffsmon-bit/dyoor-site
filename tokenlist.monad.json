@@ -26,7 +26,17 @@
       "address": "0x21E325B059Cd83d4037C82F0F5998Ba2dF3d7777",
       "chainId": 143,
       "decimals": 18,
-      "logoURI": "/assets/tokens/bob.svg"
+      "logoURI": "/assets/tokens/bob.png",
+      "popular": true
+    },
+    {
+      "symbol": "PamPam",
+      "name": "PamPam",
+      "address": "0x44812436147d162CE0A6b573DBCC7492eF117777",
+      "chainId": 143,
+      "decimals": 18,
+      "logoURI": "/tokens/pampam-token.png",
+      "popular": true
     },
     {
       "symbol": "CHOG",

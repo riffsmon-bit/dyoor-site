@@ -9,7 +9,7 @@
   const WMON = "0x3bd359C1119dA7Da1D913D1C4D2B7c461115433A";
   const LOCAL_TOKENS = "/tokenlist.monad.json";
   const COMMUNITY_TOKENS = "https://raw.githubusercontent.com/monad-crypto/token-list/main/tokenlist.json";
-  const TOKEN_CACHE_KEY = "dyoor_kuru_tokens_v3";
+  const TOKEN_CACHE_KEY = "dyoor_kuru_tokens_v4";
   let supportFeeBps = Number(root.dataset.feeBps || "20");
   let treasury = root.dataset.treasury || "";
 
@@ -49,7 +49,8 @@
     { symbol: "MON", name: "Monad", address: NATIVE, decimals: 18, logoURI: "https://raw.githubusercontent.com/monad-crypto/token-list/main/mainnet/MON/logo.svg" },
     { symbol: "WMON", name: "Wrapped MON", address: WMON, decimals: 18, chainId: 143, logoURI: "https://raw.githubusercontent.com/monad-crypto/token-list/main/mainnet/WMON/logo.svg" },
     { symbol: "USDC", name: "USD Coin", address: "0x754704Bc059F8C67012fEd69BC8A327a5aafb603", decimals: 6, chainId: 143, logoURI: "https://raw.githubusercontent.com/monad-crypto/token-list/main/mainnet/USDC/logo.svg" },
-    { symbol: "BOB", name: "BOB", address: "0x21E325B059Cd83d4037C82F0F5998Ba2dF3d7777", decimals: 18, chainId: 143, logoURI: "/assets/tokens/bob.svg" },
+    { symbol: "BOB", name: "BOB", address: "0x21E325B059Cd83d4037C82F0F5998Ba2dF3d7777", decimals: 18, chainId: 143, logoURI: "/assets/tokens/bob.png", popular: true },
+    { symbol: "PamPam", name: "PamPam", address: "0x44812436147d162CE0A6b573DBCC7492eF117777", decimals: 18, chainId: 143, logoURI: "/tokens/pampam-token.png", popular: true },
   ];
 
   let tokens = baseTokens.slice();
@@ -99,6 +100,15 @@
       img.src = fallback;
     };
     img.src = normalizeLogo(token?.logoURI) || fallback;
+  }
+
+  function appendLogo(parent, token) {
+    if (!parent) return;
+    const img = document.createElement("img");
+    img.className = "tokenRow__logo";
+    img.alt = "";
+    setLogo(img, token);
+    parent.appendChild(img);
   }
 
   function setStatus(text, kind = "") {
@@ -327,6 +337,7 @@
           decimals: Number(token.decimals ?? map.get(key)?.decimals ?? 18),
           chainId: CHAIN_ID_DEC,
           logoURI: normalizeLogo(token.logoURI || map.get(key)?.logoURI || ""),
+          popular: Boolean(token.popular ?? map.get(key)?.popular),
         });
       }
     }
@@ -335,14 +346,15 @@
       ["WMON", 1],
       ["USDC", 2],
       ["BOB", 3],
-      ["CHOG", 4],
-      ["emo", 5],
-      ["AUSD", 6],
-      ["WETH", 7],
-      ["sMON", 8],
-      ["gMON", 9],
-      ["shMON", 10],
-      ["CETES", 11],
+      ["PamPam", 4],
+      ["CHOG", 5],
+      ["emo", 6],
+      ["AUSD", 7],
+      ["WETH", 8],
+      ["sMON", 9],
+      ["gMON", 10],
+      ["shMON", 11],
+      ["CETES", 12],
     ]);
     return Array.from(map.values()).sort((a, b) => {
       const pa = priority.get(a.symbol) ?? 99;
@@ -429,7 +441,7 @@
 
   function visibleTokens() {
     if (tokenTab === "all") return tokens;
-    const priority = ["MON", "WMON", "USDC", "BOB", "CHOG", "emo", "AUSD", "WETH", "sMON", "gMON", "shMON", "CETES", "USDT0", "WBTC"];
+    const priority = ["MON", "WMON", "USDC", "BOB", "PamPam", "CHOG", "emo", "AUSD", "WETH", "sMON", "gMON", "shMON", "CETES", "USDT0", "WBTC"];
     const picked = priority.map((symbol) => tokens.find((token) => token.symbol === symbol)).filter(Boolean);
     for (const token of tokens) {
       if (picked.length >= 18) break;
@@ -441,7 +453,7 @@
   function renderQuickTokens() {
     if (!els.tokenQuick) return;
     els.tokenQuick.innerHTML = "";
-    for (const symbol of ["MON", "WMON", "USDC", "BOB", "CHOG", "emo", "AUSD", "WETH", "sMON", "gMON", "shMON"]) {
+    for (const symbol of ["MON", "WMON", "USDC", "BOB", "PamPam", "CHOG", "emo", "AUSD", "WETH", "sMON", "gMON", "shMON"]) {
       const token = tokens.find((item) => item.symbol === symbol);
       if (!token) continue;
       const btn = document.createElement("button");
@@ -480,8 +492,7 @@
       row.type = "button";
       row.className = "tokenRow";
       row.innerHTML = `<div class="tokenRow__icon"></div><div class="tokenRow__meta"><div class="tokenRow__sym">${token.symbol}</div><div class="tokenRow__name">${token.name}</div></div><div class="tokenRow__addr">${shortAddr(token.address)}</div>`;
-      const icon = row.querySelector(".tokenRow__icon");
-      icon.style.backgroundImage = `url("${normalizeLogo(token.logoURI) || badge(token.symbol)}")`;
+      appendLogo(row.querySelector(".tokenRow__icon"), token);
       row.addEventListener("click", () => selectToken(token));
       els.tokenList.appendChild(row);
     }

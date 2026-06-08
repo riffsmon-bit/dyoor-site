@@ -1,12 +1,69 @@
 // netlify/functions/quote.js
 // Kuru Flow quote + transaction normalizer for Monad (chainId 143).
 
+import { decodeFunctionResult, encodeFunctionData } from "viem";
+
 const DEFAULT_KURU_API_URL = "https://ws.kuru.io";
 const DEFAULT_KURU_FLOW_ROUTER = "0x0d3a1BE29E9dEd63c7a5678b31e847D68F71FFa2";
+const DEFAULT_MONAD_RPC_URL = "https://rpc.monad.xyz";
 const NATIVE = "0x0000000000000000000000000000000000000000";
 const UI_NATIVE = "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee";
+const WMON = "0x3bd359C1119dA7Da1D913D1C4D2B7c461115433A";
+const PAMPAM = "0x44812436147d162ce0a6b573dbcc7492ef117777";
+const NAD_FUN_V2_ROUTER = "0x8986C8fD44eb85294A725a7e61AF35E76bA26F91";
 const QUOTE_CACHE_TTL_MS = 10000;
 const quoteCache = new Map();
+
+const nadFunRouterAbi = [
+  {
+    type: "function",
+    name: "getAmountOut",
+    inputs: [
+      { name: "token", type: "address" },
+      { name: "amountIn", type: "uint256" },
+      { name: "isBuy", type: "bool" },
+    ],
+    outputs: [{ name: "", type: "uint256" }],
+    stateMutability: "view",
+  },
+  {
+    type: "function",
+    name: "buyWithNative",
+    inputs: [
+      {
+        name: "params",
+        type: "tuple",
+        components: [
+          { name: "amountOutMin", type: "uint256" },
+          { name: "token", type: "address" },
+          { name: "to", type: "address" },
+          { name: "deadline", type: "uint256" },
+        ],
+      },
+    ],
+    outputs: [{ name: "amountOut", type: "uint256" }],
+    stateMutability: "payable",
+  },
+  {
+    type: "function",
+    name: "sellToNative",
+    inputs: [
+      {
+        name: "params",
+        type: "tuple",
+        components: [
+          { name: "amountIn", type: "uint256" },
+          { name: "amountOutMin", type: "uint256" },
+          { name: "token", type: "address" },
+          { name: "to", type: "address" },
+          { name: "deadline", type: "uint256" },
+        ],
+      },
+    ],
+    outputs: [{ name: "amountOut", type: "uint256" }],
+    stateMutability: "nonpayable",
+  },
+];
 
 function env(name, fallback = "") {
   return process.env[name] || fallback;
@@ -37,6 +94,101 @@ function parseBps(value, fallback) {
   const n = Number(value ?? fallback);
   if (!Number.isFinite(n)) return fallback;
   return Math.max(0, Math.min(10000, Math.floor(n)));
+}
+
+function isSameToken(a, b) {
+  return String(a || "").toLowerCase() === String(b || "").toLowerCase();
+}
+
+function isMonadToken(token) {
+  return isSameToken(token, NATIVE) || isSameToken(token, WMON);
+}
+
+function minAmountOut(amount, slippageBps) {
+  return (amount * BigInt(10000 - slippageBps)) / 10000n;
+}
+
+function hexValue(value) {
+  return "0x" + BigInt(value || 0).toString(16);
+}
+
+async function rpcCall(to, data) {
+  const rpcUrl = env("MONAD_RPC_URL", env("VITE_MONAD_RPC_URL", DEFAULT_MONAD_RPC_URL));
+  const res = await fetch(rpcUrl, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({
+      jsonrpc: "2.0",
+      id: 1,
+      method: "eth_call",
+      params: [{ to, data }, "latest"],
+    }),
+  });
+  const json = await res.json().catch(() => null);
+  if (!res.ok || json?.error) throw new Error(json?.error?.message || `Monad RPC HTTP ${res.status}`);
+  return json?.result;
+}
+
+async function tryNadFunQuote({ sellToken, buyToken, sellAmount, taker, slippageBps, supportOn }) {
+  const isBuy = isMonadToken(sellToken) && isSameToken(buyToken, PAMPAM);
+  const isSell = isSameToken(sellToken, PAMPAM) && isMonadToken(buyToken);
+  if (!isBuy && !isSell) return null;
+  if ((isBuy && !isSameToken(sellToken, NATIVE)) || (isSell && !isSameToken(buyToken, NATIVE))) return null;
+
+  const amountIn = BigInt(sellAmount);
+  const quoteData = encodeFunctionData({
+    abi: nadFunRouterAbi,
+    functionName: "getAmountOut",
+    args: [PAMPAM, amountIn, isBuy],
+  });
+  const quoteResult = await rpcCall(NAD_FUN_V2_ROUTER, quoteData);
+  const amountOut = decodeFunctionResult({
+    abi: nadFunRouterAbi,
+    functionName: "getAmountOut",
+    data: quoteResult,
+  });
+  if (amountOut <= 0n) return null;
+
+  const deadline = BigInt(Math.floor(Date.now() / 1000) + 300);
+  const amountOutMin = minAmountOut(amountOut, slippageBps);
+  const data = encodeFunctionData({
+    abi: nadFunRouterAbi,
+    functionName: isBuy ? "buyWithNative" : "sellToNative",
+    args: isBuy
+      ? [{ amountOutMin, token: PAMPAM, to: taker, deadline }]
+      : [{ amountIn, amountOutMin, token: PAMPAM, to: taker, deadline }],
+  });
+  const warnings = [];
+  if (supportOn) warnings.push("DYOOR support fee is not applied on Nad.fun routes.");
+
+  return {
+    ok: true,
+    source: "nad-fun",
+    buyAmount: amountOut.toString(),
+    minBuyAmount: amountOutMin.toString(),
+    priceImpactBps: null,
+    route: {
+      label: "Nad.fun",
+      path: [NAD_FUN_V2_ROUTER],
+      raw: { router: NAD_FUN_V2_ROUTER, token: PAMPAM, version: "V2", side: isBuy ? "buy" : "sell" },
+    },
+    issues: {
+      allowance: { spender: isBuy ? "" : NAD_FUN_V2_ROUTER },
+    },
+    warnings,
+    fee: null,
+    transaction: {
+      to: NAD_FUN_V2_ROUTER,
+      data,
+      value: isBuy ? hexValue(amountIn) : "0x0",
+    },
+    nadFun: {
+      router: NAD_FUN_V2_ROUTER,
+      token: PAMPAM,
+      version: "V2",
+      side: isBuy ? "buy" : "sell",
+    },
+  };
 }
 
 async function postJson(url, body, headers = {}) {
@@ -161,6 +313,14 @@ export default async (request) => {
     if (cached && Date.now() - cached.ts < QUOTE_CACHE_TTL_MS) {
       return json(200, { ...cached.body, cached: true });
     }
+
+    try {
+      const nadFun = await tryNadFunQuote({ sellToken, buyToken, sellAmount, taker, slippageBps, supportOn });
+      if (nadFun) {
+        quoteCache.set(cacheKey, { ts: Date.now(), body: nadFun });
+        return json(200, nadFun);
+      }
+    } catch (_err) {}
 
     const tokenResponse = await postJson(`${base}/api/generate-token`, { user_address: taker });
     const jwt = tokenResponse?.token;
