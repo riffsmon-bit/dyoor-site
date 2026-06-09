@@ -3,6 +3,7 @@ import {
   compareBlueprintToMintedNFT,
   getAscensionBlueprintBadgeFromList,
   isAscensionBlueprintWalletFromList,
+  normalizeBlueprintTraits,
   normalizeTraitName
 } from "../src/ascensionBlueprintHelpers.js";
 
@@ -15,10 +16,24 @@ const traits = {
   clothes: "White Tee",
   mouth: "Gold Grill",
   hat: "Monad Cap",
-  accessories: "BOB-chain"
+  special: "None",
+  accessories: "BOB-chain",
+  "accessories 2": "Molandak"
 };
 
 assert.equal(normalizeTraitName("  BOB--chain  "), "bob chain");
+assert.deepEqual(Object.keys(normalizeBlueprintTraits(traits)), [
+  "background",
+  "droid",
+  "condition",
+  "eyes",
+  "clothes",
+  "mouth",
+  "hat",
+  "special",
+  "accessories",
+  "accessories 2"
+]);
 assert.equal(isAscensionBlueprintWalletFromList(`0x${wallet.slice(2).toUpperCase()}`, [wallet]), true);
 assert.deepEqual(getAscensionBlueprintBadgeFromList(wallet, [wallet]), {
   trait_type: "Ascension Blueprint",

@@ -14,7 +14,9 @@ const TRAITS = [
   "clothes",
   "mouth",
   "hat",
-  "accessories"
+  "special",
+  "accessories",
+  "accessories 2"
 ];
 
 function json(statusCode, body) {

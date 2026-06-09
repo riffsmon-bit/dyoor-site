@@ -9,7 +9,9 @@ export const ASCENSION_BLUEPRINT_TRAITS = [
   "clothes",
   "mouth",
   "hat",
-  "accessories"
+  "special",
+  "accessories",
+  "accessories 2"
 ];
 
 const PUNCTUATION_NORMALIZERS = [

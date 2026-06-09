@@ -2,11 +2,13 @@ export const DYOOR_BUILDER_LAYER_ORDER = [
   "Background",
   "Droid",
   "Condition",
-  "Clothes",
   "Eyes",
+  "Clothes",
   "Mouth",
+  "Special",
   "Hat",
-  "Accessories"
+  "Accessories",
+  "Accessories 2"
 ];
 
 export const DYOOR_BUILDER_RANDOMIZER = {
@@ -15,12 +17,14 @@ export const DYOOR_BUILDER_RANDOMIZER = {
     Condition: 0.35,
     Clothes: 0.78,
     Hat: 0.42,
-    Accessories: 0.22
+    Accessories: 0.22,
+    "Accessories 2": 0.22,
+    Special: 0.08
   }
 };
 
-// Public builder traits. Includes every real PNG in /dyoor-builder/layers/{Category}.
-// Assets parked under /dyoor-builder/layers/_disabled are intentionally excluded.
+// Public builder traits. Includes every local PNG in /dyoor-builder/layers/{Category}.
+// iCloud placeholder files are intentionally excluded because the browser cannot load them.
 export const DYOOR_BUILDER_TRAITS = {
   Background: [
     "Goldish.PNG",
@@ -54,60 +58,6 @@ export const DYOOR_BUILDER_TRAITS = {
     "DYOOR Chest Tat.png",
     "S1 Skin.png"
   ],
-  Clothes: [
-    "Baby Blue Tee.png",
-    "Beige Hoodie.png",
-    "Black Hoodie.png",
-    "Black N White Tee 2.png",
-    "Black N White Tee.png",
-    "Black Racer.png",
-    "Black Tee 2.png",
-    "Black Tee.png",
-    "Blue Hoodie.png",
-    "Blue Racer.png",
-    "Caveman Leotard.png",
-    "Convict Shirt.png",
-    "Dictator Jacket.png",
-    "DWO Black 2.png",
-    "DWO Black.png",
-    "DWO White.png",
-    "DYOOR Black Hoodie.png",
-    "Gold Fluffy.png",
-    "Grey Hoodie.png",
-    "Grey Racer.png",
-    "Grey Tee.png",
-    "Hawaiian Shirt 2.png",
-    "Jailhouse Stripes Shirt.png",
-    "King's Robe 2.png",
-    "King's Robe.png",
-    "Kuru Tee.png",
-    "Lab Coat 2.png",
-    "Lab Coat.png",
-    "Leather Jacket Torn Tee 2.png",
-    "Leather Jacket Torn Tee.png",
-    "Leather Jacket White Shirt W:Tie.png",
-    "Leather Jacket.png",
-    "Luffy.png",
-    "McDyoornalds.png",
-    "Orange Plaid.png",
-    "Orange Racer 2.png",
-    "Orange Racer.png",
-    "Pink Fluffy.png",
-    "Pink Plaid.png",
-    "Purple Fluffy.png",
-    "Red Hoodie 2.png",
-    "Red Hoodie.png",
-    "Red Plaid.png",
-    "Tech Bro.png",
-    "Torn Black Tee.png",
-    "Torn Tee 2.png",
-    "Torn Tee.png",
-    "Tuxedo 2.png",
-    "Tuxedo.png",
-    "White Shirt W:Tie.png",
-    "White Tee 2.png",
-    "White Tee.png"
-  ],
   Eyes: [
     "Abyss Laser.png",
     "Abyss.png",
@@ -124,6 +74,7 @@ export const DYOOR_BUILDER_TRAITS = {
     "Monad Specs Gold.png",
     "Neverland Specs.png",
     "Okay.png",
+    "Point Dexter Glasses Eyes.png",
     "Radiation Glow (Red).png",
     "Radiation Glow (Red)Laser.png",
     "Radiation Glow.png",
@@ -143,8 +94,6 @@ export const DYOOR_BUILDER_TRAITS = {
     "AHHHH.png",
     "Ayeee.png",
     "Ayeyo.png",
-    "Bandana Black.png",
-    "Bandana Pink.png",
     "Braces.png",
     "Cigar Mouth.png",
     "Deep Thought.png",
@@ -164,7 +113,64 @@ export const DYOOR_BUILDER_TRAITS = {
     "Resting DYOOR mouth.png",
     "Toothless Drool.png",
     "Vamp Fangs.png",
-    "Waaaat.png"
+    "Waaaat?.png"
+  ],
+  Clothes: [
+    "Baby Blue Tee.png",
+    "Beige Hoodie.png",
+    "Black Hoodie.png",
+    "Black N White Tee 2.png",
+    "Black N White Tee.png",
+    "Black Racer.png",
+    "Black Tee 2.png",
+    "Black Tee.png",
+    "Blue Hoodie.png",
+    "Blue Racer.png",
+    "Caveman Leotard.png",
+    "Convict Shirt.png",
+    "Dictator Jacket.png",
+    "DWO Black 2.png",
+    "DWO Black.png",
+    "DWO White.png",
+    "DYOOR Black Hoodie.png",
+    "Fur Coat Gold.png",
+    "Fur Coat Pink.png",
+    "Fur Coat Purple.png",
+    "Grey Hoodie.png",
+    "Grey Racer.png",
+    "Grey Tee.png",
+    "Hawaiian Shirt 2.png",
+    "Jailhouse Stripes Shirt.png",
+    "King's Robe 2.png",
+    "King's Robe.png",
+    "Kuru Tee.png",
+    "Lab Coat 2.png",
+    "Lab Coat.png",
+    "Leather Jacket Torn Tee 2.png",
+    "Leather Jacket Torn Tee.png",
+    "Leather Jacket White Shirt W:Tie.png",
+    "Leather Jacket.png",
+    "Luffy.png",
+    "McDyoornalds.png",
+    "Neverland Tee.png",
+    "Orange Plaid.png",
+    "Orange Racer 2.png",
+    "Orange Racer.png",
+    "Overalls.png",
+    "PAMPAM Tee.png",
+    "Pink Plaid.png",
+    "Red Hoodie 2.png",
+    "Red Hoodie.png",
+    "Red Plaid.png",
+    "Tech Bro.png",
+    "Torn Black Tee.png",
+    "Torn Tee 2.png",
+    "Torn Tee.png",
+    "Tuxedo 2.png",
+    "Tuxedo.png",
+    "White Shirt W:Tie.png",
+    "White Tee 2.png",
+    "White Tee.png"
   ],
   Hat: [
     "Antenna.png",
@@ -202,7 +208,25 @@ export const DYOOR_BUILDER_TRAITS = {
   ],
   Accessories: [
     "Bandaid.png",
+    "Bandana Black.png",
+    "Bandana Pink.png",
     "BOB-chain.png",
-    "Choker Necklace.png"
+    "Choker Necklace.png",
+    "Molandak.png"
+  ],
+  "Accessories 2": [
+    "Bandaid.png",
+    "Bandana Black.png",
+    "Bandana Pink.png",
+    "BOB-chain.png",
+    "Choker Necklace.png",
+    "Molandak.png"
+  ],
+  Special: [
+    "Anime Mask.png",
+    "Gimp.png",
+    "Green Ski Mask Laser.png",
+    "Pink Ski Mask Laser.png",
+    "Space Suit.png"
   ]
 };
