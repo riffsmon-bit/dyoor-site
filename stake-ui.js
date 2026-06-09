@@ -3,7 +3,8 @@
   const STAKING_ADDRESS = "0xf9611226c1CcCcCa37951938d6f358D3d5106549";
   const NFT_ADDRESS = "0x2c79c9e233fea4b4dcfe6561d9209dc292cd932f";
   const MAX_SCAN = 1111;
-  const RECOVERY_SCAN_CHUNK = 4000n;
+  const RECOVERY_SCAN_CHUNK = 99n;
+  const RECOVERY_SCAN_LOOKBACK = 5000n;
   const RECOVERY_STORAGE_KEY = "dyoor-recovery-approvals";
   const ZERO = "0x0000000000000000000000000000000000000000";
 
@@ -26,6 +27,7 @@
   let fixAscensionBtn;
   let copyRecoveryBtn;
   let downloadRecoveryBtn;
+  let manualRecoveryInput;
 
   let adminPanel;
   let snapshotBtn;
@@ -130,6 +132,7 @@
     fixAscensionBtn = document.getElementById("fixAscensionBtn");
     copyRecoveryBtn = document.getElementById("copyRecoveryBtn");
     downloadRecoveryBtn = document.getElementById("downloadRecoveryBtn");
+    manualRecoveryInput = document.getElementById("manualRecoveryInput");
 
     adminPanel = document.getElementById("adminPanel");
     snapshotBtn = document.getElementById("snapshotBtn");
@@ -424,7 +427,9 @@
     const toTopic = ethers.zeroPadValue(ethers.getAddress(STAKING_ADDRESS), 32);
     const discovered = new Set();
 
-    for (let fromBlock = 0n; fromBlock <= latestBlock; fromBlock += RECOVERY_SCAN_CHUNK + 1n) {
+    const startBlock = latestBlock > RECOVERY_SCAN_LOOKBACK ? latestBlock - RECOVERY_SCAN_LOOKBACK : 0n;
+
+    for (let fromBlock = startBlock; fromBlock <= latestBlock; fromBlock += RECOVERY_SCAN_CHUNK + 1n) {
       const toBlock = fromBlock + RECOVERY_SCAN_CHUNK > latestBlock
         ? latestBlock
         : fromBlock + RECOVERY_SCAN_CHUNK;
@@ -484,13 +489,24 @@
     return `Approved ${new Date(record.approvedAt).toLocaleString()}.`;
   }
 
+  function readManualRecoveryTokenIds() {
+    const raw = String(manualRecoveryInput?.value || "");
+    return normalizeTokenList(raw.split(/[,\s]+/));
+  }
+
+  function getRecoveryTokenIdsForAction() {
+    const manual = readManualRecoveryTokenIds();
+    return manual.length ? manual : normalizeTokenList(recoveryCandidates);
+  }
+
   async function refreshRecoveryPanel() {
     if (!recoveryPanel || !recoveryList || !fixAscensionBtn) return;
 
     if (!window.userAddress || !window.provider || !window.ethers) {
-      recoveryPanel.classList.add("hidden");
+      recoveryPanel.classList.remove("hidden");
       recoveryList.innerHTML = "";
-      setRecoveryStatus("");
+      setRecoveryStatus("Connect your wallet to recover a pending deposit.");
+      if (fixAscensionBtn) fixAscensionBtn.disabled = true;
       return;
     }
 
@@ -499,74 +515,108 @@
       candidates = await scanRecoveryCandidates(window.userAddress);
     } catch (err) {
       console.warn("refreshRecoveryPanel failed", err);
-      recoveryPanel.classList.add("hidden");
       recoveryList.innerHTML = "";
-      setRecoveryStatus("Recovery scan unavailable right now.");
+      recoveryPanel.classList.remove("hidden");
+      setRecoveryStatus("Auto-detect unavailable. Enter the stuck token ID above to recover manually.");
+      if (fixAscensionBtn) fixAscensionBtn.disabled = false;
       return;
     }
 
     recoveryCandidates = candidates;
 
     if (!candidates.length) {
-      recoveryPanel.classList.add("hidden");
       recoveryList.innerHTML = "";
-      setRecoveryStatus("");
+      recoveryPanel.classList.remove("hidden");
+      setRecoveryStatus("Enter a stuck token ID above if your final Ascension transaction did not complete.");
+      if (fixAscensionBtn) {
+        fixAscensionBtn.disabled = false;
+        fixAscensionBtn.title = "Register a deposited token from your connected wallet.";
+        fixAscensionBtn.textContent = "Recover / Register";
+      }
       return;
     }
 
     recoveryPanel.classList.remove("hidden");
     recoveryList.innerHTML = candidates.map((id) => `<span class="token-chip">#${id}</span>`).join("");
 
-    const storedApproval = readStoredRecoveryApproval(window.userAddress);
-    const approvalState = renderRecoveryApproval(storedApproval, candidates);
     if (recoveryText) {
-      recoveryText.textContent = `Found ${candidates.length} pending deposit${candidates.length === 1 ? "" : "s"} that need a signed recovery approval.`;
+      recoveryText.textContent = `Found ${candidates.length} pending deposit${candidates.length === 1 ? "" : "s"} for this wallet. Recovering will submit the final registration transaction.`;
     }
-    setRecoveryStatus(approvalState);
+    setRecoveryStatus("Use Recover / Register to finish Ascension for the detected token(s).");
 
-    const approved = storedApproval && sameTokenList(storedApproval.tokenIds, candidates);
     fixAscensionBtn.disabled = false;
-    fixAscensionBtn.title = approved ? "Re-sign recovery approval." : "Sign a recovery approval for these deposits.";
-    fixAscensionBtn.textContent = approved ? "Re-sign Recovery" : "Approve Recovery";
-    if (copyRecoveryBtn) copyRecoveryBtn.disabled = !approved;
-    if (downloadRecoveryBtn) downloadRecoveryBtn.disabled = !approved;
+    fixAscensionBtn.title = "Register deposited token(s) from your connected wallet.";
+    fixAscensionBtn.textContent = "Recover / Register";
+    if (copyRecoveryBtn) copyRecoveryBtn.hidden = true;
+    if (downloadRecoveryBtn) downloadRecoveryBtn.hidden = true;
   }
 
   async function handleFixRegistration() {
-    if (!window.userAddress || !window.signer) {
+    if (!window.userAddress || !window.signer || !window.provider || !window.ethers || !window.waitForHash) {
       setStatus("Connect a wallet first.");
       return;
     }
 
-    if (!Array.isArray(recoveryCandidates) || recoveryCandidates.length === 0) {
-      setStatus("No pending recovery deposits were detected for this wallet.");
+    const tokenIds = getRecoveryTokenIdsForAction();
+    if (!tokenIds.length) {
+      setStatus("Enter the stuck token ID first.");
       return;
     }
 
     try {
       fixAscensionBtn && (fixAscensionBtn.disabled = true);
-      const requestId = (window.crypto && typeof window.crypto.randomUUID === "function")
-        ? window.crypto.randomUUID()
-        : `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
-      const message = buildRecoveryMessage(window.userAddress, recoveryCandidates, requestId);
-      const signature = await window.signer.signMessage(message);
-      const record = {
-        wallet: ethers.getAddress(window.userAddress),
-        tokenIds: normalizeTokenList(recoveryCandidates),
-        requestId,
-        message,
-        signature,
-        approvedAt: new Date().toISOString()
-      };
 
-      writeStoredRecoveryApproval(record);
-      setRecoveryStatus(`Approved ${record.tokenIds.length} deposit${record.tokenIds.length === 1 ? "" : "s"} at ${new Date(record.approvedAt).toLocaleString()}.`);
-      setStatus("Recovery approval signed and saved in this browser.");
+      const nft = new ethers.Contract(
+        NFT_ADDRESS,
+        ["function ownerOf(uint256 tokenId) view returns (address)"],
+        window.provider
+      );
+      const stakingRead = new ethers.Contract(
+        STAKING_ADDRESS,
+        ["function stakeInfo(uint256 tokenId) view returns (address owner, uint64 stakedAt)"],
+        window.provider
+      );
+      const stakingWrite = new ethers.Contract(
+        STAKING_ADDRESS,
+        ["function stakeDeposited(uint256[] calldata tokenIds)"],
+        window.signer
+      );
+
+      const validated = [];
+      for (const tokenIdText of tokenIds) {
+        const tokenId = BigInt(tokenIdText);
+        setRecoveryStatus(`Checking token #${tokenIdText}...`);
+
+        const owner = await nft.ownerOf(tokenId);
+        if (safeLower(owner) !== safeLower(STAKING_ADDRESS)) {
+          throw new Error(`Token #${tokenIdText} is not inside the staking contract.`);
+        }
+
+        const info = await stakingRead.stakeInfo(tokenId);
+        if (info?.owner && safeLower(info.owner) !== safeLower(ZERO)) {
+          throw new Error(`Token #${tokenIdText} is already registered.`);
+        }
+
+        validated.push(tokenId);
+      }
+
+      setStatus(`Recovering ${validated.length} pending deposit${validated.length === 1 ? "" : "s"}...`);
+      setRecoveryStatus("Confirm the recovery transaction in your wallet.");
+      await stakingWrite.stakeDeposited.staticCall(validated);
+      const tx = await stakingWrite.stakeDeposited(validated);
+      await window.waitForHash(tx.hash);
+
+      recoveryScanCache.delete(recoveryCacheKey(window.userAddress));
+      recoveryCandidates = [];
+      if (manualRecoveryInput) manualRecoveryInput.value = "";
+      setRecoveryStatus(`Recovered ${validated.length} token${validated.length === 1 ? "" : "s"}. Refreshing Ascension state...`);
+      setStatus("Ascension recovery complete.");
+      if (typeof window.loadState === "function") await window.loadState({ force: true });
       await refreshRecoveryPanel();
     } catch (err) {
       console.error("handleFixRegistration error", err);
-      setRecoveryStatus("");
-      setStatus(`Recovery approval failed: ${formatError(err, "Unknown recovery error.")}`);
+      setRecoveryStatus(formatError(err, "Recovery failed."));
+      setStatus(`Recovery failed: ${formatError(err, "Unknown recovery error.")}`);
     } finally {
       fixAscensionBtn && (fixAscensionBtn.disabled = false);
     }

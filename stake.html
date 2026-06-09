@@ -323,6 +323,28 @@
       display:flex; gap:10px; flex-wrap:wrap;
     }
 
+    .recovery-manual {
+      display:grid;
+      gap:8px;
+      margin-top:12px;
+    }
+
+    .recovery-input {
+      width:100%;
+      border:1px solid rgba(255,255,255,0.14);
+      background:rgba(255,255,255,0.06);
+      color:#fff;
+      border-radius:8px;
+      padding:11px 12px;
+      font:inherit;
+      outline:none;
+    }
+
+    .recovery-input:focus {
+      border-color:rgba(143,99,255,0.65);
+      box-shadow:0 0 0 3px rgba(143,99,255,0.16);
+    }
+
     .token-chip-list { display:flex; flex-wrap:wrap; gap:8px; }
     .token-chip {
       padding: 8px 10px;
@@ -494,14 +516,17 @@
         <div class="empty-state" id="emptyState">No unstaked DYOOR found in this wallet yet.</div>
 
         <div class="panel-stack">
-          <div class="panel hidden" id="recoveryPanel">
+          <div class="panel" id="recoveryPanel">
             <h3 class="mini-title">Pending Deposits / Recovery</h3>
-            <p class="muted" id="recoverySummary">NFTs found inside the staking contract but not yet fully registered.</p>
+            <p class="muted" id="recoverySummary">Register NFTs that made it into the staking contract but did not finish the final Ascension step.</p>
+            <div class="recovery-manual">
+              <input class="recovery-input" id="manualRecoveryInput" type="text" inputmode="numeric" placeholder="Token ID, e.g. 547" autocomplete="off" />
+            </div>
             <div class="token-chip-list" id="recoveryList"></div>
             <div class="recovery-actions" style="margin-top:12px;">
-              <button class="stake-btn stake-btn-secondary" id="fixAscensionBtn">Approve Recovery</button>
-              <button class="stake-btn stake-btn-secondary" id="copyRecoveryBtn">Copy Approval</button>
-              <button class="stake-btn stake-btn-secondary" id="downloadRecoveryBtn">Download JSON</button>
+              <button class="stake-btn stake-btn-secondary" id="fixAscensionBtn">Recover / Register</button>
+              <button class="stake-btn stake-btn-secondary" id="copyRecoveryBtn" hidden>Copy Approval</button>
+              <button class="stake-btn stake-btn-secondary" id="downloadRecoveryBtn" hidden>Download JSON</button>
             </div>
             <div class="tiny muted" id="recoveryStatus" style="margin-top:10px;"></div>
           </div>
@@ -532,7 +557,7 @@
             <details class="faq-item">
               <summary>What happens if a transaction stops halfway?</summary>
               <p>
-                Your NFT may be deposited but not yet registered. The recovery panel on this page will detect that state and let you sign an approval record for manual recovery.
+                Your NFT may be deposited but not yet registered. Use the recovery panel to enter its token ID and finish registration from your connected wallet.
               </p>
             </details>
 
