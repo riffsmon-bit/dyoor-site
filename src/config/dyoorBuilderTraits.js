@@ -113,7 +113,7 @@ export const DYOOR_BUILDER_TRAITS = {
     "Resting DYOOR mouth.png",
     "Toothless Drool.png",
     "Vamp Fangs.png",
-    "Waaaat?.png"
+    "Waaaat.png"
   ],
   Clothes: [
     "Baby Blue Tee.png",
