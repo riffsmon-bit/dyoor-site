@@ -130,8 +130,15 @@ function blueprintShareUrl({ saved = false, selection = state.selected } = {}) {
   return `${shareOrigin()}${BLUEPRINT_SHARE_PATH}${params.toString() ? `?${params}` : ""}`;
 }
 
-function hasSelectedBlueprint() {
-  return DYOOR_BUILDER_LAYER_ORDER.some((category) => Boolean(state.selected[category]));
+function blueprintPngName({ saved = false } = {}) {
+  if (saved && campaignState.registration?.blueprintId) {
+    return `${campaignState.registration.blueprintId.toLowerCase()}.png`;
+  }
+  return DOWNLOAD_NAME;
+}
+
+function hasSelectedBlueprint(selection = state.selected) {
+  return DYOOR_BUILDER_LAYER_ORDER.some((category) => Boolean(selection?.[category]));
 }
 
 function shareTextForBlueprint({ saved = false } = {}) {
@@ -154,6 +161,66 @@ function openXShare({ saved = false, selection = state.selected } = {}) {
   const url = encodeURIComponent(blueprintShareUrl({ saved, selection }));
   const intentUrl = `https://x.com/intent/tweet?text=${text}&url=${url}`;
   window.open(intentUrl, "_blank", "noopener,noreferrer");
+}
+
+function canvasToBlob() {
+  return new Promise((resolve, reject) => {
+    if (!canvas) {
+      reject(new Error("Canvas unavailable."));
+      return;
+    }
+
+    canvas.toBlob((blob) => {
+      if (!blob) {
+        reject(new Error("PNG export failed."));
+        return;
+      }
+
+      resolve(blob);
+    }, "image/png");
+  });
+}
+
+async function buildBlueprintPngFile({ saved = false, selection = state.selected } = {}) {
+  await renderPreview(selection);
+  const blob = await canvasToBlob();
+  return new File([blob], blueprintPngName({ saved }), { type: "image/png" });
+}
+
+async function downloadPngFile(file) {
+  const url = URL.createObjectURL(file);
+  try {
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = file.name || DOWNLOAD_NAME;
+    link.rel = "noopener";
+    link.click();
+  } finally {
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  }
+}
+
+async function shareBlueprintPng({ saved = false, selection = state.selected } = {}) {
+  if (!hasSelectedBlueprint(selection)) {
+    setStatus("Select at least one trait before sharing.");
+    return;
+  }
+
+  const file = await buildBlueprintPngFile({ saved, selection });
+  const shareData = {
+    title: "DYOOR Ascension Blueprint",
+    text: shareTextForBlueprint({ saved, selection }),
+    files: [file]
+  };
+
+  if (navigator.share && (!navigator.canShare || navigator.canShare({ files: [file] }))) {
+    await navigator.share(shareData);
+    setStatus("PNG share opened.");
+    return;
+  }
+
+  await downloadPngFile(file);
+  setStatus("PNG downloaded.");
 }
 
 function availableCategories() {
@@ -198,6 +265,11 @@ function onlyWithRuleSatisfied(rule, selected) {
 
 function selectedTrait(category) {
   const file = state.selected[category];
+  return file ? { category, file } : null;
+}
+
+function selectedTraitFromSelection(selection, category) {
+  const file = selection?.[category];
   return file ? { category, file } : null;
 }
 
@@ -284,10 +356,10 @@ function loadImage(src) {
   });
 }
 
-async function renderPreview() {
+async function renderPreview(selection = state.selected) {
   clearCanvas();
   const selectedLayers = DYOOR_BUILDER_LAYER_ORDER
-    .map((category) => selectedTrait(category))
+    .map((category) => selectedTraitFromSelection(selection, category))
     .filter(Boolean);
 
   if (!selectedLayers.length) {
@@ -541,23 +613,17 @@ function randomizeBuild() {
   renderPreview();
 }
 
-function downloadBuild() {
-  renderPreview().then(() => {
-    const link = document.createElement("a");
-    link.download = DOWNLOAD_NAME;
-    link.href = canvas.toDataURL("image/png");
-    link.click();
-  });
+async function downloadBuild() {
+  const file = await buildBlueprintPngFile({ saved: false, selection: state.selected });
+  await downloadPngFile(file);
+  setStatus("PNG downloaded.");
 }
 
 function shareCurrentBlueprint() {
-  if (!hasSelectedBlueprint()) {
-    setStatus("Select at least one trait before sharing.");
-    return;
-  }
-
-  openXShare({ saved: false, selection: state.selected });
-  setStatus("X share opened.");
+  shareBlueprintPng({ saved: false, selection: state.selected }).catch((err) => {
+    console.warn("share blueprint png failed", err);
+    setStatus(err?.message || "PNG share failed.");
+  });
 }
 
 function shareSavedBlueprint() {
@@ -566,11 +632,13 @@ function shareSavedBlueprint() {
     return;
   }
 
-  openXShare({
+  shareBlueprintPng({
     saved: true,
     selection: campaignState.registration.build || state.selected
+  }).catch((err) => {
+    console.warn("share saved blueprint png failed", err);
+    setBlueprintStatus(err?.message || "PNG share failed.");
   });
-  setBlueprintStatus("X share opened.");
 }
 
 async function copyBuild() {
