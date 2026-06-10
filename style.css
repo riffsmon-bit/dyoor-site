@@ -2579,6 +2579,12 @@ details.faq-item p {
   margin-top:12px;
 }
 
+.ascensionShareBtn{
+  width:100%;
+  justify-content:center;
+  margin-top:10px;
+}
+
 .ascensionBadge{
   position:relative;
   display:flex;

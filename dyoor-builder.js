@@ -11,6 +11,8 @@ import {
 const CANVAS_SIZE = 1024;
 const LAYER_BASE_PATH = "/dyoor-builder/layers";
 const DOWNLOAD_NAME = "dyoor-droid-pfp.png";
+const BLUEPRINT_SHARE_PATH = "/blueprint-share";
+const PUBLIC_SITE_ORIGIN = "https://dyoor.netlify.app";
 
 const state = {
   selected: {},
@@ -28,7 +30,9 @@ const randomizeBtn = document.getElementById("randomizeDroidBtn");
 const resetBtn = document.getElementById("resetDroidBtn");
 const downloadBtn = document.getElementById("downloadDroidBtn");
 const copyBtn = document.getElementById("copyDroidBtn");
+const shareBlueprintBtn = document.getElementById("shareBlueprintBtn");
 const saveBlueprintBtn = document.getElementById("saveBlueprintBtn");
+const shareSavedBlueprintBtn = document.getElementById("shareSavedBlueprintBtn");
 const blueprintStatusEl = document.getElementById("blueprintStatus");
 const blueprintCounterEl = document.getElementById("blueprintCounter");
 const badgeMetaEl = document.getElementById("ascensionBadgeMeta");
@@ -66,6 +70,89 @@ function selectedBlueprintTraits() {
     traits[category.toLowerCase()] = state.selected[category] ? fileLabel(state.selected[category]) : "";
   }
   return normalizeBlueprintTraits(traits);
+}
+
+function buildParamsFromSelection(selection = state.selected) {
+  const params = new URLSearchParams();
+  for (const category of DYOOR_BUILDER_LAYER_ORDER) {
+    if (selection[category]) params.set(category, selection[category]);
+  }
+  return params;
+}
+
+function buildUrlFromSelection(selection = state.selected) {
+  const params = buildParamsFromSelection(selection);
+  return `${window.location.origin}${window.location.pathname}${params.toString() ? `?${params}` : ""}`;
+}
+
+function currentBuildUrl() {
+  return buildUrlFromSelection(state.selected);
+}
+
+function shareOrigin() {
+  const fromMeta = document.querySelector('meta[property="og:url"]')?.content
+    || document.querySelector('link[rel="canonical"]')?.href
+    || "";
+  if (fromMeta) {
+    try {
+      return new URL(fromMeta).origin.replace(/\/$/, "");
+    } catch {
+      // fall through
+    }
+  }
+
+  if (window.DYOOR_SITE_ORIGIN && String(window.DYOOR_SITE_ORIGIN).trim()) {
+    return String(window.DYOOR_SITE_ORIGIN).trim().replace(/\/$/, "");
+  }
+  if (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1") {
+    return PUBLIC_SITE_ORIGIN;
+  }
+  return window.location.origin;
+}
+
+function blueprintShareParams(selection = state.selected, saved = false) {
+  const params = buildParamsFromSelection(selection);
+  if (saved && campaignState.registration) {
+    if (campaignState.registration.blueprintId) {
+      params.set("blueprintId", campaignState.registration.blueprintId);
+    }
+    if (campaignState.registration.rank) {
+      params.set("rank", String(campaignState.registration.rank));
+    }
+    params.set("saved", "1");
+  }
+  return params;
+}
+
+function blueprintShareUrl({ saved = false, selection = state.selected } = {}) {
+  const params = blueprintShareParams(selection, saved);
+  return `${shareOrigin()}${BLUEPRINT_SHARE_PATH}${params.toString() ? `?${params}` : ""}`;
+}
+
+function hasSelectedBlueprint() {
+  return DYOOR_BUILDER_LAYER_ORDER.some((category) => Boolean(state.selected[category]));
+}
+
+function shareTextForBlueprint({ saved = false } = {}) {
+  const savedMeta = campaignState.registration
+    ? {
+        blueprintId: campaignState.registration.blueprintId || "",
+        rank: Number(campaignState.registration.rank || 0)
+      }
+    : null;
+
+  const header = saved && savedMeta
+    ? `I just secured ${savedMeta.blueprintId} (Rank #${savedMeta.rank}) in the DYOOR Ascension Blueprint.`
+    : "My DYOOR Ascension Blueprint build.";
+
+  return `${header} #DYOOR #Monad`;
+}
+
+function openXShare({ saved = false, selection = state.selected } = {}) {
+  const text = encodeURIComponent(shareTextForBlueprint({ saved, selection }));
+  const url = encodeURIComponent(blueprintShareUrl({ saved, selection }));
+  const intentUrl = `https://x.com/intent/tweet?text=${text}&url=${url}`;
+  window.open(intentUrl, "_blank", "noopener,noreferrer");
 }
 
 function availableCategories() {
@@ -334,12 +421,18 @@ function renderBlueprintCampaign() {
       saveBlueprintBtn.disabled = true;
       saveBlueprintBtn.textContent = "Ascension Blueprint Secured";
     }
+    if (shareSavedBlueprintBtn) {
+      shareSavedBlueprintBtn.disabled = false;
+    }
     if (badgeMetaEl) badgeMetaEl.textContent = `${blueprintId} / Rank #${rank}`;
     setBlueprintStatus(`Blueprint ID: ${blueprintId} | Rank: #${rank}`);
     return;
   }
 
   if (badgeMetaEl) badgeMetaEl.textContent = "Blueprint ID / Rank pending";
+  if (shareSavedBlueprintBtn) {
+    shareSavedBlueprintBtn.disabled = true;
+  }
 
   if (campaignState.full) {
     if (saveBlueprintBtn) {
@@ -362,6 +455,9 @@ function renderBlueprintCampaign() {
   if (saveBlueprintBtn) {
     saveBlueprintBtn.disabled = campaignState.saving;
     saveBlueprintBtn.textContent = campaignState.saving ? "Saving Blueprint..." : "Save Ascension Blueprint";
+  }
+  if (shareSavedBlueprintBtn) {
+    shareSavedBlueprintBtn.disabled = true;
   }
   setBlueprintStatus(campaignState.wallet ? "Connected wallet can save one Ascension Blueprint." : "Connect wallet to save one Ascension Blueprint.");
 }
@@ -407,6 +503,9 @@ function render() {
   renderTabs();
   renderOptions();
   renderSelectedSummary();
+  if (shareBlueprintBtn) {
+    shareBlueprintBtn.disabled = !hasSelectedBlueprint();
+  }
 }
 
 function resetBuild() {
@@ -450,12 +549,31 @@ function downloadBuild() {
   });
 }
 
-async function copyBuild() {
-  const params = new URLSearchParams();
-  for (const category of DYOOR_BUILDER_LAYER_ORDER) {
-    if (state.selected[category]) params.set(category, state.selected[category]);
+function shareCurrentBlueprint() {
+  if (!hasSelectedBlueprint()) {
+    setStatus("Select at least one trait before sharing.");
+    return;
   }
-  const url = `${window.location.origin}${window.location.pathname}${params.toString() ? `?${params}` : ""}`;
+
+  openXShare({ saved: false, selection: state.selected });
+  setStatus("X share opened.");
+}
+
+function shareSavedBlueprint() {
+  if (!campaignState.registration) {
+    setBlueprintStatus("Save your Blueprint first.");
+    return;
+  }
+
+  openXShare({
+    saved: true,
+    selection: campaignState.registration.build || state.selected
+  });
+  setBlueprintStatus("X share opened.");
+}
+
+async function copyBuild() {
+  const url = currentBuildUrl();
   try {
     await navigator.clipboard.writeText(url);
     setStatus("Build link copied.");
@@ -480,6 +598,7 @@ async function saveBlueprint() {
   }
 
   const traits = selectedBlueprintTraits();
+  const build = { ...state.selected };
   campaignState.saving = true;
   renderBlueprintCampaign();
 
@@ -489,7 +608,7 @@ async function saveBlueprint() {
     const response = await fetch("/.netlify/functions/ascension-blueprints", {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ wallet, traits, message, signature })
+      body: JSON.stringify({ wallet, traits, build, message, signature })
     });
     const data = await response.json().catch(() => ({}));
     if (!response.ok || data.ok === false) throw new Error(data.error || "Blueprint save failed.");
@@ -528,7 +647,9 @@ function init() {
   resetBtn?.addEventListener("click", resetBuild);
   downloadBtn?.addEventListener("click", downloadBuild);
   copyBtn?.addEventListener("click", copyBuild);
+  shareBlueprintBtn?.addEventListener("click", shareCurrentBlueprint);
   saveBlueprintBtn?.addEventListener("click", saveBlueprint);
+  shareSavedBlueprintBtn?.addEventListener("click", shareSavedBlueprint);
   window.addEventListener("dyoor:wallet", (event) => {
     campaignState.wallet = normalizeWalletAddress(event?.detail?.userAddress || window.userAddress || "");
     loadBlueprintStatus();

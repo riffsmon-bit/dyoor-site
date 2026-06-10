@@ -149,6 +149,7 @@ exports.handler = async function (event) {
     const body = JSON.parse(event.body || "{}");
     const wallet = normalizeAddress(body.wallet);
     const traits = normalizeTraits(body.traits);
+    const build = body.build && typeof body.build === "object" ? body.build : null;
     const signature = String(body.signature || "");
     const message = String(body.message || "");
 
@@ -197,7 +198,8 @@ exports.handler = async function (event) {
       createdAt: new Date().toISOString(),
       ascensionBlueprint: true,
       badgeTrait: badgeTrait(),
-      traits
+      traits,
+      build
     };
 
     const next = blueprints.concat(registration);

@@ -7,5 +7,9 @@
 /verify/    /verify.html  200
 /blueprint-checker     /blueprint-checker.html  200
 /blueprint-checker/    /blueprint-checker.html  200
+/blueprint-share      /.netlify/functions/ascension-blueprint-share  200
+/blueprint-share/     /.netlify/functions/ascension-blueprint-share  200
+/blueprint-share-image      /.netlify/functions/ascension-blueprint-share-image  200
+/blueprint-share-image/     /.netlify/functions/ascension-blueprint-share-image  200
 /admin-ascension     /admin-ascension.html  200
 /admin-ascension/    /admin-ascension.html  200
