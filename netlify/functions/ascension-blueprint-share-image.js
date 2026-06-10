@@ -1,3 +1,5 @@
+import sharp from "sharp";
+
 const BLUEPRINT_TRAIT_ORDER = [
   "Background",
   "Droid",
@@ -10,11 +12,6 @@ const BLUEPRINT_TRAIT_ORDER = [
   "Accessories",
   "Accessories 2"
 ];
-
-function blueprintIdForRank(rank) {
-  const value = Number(rank);
-  return `AB-${String(Number.isFinite(value) && value > 0 ? Math.floor(value) : 0).padStart(4, "0")}`;
-}
 
 function readEnv(...names) {
   for (const name of names) {
@@ -53,6 +50,11 @@ function prettyTrait(value) {
     .trim();
 }
 
+function blueprintIdForRank(rank) {
+  const value = Number(rank);
+  return `AB-${String(Number.isFinite(value) && value > 0 ? Math.floor(value) : 0).padStart(4, "0")}`;
+}
+
 function normalizedSelection(params = {}) {
   const selection = [];
   for (const key of BLUEPRINT_TRAIT_ORDER) {
@@ -77,27 +79,19 @@ function description(params, selection) {
   return `${selection.length} trait${selection.length === 1 ? "" : "s"} selected`;
 }
 
-function wrapChips(selection) {
-  const chips = [];
-  const max = 8;
-  for (const item of selection.slice(0, max)) {
-    chips.push(`<g transform="translate(0, ${chips.length * 58})">
-      <rect x="0" y="0" rx="18" ry="18" width="1040" height="48" fill="rgba(255,255,255,0.06)" stroke="rgba(255,255,255,0.10)"/>
-      <text x="24" y="31" fill="#9df7d7" font-size="18" font-family="Inter, Arial, sans-serif" font-weight="800">${svgEscape(item.key)}</text>
-      <text x="220" y="31" fill="#ffffff" font-size="18" font-family="Inter, Arial, sans-serif">${svgEscape(item.value)}</text>
-    </g>`);
-  }
-  return chips.join("");
-}
-
-function renderSvg({ origin, params, selection }) {
+function buildSvg({ origin, params, selection }) {
   const title = cardTitle(params);
   const desc = description(params, selection);
   const subtitle = params.saved && params.rank
     ? `Saved Blueprint #${svgEscape(params.rank)}`
     : "Blueprint build preview";
-  const previewRows = wrapChips(selection);
   const footer = `${origin.replace(/^https?:\/\//, "")}/blueprint-share`;
+  const rows = selection.slice(0, 8).map((item, index) => `
+    <g transform="translate(0, ${index * 58})">
+      <rect x="0" y="0" rx="18" ry="18" width="1040" height="48" fill="rgba(255,255,255,0.06)" stroke="rgba(255,255,255,0.10)"/>
+      <text x="24" y="31" fill="#9df7d7" font-size="18" font-family="Inter, Arial, sans-serif" font-weight="800">${svgEscape(item.key)}</text>
+      <text x="220" y="31" fill="#ffffff" font-size="18" font-family="Inter, Arial, sans-serif">${svgEscape(item.value)}</text>
+    </g>`).join("");
 
   return `<?xml version="1.0" encoding="UTF-8"?>
 <svg width="1200" height="630" viewBox="0 0 1200 630" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="title desc">
@@ -135,9 +129,16 @@ function renderSvg({ origin, params, selection }) {
     <text x="48" y="60" fill="#9df7d7" font-size="18" font-family="Inter, Arial, sans-serif" font-weight="800" letter-spacing="3">BLUEPRINT SNAPSHOT</text>
     <text x="48" y="94" fill="#ffffff" font-size="28" font-family="Inter, Arial, sans-serif" font-weight="900">${svgEscape(params.blueprintId || "Preview")}</text>
     <text x="24" y="154" fill="rgba(255,255,255,.74)" font-size="18" font-family="Inter, Arial, sans-serif">${svgEscape(selection.length ? "Selected Traits" : "No traits selected yet")}</text>
-    <g transform="translate(24, 174)">${previewRows}</g>
+    <g transform="translate(24, 174)">${rows}</g>
   </g>
 </svg>`;
+}
+
+async function renderPng(svg) {
+  return sharp(Buffer.from(svg))
+    .resize(1200, 630, { fit: "fill" })
+    .png()
+    .toBuffer();
 }
 
 export const handler = async function (event) {
@@ -149,15 +150,17 @@ export const handler = async function (event) {
     ...event.queryStringParameters
   };
   const selection = normalizedSelection(params);
-  const svg = renderSvg({ origin, params, selection });
+  const svg = buildSvg({ origin, params, selection });
+  const png = await renderPng(svg);
 
   return {
     statusCode: 200,
     headers: {
-      "content-type": "image/svg+xml; charset=utf-8",
+      "content-type": "image/png",
       "cache-control": "public, max-age=300",
       "x-content-type-options": "nosniff"
     },
-    body: svg
+    body: png.toString("base64"),
+    isBase64Encoded: true
   };
 };

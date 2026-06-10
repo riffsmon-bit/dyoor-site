@@ -12,6 +12,7 @@ const CANVAS_SIZE = 1024;
 const LAYER_BASE_PATH = "/dyoor-builder/layers";
 const DOWNLOAD_NAME = "dyoor-droid-pfp.png";
 const BLUEPRINT_SHARE_PATH = "/blueprint-share";
+const BLUEPRINT_SHARE_IMAGE_PATH = "/blueprint-share-image.png";
 const PUBLIC_SITE_ORIGIN = "https://dyoor.netlify.app";
 
 const state = {

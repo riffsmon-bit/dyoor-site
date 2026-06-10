@@ -46,7 +46,9 @@ test("blueprint share image emits svg", async () => {
   const image = await shareImage.handler(event);
 
   assert.equal(image.statusCode, 200);
-  assert.equal(image.headers["content-type"], "image/svg+xml; charset=utf-8");
-  assert.match(image.body, /<svg/);
-  assert.match(image.body, /Blueprint Snapshot/i);
+  assert.equal(image.headers["content-type"], "image/png");
+  assert.equal(image.isBase64Encoded, true);
+  assert.match(image.body, /^[A-Za-z0-9+/=]+$/);
+  const buffer = Buffer.from(image.body, "base64");
+  assert.equal(buffer.subarray(0, 8).toString("hex"), "89504e470d0a1a0a");
 });

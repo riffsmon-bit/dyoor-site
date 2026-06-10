@@ -1,4 +1,4 @@
-const BLUEPRINT_SHARE_IMAGE_PATH = "/blueprint-share-image";
+const BLUEPRINT_SHARE_IMAGE_PATH = "/blueprint-share-image.png";
 const BLUEPRINT_TRAIT_ORDER = [
   "Background",
   "Droid",
