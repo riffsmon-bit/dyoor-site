@@ -9,7 +9,7 @@
   const WMON = "0x3bd359C1119dA7Da1D913D1C4D2B7c461115433A";
   const LOCAL_TOKENS = "/tokenlist.monad.json";
   const COMMUNITY_TOKENS = "https://raw.githubusercontent.com/monad-crypto/token-list/main/tokenlist.json";
-  const TOKEN_CACHE_KEY = "dyoor_kuru_tokens_v4";
+  const TOKEN_CACHE_KEY = "dyoor_kuru_tokens_v5";
   let supportFeeBps = Number(root.dataset.feeBps || "20");
   let treasury = root.dataset.treasury || "";
 
@@ -51,6 +51,7 @@
     { symbol: "USDC", name: "USD Coin", address: "0x754704Bc059F8C67012fEd69BC8A327a5aafb603", decimals: 6, chainId: 143, logoURI: "https://raw.githubusercontent.com/monad-crypto/token-list/main/mainnet/USDC/logo.svg" },
     { symbol: "BOB", name: "BOB", address: "0x21E325B059Cd83d4037C82F0F5998Ba2dF3d7777", decimals: 18, chainId: 143, logoURI: "/assets/tokens/bob.png", popular: true },
     { symbol: "PamPam", name: "PamPam", address: "0x44812436147d162CE0A6b573DBCC7492eF117777", decimals: 18, chainId: 143, logoURI: "/tokens/pampam-token.png", popular: true },
+    { symbol: "shramp", name: "shramp", address: "0x42a4aA89864A794dE135B23C6a8D2E05513d7777", decimals: 18, chainId: 143, logoURI: "/tokens/shramp-token.png", popular: true },
   ];
 
   let tokens = baseTokens.slice();
@@ -347,14 +348,15 @@
       ["USDC", 2],
       ["BOB", 3],
       ["PamPam", 4],
-      ["CHOG", 5],
-      ["emo", 6],
-      ["AUSD", 7],
-      ["WETH", 8],
-      ["sMON", 9],
-      ["gMON", 10],
-      ["shMON", 11],
-      ["CETES", 12],
+      ["shramp", 5],
+      ["CHOG", 6],
+      ["emo", 7],
+      ["AUSD", 8],
+      ["WETH", 9],
+      ["sMON", 10],
+      ["gMON", 11],
+      ["shMON", 12],
+      ["CETES", 13],
     ]);
     return Array.from(map.values()).sort((a, b) => {
       const pa = priority.get(a.symbol) ?? 99;
@@ -441,7 +443,7 @@
 
   function visibleTokens() {
     if (tokenTab === "all") return tokens;
-    const priority = ["MON", "WMON", "USDC", "BOB", "PamPam", "CHOG", "emo", "AUSD", "WETH", "sMON", "gMON", "shMON", "CETES", "USDT0", "WBTC"];
+    const priority = ["MON", "WMON", "USDC", "BOB", "PamPam", "shramp", "CHOG", "emo", "AUSD", "WETH", "sMON", "gMON", "shMON", "CETES", "USDT0", "WBTC"];
     const picked = priority.map((symbol) => tokens.find((token) => token.symbol === symbol)).filter(Boolean);
     for (const token of tokens) {
       if (picked.length >= 18) break;
@@ -453,7 +455,7 @@
   function renderQuickTokens() {
     if (!els.tokenQuick) return;
     els.tokenQuick.innerHTML = "";
-    for (const symbol of ["MON", "WMON", "USDC", "BOB", "PamPam", "CHOG", "emo", "AUSD", "WETH", "sMON", "gMON", "shMON"]) {
+    for (const symbol of ["MON", "WMON", "USDC", "BOB", "PamPam", "shramp", "CHOG", "emo", "AUSD", "WETH", "sMON", "gMON"]) {
       const token = tokens.find((item) => item.symbol === symbol);
       if (!token) continue;
       const btn = document.createElement("button");
