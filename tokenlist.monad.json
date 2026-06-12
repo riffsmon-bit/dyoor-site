@@ -39,6 +39,15 @@
       "popular": true
     },
     {
+      "symbol": "shramp",
+      "name": "shramp",
+      "address": "0x42a4aA89864A794dE135B23C6a8D2E05513d7777",
+      "chainId": 143,
+      "decimals": 18,
+      "logoURI": "/tokens/shramp-token.png",
+      "popular": true
+    },
+    {
       "symbol": "CHOG",
       "name": "Chog",
       "address": "0x350035555E10D9aFaF1566aAEBFCeD5Ba6C27777",
