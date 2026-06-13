@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"/>
+  <title>D.Y.O.O.R Quest Terminal</title>
+  <meta name="description" content="D.Y.O.O.R / M3SH cyber degen quest terminal with wallet quests, socials, leaderboard, and giveaway points."/>
+  <meta name="theme-color" content="#07070c"/>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/style.css?v=home-refresh-2"/>
+  <link rel="stylesheet" href="/quest.css?v=quest-terminal-1"/>
+</head>
+<body class="questBody">
+  <div class="bg" aria-hidden="true"></div>
+  <header class="topbar" id="top">
+    <div class="container topbar__inner">
+      <a class="brand" href="/index.html" aria-label="DYOOR home">
+        <img class="brand__logo" src="/assets/dyoor-logo.png" alt="" width="34" height="34"/>
+        <span class="brand__text">DYOOR</span>
+      </a>
+      <nav class="nav" aria-label="Primary">
+        <a class="is-active" href="/quests">Quests</a>
+        <a href="/leaderboard">Leaderboard</a>
+        <a href="/stake.html">Ascension</a>
+        <a href="/admin">Admin</a>
+        <button class="btn btn--ghost navWalletBtn" type="button" data-connect-quest data-wallet-label>Connect Wallet</button>
+      </nav>
+    </div>
+  </header>
+
+  <main class="questShell">
+    <section class="questHero">
+      <div class="terminalPanel">
+        <div class="terminalHeader">
+          <div class="terminalDots"><span></span><span></span><span></span></div>
+          <p class="terminalKicker">M3SH Giveaway Uplink</p>
+        </div>
+        <div class="questHeroBody">
+          <h1 class="questTitle">D.Y.O.O.R Quest Terminal</h1>
+          <p class="questLead">Connect wallet, complete social and on-chain missions, collect badges, and climb the leaderboard for the giveaway draw.</p>
+          <div class="questActions">
+            <button class="btn btn--primary" type="button" data-connect-quest data-wallet-label>Connect Wallet</button>
+            <a class="btn btn--ghost" href="/leaderboard">View Leaderboard</a>
+          </div>
+          <div class="questBadgeRow" id="questBadges"></div>
+          <div class="questStatus" id="questStatus">Connect wallet to start verifying quests.</div>
+        </div>
+      </div>
+
+      <aside class="questStats">
+        <div class="questStat">
+          <span class="questStat__label">Total Points</span>
+          <span class="questStat__value" data-stat="points">0</span>
+        </div>
+        <div class="questStat">
+          <span class="questStat__label">Completed</span>
+          <span class="questStat__value" data-stat="completed">0</span>
+        </div>
+        <div class="questStat">
+          <span class="questStat__label">Pending</span>
+          <span class="questStat__value" data-stat="pending">0</span>
+        </div>
+        <div class="questStat">
+          <span class="questStat__label">Rank</span>
+          <span class="questStat__value" data-stat="rank">-</span>
+        </div>
+      </aside>
+    </section>
+
+    <div class="questTabs" role="tablist" aria-label="Quest filters">
+      <button class="questTab is-active" type="button" data-filter="all">All</button>
+      <button class="questTab" type="button" data-filter="open">Open</button>
+      <button class="questTab" type="button" data-filter="pending">Pending</button>
+      <button class="questTab" type="button" data-filter="completed">Completed</button>
+    </div>
+
+    <section class="questGrid" id="questGrid" aria-label="Quest cards"></section>
+  </main>
+
+  <script defer src="https://cdn.jsdelivr.net/npm/ethers@6.11.1/dist/ethers.umd.min.js"></script>
+  <script defer src="https://unpkg.com/@walletconnect/ethereum-provider@2.23.1/dist/index.umd.js"></script>
+  <script defer src="/wallet-chooser.js"></script>
+  <script defer src="/quest.js?v=quest-terminal-1"></script>
+</body>
+</html>
