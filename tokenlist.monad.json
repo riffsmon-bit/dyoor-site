@@ -61,7 +61,7 @@
       "address": "0xFD97581D397622f6E6662917ea3DeEEfB9F57777",
       "chainId": 143,
       "decimals": 18,
-      "logoURI": "",
+      "logoURI": "/tokens/bchog-token.jpg",
       "website": "https://www.burningchog.xyz",
       "popular": true
     },

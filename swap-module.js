@@ -52,7 +52,7 @@
     { symbol: "BOB", name: "BOB", address: "0x21E325B059Cd83d4037C82F0F5998Ba2dF3d7777", decimals: 18, chainId: 143, logoURI: "/assets/tokens/bob.png", popular: true },
     { symbol: "PamPam", name: "PamPam", address: "0x44812436147d162CE0A6b573DBCC7492eF117777", decimals: 18, chainId: 143, logoURI: "/tokens/pampam-token.png", popular: true },
     { symbol: "shramp", name: "shramp", address: "0x42a4aA89864A794dE135B23C6a8D2E05513d7777", decimals: 18, chainId: 143, logoURI: "/tokens/shramp-token.png", popular: true },
-    { symbol: "BCHOG", name: "Burning Chog", address: "0xFD97581D397622f6E6662917ea3DeEEfB9F57777", decimals: 18, chainId: 143, logoURI: "", website: "https://www.burningchog.xyz", popular: true },
+    { symbol: "BCHOG", name: "Burning Chog", address: "0xFD97581D397622f6E6662917ea3DeEEfB9F57777", decimals: 18, chainId: 143, logoURI: "/tokens/bchog-token.jpg", website: "https://www.burningchog.xyz", popular: true },
   ];
 
   let tokens = baseTokens.slice();
