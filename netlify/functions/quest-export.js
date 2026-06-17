@@ -10,7 +10,7 @@ function csvCell(value) {
 export async function handler(event) {
   try {
     const body = event.httpMethod === "POST" ? parseBody(event) : event.queryStringParameters || {};
-    requireAdmin(body);
+    await requireAdmin(body);
     const data = await store.adminData();
     const rows = [["wallet_address", "x_username", "discord_username", "total_points", "created_at"]]
       .concat(data.users.map((user) => [

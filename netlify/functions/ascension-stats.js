@@ -8,6 +8,8 @@ const DEFAULT_LEDGER_URL = "https://raw.githubusercontent.com/riffsmon-bit/dyoor
 const MAX_SUPPLY = 1111;
 const DEFAULT_LOG_CHUNK_SIZE = 5000n;
 const POINTS_CLAIMED_TOPIC = "0xba953728785de35be3827ee7a7a7867a8472947562602939440e6c0bdbf4725e";
+const ENERGY_AIRDROPPED_TOPIC = "0xc87ee47d849e744604f4b906a3f99f2cb6e8a58a1a1b26d434a1516242c875e9";
+const ENERGY_CORRECTED_TOPIC = "0xf0699d0e65e837d170097a88cefd0bfa81782baf2dd64f938951289e8b967568";
 const SELECTORS = {
   pendingPoints: "0xc4950aab",
   stakedBalance: "0x60217267",
@@ -15,6 +17,14 @@ const SELECTORS = {
   spendableEnergy: "0xac75ff1a",
   lifetimeEnergy: "0x662163a3",
   totalSpent: "0xa8949b46"
+};
+const ZERO_ACCOUNTING = {
+  harvestedRaw: 0n,
+  airdroppedRaw: 0n,
+  bonusRaw: 0n,
+  spentRaw: 0n,
+  lifetimeRaw: 0n,
+  bankRaw: 0n
 };
 
 function json(statusCode, body, cacheControl = "no-store") {
@@ -70,6 +80,13 @@ function normalizeHexQuantity(value) {
 function decodeUint256(hex) {
   if (!hex || hex === "0x") return 0n;
   return safeBigInt(hex);
+}
+
+function decodeInt256(hex) {
+  const raw = decodeUint256(hex);
+  const signBit = 1n << 255n;
+  const modulo = 1n << 256n;
+  return raw >= signBit ? raw - modulo : raw;
 }
 
 function encodeAddressArg(address) {
@@ -194,6 +211,42 @@ async function scanHarvestLogs(address) {
   };
 }
 
+async function scanEnergyGrantLogs(address, energyBankAddress) {
+  const latestBlock = safeBigInt(await rpc("eth_blockNumber"));
+  const startBlock = safeBigInt(process.env.ENERGY_BANK_START_BLOCK || "0");
+  if (!energyBankAddress || startBlock > latestBlock) {
+    return { airdroppedRaw: 0n, bonusRaw: 0n, logsScanned: 0 };
+  }
+
+  let airdroppedRaw = 0n;
+  let bonusRaw = 0n;
+  let logsScanned = 0;
+
+  const airdrops = await getLogsChunk({
+    address: energyBankAddress,
+    topics: [ENERGY_AIRDROPPED_TOPIC, null, addressTopic(address)]
+  }, startBlock, latestBlock);
+
+  for (const log of airdrops || []) {
+    airdroppedRaw += decodeUint256(log.data);
+    logsScanned += 1;
+  }
+
+  const corrections = await getLogsChunk({
+    address: energyBankAddress,
+    topics: [ENERGY_CORRECTED_TOPIC, addressTopic(address)]
+  }, startBlock, latestBlock);
+
+  for (const log of corrections || []) {
+    const delta = decodeInt256(log.data);
+    if (delta > 0n) airdroppedRaw += delta;
+    else if (delta < 0n) bonusRaw += 0n;
+    logsScanned += 1;
+  }
+
+  return { airdroppedRaw, bonusRaw, logsScanned };
+}
+
 function ledgerScanFallback(record) {
   const claims = Array.isArray(record?.claims) ? record.claims : [];
   const lastClaim = claims[claims.length - 1] || {};
@@ -206,6 +259,69 @@ function ledgerScanFallback(record) {
     chunksScanned: 0,
     fromBlock: 0n,
     toBlock: 0n
+  };
+}
+
+function accountingFromRecord(record) {
+  const grants = Array.isArray(record?.grants) ? record.grants : [];
+  let airdroppedRaw = safeBigInt(record?.airdroppedRaw || "0");
+  let bonusRaw = safeBigInt(record?.bonusRaw || "0");
+  let spentRaw = safeBigInt(record?.spentRaw || "0");
+
+  for (const grant of grants) {
+    const amount = safeBigInt(grant?.amountRaw || "0");
+    const type = String(grant?.type || "").toLowerCase();
+    if (type === "airdrop") airdroppedRaw += amount;
+    else if (type === "bonus") bonusRaw += amount;
+  }
+
+  return {
+    ...ZERO_ACCOUNTING,
+    harvestedRaw: safeBigInt(record?.harvestedRaw || "0"),
+    airdroppedRaw,
+    bonusRaw,
+    spentRaw
+  };
+}
+
+function resolveEnergyAccounting({
+  harvestedRaw,
+  record,
+  grantScan,
+  bankedRaw,
+  bankLifetimeRaw,
+  bankSpentRaw,
+  hasEnergyBank
+}) {
+  const ledger = accountingFromRecord(record);
+  const bonusRaw = ledger.bonusRaw;
+  const spentRaw = hasEnergyBank ? bankSpentRaw : ledger.spentRaw;
+  const scannedAirdroppedRaw = safeBigInt(grantScan?.airdroppedRaw || "0");
+  const scannedBonusRaw = safeBigInt(grantScan?.bonusRaw || "0");
+  const explicitAirdroppedRaw = scannedAirdroppedRaw > 0n ? scannedAirdroppedRaw : ledger.airdroppedRaw;
+  const combinedBonusRaw = bonusRaw + scannedBonusRaw;
+  const bankHasAccounting = hasEnergyBank && (bankedRaw > 0n || bankLifetimeRaw > 0n || bankSpentRaw > 0n);
+  const inferredAirdroppedRaw = bankLifetimeRaw > harvestedRaw + explicitAirdroppedRaw + combinedBonusRaw
+    ? bankLifetimeRaw - harvestedRaw - explicitAirdroppedRaw - combinedBonusRaw
+    : 0n;
+  const airdroppedRaw = explicitAirdroppedRaw + inferredAirdroppedRaw;
+  const calculatedLifetimeRaw = harvestedRaw + airdroppedRaw + combinedBonusRaw;
+  const lifetimeRaw = bankHasAccounting && bankLifetimeRaw > calculatedLifetimeRaw
+    ? bankLifetimeRaw
+    : calculatedLifetimeRaw;
+  const calculatedBankRaw = lifetimeRaw > spentRaw ? lifetimeRaw - spentRaw : 0n;
+  const bankRaw = bankHasAccounting && bankedRaw > calculatedBankRaw
+    ? bankedRaw
+    : calculatedBankRaw;
+
+  return {
+    harvestedRaw,
+    airdroppedRaw,
+    bonusRaw: combinedBonusRaw,
+    spentRaw,
+    lifetimeRaw,
+    bankRaw,
+    calculatedLifetimeRaw
   };
 }
 
@@ -242,6 +358,7 @@ exports.handler = async function (event) {
       const stakingAddress = normalizeAddress(process.env.ASCENSION_STAKING_ADDRESS || DEFAULT_ASCENSION_STAKING);
       const energyBankAddress = normalizeAddress(process.env.ENERGY_BANK_ADDRESS || DEFAULT_ENERGY_BANK);
       const shouldScanLogs = event?.queryStringParameters?.scanLogs === "1";
+      const shouldScanGrantLogs = event?.queryStringParameters?.scanGrants === "1";
       let apiStatus = shouldScanLogs ? "ok" : "partial";
       let apiMessage = shouldScanLogs
         ? "Energy totals loaded from Ascension harvest events with chunked RPC log scans."
@@ -276,7 +393,33 @@ exports.handler = async function (event) {
         ? await safeEthCall(energyBankAddress, SELECTORS.totalSpent, address)
         : 0n;
       const harvestedRaw = logs.harvestedRaw;
-      const lifetimeRaw = harvestedRaw + pendingRaw;
+      let grantScan = { airdroppedRaw: 0n, bonusRaw: 0n, logsScanned: 0 };
+      if (energyBankAddress && shouldScanGrantLogs) {
+        try {
+          grantScan = await scanEnergyGrantLogs(address, energyBankAddress);
+        } catch (grantScanErr) {
+          apiStatus = "partial";
+          apiMessage = `${apiMessage} Energy Bank grant log scan failed; using lifetime fallback. ${String(grantScanErr?.message || grantScanErr)}`;
+        }
+      }
+      const accounting = resolveEnergyAccounting({
+        harvestedRaw,
+        record,
+        grantScan,
+        bankedRaw,
+        bankLifetimeRaw,
+        bankSpentRaw,
+        hasEnergyBank: Boolean(energyBankAddress)
+      });
+
+      console.log("DYOOR energy accounting", {
+        address,
+        harvestedEnergy: accounting.harvestedRaw.toString(),
+        airdroppedEnergy: accounting.airdroppedRaw.toString(),
+        spentEnergy: accounting.spentRaw.toString(),
+        lifetimeEnergy: accounting.lifetimeRaw.toString(),
+        bankEnergy: accounting.bankRaw.toString()
+      });
 
       return json(200, {
         ok: true,
@@ -288,13 +431,28 @@ exports.handler = async function (event) {
         pendingEnergy: formatUnits(pendingRaw),
         harvestedRaw: harvestedRaw.toString(),
         harvestedEnergy: formatUnits(harvestedRaw),
-        lifetimeRaw: lifetimeRaw.toString(),
-        lifetimeEnergy: formatUnits(lifetimeRaw),
-        bankedRaw: bankedRaw.toString(),
-        bankedEnergy: formatUnits(bankedRaw),
+        airdroppedRaw: accounting.airdroppedRaw.toString(),
+        airdroppedEnergy: formatUnits(accounting.airdroppedRaw),
+        bonusRaw: accounting.bonusRaw.toString(),
+        bonusEnergy: formatUnits(accounting.bonusRaw),
+        spentRaw: accounting.spentRaw.toString(),
+        spentEnergy: formatUnits(accounting.spentRaw),
+        lifetimeRaw: accounting.lifetimeRaw.toString(),
+        lifetimeEnergy: formatUnits(accounting.lifetimeRaw),
+        bankedRaw: accounting.bankRaw.toString(),
+        bankedEnergy: formatUnits(accounting.bankRaw),
         bankLifetimeRaw: bankLifetimeRaw.toString(),
         bankLifetimeEnergy: formatUnits(bankLifetimeRaw),
         bankSpentRaw: bankSpentRaw.toString(),
+        calculatedLifetimeRaw: accounting.calculatedLifetimeRaw.toString(),
+        calculatedLifetimeEnergy: formatUnits(accounting.calculatedLifetimeRaw),
+        energyDebug: {
+          harvestedEnergy: accounting.harvestedRaw.toString(),
+          airdroppedEnergy: accounting.airdroppedRaw.toString(),
+          spentEnergy: accounting.spentRaw.toString(),
+          lifetimeEnergy: accounting.lifetimeRaw.toString(),
+          bankEnergy: accounting.bankRaw.toString()
+        },
         totalStakedRaw: totalStakedRaw.toString(),
         totalStaked: totalStakedRaw.toString(),
         pointsPerDayRaw: pointsPerDayRaw.toString(),
@@ -305,6 +463,7 @@ exports.handler = async function (event) {
         lastHarvestTxHash: logs.lastHarvestTxHash,
         lastHarvestBlock: logs.lastHarvestBlock,
         logsScanned: logs.logsScanned,
+        energyGrantLogsScanned: grantScan.logsScanned,
         chunksScanned: logs.chunksScanned,
         fromBlock: logs.fromBlock.toString(),
         toBlock: logs.toBlock.toString(),

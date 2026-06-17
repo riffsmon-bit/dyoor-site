@@ -5,6 +5,7 @@
     wallet: localStorage.getItem("dyoorQuestWallet") || "",
     signature: localStorage.getItem("dyoorQuestSignature") || "",
     message: localStorage.getItem("dyoorQuestMessage") || "",
+    sessionExpiresAt: localStorage.getItem("dyoorQuestSessionExpiresAt") || "",
     user: null,
     quests: [],
     completions: [],
@@ -39,6 +40,24 @@
     };
   }
 
+  function clearSession() {
+    state.signature = "";
+    state.message = "";
+    state.sessionExpiresAt = "";
+    localStorage.removeItem("dyoorQuestSignature");
+    localStorage.removeItem("dyoorQuestMessage");
+    localStorage.removeItem("dyoorQuestSessionExpiresAt");
+  }
+
+  function hasLiveSession() {
+    return Boolean(
+      state.wallet &&
+      state.signature &&
+      state.message &&
+      (!state.sessionExpiresAt || Date.parse(state.sessionExpiresAt) > Date.now() + 5000)
+    );
+  }
+
   async function api(path, options = {}) {
     const res = await fetch(path, {
       ...options,
@@ -69,11 +88,13 @@
     state.wallet = wallet;
     state.message = messageRes.message;
     state.signature = signature;
+    state.sessionExpiresAt = messageRes.expiresAt || "";
     state.user = session.user;
     state.admin = !!session.admin;
     localStorage.setItem("dyoorQuestWallet", wallet);
     localStorage.setItem("dyoorQuestMessage", state.message);
     localStorage.setItem("dyoorQuestSignature", signature);
+    localStorage.setItem("dyoorQuestSessionExpiresAt", state.sessionExpiresAt);
     renderWallet();
     await loadState();
     if (qs("#adminRoot")) await loadAdmin();
@@ -141,6 +162,31 @@
     return "Verify";
   }
 
+  function isWalletProofQuest(quest) {
+    return [
+      "m3sh_connect",
+      "s1_holder",
+      "ascended_s1",
+      "ascension_tutorial",
+      "ascension_blueprint",
+      "opensea_buy",
+    ].includes(quest.quest_type);
+  }
+
+  function isServerVerifiableQuest(quest) {
+    return isWalletProofQuest(quest) || quest.quest_type === "swap";
+  }
+
+  function completionMessage(completion) {
+    if (!completion) return "Not started";
+    const details = completion.verification_details || {};
+    if (completion.status === "verified") {
+      if (details.proofSource) return details.weakerProof ? `Verified: ${details.proofSource} (weaker proof)` : `Verified: ${details.proofSource}`;
+      return "Verified";
+    }
+    return details.reason || details.message || completion.status;
+  }
+
   function renderQuests() {
     const root = qs("#questGrid");
     if (!root) return;
@@ -155,11 +201,13 @@
     root.innerHTML = quests.map((quest) => {
       const completion = completionFor(quest.id);
       const status = completion?.status || "open";
+      const details = completion?.verification_details || {};
       const proofPlaceholder = quest.quest_type === "swap"
-        ? "Paste tx hash"
+        ? "Optional tx hash for faster proof"
         : quest.quest_type.startsWith("x_") || quest.quest_type === "social_follow"
           ? "Paste X profile/post proof"
           : "Optional proof link or note";
+      const showProofInput = !isWalletProofQuest(quest) || quest.quest_type === "swap";
       const startButton = quest.quest_type === "ascension_tutorial"
         ? `<a class="btn btn--ghost" href="${quest.external_url || "/stake.html"}">Start Ascension</a>`
         : quest.external_url
@@ -175,12 +223,13 @@
           <p>${quest.description}</p>
           <div class="questProgress" aria-hidden="true"><span></span></div>
           <div class="proofBox">
-            <input class="proofInput" data-proof="${quest.id}" type="text" placeholder="${proofPlaceholder}" value="${completion?.proof_url || completion?.proof_text || completion?.tx_hash || ""}">
+            ${showProofInput ? `<input class="proofInput" data-proof="${quest.id}" type="text" placeholder="${proofPlaceholder}" value="${completion?.proof_url || completion?.proof_text || completion?.tx_hash || ""}">` : ""}
             <div class="questCard__actions">
               ${startButton}
               <button class="btn btn--primary" type="button" data-verify="${quest.id}" ${status === "verified" ? "disabled" : ""}>${questActionLabel(quest, status)}</button>
             </div>
-            <span class="adminMeta">${status === "open" ? "Not started" : status}</span>
+            <span class="adminMeta">${completionMessage(completion)}</span>
+            ${details.first500Rank ? `<span class="badge">Blueprint #${details.first500Rank}</span>` : ""}
           </div>
         </article>
       `;
@@ -225,23 +274,65 @@
   }
 
   async function verifyQuest(questId) {
-    if (!state.wallet || !state.signature) {
+    if (!hasLiveSession()) {
+      clearSession();
       await connectWallet();
     }
     const input = qs(`[data-proof="${questId}"]`);
     const proof = input?.value?.trim() || "";
     setStatus("Verifying quest...");
-    const data = await api("/.netlify/functions/quest-verify", {
-      method: "POST",
-      body: JSON.stringify(authPayload({
-        quest_id: questId,
-        proof_text: proof,
-        proof_url: /^https?:\/\//i.test(proof) ? proof : "",
-        tx_hash: /^0x[a-fA-F0-9]{64}$/.test(proof) ? proof : "",
-      })),
-    });
+    let data;
+    try {
+      data = await api("/.netlify/functions/quest-verify", {
+        method: "POST",
+        body: JSON.stringify(authPayload({
+          quest_id: questId,
+          proof_text: proof,
+          proof_url: /^https?:\/\//i.test(proof) ? proof : "",
+          tx_hash: /^0x[a-fA-F0-9]{64}$/.test(proof) ? proof : "",
+        })),
+      });
+    } catch (err) {
+      if (/signature|challenge|expired/i.test(err.message || "")) {
+        clearSession();
+        await connectWallet();
+        data = await api("/.netlify/functions/quest-verify", {
+          method: "POST",
+          body: JSON.stringify(authPayload({
+            quest_id: questId,
+            proof_text: proof,
+            proof_url: /^https?:\/\//i.test(proof) ? proof : "",
+            tx_hash: /^0x[a-fA-F0-9]{64}$/.test(proof) ? proof : "",
+          })),
+        });
+      } else {
+        throw err;
+      }
+    }
     await loadState();
-    setStatus(data.status === "verified" ? "Quest verified. Points updated." : "Proof submitted. Admin review pending.");
+    const suffix = data.pointsAwarded ? ` +${Number(data.pointsAwarded).toLocaleString()} pts` : "";
+    setStatus(data.completed ? `${data.reason || "Verified on-chain"}.${suffix}` : data.reason || "No qualifying proof found yet.");
+    return data;
+  }
+
+  async function verifyAllQuests() {
+    if (!hasLiveSession()) {
+      clearSession();
+      await connectWallet();
+    }
+    const openQuests = state.quests.filter((quest) => isServerVerifiableQuest(quest) && completionFor(quest.id)?.status !== "verified");
+    let verifiedCount = 0;
+    for (const quest of openQuests) {
+      setStatus(`Verifying ${quest.title}...`);
+      try {
+        const result = await verifyQuest(quest.id);
+        if (result.completed) verifiedCount += 1;
+      } catch (err) {
+        if (!/manual|proof/i.test(err.message || "")) console.warn(err);
+      }
+    }
+    await loadState();
+    setStatus(verifiedCount ? `Verify all finished. ${verifiedCount} quest${verifiedCount === 1 ? "" : "s"} verified.` : "Verify all finished. No new qualifying proof found yet.");
   }
 
   async function adminRequest(action, extra = {}) {
@@ -349,6 +440,10 @@
       const verifyBtn = event.target.closest("[data-verify]");
       if (verifyBtn) {
         try { await verifyQuest(verifyBtn.dataset.verify); } catch (err) { setStatus(err.message, true); }
+      }
+
+      if (event.target.closest("#verifyAllBtn")) {
+        try { await verifyAllQuests(); } catch (err) { setStatus(err.message, true); }
       }
 
       const approveBtn = event.target.closest("[data-approve]");

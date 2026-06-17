@@ -11,6 +11,8 @@ const memory = {
   quests: config.loadSeedQuests(),
   completions: [],
   suspicious: [],
+  sessions: [],
+  rateLimits: [],
 };
 const fallbackPath = path.join(os.tmpdir(), "dyoor-quest-store.json");
 const blobStoreName = "dyoor-quest-terminal";
@@ -66,6 +68,8 @@ async function readFallback() {
       memory.quests = Array.isArray(parsed.quests) && parsed.quests.length ? parsed.quests : config.loadSeedQuests();
       memory.completions = Array.isArray(parsed.completions) ? parsed.completions : [];
       memory.suspicious = Array.isArray(parsed.suspicious) ? parsed.suspicious : [];
+      memory.sessions = Array.isArray(parsed.sessions) ? parsed.sessions : [];
+      memory.rateLimits = Array.isArray(parsed.rateLimits) ? parsed.rateLimits : [];
       return;
     }
   } catch (_err) {}
@@ -76,9 +80,77 @@ async function readFallback() {
     memory.quests = Array.isArray(parsed.quests) && parsed.quests.length ? parsed.quests : config.loadSeedQuests();
     memory.completions = Array.isArray(parsed.completions) ? parsed.completions : [];
     memory.suspicious = Array.isArray(parsed.suspicious) ? parsed.suspicious : [];
+    memory.sessions = Array.isArray(parsed.sessions) ? parsed.sessions : [];
+    memory.rateLimits = Array.isArray(parsed.rateLimits) ? parsed.rateLimits : [];
   } catch (_err) {
     memory.quests = memory.quests.length ? memory.quests : config.loadSeedQuests();
   }
+}
+
+function challengeMessage(wallet, nonce, issuedAt) {
+  return [
+    "D.Y.O.O.R Quest Terminal",
+    `Wallet: ${wallet}`,
+    "Action: quest-mode-login",
+    `Nonce: ${nonce}`,
+    `Issued At: ${issuedAt}`,
+    "This signature proves wallet ownership and does not send a transaction.",
+  ].join("\n");
+}
+
+async function createChallenge(walletAddress) {
+  const wallet = config.normalizeAddress(walletAddress);
+  if (!wallet) throw new Error("Invalid wallet address.");
+  await readFallback();
+  const issuedAt = now();
+  const expiresAt = new Date(Date.now() + 10 * 60 * 1000).toISOString();
+  const nonce = randomUUID();
+  const session = {
+    id: randomUUID(),
+    wallet_address: wallet,
+    nonce,
+    message: challengeMessage(wallet, nonce, issuedAt),
+    issued_at: issuedAt,
+    expires_at: expiresAt,
+    used_at: null,
+  };
+  memory.sessions = memory.sessions.filter((entry) => {
+    const expired = Date.parse(entry.expires_at || "") <= Date.now();
+    return !expired && entry.wallet_address !== wallet;
+  });
+  memory.sessions.push(session);
+  await writeFallback();
+  return session;
+}
+
+async function consumeChallenge({ walletAddress, message }) {
+  const wallet = config.normalizeAddress(walletAddress);
+  if (!wallet || !message) throw new Error("Wallet signature is required.");
+  await readFallback();
+  const session = memory.sessions.find((entry) =>
+    entry.wallet_address === wallet &&
+    entry.message === message &&
+    Date.parse(entry.expires_at || "") > Date.now()
+  );
+  if (!session) throw new Error("Quest signature challenge expired or was not issued by this server.");
+  session.used_at = now();
+  await writeFallback();
+  return session;
+}
+
+async function checkRateLimit(key, limit = 20, windowMs = 60_000) {
+  await readFallback();
+  const nowMs = Date.now();
+  const windowStart = nowMs - windowMs;
+  memory.rateLimits = memory.rateLimits.filter((entry) => Number(entry.at || 0) >= windowStart);
+  const count = memory.rateLimits.filter((entry) => entry.key === key).length;
+  if (count >= limit) {
+    const err = new Error("Too many quest verification attempts. Try again shortly.");
+    err.statusCode = 429;
+    throw err;
+  }
+  memory.rateLimits.push({ key, at: nowMs });
+  await writeFallback();
 }
 
 async function writeFallback() {
@@ -163,6 +235,15 @@ async function listCompletions(userId) {
   }
   await readFallback();
   return memory.completions.filter((entry) => entry.user_id === userId);
+}
+
+async function getCompletion(userId, questId) {
+  if (db.hasSupabase()) {
+    const rows = await db.select("quest_completions", `select=*&${db.eq("user_id", userId)}&${db.eq("quest_id", questId)}`);
+    return rows?.[0] || null;
+  }
+  await readFallback();
+  return memory.completions.find((entry) => entry.user_id === userId && entry.quest_id === questId) || null;
 }
 
 async function saveCompletion({ userId, questId, status, proofUrl, proofText, txHash, verificationDetails }) {
@@ -309,10 +390,14 @@ async function approveCompletion(completionId, status) {
 
 export {
   ensureUser,
+  createChallenge,
+  consumeChallenge,
+  checkRateLimit,
   listQuests,
   listAllQuests,
   getQuest,
   listCompletions,
+  getCompletion,
   saveCompletion,
   leaderboard,
   adminData,

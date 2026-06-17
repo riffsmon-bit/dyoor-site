@@ -191,18 +191,19 @@ async function main() {
       bank.totalSpent(user).catch(() => 0n)
     ]);
 
-    const expectedLifetimeRaw = harvested.total + pendingRaw;
-    let remainingShortfall = harvested.total > bankLifetimeRaw
-      ? harvested.total - bankLifetimeRaw
+    const inferredAirdroppedRaw = bankLifetimeRaw > harvested.total
+      ? bankLifetimeRaw - harvested.total
+      : 0n;
+    const expectedLifetimeRaw = harvested.total + inferredAirdroppedRaw;
+    const expectedBankRaw = expectedLifetimeRaw > bankSpentRaw
+      ? expectedLifetimeRaw - bankSpentRaw
       : 0n;
     const missing = [];
 
     for (const claim of harvested.claims) {
-      if (remainingShortfall <= 0n) break;
       const used = await bank.usedClaimTxHash(claim.txHash).catch(() => false);
       if (used) continue;
       missing.push(claim);
-      remainingShortfall -= claim.amount;
     }
 
     if (bankLifetimeRaw > harvested.total) overCreditedUsers += 1;
@@ -212,8 +213,10 @@ async function main() {
     rows.push({
       user,
       harvestedRaw: harvested.total,
+      airdroppedRaw: inferredAirdroppedRaw,
       pendingRaw,
       expectedLifetimeRaw,
+      expectedBankRaw,
       bankRaw,
       bankLifetimeRaw,
       bankSpentRaw,
@@ -223,7 +226,7 @@ async function main() {
     if (missing.length) {
       console.log("");
       console.log(`missing ${user}`);
-      console.log(`  harvested=${ethers.formatEther(harvested.total)} bankLifetime=${ethers.formatEther(bankLifetimeRaw)} pending=${ethers.formatEther(pendingRaw)}`);
+      console.log(`  harvested=${ethers.formatEther(harvested.total)} airdropped=${ethers.formatEther(inferredAirdroppedRaw)} bankLifetime=${ethers.formatEther(bankLifetimeRaw)} pending=${ethers.formatEther(pendingRaw)}`);
       for (const claim of missing) {
         console.log(`  credit ${ethers.formatEther(claim.amount)} tx=${claim.txHash} block=${claim.blockNumber}`);
         if (execute) {
@@ -253,9 +256,11 @@ async function main() {
     console.log([
       row.user,
       `harvested=${ethers.formatEther(row.harvestedRaw)}`,
+      `airdropped=${ethers.formatEther(row.airdroppedRaw)}`,
       `pending=${ethers.formatEther(row.pendingRaw)}`,
       `lifetime=${ethers.formatEther(row.expectedLifetimeRaw)}`,
       `bank=${ethers.formatEther(row.bankRaw)}`,
+      `expectedBank=${ethers.formatEther(row.expectedBankRaw)}`,
       `bankLifetime=${ethers.formatEther(row.bankLifetimeRaw)}`,
       `spent=${ethers.formatEther(row.bankSpentRaw)}`,
       `missing=${row.missing.length}`

@@ -28,7 +28,7 @@ export async function handler(event) {
   try {
     if (event.httpMethod !== "POST") return methodNotAllowed();
     const body = parseBody(event);
-    requireAdmin(body);
+    await requireAdmin(body);
 
     const action = String(body.action || "dashboard");
     if (action === "dashboard") {

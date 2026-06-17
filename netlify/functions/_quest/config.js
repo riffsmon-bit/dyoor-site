@@ -39,6 +39,13 @@ const monadRpcUrl = readEnv("MONAD_RPC_URL", "https://rpc.monad.xyz");
 const dyoorS1Contract = readEnv("DYOOR_S1_CONTRACT", readEnv("DYOOR_S1_NFT_ADDRESS"));
 const ascensionStakingContract = readEnv("ASCENSION_STAKING_CONTRACT", readEnv("ASCENSION_STAKING_ADDRESS"));
 const swapContract = readEnv("SWAP_CONTRACT");
+const dyoorSwapRouter = readEnv("DYOOR_SWAP_ROUTER", swapContract);
+const dyoorTreasuryAddress = readEnv("DYOOR_TREASURY_ADDRESS", readEnv("DYOOR_SUPPORT_FEE_RECIPIENT"));
+const m3shProofUrl = readEnv("M3SH_PROOF_URL", readEnv("M3SH_SESSIONS_URL"));
+const blueprintProofUrl = readEnv("ASCENSION_BLUEPRINT_PROOF_URL", readEnv("BLUEPRINT_PROOF_URL"));
+const openseaApiKey = readEnv("OPENSEA_API_KEY");
+const openseaBuyStartBlock = readEnv("OPENSEA_BUY_START_BLOCK", readEnv("QUEST_START_BLOCK"));
+const seaportContract = readEnv("SEAPORT_CONTRACT", "0x0000000000000068f116a894984e2db1123eb395");
 const targetDyoorPostId = readEnv("TARGET_DYOOR_POST_ID");
 const xClientId = readEnv("X_CLIENT_ID");
 const xClientSecret = readEnv("X_CLIENT_SECRET");
@@ -53,6 +60,13 @@ export {
   dyoorS1Contract,
   ascensionStakingContract,
   swapContract,
+  dyoorSwapRouter,
+  dyoorTreasuryAddress,
+  m3shProofUrl,
+  blueprintProofUrl,
+  openseaApiKey,
+  openseaBuyStartBlock,
+  seaportContract,
   targetDyoorPostId,
   xClientId,
   xClientSecret,

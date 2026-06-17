@@ -1,20 +1,17 @@
 import { verifyMessage } from "ethers";
 import * as config from "./config.js";
+import * as store from "./store.js";
 
-function loginMessage(address) {
-  return [
-    "D.Y.O.O.R Quest Terminal",
-    `Wallet: ${config.normalizeAddress(address)}`,
-    "Action: login",
-  ].join("\n");
+async function loginChallenge(address) {
+  return store.createChallenge(address);
 }
 
-function verifyWalletAuth(body = {}) {
+async function verifyWalletAuth(body = {}) {
   const wallet = config.normalizeAddress(body.wallet_address || body.walletAddress || body.wallet);
   const signature = String(body.signature || "");
   const message = String(body.message || "");
   if (!wallet || !signature || !message) throw new Error("Wallet signature is required.");
-  if (message !== loginMessage(wallet)) throw new Error("Quest signature message mismatch.");
+  await store.consumeChallenge({ walletAddress: wallet, message });
 
   const recovered = config.normalizeAddress(verifyMessage(message, signature));
   if (recovered !== wallet) throw new Error("Signature does not match wallet.");
@@ -26,15 +23,15 @@ function isAdminWallet(wallet) {
   return Boolean(normalized && config.adminWallets().includes(normalized));
 }
 
-function requireAdmin(body = {}) {
-  const wallet = verifyWalletAuth(body);
+async function requireAdmin(body = {}) {
+  const wallet = await verifyWalletAuth(body);
   if (!config.hasAdminWalletConfig()) throw new Error("ADMIN_WALLETS is not configured in this environment.");
   if (!isAdminWallet(wallet)) throw new Error("Admin wallet required.");
   return wallet;
 }
 
 export {
-  loginMessage,
+  loginChallenge,
   verifyWalletAuth,
   isAdminWallet,
   requireAdmin,
