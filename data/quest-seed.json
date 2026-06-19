@@ -72,6 +72,30 @@
     "target": "ChatWithM3SH"
   },
   {
+    "id": "follow-ua1barber",
+    "title": "Follow @ua1barber",
+    "description": "Follow ua1barber on X.",
+    "quest_type": "social_follow",
+    "points": 50,
+    "verification_method": "x_api_or_manual",
+    "external_url": "https://x.com/ua1barber?s=21",
+    "active": true,
+    "sort_order": 61,
+    "target": "ua1barber"
+  },
+  {
+    "id": "follow-cryptoking5",
+    "title": "Follow @_cryptoking5",
+    "description": "Follow _cryptoking5 on X.",
+    "quest_type": "social_follow",
+    "points": 50,
+    "verification_method": "x_api_or_manual",
+    "external_url": "https://x.com/_cryptoking5?s=21",
+    "active": true,
+    "sort_order": 62,
+    "target": "_cryptoking5"
+  },
+  {
     "id": "join-discord",
     "title": "Join D.Y.O.O.R Discord",
     "description": "Join the Discord and link your Discord identity when OAuth is configured.",

@@ -28,6 +28,14 @@ function sortQuests(quests) {
     .sort((a, b) => Number(a.sort_order || 0) - Number(b.sort_order || 0));
 }
 
+function mergeSeedQuests(storedQuests) {
+  const byId = new Map(config.loadSeedQuests().map((quest) => [quest.id, quest]));
+  for (const quest of Array.isArray(storedQuests) ? storedQuests : []) {
+    if (quest?.id) byId.set(quest.id, { ...byId.get(quest.id), ...quest });
+  }
+  return Array.from(byId.values());
+}
+
 function recomputeMemoryPoints(userId) {
   const user = memory.users.find((entry) => entry.id === userId);
   if (!user) return;
@@ -65,7 +73,7 @@ async function readFallback() {
     const parsed = await store.get(blobStoreKey, { type: "json", consistency: "strong" });
     if (parsed && typeof parsed === "object") {
       memory.users = Array.isArray(parsed.users) ? parsed.users : [];
-      memory.quests = Array.isArray(parsed.quests) && parsed.quests.length ? parsed.quests : config.loadSeedQuests();
+      memory.quests = mergeSeedQuests(parsed.quests);
       memory.completions = Array.isArray(parsed.completions) ? parsed.completions : [];
       memory.suspicious = Array.isArray(parsed.suspicious) ? parsed.suspicious : [];
       memory.sessions = Array.isArray(parsed.sessions) ? parsed.sessions : [];
@@ -77,7 +85,7 @@ async function readFallback() {
   try {
     const parsed = JSON.parse(await fs.readFile(fallbackPath, "utf8"));
     memory.users = Array.isArray(parsed.users) ? parsed.users : [];
-    memory.quests = Array.isArray(parsed.quests) && parsed.quests.length ? parsed.quests : config.loadSeedQuests();
+    memory.quests = mergeSeedQuests(parsed.quests);
     memory.completions = Array.isArray(parsed.completions) ? parsed.completions : [];
     memory.suspicious = Array.isArray(parsed.suspicious) ? parsed.suspicious : [];
     memory.sessions = Array.isArray(parsed.sessions) ? parsed.sessions : [];
