@@ -48,17 +48,43 @@ export async function handler(event) {
         proofSource: result.proofSource || null,
       },
     }) : null;
+    const linkedCompletions = [];
+    let linkedPointsAwarded = 0;
+    if (result.completed && quest.quest_type === "ascended_s1") {
+      const holderQuest = await store.getQuest("hold-s1");
+      const holderExisting = holderQuest ? await store.getCompletion(user.id, holderQuest.id) : null;
+      if (holderQuest?.active !== false && holderExisting?.status !== "verified") {
+        const holderCompletion = await store.saveCompletion({
+          userId: user.id,
+          questId: holderQuest.id,
+          status: "verified",
+          proofUrl: "",
+          proofText: "",
+          txHash: "",
+          verificationDetails: {
+            mode: "linked_ascension",
+            reason: "Confirmed from Ascended S1 verification",
+            proofSource: result.proofSource || result.details?.proofSource || "ascended_s1",
+            ascendedCount: result.details?.ascendedCount || null,
+            linkedQuestId: quest.id,
+          },
+        });
+        linkedCompletions.push(holderCompletion);
+        linkedPointsAwarded += Number(holderQuest.points || 0);
+      }
+    }
 
     return json(200, {
       ok: true,
       completed: !!result.completed,
       status: result.status,
       reason: result.reason,
-      pointsAwarded: result.completed ? Number(quest.points || 0) : 0,
+      pointsAwarded: result.completed ? Number(quest.points || 0) + linkedPointsAwarded : 0,
       proofTxHash: result.proofTxHash || null,
       proofSource: result.proofSource || null,
       verifiedAt: result.completed ? completion?.verified_at || result.verifiedAt : null,
       completion,
+      linkedCompletions,
       details: result.details,
     });
   } catch (err) {

@@ -299,9 +299,27 @@ async function verifyQuest({ quest, wallet, proofText, txHash }) {
 
     case "s1_holder": {
       const balance = await getNftBalance(wallet, config.dyoorS1Contract);
-      return balance > 0n
-        ? verified({ reason: "Verified on-chain", proofSource: "s1_balance", balance: balance.toString(), badge: "S1 Holder" })
-        : notComplete("No DYOOR S1 balance found for this wallet", { proofSource: "s1_balance", balance: "0" });
+      let ascended = { count: 0n, proofSource: null, tokenIds: [] };
+      try {
+        ascended = await getAscendedCount(wallet);
+      } catch (_err) {}
+      const totalHolderCount = balance + ascended.count;
+      return totalHolderCount > 0n
+        ? verified({
+          reason: ascended.count > 0n && balance === 0n ? "Verified through ascended S1 holdings" : "Verified on-chain",
+          proofSource: ascended.count > 0n && balance === 0n ? ascended.proofSource : "s1_balance",
+          balance: balance.toString(),
+          ascendedCount: ascended.count.toString(),
+          holderCount: totalHolderCount.toString(),
+          tokenIds: ascended.tokenIds || [],
+          badge: "S1 Holder",
+        })
+        : notComplete("No DYOOR S1 balance or ascended S1 found for this wallet", {
+          proofSource: "s1_balance_and_ascension",
+          balance: "0",
+          ascendedCount: "0",
+          holderCount: "0",
+        });
     }
 
     case "swap":
