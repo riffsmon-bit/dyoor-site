@@ -7,10 +7,12 @@
 /verify/    /verify.html  200
 /quests     /quests.html  200
 /quests/    /quests.html  200
-/leaderboard     /leaderboard.html  200
-/leaderboard/    /leaderboard.html  200
-/admin     /admin.html  200
-/admin/    /admin.html  200
+/leaderboard     /  302
+/leaderboard/    /  302
+/leaderboard.html     /  302
+/admin     /  302
+/admin/    /  302
+/admin.html     /  302
 /blueprint-checker     /blueprint-checker.html  200
 /blueprint-checker/    /blueprint-checker.html  200
 /blueprint-share      /.netlify/functions/ascension-blueprint-share  200
