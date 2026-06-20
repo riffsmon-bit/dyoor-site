@@ -352,7 +352,9 @@ async function verifyQuest({ quest, wallet, proofText, txHash }) {
     case "x_like":
     case "x_repost":
     case "x_comment":
-      return manual("X API mode is unavailable until OAuth/API credentials are configured. Manual proof is accepted.", {
+      return manual("Submitted for manual review.", {
+        manualReview: true,
+        futureApiMode: "x_api_optional",
         targetPostId: config.targetDyoorPostId || null,
         targetAccount: quest.target || null,
       });
