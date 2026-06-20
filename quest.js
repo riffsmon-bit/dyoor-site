@@ -160,7 +160,21 @@
     if (status === "verified") return "Verified";
     if (status === "pending") return "Pending Review";
     if (quest.quest_type === "ascension_tutorial") return "Verify Ascended";
+    if (isXManualQuest(quest)) return "Submit Proof";
     return "Verify";
+  }
+
+  function isXManualQuest(quest) {
+    return ["social_follow", "x_like", "x_repost", "x_comment"].includes(quest.quest_type);
+  }
+
+  function proofPlaceholderFor(quest) {
+    if (quest.quest_type === "social_follow") return "Paste your X profile link";
+    if (quest.quest_type === "x_like") return "Paste screenshot/proof link or post URL";
+    if (quest.quest_type === "x_repost") return "Paste repost link";
+    if (quest.quest_type === "x_comment") return "Paste comment link";
+    if (quest.quest_type === "swap") return "Optional tx hash for faster proof";
+    return "Optional proof link or note";
   }
 
   function isWalletProofQuest(quest) {
@@ -203,11 +217,7 @@
       const completion = completionFor(quest.id);
       const status = completion?.status || "open";
       const details = completion?.verification_details || {};
-      const proofPlaceholder = quest.quest_type === "swap"
-        ? "Optional tx hash for faster proof"
-        : quest.quest_type.startsWith("x_") || quest.quest_type === "social_follow"
-          ? "Paste X profile/post proof"
-          : "Optional proof link or note";
+      const proofPlaceholder = proofPlaceholderFor(quest);
       const showProofInput = !isWalletProofQuest(quest) || quest.quest_type === "swap";
       const startButton = quest.quest_type === "ascension_tutorial"
         ? `<a class="btn btn--ghost" href="${quest.external_url || "/stake.html"}">Start Ascension</a>`
@@ -314,7 +324,7 @@
     }
     await loadState();
     const suffix = data.pointsAwarded ? ` +${Number(data.pointsAwarded).toLocaleString()} pts` : "";
-    setStatus(data.completed ? `${data.reason || "Verified on-chain"}.${suffix}` : data.reason || "No qualifying proof found yet.");
+    setStatus(data.completed ? `${data.reason || "Verified on-chain"}.${suffix}` : data.reason || "Submitted for manual review.");
     return data;
   }
 
