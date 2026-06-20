@@ -1,0 +1,30 @@
+insert into public.quests (id, title, description, quest_type, points, verification_method, external_url, active, sort_order, target)
+values
+  ('follow-dyoor', 'Follow @DYOOR_', 'Follow the main D.Y.O.O.R signal account on X.', 'social_follow', 50, 'x_api_or_manual', 'https://x.com/DYOOR_', true, 10, 'DYOOR_'),
+  ('follow-bart', 'Follow @BartMonSignals', 'Follow Bart''s Monad signal feed.', 'social_follow', 50, 'x_api_or_manual', 'https://x.com/BartMonSignals', true, 20, 'BartMonSignals'),
+  ('follow-happycatto', 'Follow @HappyCatto93', 'Follow HappyCatto93 on X.', 'social_follow', 50, 'x_api_or_manual', 'https://x.com/HappyCatto93', true, 30, 'HappyCatto93'),
+  ('follow-chopstick', 'Follow @ChopStickLife', 'Follow ChopStickLife on X.', 'social_follow', 50, 'x_api_or_manual', 'https://x.com/ChopStickLife', true, 40, 'ChopStickLife'),
+  ('follow-elchico', 'Follow @elchico_dhd', 'Follow elchico_dhd on X.', 'social_follow', 50, 'x_api_or_manual', 'https://x.com/elchico_dhd', true, 50, 'elchico_dhd'),
+  ('follow-m3sh', 'Follow @ChatWithM3SH', 'Follow the M3SH interface account.', 'social_follow', 50, 'x_api_or_manual', 'https://x.com/ChatWithM3SH', true, 60, 'ChatWithM3SH'),
+  ('join-discord', 'Join D.Y.O.O.R Discord', 'Join the Discord and link your Discord identity when OAuth is configured.', 'discord_join', 150, 'discord_oauth_or_manual', 'https://discord.com/invite/nE5ZzejBfw', true, 70, null),
+  ('m3sh-connect', 'Enter M3SH and Connect Wallet', 'Open M3SH, connect the same wallet, then verify from the terminal.', 'm3sh_connect', 200, 'm3sh_api_stub', 'https://m3sh.netlify.app', true, 80, null),
+  ('x-like-dyoor-post', 'Like D.Y.O.O.R X Post', 'Like the configured campaign post. Manual proof is accepted when X API access is unavailable.', 'x_like', 75, 'x_api_or_manual', 'https://x.com/DYOOR_', true, 90, null),
+  ('x-repost-dyoor-post', 'Repost D.Y.O.O.R X Post', 'Repost the configured campaign post. Manual proof is accepted when X API access is unavailable.', 'x_repost', 125, 'x_api_or_manual', 'https://x.com/DYOOR_', true, 100, null),
+  ('x-comment-dyoor-post', 'Comment on D.Y.O.O.R X Post', 'Comment on the configured campaign post and submit your comment link or proof text.', 'x_comment', 125, 'x_api_or_manual', 'https://x.com/DYOOR_', true, 110, null),
+  ('hold-s1', 'D.Y.O.O.R S1 Holder', 'Verify the connected wallet owns or has ascended D.Y.O.O.R S1.', 's1_holder', 250, 'monad_contract_read', 'https://opensea.io/collection/dyoor-154958357', true, 120, null),
+  ('ascended-s1', 'Ascended S1', 'Verify an S1 is deposited or ascended in the Ascension contract.', 'ascended_s1', 500, 'ascension_contract_read', '/stake.html', true, 130, null),
+  ('ascension-tutorial', 'Complete Ascension Tutorial', 'Start Ascension, approve S1, deposit, register/ascend, then return to verify.', 'ascension_tutorial', 150, 'manual_or_ascension_check', '/stake.html', true, 140, null),
+  ('use-swap', 'Use the D.Y.O.O.R Swap', 'Complete a swap and submit the transaction hash until event verification is enabled.', 'swap', 300, 'tx_hash_or_event_stub', '/swap', true, 150, null),
+  ('blueprint-architect', 'Save Your Ascension Blueprint', 'Verify your wallet exists in the Ascension Blueprint saved-wallet registry.', 'ascension_blueprint', 400, 'blueprint_wallet_registry', '/build-droid.html', true, 160, null),
+  ('opensea-buy-s1', 'Buy D.Y.O.O.R S1 on OpenSea', 'Buy S1 on OpenSea and verify new ownership or submit a transaction/OpenSea link.', 'opensea_buy', 500, 'ownership_or_manual', 'https://opensea.io/collection/dyoor-154958357', true, 170, null)
+on conflict (id) do update set
+  title = excluded.title,
+  description = excluded.description,
+  quest_type = excluded.quest_type,
+  points = excluded.points,
+  verification_method = excluded.verification_method,
+  external_url = excluded.external_url,
+  active = excluded.active,
+  sort_order = excluded.sort_order,
+  target = excluded.target,
+  updated_at = now();

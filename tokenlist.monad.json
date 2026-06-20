@@ -56,6 +56,16 @@
       "logoURI": "https://coin-images.coingecko.com/coins/images/70930/large/chog.png?1764628221"
     },
     {
+      "symbol": "BCHOG",
+      "name": "Burning Chog",
+      "address": "0xFD97581D397622f6E6662917ea3DeEEfB9F57777",
+      "chainId": 143,
+      "decimals": 18,
+      "logoURI": "/tokens/bchog-token.jpg",
+      "website": "https://www.burningchog.xyz",
+      "popular": true
+    },
+    {
       "symbol": "emo",
       "name": "emonad",
       "address": "0x81a224F8A62f52BDe942DBf23A56Df77a10b7777",

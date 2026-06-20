@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"/>
+  <title>D.Y.O.O.R Quest Leaderboard</title>
+  <meta name="description" content="Global D.Y.O.O.R Quest Terminal leaderboard."/>
+  <meta name="theme-color" content="#07070c"/>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/style.css?v=home-refresh-2"/>
+  <link rel="stylesheet" href="/quest.css?v=quest-terminal-1"/>
+</head>
+<body class="questBody">
+  <div class="bg" aria-hidden="true"></div>
+  <header class="topbar" id="top">
+    <div class="container topbar__inner">
+      <a class="brand" href="/index.html" aria-label="DYOOR home">
+        <img class="brand__logo" src="/assets/dyoor-logo.png" alt="" width="34" height="34"/>
+        <span class="brand__text">DYOOR</span>
+      </a>
+      <nav class="nav" aria-label="Primary">
+        <a href="/quests">Quests</a>
+        <a class="is-active" href="/leaderboard">Leaderboard</a>
+        <a href="/stake.html">Ascension</a>
+        <a href="/admin">Admin</a>
+        <button class="btn btn--ghost navWalletBtn" type="button" data-connect-quest data-wallet-label>Connect Wallet</button>
+      </nav>
+    </div>
+  </header>
+
+  <main class="questShell">
+    <section class="terminalPanel">
+      <div class="terminalHeader">
+        <div class="terminalDots"><span></span><span></span><span></span></div>
+        <p class="terminalKicker">Global Scoreboard</p>
+      </div>
+      <div class="questHeroBody">
+        <h1 class="questTitle">Leaderboard</h1>
+        <p class="questLead">Wallets ranked by verified D.Y.O.O.R Quest Terminal points.</p>
+      </div>
+    </section>
+
+    <section class="adminPanel" style="margin-top:18px; overflow:auto;">
+      <table class="leaderboardTable">
+        <thead>
+          <tr>
+            <th>Rank</th>
+            <th>Wallet</th>
+            <th>X</th>
+            <th>Discord</th>
+            <th>Points</th>
+            <th>Completed</th>
+            <th>Badges</th>
+          </tr>
+        </thead>
+        <tbody id="leaderboardRows"></tbody>
+      </table>
+    </section>
+  </main>
+
+  <script defer src="https://cdn.jsdelivr.net/npm/ethers@6.11.1/dist/ethers.umd.min.js"></script>
+  <script defer src="https://unpkg.com/@walletconnect/ethereum-provider@2.23.1/dist/index.umd.js"></script>
+  <script defer src="/wallet-chooser.js"></script>
+  <script defer src="/quest.js?v=quest-terminal-1"></script>
+</body>
+</html>

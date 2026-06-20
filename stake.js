@@ -289,6 +289,45 @@ function bigIntFromJson(value) {
   }
 }
 
+function resolveEnergyAccounting(summary = {}) {
+  const harvestedRaw = summary.harvestedRaw || 0n;
+  const bonusRaw = summary.bonusRaw || 0n;
+  const bankState = summary.bankState || { spendable: 0n, lifetime: 0n, spent: 0n };
+  const explicitAirdroppedRaw = summary.airdroppedRaw || 0n;
+  const inferredAirdroppedRaw = bankState.lifetime > harvestedRaw + explicitAirdroppedRaw + bonusRaw
+    ? bankState.lifetime - harvestedRaw - explicitAirdroppedRaw - bonusRaw
+    : 0n;
+  const airdroppedRaw = explicitAirdroppedRaw + inferredAirdroppedRaw;
+  const spentRaw = bankState.spent || summary.spentRaw || 0n;
+  const calculatedLifetimeRaw = harvestedRaw + airdroppedRaw + bonusRaw;
+  const bankHasAccounting = (bankState.spendable || 0n) > 0n || (bankState.lifetime || 0n) > 0n || spentRaw > 0n;
+  const lifetimeRaw = summary.lifetimeRaw ?? (bankState.lifetime > 0n ? bankState.lifetime : calculatedLifetimeRaw);
+  const calculatedBankRaw = lifetimeRaw > spentRaw ? lifetimeRaw - spentRaw : 0n;
+  const bankRaw = bankHasAccounting && (bankState.spendable || 0n) > calculatedBankRaw
+    ? (bankState.spendable || 0n)
+    : calculatedBankRaw;
+
+  return {
+    harvestedRaw,
+    airdroppedRaw,
+    bonusRaw,
+    spentRaw,
+    lifetimeRaw,
+    bankRaw,
+    calculatedLifetimeRaw
+  };
+}
+
+function logEnergyAccounting(accounting) {
+  console.info("DYOOR energy accounting", {
+    harvestedEnergy: accounting.harvestedRaw.toString(),
+    airdroppedEnergy: accounting.airdroppedRaw.toString(),
+    spentEnergy: accounting.spentRaw.toString(),
+    lifetimeEnergy: accounting.lifetimeRaw.toString(),
+    bankEnergy: accounting.bankRaw.toString()
+  });
+}
+
 async function recordHarvest(address, amountRaw, txHash) {
   const res = await fetch("/.netlify/functions/harvested-ledger", {
     method: "POST",
@@ -778,6 +817,8 @@ async function updateEnergy(options = {}) {
           stakedBalance: bigIntFromJson(stats.totalStakedRaw ?? stats.totalStaked),
           pointsPerDayRaw: bigIntFromJson(stats.pointsPerDayRaw) || ethers.parseEther("24"),
           harvestedRaw: bigIntFromJson(stats.harvestedRaw),
+          airdroppedRaw: bigIntFromJson(stats.airdroppedRaw),
+          bonusRaw: bigIntFromJson(stats.bonusRaw),
           lifetimeRaw: bigIntFromJson(stats.lifetimeRaw),
           lastHarvestRaw: bigIntFromJson(stats.lastHarvestRaw),
           bankState: {
@@ -819,7 +860,9 @@ async function updateEnergy(options = {}) {
       stakedBalance,
       pointsPerDayRaw,
       harvestedRaw,
-      lifetimeRaw: pending + harvestedRaw,
+      airdroppedRaw: 0n,
+      bonusRaw: 0n,
+      lifetimeRaw: bankState.lifetime > 0n ? bankState.lifetime : harvestedRaw,
       lastHarvestRaw: 0n,
       bankState
     };
@@ -834,8 +877,9 @@ async function updateEnergy(options = {}) {
 
 function applyEnergySummary(summary) {
   const pending = summary?.pending || 0n;
-  const harvestedRaw = summary?.harvestedRaw || 0n;
-  const lifetimeRaw = summary?.lifetimeRaw ?? (pending + harvestedRaw);
+  const accounting = resolveEnergyAccounting(summary);
+  const harvestedRaw = accounting.harvestedRaw;
+  const lifetimeRaw = accounting.lifetimeRaw;
   const lastHarvestRaw = summary?.lastHarvestRaw || 0n;
   const bankState = summary?.bankState || { spendable: 0n, lifetime: 0n };
   const stakedBalance = summary?.stakedBalance || 0n;
@@ -850,13 +894,14 @@ function applyEnergySummary(summary) {
   pendingEnergy.textContent = formatEnergyValue(pendingDisplay);
   harvestedEnergy.textContent = formatEnergyValue(harvestedDisplay);
   lifetimeEnergy.textContent = formatEnergyValue(lifetimeDisplay);
-  if (bankedEnergy) bankedEnergy.textContent = formatEnergyValue(Number(ethers.formatEther(bankState.spendable || 0n)));
-  if (bankedLifetimeEnergy) bankedLifetimeEnergy.textContent = formatEnergyValue(Number(ethers.formatEther(bankState.lifetime || 0n)));
+  if (bankedEnergy) bankedEnergy.textContent = formatEnergyValue(Number(ethers.formatEther(accounting.bankRaw || 0n)));
+  if (bankedLifetimeEnergy) bankedLifetimeEnergy.textContent = formatEnergyValue(Number(ethers.formatEther(accounting.lifetimeRaw || 0n)));
   if (lastHarvestedEnergy) lastHarvestedEnergy.textContent = formatEnergyValue(lastHarvestDisplay);
   energyRate.textContent = Number.isInteger(totalRate)
     ? `${totalRate} / day`
     : `${totalRate.toFixed(2)} / day`;
   lastPendingRaw = pending;
+  logEnergyAccounting(accounting);
   updateButtons();
 }
 
@@ -1288,6 +1333,8 @@ async function harvestEnergy() {
       setStatus("Energy harvested.");
     }
     clearWalletCaches(userAddress);
+    const immediateSummary = await updateEnergy({ force: true });
+    if (immediateSummary) applyEnergySummary(immediateSummary);
     await loadState({ force: true });
   } catch (err) {
     console.error("harvestEnergy error", err);
