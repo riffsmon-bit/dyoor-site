@@ -3,7 +3,8 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 const root = process.cwd();
-const moduleDir = path.dirname(fileURLToPath(import.meta.url));
+const moduleDir = import.meta.url ? path.dirname(fileURLToPath(import.meta.url)) : root;
+const lambdaTaskRoot = readEnv("LAMBDA_TASK_ROOT");
 
 function readEnv(name, fallback = "") {
   const value = process.env[name];
@@ -30,6 +31,8 @@ function loadSeedQuests() {
   const seedPaths = [
     path.join(root, "data/quest-seed.json"),
     path.join(root, "quest-seed.json"),
+    lambdaTaskRoot ? path.join(lambdaTaskRoot, "data/quest-seed.json") : "",
+    lambdaTaskRoot ? path.join(lambdaTaskRoot, "quest-seed.json") : "",
     path.join(moduleDir, "../../../data/quest-seed.json"),
     path.join(moduleDir, "../../data/quest-seed.json"),
     path.join(moduleDir, "../data/quest-seed.json"),
