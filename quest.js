@@ -13,6 +13,7 @@
     rank: null,
     filter: "all",
     admin: false,
+    autoVerifying: false,
   };
 
   function shortAddr(address) {
@@ -97,8 +98,8 @@
     localStorage.setItem("dyoorQuestSessionExpiresAt", state.sessionExpiresAt);
     renderWallet();
     await loadState();
+    if (qs("#questGrid")) await autoVerifyCoreWalletQuests();
     if (qs("#adminRoot")) await loadAdmin();
-    setStatus("Wallet signature verified. Quest terminal online.");
   }
 
   function completionFor(questId) {
@@ -174,7 +175,7 @@
   }
 
   function isServerVerifiableQuest(quest) {
-    return isWalletProofQuest(quest) || quest.quest_type === "swap";
+    return ["hold-s1", "ascended-s1"].includes(quest.id);
   }
 
   function completionMessage(completion) {
@@ -275,6 +276,7 @@
 
   async function verifyQuest(questId) {
     if (!hasLiveSession()) {
+      if (state.autoVerifying) throw new Error("Wallet session expired during automatic verification.");
       clearSession();
       await connectWallet();
     }
@@ -294,6 +296,7 @@
       });
     } catch (err) {
       if (/signature|challenge|expired/i.test(err.message || "")) {
+        if (state.autoVerifying) throw err;
         clearSession();
         await connectWallet();
         data = await api("/.netlify/functions/quest-verify", {
@@ -313,6 +316,30 @@
     const suffix = data.pointsAwarded ? ` +${Number(data.pointsAwarded).toLocaleString()} pts` : "";
     setStatus(data.completed ? `${data.reason || "Verified on-chain"}.${suffix}` : data.reason || "No qualifying proof found yet.");
     return data;
+  }
+
+  async function autoVerifyCoreWalletQuests() {
+    if (state.autoVerifying) return;
+    state.autoVerifying = true;
+    const coreQuestIds = ["hold-s1", "ascended-s1"];
+    try {
+      for (const questId of coreQuestIds) {
+        const quest = state.quests.find((entry) => entry.id === questId);
+        const existing = completionFor(questId);
+        if (!quest || existing?.status === "verified") continue;
+
+        try {
+          setStatus(`Checking ${quest.title}...`);
+          await verifyQuest(questId);
+        } catch (err) {
+          console.warn(`Auto verification failed for ${questId}`, err);
+        }
+      }
+      await loadState();
+      setStatus("Wallet connected. S1 and Ascension checks complete.");
+    } finally {
+      state.autoVerifying = false;
+    }
   }
 
   async function verifyAllQuests() {
