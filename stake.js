@@ -10,6 +10,9 @@ const ENERGY_CACHE_MS = 15000;
 const FETCH_TIMEOUT_MS = 8000;
 const CONTRACT_TIMEOUT_MS = 12000;
 const LOAD_DEBOUNCE_MS = 250;
+const DISCOVERY_RETRY_COUNT = 2;
+const DISCOVERY_RETRY_DELAY_MS = 250;
+const DEBUG_ASCENSION_DISCOVERY = true;
 
 const stakingAbi = [
   "function deposit(uint256[] calldata tokenIds)",
@@ -70,6 +73,15 @@ let lastLoadFailed = false;
 let lastLoadStartedAt = 0;
 let isHarvesting = false;
 let lastPendingRaw = 0n;
+let lastDiscovery = {
+  walletBalance: null,
+  ownedTokenIds: [],
+  ownerOfTokenIds: [],
+  indexedTokenIds: [],
+  stakedIds: [],
+  stakedCount: 0,
+  stakedSources: {}
+};
 
 const connectBtn = document.getElementById("connectBtn");
 const ascendSelectedBtn = document.getElementById("ascendSelectedBtn");
@@ -118,6 +130,13 @@ function setLoadMeta(message, options = {}) {
   if (retryLoadBtn) retryLoadBtn.hidden = !options.retry;
 }
 
+function debugAscension(label, payload = {}) {
+  if (!DEBUG_ASCENSION_DISCOVERY) return;
+  try {
+    console.log(`[DYOOR Ascension] ${label}`, payload);
+  } catch (_err) {}
+}
+
 function formatLastUpdated(date = new Date()) {
   return `Last updated ${date.toLocaleTimeString([], { hour: "numeric", minute: "2-digit", second: "2-digit" })}`;
 }
@@ -134,6 +153,12 @@ function getFreshCache(map, key, ttlMs) {
 
 function setCache(map, key, value) {
   map.set(key, { value, time: Date.now() });
+  return value;
+}
+
+function confirmedEmptyArray() {
+  const value = [];
+  value.__confirmedZero = true;
   return value;
 }
 
@@ -179,13 +204,16 @@ function withTimeout(promise, timeoutMs, label) {
   return Promise.race([promise, timeout]).finally(() => clearTimeout(timer));
 }
 
-async function retryRpc(label, fn, retries = 2, delayMs = 250) {
+async function retryRpc(label, fn, retries = DISCOVERY_RETRY_COUNT, delayMs = DISCOVERY_RETRY_DELAY_MS) {
   let lastErr;
   for (let attempt = 0; attempt <= retries; attempt++) {
     try {
-      return await withTimeout(Promise.resolve().then(fn), CONTRACT_TIMEOUT_MS, label);
+      const result = await withTimeout(Promise.resolve().then(fn), CONTRACT_TIMEOUT_MS, label);
+      if (attempt > 0) debugAscension(`${label} retry succeeded`, { attempt });
+      return result;
     } catch (err) {
       lastErr = err;
+      debugAscension(`${label} read failed`, { attempt: attempt + 1, error: formatError(err) });
       if (attempt < retries) {
         await new Promise((resolve) => setTimeout(resolve, delayMs * (attempt + 1)));
       }
@@ -447,11 +475,11 @@ async function fetchEnergyBankState(address, options = {}) {
   if (cached) return cached;
 
   const bank = new ethers.Contract(energyBankAddress, energyBankAbi, provider);
-  const [spendable, lifetime, spent] = await withTimeout(Promise.all([
-    bank.spendableEnergy(address),
-    bank.lifetimeEnergy(address),
-    bank.totalSpent(address)
-  ]), CONTRACT_TIMEOUT_MS, "Energy Bank");
+  const [spendable, lifetime, spent] = await Promise.all([
+    retryRpc("Energy Bank spendableEnergy", () => bank.spendableEnergy(address)),
+    retryRpc("Energy Bank lifetimeEnergy", () => bank.lifetimeEnergy(address)),
+    retryRpc("Energy Bank totalSpent", () => bank.totalSpent(address))
+  ]);
 
   return setCache(energyCache, `bank:${key}`, { spendable, lifetime, spent });
 }
@@ -546,7 +574,7 @@ async function fetchTokenMetadata(tokenId) {
 
   try {
     const nft = new ethers.Contract(NFT_ADDRESS, nftAbi, provider);
-    let uri = await nft.tokenURI(tokenId);
+    let uri = await retryRpc(`tokenURI #${tokenId}`, () => nft.tokenURI(tokenId));
 
     let result;
 
@@ -582,12 +610,17 @@ async function getOwnedNfts(owner, options = {}) {
     const key = cacheKey(owner);
     const cached = !options.force ? getFreshCache(walletNftCache, key, WALLET_SCAN_CACHE_MS) : null;
     if (cached) {
+      if (!cached.length && cached.__confirmedZero !== true) {
+        walletNftCache.delete(key);
+      } else {
       setStatus("Showing cached wallet scan while refreshing...");
       return cached;
+      }
     }
 
     const nft = new ethers.Contract(NFT_ADDRESS, nftAbi, provider);
-    const tokenIds = [];
+    const indexedTokenIds = [];
+    const ownerOfTokenIds = [];
     const ownerChecksum = ethers.getAddress(owner);
     const scanBatchSize = 75;
     const enumerateBatchSize = 24;
@@ -595,12 +628,22 @@ async function getOwnedNfts(owner, options = {}) {
 
     setStatus("Scanning wallet...");
     setLoadMeta("Checking wallet balance before full scan...");
+    debugAscension("wallet scan start", {
+      wallet: ownerChecksum,
+      chainId: await provider.getNetwork().then((network) => Number(network.chainId)).catch(() => null)
+    });
 
     let balance = null;
     try {
-      balance = await withTimeout(nft.balanceOf(owner), CONTRACT_TIMEOUT_MS, "Wallet balance");
+      balance = await retryRpc("S1 balanceOf(wallet)", () => nft.balanceOf(owner));
+      debugAscension("S1 balanceOf(wallet)", { wallet: ownerChecksum, balance: balance.toString() });
       if (balance === 0n) {
-        return setCache(walletNftCache, key, []);
+        lastDiscovery.walletBalance = 0;
+        lastDiscovery.indexedTokenIds = [];
+        lastDiscovery.ownerOfTokenIds = [];
+        lastDiscovery.ownedTokenIds = [];
+        debugAscension("final ownedNfts array", []);
+        return setCache(walletNftCache, key, confirmedEmptyArray());
       }
     } catch (err) {
       console.warn("balanceOf precheck failed; falling back to owner scan", err);
@@ -608,49 +651,54 @@ async function getOwnedNfts(owner, options = {}) {
     }
 
     if (balance !== null) {
-      try {
-        setStatus(`Loading ${balance.toString()} wallet NFT(s)...`);
-        setLoadMeta("Reading wallet tokens by index...");
+      setStatus(`Loading ${balance.toString()} wallet NFT(s)...`);
+      setLoadMeta("Reading wallet tokens by index...");
 
-        for (let start = 0n; start < balance; start += BigInt(enumerateBatchSize)) {
-          if (options.loadId && !isCurrentLoad(options.loadId, owner)) return [];
-          const end = start + BigInt(enumerateBatchSize) > balance
-            ? balance
-            : start + BigInt(enumerateBatchSize);
-          const calls = [];
+      for (let start = 0n; start < balance; start += BigInt(enumerateBatchSize)) {
+        if (options.loadId && !isCurrentLoad(options.loadId, owner)) return [];
+        const end = start + BigInt(enumerateBatchSize) > balance
+          ? balance
+          : start + BigInt(enumerateBatchSize);
+        const calls = [];
 
-          for (let index = start; index < end; index++) {
-            calls.push(
-              withTimeout(nft.tokenOfOwnerByIndex(owner, index), CONTRACT_TIMEOUT_MS, `tokenOfOwnerByIndex #${index.toString()}`)
-                .then((tokenId) => tokenId.toString())
-            );
-          }
-
-          tokenIds.push(...await Promise.all(calls));
-          setLoadMeta(`Loaded ${tokenIds.length} / ${balance.toString()} wallet token IDs...`);
-          await new Promise((resolve) => setTimeout(resolve, 20));
+        for (let index = start; index < end; index++) {
+          const indexText = index.toString();
+          calls.push(
+            retryRpc(`tokenOfOwnerByIndex ${indexText}`, () => nft.tokenOfOwnerByIndex(owner, index))
+              .then((tokenId) => ({ ok: true, index: indexText, tokenId: tokenId.toString() }))
+              .catch((err) => ({ ok: false, index: indexText, error: formatError(err) }))
+          );
         }
-      } catch (err) {
-        tokenIds.length = 0;
-        console.warn("tokenOfOwnerByIndex unavailable; falling back to owner scan", err);
-        setLoadMeta("Wallet index scan unavailable, scanning the full collection...");
+
+        const results = await Promise.all(calls);
+        for (const result of results) {
+          if (result.ok) indexedTokenIds.push(result.tokenId);
+          else console.warn("tokenOfOwnerByIndex failed", result);
+        }
+        debugAscension("tokenOfOwnerByIndex results", { batch: `${start.toString()}-${(end - 1n).toString()}`, results });
+        setLoadMeta(`Loaded ${indexedTokenIds.length} / ${balance.toString()} wallet token IDs...`);
+        await new Promise((resolve) => setTimeout(resolve, 20));
       }
     }
 
     async function ownerOfWithRetry(tokenId) {
       try {
-        return await withTimeout(nft.ownerOf(tokenId), CONTRACT_TIMEOUT_MS, `ownerOf #${tokenId}`);
-      } catch {
-        try {
-          await new Promise((resolve) => setTimeout(resolve, 50));
-          return await withTimeout(nft.ownerOf(tokenId), CONTRACT_TIMEOUT_MS, `ownerOf retry #${tokenId}`);
-        } catch {
-          return null;
-        }
+        return await retryRpc(`ownerOf #${tokenId}`, () => nft.ownerOf(tokenId), DISCOVERY_RETRY_COUNT, 75);
+      } catch (_err) {
+        return null;
       }
     }
 
-    if (!tokenIds.length) {
+    const indexedCount = new Set(indexedTokenIds).size;
+    const expectedBalance = balance === null ? null : Number(balance);
+    const needsOwnerScan = balance === null || indexedCount < expectedBalance;
+    if (needsOwnerScan) {
+      if (balance !== null) {
+        console.warn("tokenOfOwnerByIndex returned fewer IDs than balance; running ownerOf scan", {
+          balance: balance.toString(),
+          indexedCount
+        });
+      }
       for (let start = 1; start <= MAX_SCAN; start += scanBatchSize) {
         if (options.loadId && !isCurrentLoad(options.loadId, owner)) return [];
         const end = Math.min(start + scanBatchSize - 1, MAX_SCAN);
@@ -673,17 +721,29 @@ async function getOwnedNfts(owner, options = {}) {
 
         const results = await Promise.all(batch);
         for (const tokenId of results) {
-          if (tokenId) tokenIds.push(tokenId);
+          if (tokenId) ownerOfTokenIds.push(tokenId);
         }
+        debugAscension("ownerOf scan results", {
+          range: `${start}-${end}`,
+          matches: results.filter(Boolean)
+        });
 
         await new Promise((resolve) => setTimeout(resolve, 15));
       }
     }
 
-    const uniqueTokenIds = Array.from(new Set(tokenIds))
+    const uniqueTokenIds = Array.from(new Set([...indexedTokenIds, ...ownerOfTokenIds]))
       .sort((a, b) => BigInt(a) < BigInt(b) ? -1 : BigInt(a) > BigInt(b) ? 1 : 0);
 
-    if (!uniqueTokenIds.length) return setCache(walletNftCache, key, []);
+    lastDiscovery.walletBalance = balance === null ? null : Number(balance);
+    lastDiscovery.indexedTokenIds = [...new Set(indexedTokenIds)];
+    lastDiscovery.ownerOfTokenIds = [...new Set(ownerOfTokenIds)];
+    lastDiscovery.ownedTokenIds = uniqueTokenIds;
+
+    if (!uniqueTokenIds.length) {
+      debugAscension("final ownedNfts array", []);
+      return setCache(walletNftCache, key, confirmedEmptyArray());
+    }
 
     setStatus(`Found ${uniqueTokenIds.length} DYOOR.\nLoading metadata...`);
 
@@ -715,6 +775,7 @@ async function getOwnedNfts(owner, options = {}) {
       await new Promise((resolve) => setTimeout(resolve, 10));
     }
 
+    debugAscension("final ownedNfts array", items);
     return setCache(walletNftCache, key, items);
   } catch (err) {
     console.error("getOwnedNfts error", err);
@@ -734,20 +795,26 @@ async function getStakedTokenIds(owner, options = {}) {
     { label: "staking balanceOf", type: "count", read: () => staking.balanceOf(owner) }
   ];
   const failures = [];
+  const ids = new Set();
+  const counts = [];
+  const sources = {};
 
   for (const method of methods) {
     try {
       setLoadMeta(`Reading Ascension state via ${method.label}...`);
       const value = await retryRpc(method.label, method.read);
       if (method.type === "ids") {
-        const ids = Array.from(value || []).map((x) => x.toString());
-        stakedTokenCount = ids.length;
-        return setCache(stakedIdsCache, key, { ids, count: ids.length, source: method.label });
+        const methodIds = Array.from(value || []).map((x) => x.toString());
+        methodIds.forEach((id) => ids.add(id));
+        sources[method.label] = methodIds;
+        debugAscension(`staking ${method.label} results`, methodIds);
+        continue;
       }
       const count = Number(value || 0n);
       if (Number.isFinite(count)) {
-        stakedTokenCount = count;
-        return setCache(stakedIdsCache, key, { ids: [], count, source: method.label });
+        counts.push(count);
+        sources[method.label] = count;
+        debugAscension(`staking ${method.label} results`, { count });
       }
     } catch (err) {
       failures.push(`${method.label}: ${formatError(err)}`);
@@ -755,8 +822,25 @@ async function getStakedTokenIds(owner, options = {}) {
     }
   }
 
-  console.error("getStakedTokenIds fallback failures", failures);
-  throw new Error("Wallet connected, but staked NFT loading failed after all fallback reads.");
+  if (!ids.size && !counts.length) {
+    console.error("getStakedTokenIds fallback failures", failures);
+    throw new Error("Wallet connected, but staked NFT loading failed after all fallback reads.");
+  }
+
+  const sortedIds = Array.from(ids).sort((a, b) => BigInt(a) < BigInt(b) ? -1 : BigInt(a) > BigInt(b) ? 1 : 0);
+  const count = Math.max(sortedIds.length, ...counts, 0);
+  stakedTokenCount = count;
+  lastDiscovery.stakedIds = sortedIds;
+  lastDiscovery.stakedCount = count;
+  lastDiscovery.stakedSources = sources;
+  debugAscension("final staking discovery", { ids: sortedIds, count, sources, failures });
+  return setCache(stakedIdsCache, key, {
+    ids: sortedIds,
+    count,
+    source: sortedIds.length ? "tokenIds" : "countOnly",
+    sources,
+    failures
+  });
 }
 
 async function enrichStakedTokenIds(stakedSummary) {
@@ -854,6 +938,42 @@ function updateButtons() {
     : "";
 }
 
+function verifyDiscoveryCounts() {
+  const warnings = [];
+  const walletBalance = lastDiscovery.walletBalance;
+  const ownedCount = lastDiscovery.ownedTokenIds.length;
+  const exactStakedCount = lastDiscovery.stakedIds.length;
+  const discoveredStakedCount = Number(stakedTokenCount || 0);
+
+  if (walletBalance !== null && ownedCount !== walletBalance) {
+    warnings.push(`wallet balance ${walletBalance}, discovered ${ownedCount}`);
+  }
+
+  if (discoveredStakedCount > 0 && exactStakedCount > 0 && exactStakedCount !== discoveredStakedCount) {
+    warnings.push(`staked count ${discoveredStakedCount}, exact IDs ${exactStakedCount}`);
+  }
+
+  if (discoveredStakedCount > 0 && exactStakedCount === 0) {
+    warnings.push(`staked count ${discoveredStakedCount}, exact IDs unavailable`);
+  }
+
+  if (!warnings.length) return false;
+
+  console.warn("[DYOOR Ascension] NFT discovery count mismatch", {
+    wallet: userAddress,
+    warnings,
+    walletBalance,
+    indexedTokenIds: lastDiscovery.indexedTokenIds,
+    ownerOfTokenIds: lastDiscovery.ownerOfTokenIds,
+    ownedTokenIds: lastDiscovery.ownedTokenIds,
+    stakedCount: discoveredStakedCount,
+    stakedIds: lastDiscovery.stakedIds,
+    stakedSources: lastDiscovery.stakedSources
+  });
+  setLoadMeta("Some NFTs may still be loading. Click Refresh NFTs.", { retry: true });
+  return true;
+}
+
 async function updateEnergy(options = {}) {
   if (!userAddress) return;
 
@@ -898,9 +1018,9 @@ async function updateEnergy(options = {}) {
     }
 
     const results = await Promise.allSettled([
-      withTimeout(staking.pendingPoints(address), CONTRACT_TIMEOUT_MS, "Pending Energy"),
-      withTimeout(staking.stakedBalance(address), CONTRACT_TIMEOUT_MS, "Ascension balance"),
-      withTimeout(staking.pointsPerDay(), CONTRACT_TIMEOUT_MS, "Energy rate"),
+      retryRpc("Pending Energy", () => staking.pendingPoints(address)),
+      retryRpc("Ascension balance", () => staking.stakedBalance(address)),
+      retryRpc("Energy rate", () => staking.pointsPerDay()),
       fetchHarvestedEnergyRaw(address, options),
       fetchEnergyBankState(address, options)
     ]);
@@ -994,6 +1114,7 @@ async function loadState(options = {}) {
       if (!isCurrentLoad(loadId, address)) return null;
       stakedNfts = items;
       stakedTokenCount = Number(stakedSummary?.count ?? items.length);
+      debugAscension("final stakedNfts array", items);
       selectedIds.clear();
       updateSelectedCount();
       renderGrid();
@@ -1040,8 +1161,12 @@ async function loadState(options = {}) {
     updateButtons();
     syncStakeGlobals();
 
+    debugAscension("final ownedNfts array", ownedNfts);
+    debugAscension("final stakedNfts array", stakedNfts);
     setStatus("Ascension state synchronized.");
-    setLoadMeta(formatLastUpdated());
+    if (!verifyDiscoveryCounts()) {
+      setLoadMeta(formatLastUpdated());
+    }
   } catch (err) {
     if (!isCurrentLoad(loadId, address)) return;
     console.error("loadState error", err);
@@ -1155,6 +1280,13 @@ async function applyGlobalWallet(detail = {}, options = {}) {
   provider = nextBrowserProvider;
   signer = nextSigner || await provider.getSigner();
   userAddress = nextAddress;
+  const chainId = detail.chainId || await provider.getNetwork().then((network) => Number(network.chainId)).catch(() => null);
+  debugAscension("connected wallet state", {
+    wallet: userAddress,
+    chainId,
+    walletType: detail.walletType || "",
+    walletLabel: injectedWalletName
+  });
 
   walletStatus.textContent = shorten(userAddress);
   if (connectBtn) connectBtn.textContent = `Connected: ${injectedWalletName}`;
@@ -1274,7 +1406,7 @@ async function connectWallet() {
 
 async function ensureApproval() {
   const nftRead = new ethers.Contract(NFT_ADDRESS, nftAbi, provider);
-  const approved = await nftRead.isApprovedForAll(userAddress, STAKING_ADDRESS);
+  const approved = await retryRpc("isApprovedForAll", () => nftRead.isApprovedForAll(userAddress, STAKING_ADDRESS));
 
   if (approved) return true;
 
@@ -1288,7 +1420,7 @@ async function ensureApproval() {
 
   await waitForHash(txHash);
 
-  const approvedAfter = await nftRead.isApprovedForAll(userAddress, STAKING_ADDRESS);
+  const approvedAfter = await retryRpc("isApprovedForAll after approval", () => nftRead.isApprovedForAll(userAddress, STAKING_ADDRESS));
   if (!approvedAfter) {
     throw new Error("Approval did not complete.");
   }
@@ -1310,7 +1442,7 @@ async function ascendTokenIds(tokenIds) {
     await ensureApproval();
 
     for (const id of normalizedIds) {
-      const ownerNow = await nftRead.ownerOf(id);
+      const ownerNow = await retryRpc(`ownerOf before ascend #${id.toString()}`, () => nftRead.ownerOf(id));
       if (ethers.getAddress(ownerNow) !== ethers.getAddress(userAddress)) {
         throw new Error(`Token #${id.toString()} is not in your wallet.`);
       }
@@ -1379,7 +1511,7 @@ async function harvestEnergy() {
 
   try {
     const staking = new ethers.Contract(STAKING_ADDRESS, stakingAbi, provider);
-    const claimableBefore = await staking.pendingPoints(userAddress);
+    const claimableBefore = await retryRpc("pendingPoints before harvest", () => staking.pendingPoints(userAddress));
     lastPendingRaw = claimableBefore;
     updateButtons();
 
@@ -1451,7 +1583,7 @@ document.querySelectorAll(".tab-btn").forEach((btn) => {
 });
 
 document.getElementById("selectAllVisibleBtn").addEventListener("click", () => {
-  getVisibleItems().forEach((item) => selectedIds.add(item.tokenId));
+  getVisibleItems().filter((item) => !item.unknownTokenId).forEach((item) => selectedIds.add(item.tokenId));
   syncStakeGlobals();
   updateSelectedCount();
   renderGrid();
