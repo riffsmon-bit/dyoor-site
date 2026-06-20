@@ -6,9 +6,22 @@
   const RPC_URL = "https://rpc.monad.xyz";
   const EXPLORER_URL = "https://monadscan.com";
   const METAMASK_WALLET_ID = "c57ca95b47569778a828d19178114f4db188b89b763c899ba0be274e97267d96";
+  const STORAGE_KEY = "dyoor.wallet";
 
   let wcProvider = null;
   let projectIdPromise = null;
+  let state = {
+    address: "",
+    walletType: "",
+    walletLabel: "",
+    chainId: "",
+    connected: false
+  };
+  let activeProvider = null;
+  let activeBrowserProvider = null;
+  let activeSigner = null;
+  let restoring = false;
+  const listeners = new Set();
 
   function isMobile() {
     return /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
@@ -77,6 +90,197 @@
       case "walletconnect": return "WalletConnect";
       default: return "Injected Wallet";
     }
+  }
+
+  function shortAddress(address) {
+    return address ? `${address.slice(0, 6)}...${address.slice(-4)}` : "";
+  }
+
+  function normalizeChainId(chainId) {
+    if (chainId == null || chainId === "") return "";
+    if (typeof chainId === "number") return `0x${chainId.toString(16)}`;
+    const value = String(chainId);
+    if (value.startsWith("0x")) return value.toLowerCase();
+    const numeric = Number(value);
+    return Number.isFinite(numeric) ? `0x${numeric.toString(16)}` : value.toLowerCase();
+  }
+
+  function readStoredWallet() {
+    try {
+      const stored = JSON.parse(localStorage.getItem(STORAGE_KEY) || "null");
+      return stored && typeof stored === "object" ? stored : null;
+    } catch (_err) {
+      return null;
+    }
+  }
+
+  function writeStoredWallet() {
+    try {
+      if (!state.connected || !state.address) {
+        localStorage.removeItem(STORAGE_KEY);
+        return;
+      }
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({
+        address: state.address,
+        walletType: state.walletType,
+        chainId: state.chainId
+      }));
+    } catch (_err) {}
+  }
+
+  function publishState() {
+    window.__activeEvmProvider = activeProvider;
+    window.provider = activeBrowserProvider;
+    window.signer = activeSigner;
+    window.userAddress = state.address || null;
+
+    const snapshot = getState();
+    document.querySelectorAll("#globalWalletBtn").forEach((button) => {
+      button.textContent = snapshot.address ? shortAddress(snapshot.address) : "Connect Wallet";
+      button.classList.toggle("is-connected", Boolean(snapshot.address));
+    });
+
+    const detail = {
+      ...snapshot,
+      eip1193: activeProvider,
+      provider: activeBrowserProvider,
+      signer: activeSigner,
+      userAddress: state.address || null
+    };
+
+    try {
+      window.dispatchEvent(new CustomEvent("dyoor:wallet", { detail }));
+    } catch (_err) {}
+    listeners.forEach((callback) => {
+      try {
+        callback(detail);
+      } catch (err) {
+        console.warn("DyoorWallet listener failed", err);
+      }
+    });
+  }
+
+  function getState() {
+    return {
+      address: state.address || "",
+      walletType: state.walletType || "",
+      walletLabel: state.walletLabel || "",
+      chainId: state.chainId || "",
+      connected: Boolean(state.connected && state.address),
+      isMonad: normalizeChainId(state.chainId) === CHAIN_ID_HEX
+    };
+  }
+
+  async function refreshChainId(eip1193 = activeProvider) {
+    if (!eip1193?.request) return "";
+    try {
+      const chainId = normalizeChainId(await eip1193.request({ method: "eth_chainId" }));
+      state.chainId = chainId;
+      writeStoredWallet();
+      return chainId;
+    } catch (_err) {
+      return state.chainId || "";
+    }
+  }
+
+  async function ensureMonad() {
+    const eip1193 = activeProvider;
+    if (!eip1193?.request) return false;
+    const current = normalizeChainId(await refreshChainId(eip1193));
+    if (current === CHAIN_ID_HEX) return true;
+
+    try {
+      await eip1193.request({
+        method: "wallet_switchEthereumChain",
+        params: [{ chainId: CHAIN_ID_HEX }]
+      });
+    } catch (switchErr) {
+      if (switchErr?.code !== 4902) throw switchErr;
+      await eip1193.request({
+        method: "wallet_addEthereumChain",
+        params: [{
+          chainId: CHAIN_ID_HEX,
+          chainName: "Monad",
+          rpcUrls: [RPC_URL],
+          nativeCurrency: { name: "MON", symbol: "MON", decimals: 18 },
+          blockExplorerUrls: [EXPLORER_URL]
+        }]
+      });
+      await eip1193.request({
+        method: "wallet_switchEthereumChain",
+        params: [{ chainId: CHAIN_ID_HEX }]
+      });
+    }
+
+    await refreshChainId(eip1193);
+    publishState();
+    return normalizeChainId(state.chainId) === CHAIN_ID_HEX;
+  }
+
+  function bindGlobalProviderEvents(eip1193) {
+    if (!eip1193?.on || eip1193.__dyoorGlobalWalletBound) return;
+    eip1193.__dyoorGlobalWalletBound = true;
+
+    eip1193.on("accountsChanged", async (accounts = []) => {
+      if (!accounts?.[0]) {
+        disconnect();
+        return;
+      }
+
+      try {
+        activeBrowserProvider = new window.ethers.BrowserProvider(eip1193, "any");
+        activeSigner = await activeBrowserProvider.getSigner();
+        state.address = accounts[0];
+        state.connected = true;
+        await refreshChainId(eip1193);
+        writeStoredWallet();
+        publishState();
+      } catch (err) {
+        console.warn("accountsChanged handling failed", err);
+        publishState();
+      }
+    });
+
+    eip1193.on("chainChanged", async (chainId) => {
+      state.chainId = normalizeChainId(chainId);
+      writeStoredWallet();
+      publishState();
+      if (state.connected && state.chainId !== CHAIN_ID_HEX) {
+        try {
+          await ensureMonad();
+        } catch (err) {
+          console.warn("Monad switch failed after chainChanged", err);
+        }
+      }
+    });
+
+    eip1193.on("disconnect", () => disconnect());
+  }
+
+  async function applyConnection(connected, options = {}) {
+    if (!connected?.provider || !connected?.account) {
+      throw new Error("Wallet did not return a usable connection.");
+    }
+    if (!window.ethers?.BrowserProvider) {
+      throw new Error("Ethers failed to load.");
+    }
+
+    activeProvider = connected.provider;
+    activeBrowserProvider = connected.browserProvider || new window.ethers.BrowserProvider(activeProvider, "any");
+    activeSigner = connected.signer || await activeBrowserProvider.getSigner();
+    state = {
+      address: connected.account,
+      walletType: connected.type || options.walletType || state.walletType || "injected",
+      walletLabel: connected.label || walletLabel(connected.type || options.walletType),
+      chainId: normalizeChainId(connected.chainId || state.chainId),
+      connected: true
+    };
+    await refreshChainId(activeProvider);
+    bindGlobalProviderEvents(activeProvider);
+    writeStoredWallet();
+    publishState();
+    if (options.ensureMonad !== false) await ensureMonad();
+    return getState();
   }
 
   async function ensureChain(browserProvider, eip1193) {
@@ -443,8 +647,151 @@
     });
   }
 
+  async function connectGlobal(opts = {}) {
+    const connected = await connect({
+      title: opts.title || "Connect Wallet",
+      copy: opts.copy || "Connect on Monad using one wallet session across DYOOR."
+    });
+    return applyConnection(connected);
+  }
+
+  function disconnect() {
+    try {
+      if (activeProvider?.disconnect && state.walletType === "walletconnect") {
+        activeProvider.disconnect();
+      }
+    } catch (_err) {}
+    activeProvider = null;
+    activeBrowserProvider = null;
+    activeSigner = null;
+    state = {
+      address: "",
+      walletType: "",
+      walletLabel: "",
+      chainId: "",
+      connected: false
+    };
+    writeStoredWallet();
+    publishState();
+  }
+
+  async function restore() {
+    if (restoring || state.connected) return getState();
+    restoring = true;
+    try {
+      const stored = readStoredWallet();
+      if (!stored?.walletType && !stored?.address) {
+        publishState();
+        return getState();
+      }
+
+      const type = stored.walletType || "injected";
+      let eip1193 = null;
+
+      if (type === "walletconnect") {
+        try {
+          eip1193 = await initWalletConnect({ silent: true });
+          const accounts = eip1193.accounts || await eip1193.request?.({ method: "eth_accounts" }).catch(() => []);
+          if (!accounts?.[0]) return getState();
+          return await applyConnection({
+            type,
+            label: walletLabel(type),
+            provider: eip1193,
+            account: accounts[0]
+          }, { walletType: type });
+        } catch (_err) {
+          return getState();
+        }
+      }
+
+      eip1193 = getInjectedProvider(type) || getInjectedProvider("injected");
+      if (!eip1193?.request) return getState();
+
+      const accounts = await eip1193.request({ method: "eth_accounts" });
+      if (!accounts?.[0]) {
+        disconnect();
+        return getState();
+      }
+
+      return await applyConnection({
+        type,
+        label: walletLabel(type),
+        provider: eip1193,
+        account: accounts[0]
+      }, { walletType: type });
+    } catch (err) {
+      console.warn("DyoorWallet restore failed", err);
+      publishState();
+      return getState();
+    } finally {
+      restoring = false;
+    }
+  }
+
+  function onChange(callback) {
+    if (typeof callback !== "function") return () => {};
+    listeners.add(callback);
+    try {
+      callback({
+        ...getState(),
+        eip1193: activeProvider,
+        provider: activeBrowserProvider,
+        signer: activeSigner,
+        userAddress: state.address || null
+      });
+    } catch (_err) {}
+    return () => listeners.delete(callback);
+  }
+
+  function bindGlobalButton() {
+    document.querySelectorAll("#globalWalletBtn").forEach((button) => {
+      if (button.__dyoorGlobalWalletClickBound) return;
+      button.__dyoorGlobalWalletClickBound = true;
+      button.addEventListener("click", async (event) => {
+        event.preventDefault();
+        try {
+          if (getState().connected) {
+            await ensureMonad();
+            publishState();
+            return;
+          }
+          button.disabled = true;
+          await connectGlobal();
+        } catch (err) {
+          console.warn("Global wallet connect failed", err);
+          alert(err?.message || "Wallet connection failed.");
+        } finally {
+          button.disabled = false;
+        }
+      });
+    });
+    publishState();
+  }
+
   window.DyoorWalletChooser = {
     connect,
     connectType
   };
+
+  window.DyoorWallet = {
+    connect: connectGlobal,
+    disconnect,
+    getState,
+    getProvider: () => activeProvider,
+    getSigner: () => activeSigner,
+    getAddress: () => state.address || "",
+    onChange,
+    ensureMonad,
+    restore
+  };
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", () => {
+      bindGlobalButton();
+      restore();
+    });
+  } else {
+    bindGlobalButton();
+    restore();
+  }
 })();

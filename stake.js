@@ -18,7 +18,9 @@ const stakingAbi = [
   "function claimPoints()",
   "function pendingPoints(address user) view returns (uint256)",
   "function tokensOfStaker(address user) view returns (uint256[] memory)",
+  "function getStakedTokens(address user) view returns (uint256[] memory)",
   "function stakedBalance(address user) view returns (uint256)",
+  "function balanceOf(address user) view returns (uint256)",
   "function owner() view returns (address)",
   "function paused() view returns (bool)",
   "function s1Nft() view returns (address)",
@@ -49,6 +51,7 @@ let userAddress = null;
 let currentTab = "wallet";
 let ownedNfts = [];
 let stakedNfts = [];
+let stakedTokenCount = 0;
 let selectedIds = new Set();
 
 let injectedProvider = null;
@@ -94,6 +97,7 @@ function syncStakeGlobals() {
   window.userAddress = userAddress;
   window.ownedNfts = ownedNfts;
   window.stakedNfts = stakedNfts;
+  window.stakedTokenCount = stakedTokenCount;
   window.selectedIds = selectedIds;
   if (!window.loadState || window.loadState === loadState || window.loadState.__dyoorBaseLoadState === loadState) {
     window.loadState = loadState;
@@ -141,9 +145,17 @@ function clearWalletCaches(address) {
   energyCache.delete(key);
 }
 
+function clearAllWalletCaches(address = userAddress) {
+  clearWalletCaches(address);
+  walletNftCache.clear();
+  stakedIdsCache.clear();
+  energyCache.clear();
+}
+
 function resetVisibleDataForWalletChange() {
   ownedNfts = [];
   stakedNfts = [];
+  stakedTokenCount = 0;
   selectedIds.clear();
   pendingEnergy.textContent = "0.00";
   harvestedEnergy.textContent = "0.00";
@@ -165,6 +177,21 @@ function withTimeout(promise, timeoutMs, label) {
     timer = setTimeout(() => reject(new Error(`${label} timed out.`)), timeoutMs);
   });
   return Promise.race([promise, timeout]).finally(() => clearTimeout(timer));
+}
+
+async function retryRpc(label, fn, retries = 2, delayMs = 250) {
+  let lastErr;
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    try {
+      return await withTimeout(Promise.resolve().then(fn), CONTRACT_TIMEOUT_MS, label);
+    } catch (err) {
+      lastErr = err;
+      if (attempt < retries) {
+        await new Promise((resolve) => setTimeout(resolve, delayMs * (attempt + 1)));
+      }
+    }
+  }
+  throw lastErr;
 }
 
 async function fetchJsonWithTimeout(url, options = {}, timeoutMs = FETCH_TIMEOUT_MS) {
@@ -700,17 +727,49 @@ async function getStakedTokenIds(owner, options = {}) {
   const cached = !options.force ? getFreshCache(stakedIdsCache, key, STAKED_CACHE_MS) : null;
   if (cached) return cached;
   const staking = new ethers.Contract(STAKING_ADDRESS, stakingAbi, provider);
+  const methods = [
+    { label: "tokensOfStaker", type: "ids", read: () => staking.tokensOfStaker(owner) },
+    { label: "getStakedTokens", type: "ids", read: () => staking.getStakedTokens(owner) },
+    { label: "stakedBalance", type: "count", read: () => staking.stakedBalance(owner) },
+    { label: "staking balanceOf", type: "count", read: () => staking.balanceOf(owner) }
+  ];
+  const failures = [];
 
-  try {
-    const ids = await withTimeout(staking.tokensOfStaker(owner), CONTRACT_TIMEOUT_MS, "Ascension status");
-    return setCache(stakedIdsCache, key, ids.map((x) => x.toString()));
-  } catch (err) {
-    console.error("getStakedTokenIds error", err);
-    throw new Error("Wallet connected, but staked NFT loading failed.");
+  for (const method of methods) {
+    try {
+      setLoadMeta(`Reading Ascension state via ${method.label}...`);
+      const value = await retryRpc(method.label, method.read);
+      if (method.type === "ids") {
+        const ids = Array.from(value || []).map((x) => x.toString());
+        stakedTokenCount = ids.length;
+        return setCache(stakedIdsCache, key, { ids, count: ids.length, source: method.label });
+      }
+      const count = Number(value || 0n);
+      if (Number.isFinite(count)) {
+        stakedTokenCount = count;
+        return setCache(stakedIdsCache, key, { ids: [], count, source: method.label });
+      }
+    } catch (err) {
+      failures.push(`${method.label}: ${formatError(err)}`);
+      console.warn(`${method.label} failed`, err);
+    }
   }
+
+  console.error("getStakedTokenIds fallback failures", failures);
+  throw new Error("Wallet connected, but staked NFT loading failed after all fallback reads.");
 }
 
-async function enrichStakedTokenIds(tokenIds) {
+async function enrichStakedTokenIds(stakedSummary) {
+  const tokenIds = Array.isArray(stakedSummary) ? stakedSummary : (stakedSummary?.ids || []);
+  if (!tokenIds.length && Number(stakedSummary?.count || 0) > 0) {
+    return Array.from({ length: Number(stakedSummary.count) }, (_, index) => ({
+      tokenId: `ascended-${index + 1}`,
+      source: "staked",
+      name: `Ascended DYOOR ${index + 1}`,
+      image: "",
+      unknownTokenId: true
+    }));
+  }
   const items = [];
   const metadataBatchSize = 16;
   for (let i = 0; i < tokenIds.length; i += metadataBatchSize) {
@@ -738,7 +797,9 @@ function renderGrid() {
     emptyState.textContent =
       currentTab === "wallet"
         ? "No unstaked DYOOR found in this wallet yet."
-        : "No ascended DYOOR found for this wallet yet.";
+        : stakedTokenCount > 0
+          ? `${stakedTokenCount} ascended DYOOR detected. Token IDs are unavailable from this RPC read.`
+          : "No ascended DYOOR found for this wallet yet.";
     return;
   }
 
@@ -752,10 +813,11 @@ function renderGrid() {
     card.innerHTML = `
       ${item.image ? `<img src="${item.image}" alt="${item.name}" loading="lazy" />` : `<div class="no-image">Artwork unavailable</div>`}
       <div class="nft-name">${item.name}</div>
-      <div class="nft-id">#${item.tokenId}</div>
+      <div class="nft-id">${item.unknownTokenId ? "Token ID unavailable" : `#${item.tokenId}`}</div>
     `;
 
     card.addEventListener("click", () => {
+      if (item.unknownTokenId) return;
       if (selectedIds.has(item.tokenId)) {
         selectedIds.delete(item.tokenId);
       } else {
@@ -780,7 +842,7 @@ function setGridLoading(message) {
 
 function updateButtons() {
   const hasWalletItems = ownedNfts.length > 0;
-  const selectedVisible = getVisibleItems().filter((x) => selectedIds.has(x.tokenId)).length > 0;
+  const selectedVisible = getVisibleItems().filter((x) => !x.unknownTokenId && selectedIds.has(x.tokenId)).length > 0;
 
   ascendSelectedBtn.disabled = !(currentTab === "wallet" && selectedVisible && userAddress);
   ascendAllBtn.disabled = !(currentTab === "wallet" && hasWalletItems && userAddress);
@@ -927,10 +989,11 @@ async function loadState(options = {}) {
     setGridLoading("Checking Ascension status...");
 
     const stakedTask = (async () => {
-      const stakedIds = await getStakedTokenIds(address, options);
-      const items = await enrichStakedTokenIds(stakedIds);
+      const stakedSummary = await getStakedTokenIds(address, options);
+      const items = await enrichStakedTokenIds(stakedSummary);
       if (!isCurrentLoad(loadId, address)) return null;
       stakedNfts = items;
+      stakedTokenCount = Number(stakedSummary?.count ?? items.length);
       selectedIds.clear();
       updateSelectedCount();
       renderGrid();
@@ -1075,6 +1138,43 @@ function clearWalletState(disconnectMessage = "Disconnected.") {
   setLoadMeta("Connect wallet to scan Ascension state.");
 }
 
+async function applyGlobalWallet(detail = {}, options = {}) {
+  const nextAddress = detail.userAddress || detail.address || window.DyoorWallet?.getAddress?.() || "";
+  const nextProvider = detail.eip1193 || window.DyoorWallet?.getProvider?.() || null;
+  const nextBrowserProvider = detail.provider || window.provider || null;
+  const nextSigner = detail.signer || window.DyoorWallet?.getSigner?.() || null;
+  const previousAddress = userAddress;
+
+  if (!nextAddress || !nextProvider || !nextBrowserProvider) {
+    if (userAddress) clearWalletState("Wallet disconnected.");
+    return;
+  }
+
+  injectedProvider = nextProvider;
+  injectedWalletName = detail.walletLabel || detail.walletType || "Wallet";
+  provider = nextBrowserProvider;
+  signer = nextSigner || await provider.getSigner();
+  userAddress = nextAddress;
+
+  walletStatus.textContent = shorten(userAddress);
+  if (connectBtn) connectBtn.textContent = `Connected: ${injectedWalletName}`;
+
+  const changed = cacheKey(previousAddress) !== cacheKey(userAddress) || options.force;
+  if (changed) {
+    activeLoadId++;
+    if (activeFetchController) activeFetchController.abort();
+    loadStatePromise = null;
+    clearTimeout(loadDebounceTimer);
+    clearAllWalletCaches(previousAddress);
+    clearAllWalletCaches(userAddress);
+    resetVisibleDataForWalletChange();
+  }
+
+  syncStakeGlobals();
+  setStatus(changed ? "Wallet connected. Loading Ascension state..." : "Wallet connected.");
+  await scheduleLoadState(changed ? "wallet changed" : "wallet restored", { force: changed, immediate: true });
+}
+
 function bindProviderEvents() {
   if (!injectedProvider?.on) return;
 
@@ -1099,7 +1199,7 @@ function bindProviderEvents() {
 
       resetVisibleDataForWalletChange();
       setStatus("Account changed.");
-      clearWalletCaches(userAddress);
+      clearAllWalletCaches(userAddress);
       await scheduleLoadState("account changed", { force: true, immediate: true });
     } catch (err) {
       console.error("accountsChanged error", err);
@@ -1126,7 +1226,7 @@ function bindProviderEvents() {
       resetVisibleDataForWalletChange();
       setStatus("Network changed.");
 
-      clearWalletCaches(userAddress);
+      clearAllWalletCaches(userAddress);
       await scheduleLoadState("network changed", { force: true, immediate: true });
     } catch (err) {
       console.error("chainChanged error", err);
@@ -1152,37 +1252,23 @@ function bindProviderEvents() {
 }
 
 async function connectWallet() {
-  connectBtn.disabled = true;
+  if (connectBtn) connectBtn.disabled = true;
   try {
     setStatus("Opening wallet chooser...");
-    if (!window.DyoorWalletChooser?.connect) {
-      throw new Error("Wallet chooser failed to load.");
-    }
-
-    const chosenWallet = await window.DyoorWalletChooser.connect({
-      title: "Connect Wallet",
-      copy: "Use the same Monad wallet flow across Ascension, swap, and verification."
-    });
-
-    injectedProvider = chosenWallet.provider;
-    injectedWalletName = chosenWallet.label;
-    provider = chosenWallet.browserProvider;
-    signer = chosenWallet.signer;
-    userAddress = chosenWallet.account;
-
-    walletStatus.textContent = shorten(userAddress);
-    connectBtn.textContent = `Connected: ${chosenWallet.label}`;
-
-    bindProviderEvents();
-    resetVisibleDataForWalletChange();
-    setStatus(`Wallet connected: ${chosenWallet.label}`);
-
-    await scheduleLoadState("connect", { force: true, immediate: true });
+    if (!window.DyoorWallet?.connect) throw new Error("Global wallet module failed to load.");
+    await window.DyoorWallet.connect();
+    await applyGlobalWallet({
+      userAddress: window.DyoorWallet.getAddress(),
+      eip1193: window.DyoorWallet.getProvider(),
+      provider: window.provider,
+      signer: window.DyoorWallet.getSigner(),
+      ...window.DyoorWallet.getState()
+    }, { force: true });
   } catch (err) {
     console.error("connectWallet error:", err);
     setStatus(formatError(err, "Connection failed."));
   } finally {
-    connectBtn.disabled = false;
+    if (connectBtn) connectBtn.disabled = false;
   }
 }
 
@@ -1252,7 +1338,7 @@ async function ascendTokenIds(tokenIds) {
     await waitForHash(registerHash);
 
     setStatus("Ascension complete.");
-    clearWalletCaches(userAddress);
+    clearAllWalletCaches(userAddress);
     await loadState({ force: true });
   } catch (err) {
     console.error("ascendTokenIds error", err);
@@ -1280,7 +1366,7 @@ async function disconnectTokenIds(tokenIds) {
     await waitForHash(txHash);
 
     setStatus("Disconnect complete.");
-    clearWalletCaches(userAddress);
+    clearAllWalletCaches(userAddress);
     await loadState({ force: true });
   } catch (err) {
     console.error("disconnectTokenIds error", err);
@@ -1332,7 +1418,7 @@ async function harvestEnergy() {
     } else {
       setStatus("Energy harvested.");
     }
-    clearWalletCaches(userAddress);
+    clearAllWalletCaches(userAddress);
     const immediateSummary = await updateEnergy({ force: true });
     if (immediateSummary) applyEnergySummary(immediateSummary);
     await loadState({ force: true });
@@ -1382,15 +1468,23 @@ document.getElementById("clearSelectionBtn").addEventListener("click", () => {
 
 document.getElementById("refreshBtn").addEventListener("click", async () => {
   if (!userAddress) return;
+  clearAllWalletCaches(userAddress);
   await loadState({ force: true });
 });
 
 retryLoadBtn?.addEventListener("click", async () => {
   if (!userAddress) return;
+  clearAllWalletCaches(userAddress);
   await loadState({ force: true });
 });
 
-connectBtn.addEventListener("click", connectWallet);
+connectBtn?.addEventListener("click", async () => {
+  if (window.DyoorWallet?.connect) {
+    await window.DyoorWallet.connect();
+    return;
+  }
+  await connectWallet();
+});
 
 ascendSelectedBtn.addEventListener("click", async () => {
   const ids = selectedVisibleTokenIds();
@@ -1424,4 +1518,26 @@ harvestBtn.addEventListener("click", harvestEnergy);
 window.addEventListener("DOMContentLoaded", () => {
   syncStakeGlobals();
   updateButtons();
+  window.DyoorWallet?.onChange?.((detail) => {
+    applyGlobalWallet(detail, { force: true }).catch((err) => {
+      console.error("global wallet sync failed", err);
+      setStatus("Failed to sync global wallet.");
+    });
+  });
+  window.DyoorWallet?.restore?.().then(() => {
+    const detail = {
+      userAddress: window.DyoorWallet?.getAddress?.(),
+      eip1193: window.DyoorWallet?.getProvider?.(),
+      provider: window.provider,
+      signer: window.DyoorWallet?.getSigner?.(),
+      ...window.DyoorWallet?.getState?.()
+    };
+    return applyGlobalWallet(detail);
+  }).catch(() => {});
+});
+
+document.addEventListener("visibilitychange", () => {
+  if (document.visibilityState !== "visible" || !userAddress) return;
+  clearAllWalletCaches(userAddress);
+  scheduleLoadState("visibility", { force: true, immediate: true });
 });

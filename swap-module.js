@@ -222,20 +222,13 @@
 
   async function connect() {
     try {
-      if (window.DyoorWalletChooser?.connect) {
-        const connected = await window.DyoorWalletChooser.connect({
-          title: "Connect Wallet",
-          copy: "Connect on Monad to quote, approve, and swap through Kuru Flow.",
-        });
-        provider = connected.provider;
-        account = connected.account;
-      } else {
-        provider = window.ethereum;
-        if (!provider?.request) throw new Error("No wallet detected. Use WalletConnect to stay in Safari.");
-        await ensureChain();
-        const accounts = await provider.request({ method: "eth_requestAccounts" });
-        account = accounts?.[0] || null;
-      }
+      if (!window.DyoorWallet?.connect) throw new Error("Global wallet module failed to load.");
+      await window.DyoorWallet.connect({
+        title: "Connect Wallet",
+        copy: "Connect on Monad to quote, approve, and swap through Kuru Flow.",
+      });
+      provider = window.DyoorWallet.getProvider();
+      account = window.DyoorWallet.getAddress();
       if (!account) throw new Error("Wallet did not return an account.");
       bindProviderEvents();
       updateWallet();
