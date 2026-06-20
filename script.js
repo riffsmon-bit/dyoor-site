@@ -32,27 +32,12 @@ function detectOKXInjected(){
 }
 
 async function autoConnectOKX(){
-  // Show connected state if OKX already granted the dapp access (no prompt).
-  if(!detectOKXInjected()) return false;
-
-  const prov = getInjectedProvider('okx') || (window.okxwallet && (window.okxwallet.ethereum || window.okxwallet)) || window.ethereum;
-  if(!prov || !prov.request || !window.ethers || !window.ethers.BrowserProvider) return false;
-
   try {
-    const accts = await prov.request({ method: 'eth_accounts' });
-    if(accts && accts[0]){
-      __activeEvmProvider = prov;
-      provider = new window.ethers.BrowserProvider(prov, 'any');
-      signer = await provider.getSigner();
-      userAddress = accts[0];
-      syncWalletGlobals();
-      updateWalletUI();
-      return true;
-    }
+    await window.DyoorWallet?.restore?.();
+    return Boolean(window.DyoorWallet?.getAddress?.());
   } catch(e){
-    // ignore
+    return false;
   }
-  return false;
 }
 
 
@@ -114,71 +99,7 @@ function closeWalletModal() {
 
 async function connectWithWallet(type) {
   try {
-    // Close behavior should always work
-    const t = (type || '').toLowerCase();
-
-    if (window.DyoorWalletChooser?.connectType) {
-      const connected = await window.DyoorWalletChooser.connectType(t);
-      applyConnectedWallet(connected);
-      return;
-    }
-
-    if (t === 'walletconnect') {
-      const wc = await initWalletConnect();
-      await connectWallet(wc);
-      return;
-    }
-
-    // Injected wallets
-    let injected = null;
-    if (t === 'okx') {
-      injected =
-        (window.okxwallet && (window.okxwallet.ethereum || window.okxwallet)) ||
-        (window.ethereum && (window.ethereum.isOkxWallet || window.ethereum.isOKExWallet) ? window.ethereum : null) ||
-        window.ethereum;
-
-      if (!injected || !injected.request) {
-        // Try to open in OKX Wallet dApp browser via deep link
-        try {
-          const dappUrl = encodeURIComponent(window.location.href);
-          window.location.href = "okx://wallet/dapp/url?dappUrl=" + dappUrl;
-        } catch {}
-        alert('OKX wallet provider not detected in this view. Open this site in OKX Wallet > Explore (browser) or use WalletConnect.');
-        return;
-      }
-
-      try {
-        await connectWallet(injected);
-      } catch (e) {
-        // If OKX blocks connection in a restricted webview, deep link to proper browser view
-        try {
-          const dappUrl = encodeURIComponent(window.location.href);
-          window.location.href = "okx://wallet/dapp/url?dappUrl=" + dappUrl;
-        } catch {}
-        throw e;
-      }
-      return;
-    }
-
-    if (t === 'phantom') {
-      injected = (window.phantom && window.phantom.ethereum) ? window.phantom.ethereum : window.ethereum;
-      if (!injected) {
-        alert('Phantom not detected. Open this page inside Phantom browser or use WalletConnect.');
-        return;
-      }
-      await connectWallet(injected);
-      return;
-    }
-
-    // MetaMask / Other injected
-    if (t === 'metamask') injected = getInjectedProvider('metamask');
-    else if (t === 'injected') injected = getInjectedProvider('injected');
-    else injected = window.ethereum;
-    if (!injected) {
-      alert('No injected wallet detected. Use WalletConnect to stay in Safari.');
-      return;
-    }
-    await connectWallet(injected);
+    await window.DyoorWallet?.connect?.();
   } catch (err) {
     console.error('connectWithWallet error:', err);
     alert('Could not start wallet connection. Try WalletConnect.');
@@ -197,8 +118,13 @@ let userAddress = null;
 // Expose wallet state for other standalone pages.
 function syncWalletGlobals(){
   try {
+    const walletState = window.DyoorWallet?.getState?.();
+    __activeEvmProvider = window.DyoorWallet?.getProvider?.() || __activeEvmProvider;
+    provider = window.provider || provider;
+    signer = window.DyoorWallet?.getSigner?.() || signer;
+    userAddress = walletState?.address || userAddress || null;
     window.__activeEvmProvider = __activeEvmProvider;
-    window.provider = provider;
+    window.provider = window.provider || provider;
     window.signer = signer;
     window.userAddress = userAddress;
     window.dispatchEvent(new CustomEvent('dyoor:wallet', {
@@ -295,56 +221,13 @@ async function ensureChain(web3Provider, eip1193) {
 async function connectWallet(providerOverride, options = {}) {
   const silent = !!options.silent;
   try {
-    if (!window.ethers || !window.ethers.BrowserProvider) {
-      if(!silent) alert('Wallet libs failed to load. Hard refresh and try again.'); else console.warn('Wallet libs failed to load. Hard refresh and try again.');
-      return;
-    }
-
-    const eth = providerOverride || (typeof window !== 'undefined' ? window.ethereum : null);
-    if (!hasEthereum(eth)) {
-      if(!silent) alert('No wallet detected. Use WalletConnect to stay in Safari.'); else console.warn('No wallet detected. Use WalletConnect to stay in Safari.');
-      return;
-    }
-
-    // Request accounts (this triggers wallet prompt)
-    let accounts = [];
-    try {
-      accounts = await eth.request({ method: 'eth_requestAccounts' });
-    } catch (e) {
-      // Some wallets require requesting permissions first
-      try {
-        await eth.request({ method: 'wallet_requestPermissions', params: [{ eth_accounts: {} }] });
-        accounts = await eth.request({ method: 'eth_requestAccounts' });
-      } catch {
-        throw e;
-      }
-    }
-
-    if (!accounts || accounts.length === 0) {
-      if(!silent) alert('Wallet did not return any accounts. Try WalletConnect to stay in Safari.'); else console.warn('Wallet did not return any accounts. Try WalletConnect to stay in Safari.');
-      return;
-    }
-
-    const web3Provider = new window.ethers.BrowserProvider(eth, 'any');
-    const ok = await ensureChain(web3Provider, eth);
-    if (!ok) {
-      if(!silent) alert('Please switch to Monad (chainId 143) and retry.'); else console.warn('Please switch to Monad (chainId 143) and retry.');
-      return;
-    }
-
-    __activeEvmProvider = eth;
-    provider = web3Provider;
-    signer = await provider.getSigner();
-    userAddress = await signer.getAddress();
-
-    // Make wallet state accessible globally (stake page, etc.)
-    syncWalletGlobals();
-
-    // Update UI
+    if (silent) await window.DyoorWallet?.restore?.();
+    else await window.DyoorWallet?.connect?.();
+    __activeEvmProvider = window.DyoorWallet?.getProvider?.() || null;
+    provider = window.provider || null;
+    signer = window.DyoorWallet?.getSigner?.() || null;
+    userAddress = window.DyoorWallet?.getAddress?.() || null;
     updateWalletUI();
-    closeWalletModal();
-
-    bindConnectedWalletEvents(eth);
   } catch (err) {
     console.error('Wallet connect error:', err);
     if(!silent) alert('Could not connect wallet. On iOS Safari, use WalletConnect to stay in Safari.'); else console.warn('Could not connect wallet. On iOS Safari, use WalletConnect to stay in Safari.');
@@ -352,8 +235,9 @@ async function connectWallet(providerOverride, options = {}) {
 }
 
 function updateWalletUI(){
-  const addr = userAddress;
-  const connectHome = qs('#homeWalletBtn');
+  const walletState = window.DyoorWallet?.getState?.();
+  const addr = walletState?.address || userAddress;
+  const connectHome = qs('#globalWalletBtn');
   const connectSwapContext = qs('#swapContextWalletBtn');
   const connectVerifyContext = qs('#verifyContextWalletBtn');
   // Some pages have additional connect buttons; keep this function safe.
@@ -364,16 +248,15 @@ function updateWalletUI(){
 
   if (connectCasino) connectCasino.textContent = addr ? `Connected: ${shortAddr(addr)}` : 'Connect Wallet';
   if (connectHome) connectHome.textContent = addr ? shortAddr(addr) : 'Connect Wallet';
-  if (connectSwapContext) connectSwapContext.textContent = addr ? `Connected: ${shortAddr(addr)}` : 'Connect Wallet to Swap';
-  if (connectVerifyContext) connectVerifyContext.textContent = addr ? `Connected: ${shortAddr(addr)}` : 'Connect Wallet to Verify';
+  if (connectSwapContext) connectSwapContext.hidden = true;
+  if (connectVerifyContext) connectVerifyContext.hidden = true;
   if (chainPill) chainPill.textContent = addr ? `Monad • ${shortAddr(addr)}` : 'Monad';
   if (verifyWalletValue) verifyWalletValue.textContent = addr ? shortAddr(addr) : 'Not connected';
   if (verifyWalletSub) verifyWalletSub.textContent = addr
     ? 'Wallet connected on Monad. You can verify or refresh your Discord roles now.'
     : 'Connect the wallet that holds or has ascended your DYOORs.';
 
-  // Keep globals synced for standalone pages that rely on window.* state.
-  syncWalletGlobals();
+  userAddress = addr || null;
 }
 
 // ---------- Scroll reveal ----------
@@ -398,8 +281,17 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   };
 
-  const safeOpenWalletModal = (e) => {
+  const safeOpenWalletModal = async (e) => {
     if (e) e.preventDefault();
+    try {
+      if (window.DyoorWallet?.connect) {
+        await window.DyoorWallet.connect();
+        updateWalletUI();
+        return;
+      }
+    } catch (err) {
+      console.warn("Global wallet connect failed", err);
+    }
     openWalletModal();
   };
 
@@ -409,6 +301,13 @@ document.addEventListener('DOMContentLoaded', () => {
   };
 
   bindClick('[data-open-wallet]', safeOpenWalletModal);
+  window.DyoorWallet?.onChange?.((detail) => {
+    __activeEvmProvider = detail?.eip1193 || null;
+    provider = detail?.provider || null;
+    signer = detail?.signer || null;
+    userAddress = detail?.userAddress || null;
+    updateWalletUI();
+  });
 
   bindClick('#walletModal [data-close]', safeCloseWalletModal);
   bindClick('#walletModalBackdrop', safeCloseWalletModal);
@@ -761,7 +660,7 @@ async function verifyRolesFlow(mode = 'verify'){
   }
   if(!userAddress || !signer){
     verifySetStatus('Connect your wallet first.', 'warn');
-    openWalletModal();
+    document.getElementById('globalWalletBtn')?.click();
     return;
   }
 

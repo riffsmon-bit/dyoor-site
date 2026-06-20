@@ -41,7 +41,7 @@ async function runCheck() {
 
   if (!wallet) {
     setStatus("Connect wallet first.");
-    document.getElementById("homeWalletBtn")?.click();
+    document.getElementById("globalWalletBtn")?.click();
     return;
   }
 

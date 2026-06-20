@@ -662,7 +662,7 @@ async function saveBlueprint() {
   const signer = window.signer;
   if (!wallet || !signer?.signMessage) {
     setBlueprintStatus("Connect wallet first.");
-    document.getElementById("homeWalletBtn")?.click();
+    document.getElementById("globalWalletBtn")?.click();
     return;
   }
 
