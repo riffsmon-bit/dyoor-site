@@ -1,7 +1,9 @@
 import fs from "node:fs";
 import path from "node:path";
+import { fileURLToPath } from "node:url";
 
 const root = process.cwd();
+const moduleDir = path.dirname(fileURLToPath(import.meta.url));
 
 function readEnv(name, fallback = "") {
   const value = process.env[name];
@@ -25,16 +27,26 @@ function hasAdminWalletConfig() {
 }
 
 function loadSeedQuests() {
-  const seedPath = path.join(root, "data/quest-seed.json");
-  try {
-    return JSON.parse(fs.readFileSync(seedPath, "utf8"));
-  } catch (_err) {
-    return [];
+  const seedPaths = [
+    path.join(root, "data/quest-seed.json"),
+    path.join(root, "quest-seed.json"),
+    path.join(moduleDir, "../../../data/quest-seed.json"),
+    path.join(moduleDir, "../../data/quest-seed.json"),
+    path.join(moduleDir, "../data/quest-seed.json"),
+    path.join(moduleDir, "data/quest-seed.json"),
+  ];
+  for (const seedPath of seedPaths) {
+    try {
+      const parsed = JSON.parse(fs.readFileSync(seedPath, "utf8"));
+      if (Array.isArray(parsed)) return parsed;
+    } catch (_err) {}
   }
+  return [];
 }
 
 const supabaseUrl = readEnv("SUPABASE_URL");
 const supabaseKey = readEnv("SUPABASE_SERVICE_ROLE_KEY");
+const questStorage = readEnv("QUEST_STORAGE", readEnv("QUEST_DATA_BACKEND", "auto")).toLowerCase();
 const monadRpcUrl = readEnv("MONAD_RPC_URL", "https://rpc.monad.xyz");
 const dyoorS1Contract = readEnv("DYOOR_S1_CONTRACT", readEnv("DYOOR_S1_NFT_ADDRESS"));
 const ascensionStakingContract = readEnv("ASCENSION_STAKING_CONTRACT", readEnv("ASCENSION_STAKING_ADDRESS"));
@@ -56,6 +68,7 @@ export {
   root,
   supabaseUrl,
   supabaseKey,
+  questStorage,
   monadRpcUrl,
   dyoorS1Contract,
   ascensionStakingContract,

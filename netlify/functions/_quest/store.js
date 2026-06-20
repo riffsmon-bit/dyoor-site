@@ -22,6 +22,10 @@ function now() {
   return new Date().toISOString();
 }
 
+function useSupabase() {
+  return db.hasSupabase() && config.questStorage !== "blobs" && config.questStorage !== "netlify_blobs";
+}
+
 function sortQuests(quests) {
   return quests
     .filter((quest) => quest.active !== false)
@@ -178,7 +182,7 @@ async function ensureUser(walletAddress) {
   const wallet = config.normalizeAddress(walletAddress);
   if (!wallet) throw new Error("Invalid wallet address.");
 
-  if (db.hasSupabase()) {
+  if (useSupabase()) {
     const existing = await db.select("users", `select=*&${db.eq("wallet_address", wallet)}`);
     if (existing?.[0]) return existing[0];
     const referral = wallet.slice(2, 10).toUpperCase();
@@ -212,7 +216,7 @@ async function ensureUser(walletAddress) {
 }
 
 async function listQuests() {
-  if (db.hasSupabase()) {
+  if (useSupabase()) {
     const quests = await db.select("quests", "select=*&active=eq.true&order=sort_order.asc");
     return quests?.length ? quests : sortQuests(memory.quests);
   }
@@ -221,7 +225,7 @@ async function listQuests() {
 }
 
 async function listAllQuests() {
-  if (db.hasSupabase()) {
+  if (useSupabase()) {
     return db.select("quests", "select=*&order=sort_order.asc");
   }
   await readFallback();
@@ -229,7 +233,7 @@ async function listAllQuests() {
 }
 
 async function getQuest(questId) {
-  if (db.hasSupabase()) {
+  if (useSupabase()) {
     const rows = await db.select("quests", `select=*&${db.eq("id", questId)}`);
     return rows?.[0] || null;
   }
@@ -238,7 +242,7 @@ async function getQuest(questId) {
 }
 
 async function listCompletions(userId) {
-  if (db.hasSupabase()) {
+  if (useSupabase()) {
     return db.select("quest_completions", `select=*&${db.eq("user_id", userId)}&order=created_at.desc`);
   }
   await readFallback();
@@ -246,7 +250,7 @@ async function listCompletions(userId) {
 }
 
 async function getCompletion(userId, questId) {
-  if (db.hasSupabase()) {
+  if (useSupabase()) {
     const rows = await db.select("quest_completions", `select=*&${db.eq("user_id", userId)}&${db.eq("quest_id", questId)}`);
     return rows?.[0] || null;
   }
@@ -255,7 +259,7 @@ async function getCompletion(userId, questId) {
 }
 
 async function saveCompletion({ userId, questId, status, proofUrl, proofText, txHash, verificationDetails }) {
-  if (db.hasSupabase()) {
+  if (useSupabase()) {
     const existing = await db.select("quest_completions", `select=*&${db.eq("user_id", userId)}&${db.eq("quest_id", questId)}`);
     const values = {
       user_id: userId,
@@ -304,7 +308,7 @@ async function saveCompletion({ userId, questId, status, proofUrl, proofText, tx
 }
 
 async function recomputeUserPoints(userId) {
-  if (!db.hasSupabase()) {
+  if (!useSupabase()) {
     await readFallback();
     recomputeMemoryPoints(userId);
     await writeFallback();
@@ -319,7 +323,7 @@ async function recomputeUserPoints(userId) {
 }
 
 async function leaderboard(limit = 100) {
-  if (db.hasSupabase()) {
+  if (useSupabase()) {
     return db.select("leaderboard", `select=*&order=rank.asc&limit=${Number(limit) || 100}`);
   }
   await readFallback();
@@ -327,7 +331,7 @@ async function leaderboard(limit = 100) {
 }
 
 async function adminData() {
-  if (db.hasSupabase()) {
+  if (useSupabase()) {
     const [quests, users, completions, suspicious] = await Promise.all([
       db.select("quests", "select=*&order=sort_order.asc"),
       db.select("users", "select=*&order=total_points.desc"),
@@ -361,7 +365,7 @@ async function upsertQuest(quest) {
   };
   if (!values.id || !values.title) throw new Error("Quest id and title are required.");
 
-  if (db.hasSupabase()) {
+  if (useSupabase()) {
     const rows = await db.upsert("quests", [values], "id");
     return rows[0];
   }
@@ -375,7 +379,7 @@ async function upsertQuest(quest) {
 }
 
 async function approveCompletion(completionId, status) {
-  if (db.hasSupabase()) {
+  if (useSupabase()) {
     const rows = await db.patch("quest_completions", db.eq("id", completionId), {
       status,
       verified_at: status === "verified" ? now() : null,
