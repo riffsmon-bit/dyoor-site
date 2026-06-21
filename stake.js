@@ -9,6 +9,7 @@ const STAKED_CACHE_MS = 20000;
 const ENERGY_CACHE_MS = 15000;
 const FETCH_TIMEOUT_MS = 8000;
 const CONTRACT_TIMEOUT_MS = 12000;
+const WALLET_TX_TIMEOUT_MS = 45000;
 const LOAD_DEBOUNCE_MS = 250;
 const DISCOVERY_RETRY_COUNT = 2;
 const DISCOVERY_RETRY_DELAY_MS = 250;
@@ -540,13 +541,55 @@ async function sendContractTx(to, abi, fnName, args = []) {
   const injected = getInjectedProviderOrThrow();
   const iface = new ethers.Interface(abi);
   const data = iface.encodeFunctionData(fnName, args);
+  const from = ethers.getAddress(userAddress);
+  const target = ethers.getAddress(to);
 
-  const txHash = await injected.request({
-    method: "eth_sendTransaction",
-    params: [{ from: userAddress, to, data }]
+  try {
+    const accounts = await injected.request({ method: "eth_accounts" });
+    const activeAccount = accounts?.[0] ? ethers.getAddress(accounts[0]) : "";
+    if (activeAccount && activeAccount !== from) {
+      throw new Error(`Wallet account changed to ${shorten(activeAccount)}. Reconnect and try again.`);
+    }
+  } catch (err) {
+    if (/Wallet account changed/i.test(String(err?.message || err))) throw err;
+    console.warn("Unable to verify active account before transaction.", err);
+  }
+
+  try {
+    await window.DyoorWallet?.ensureMonad?.();
+  } catch (err) {
+    console.warn("Monad network check before transaction failed.", err);
+  }
+
+  const tx = { from, to: target, data, value: "0x0" };
+
+  setStatus("Open your wallet to confirm the transaction...");
+  debugAscension("sending contract transaction", {
+    wallet: from,
+    to: target,
+    function: fnName,
+    walletType: window.DyoorWallet?.getState?.().walletType || injectedWalletName || ""
   });
 
-  return txHash;
+  try {
+    return await withTimeout(
+      injected.request({
+        method: "eth_sendTransaction",
+        params: [tx]
+      }),
+      WALLET_TX_TIMEOUT_MS,
+      "Wallet confirmation"
+    );
+  } catch (err) {
+    console.warn("eth_sendTransaction failed; trying signer fallback", err);
+    if (!signer?.sendTransaction) throw err;
+    const response = await withTimeout(
+      signer.sendTransaction({ to: target, data, value: 0n }),
+      WALLET_TX_TIMEOUT_MS,
+      "Wallet confirmation"
+    );
+    return response?.hash || response;
+  }
 }
 
 function getHarvestAmountFromReceipt(receipt) {
