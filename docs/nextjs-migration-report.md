@@ -259,19 +259,35 @@ Server-side contract integrations:
 
 ## Environment Variables
 
+Environment variables confirmed available for the Next.js migration:
+
+- `NEXT_PUBLIC_PRIVY_APP_ID`
+- `NEXT_PUBLIC_MONAD_RPC_URL`
+- `NEXT_PUBLIC_MONAD_FALLBACK_RPC`
+- `NEXT_PUBLIC_GOLDSKY_SUBGRAPH_URL`
+- `ALCHEMY_MONAD_RPC_URL`
+- `GOLDSKY_API_KEY`
+- `DYOOR_S1_CONTRACT`
+- `ASCENSION_STAKING_CONTRACT`
+
 Detected environment variable names include:
 
 - Wallet/frontend:
   - `NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID`
   - `WALLETCONNECT_PROJECT_ID`
-  - future: `NEXT_PUBLIC_PRIVY_APP_ID`
-  - future: `NEXT_PUBLIC_PRIVY_CLIENT_ID`
+  - `NEXT_PUBLIC_PRIVY_APP_ID`
 - Monad/chain:
+  - `NEXT_PUBLIC_MONAD_RPC_URL`
+  - `NEXT_PUBLIC_MONAD_FALLBACK_RPC`
+  - `ALCHEMY_MONAD_RPC_URL`
   - `MONAD_RPC_URL`
   - `MONAD_TESTNET_RPC_URL`
   - `RPC_URL`
   - `CHAIN_ID`
   - `EXPECTED_CHAIN_ID`
+- Indexing:
+  - `NEXT_PUBLIC_GOLDSKY_SUBGRAPH_URL`
+  - `GOLDSKY_API_KEY`
 - Contracts:
   - `S1_COLLECTION_ADDRESS`
   - `ASCENSION_CONTRACT_ADDRESS`
@@ -397,6 +413,7 @@ hooks/
   useWalletSession.ts
   useSwap.ts
 lib/
+  rpc.ts
   monad.ts
   queryClient.ts
   contracts/
@@ -434,6 +451,36 @@ Required dependencies for the Next phase:
 - `wagmi`
 - `@tanstack/react-query`
 - Netlify Next runtime/plugin if deploying Next routes on Netlify
+
+## Shared Monad RPC Plan
+
+Create `lib/rpc.ts` as the single browser-safe read transport for Monad.
+
+Inputs:
+
+- primary RPC: `NEXT_PUBLIC_MONAD_RPC_URL`
+- fallback RPC: `NEXT_PUBLIC_MONAD_FALLBACK_RPC`
+- optional server-only fallback: `ALCHEMY_MONAD_RPC_URL`
+
+Required behavior:
+
+- use Monad mainnet chain id `143`
+- wrap viem public clients with timeout handling
+- retry transient read failures with bounded attempts
+- fail over from primary to fallback when the primary errors or times out
+- dedupe identical in-flight reads by method, target, calldata, block tag, and wallet where applicable
+- never dedupe or cache wallet write requests
+- return structured errors that preserve the attempted RPC endpoint and failure reason
+
+Initial implementation shape:
+
+- `createMonadPublicClient()`
+- `readContractWithFailover()`
+- `multicallWithFailover()`
+- `withRpcRetry()`
+- `dedupeRead(key, task)`
+
+This should be introduced before migrating Ascension so `useAscension()` does not recreate retry/failover logic.
 
 ## Wallet Migration Plan
 
@@ -481,6 +528,12 @@ Create `hooks/useAscension.ts` returning:
 - `error`
 - `refresh()`
 
+Data sources:
+
+1. Goldsky subgraph from `NEXT_PUBLIC_GOLDSKY_SUBGRAPH_URL`, when configured.
+2. Monad RPC through `lib/rpc.ts`.
+3. Existing Netlify functions only where they provide server-side enrichment or ledger data.
+
 Core discovery rules:
 
 - S1 NFT: `0x2c79c9e233fea4b4dcfe6561d9209dc292cd932f`
@@ -494,6 +547,8 @@ Core discovery rules:
   - `stakedBalance(wallet)`
   - `balanceOf(wallet)`
 - if exact staked token IDs are unavailable, show count-only ascended state
+- prefer Goldsky for staked token IDs when the subgraph URL is configured
+- use RPC staking reads as the mandatory fallback when Goldsky is missing, stale, or incomplete
 - never cache partial scans as complete
 - clear query/cache on:
   - wallet change
@@ -507,6 +562,13 @@ Core discovery rules:
 - show mismatch warning with a refresh action
 
 Contract layer should move from ad hoc ABI arrays in `stake.js` to `lib/contracts`.
+
+Reliability guard:
+
+- compare `balanceOf(wallet)` to the merged wallet-token result
+- compare Goldsky staked token count, RPC staked token IDs, and RPC staked count
+- when counts disagree, return partial data with `isPartial: true`, show "Some NFTs may still be loading. Click Refresh NFTs.", and avoid caching the result as final
+- metadata failures must not filter out token IDs; render fallback cards named `DYOOR #tokenId`
 
 ## Shared Contract Layer
 
@@ -615,6 +677,63 @@ Files that can remain mostly unchanged early:
 - `data/**` static JSON, except when route-specific imports change
 - assets under `assets/**`, `public/**`, `dyoor-builder/layers/**`
 
+## File-By-File Migration Plan
+
+- `wallet-chooser.js`
+  - Phase: replace after Privy provider lands.
+  - Action: keep as a temporary compatibility facade only if static pages still require it.
+  - Final state: delete after every route reads from `useWalletSession()`.
+- `script.js`
+  - Phase: homepage and verifier migration.
+  - Action: split Discord verifier code into `features/verify`, collection/home UI into `app/page.tsx`, and remove `window.provider`, `window.signer`, `window.userAddress` writes.
+- `stake.html`
+  - Phase: Ascension first.
+  - Action: replace with `app/ascension/page.tsx` and shared layout/nav.
+  - Final state: redirect `/stake` to `/ascension` or keep `/stake` as a Next route alias if marketing links depend on it.
+- `stake.js`
+  - Phase: Ascension first.
+  - Action: extract contract reads into `lib/contracts/*`, state orchestration into `hooks/useAscension.ts`, and writes into typed Ascension actions.
+  - Final state: remove page-level connect flow, local caches, and global wallet compatibility reads.
+- `stake-ui.js`
+  - Phase: Ascension first or admin follow-up.
+  - Action: move recovery/admin components into `components/ascension` only after core user Ascension parity is verified.
+- `swap-module.js`
+  - Phase: after verifier.
+  - Action: move token/balance/quote/approve/swap code into `features/swap` and consume Privy wallet/provider.
+- `verify.html`
+  - Phase: after Ascension.
+  - Action: replace with `app/verify/page.tsx`; preserve Netlify function endpoints and Discord redirect behavior.
+- `dyoor-builder.js`
+  - Phase: after swap.
+  - Action: migrate canvas/builder state into `features/blueprint`; replace global signer usage with Privy wallet signing.
+- `build-droid.html`
+  - Phase: after swap.
+  - Action: replace with `app/build/page.tsx`; preserve layer assets and blueprint share functions.
+- `blueprint-checker.js`
+  - Phase: after builder.
+  - Action: convert checker into `features/blueprint/checker`, replace `dyoor:wallet` event usage with `useWalletSession()`.
+- `blueprint-checker.html`
+  - Phase: after builder.
+  - Action: replace with `app/blueprint-checker/page.tsx`.
+- `index.html`
+  - Phase: late.
+  - Action: migrate home content into `app/page.tsx` after high-risk wallet pages are stable.
+- `whitepaper.html`
+  - Phase: late.
+  - Action: migrate to `app/whitepaper/page.tsx`; remove duplicated wallet modal markup.
+- `quests.html`
+  - Phase: late or separate.
+  - Action: migrate only after deciding whether quests remain active.
+- `admin-ascension.html` and `admin-ascension.js`
+  - Phase: admin follow-up.
+  - Action: keep static until public user flows are migrated; then move behind an admin route.
+- `netlify/functions/**`
+  - Phase: preserve.
+  - Action: keep paths stable. Add shared server utilities only after Next preview deploy proves function compatibility.
+- `local-dev-server.js`
+  - Phase: transitional.
+  - Action: keep for static fallback until Next local and Netlify preview workflows fully replace it.
+
 ## Potential Blockers
 
 - Privy app configuration is external and required before real login testing.
@@ -627,6 +746,8 @@ Files that can remain mostly unchanged early:
 - Swap flow uses raw EIP-1193 provider calls and may need careful Privy provider transaction testing.
 - Discord verifier depends on cookies and redirect URLs; Next route changes must preserve callback origins.
 - Current local worktree has unrelated uncommitted contract/docs/assets changes. Migration commits must keep scope explicit.
+- Goldsky schema must be confirmed before `useAscension()` can rely on indexed staked token IDs.
+- Privy embedded wallet behavior must be tested with Monad mainnet and external EIP-1193 wallets before removing the current chooser.
 
 ## Estimated Effort
 
@@ -664,6 +785,76 @@ Total expected effort: roughly 3-5 engineering weeks depending on design polish,
 11. Migrate home/whitepaper/quests/admin.
 12. Remove old wallet code and duplicated modal markup.
 13. Switch production routing after preview parity is confirmed.
+
+## Deployment Instructions
+
+Staged deployment target:
+
+1. Keep the current static Netlify deploy intact for production.
+2. Create the Next.js app structure on `migration/nextjs-privy`.
+3. Add Netlify Next runtime/plugin configuration in a preview-only commit.
+4. Configure preview env vars:
+   - `NEXT_PUBLIC_PRIVY_APP_ID`
+   - `NEXT_PUBLIC_MONAD_RPC_URL`
+   - `NEXT_PUBLIC_MONAD_FALLBACK_RPC`
+   - `NEXT_PUBLIC_GOLDSKY_SUBGRAPH_URL`
+   - `DYOOR_S1_CONTRACT`
+   - `ASCENSION_STAKING_CONTRACT`
+5. Keep existing server env vars for Netlify functions unchanged.
+6. Use Netlify preview deploys for route-by-route parity checks.
+7. Switch production `publish`/build settings only after Ascension, verifier, swap, builder, and homepage pass wallet QA.
+
+Local migration workflow:
+
+```bash
+npm run check
+npm run dev
+```
+
+The first Next.js foundation commit should add the new `dev` script for Next while preserving the current static dev command under a separate script such as `dev:static`.
+
+## Testing Checklist
+
+Wallet/session:
+
+- Privy login persists after refresh.
+- Embedded wallet is created for a new user.
+- External wallet login works when enabled.
+- Navbar is the only visible wallet connect/login button.
+- Account changes update all pages.
+- Disconnect clears page state.
+- Monad chain id is `143`.
+- Wrong network prompts switch/add where supported.
+
+Ascension:
+
+- wallet with only unstaked S1 NFTs shows all wallet NFTs
+- wallet with only ascended/staked S1 NFTs shows ascended state
+- wallet with both unstaked and ascended NFTs shows both lists
+- zero-NFT wallet shows empty state only after all discovery methods finish
+- large holder does not cache partial owner scans
+- staking transaction invalidates wallet NFTs, ascended NFTs, and energy queries
+- unstaking transaction invalidates wallet NFTs, ascended NFTs, and energy queries
+- harvest transaction invalidates pending, harvested, and lifetime energy
+- metadata failure renders fallback `DYOOR #tokenId` card
+- Goldsky disabled path falls back to RPC
+- Goldsky stale/incomplete path falls back to RPC and marks partial data
+
+Routes:
+
+- `/` homepage keeps current visual/layout parity
+- `/stake` and/or `/ascension` loads migrated Ascension
+- `/verify` completes Discord verification flow
+- `/swap` quotes and submits using the Privy wallet provider
+- `/build` saves and exports Blueprints
+- `/blueprint-checker` validates existing Blueprint data
+
+Netlify/functions:
+
+- all existing `/.netlify/functions/*` endpoints remain reachable
+- Discord OAuth callback origin remains valid
+- Blueprint share image redirects still resolve
+- quest endpoints are not regressed if quests remain live
 
 ## First Implementation Step After This Audit
 
