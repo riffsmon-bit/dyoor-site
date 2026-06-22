@@ -780,5 +780,16 @@
         "recordedAt": "2026-06-22T17:57:59.691Z"
       }
     ]
+  },
+  "0xd52b90413165c5fa35e33060b62509c95d56ac7b": {
+    "harvestedRaw": "206814444444444444444",
+    "claims": [
+      {
+        "txHash": "0x334a779660b3e6093bcd9a5a236ef2fd15bb77a13e8a60436b8a809f23a39458",
+        "amountRaw": "206814444444444444444",
+        "seeded": false,
+        "recordedAt": "2026-06-22T23:49:54.299Z"
+      }
+    ]
   }
 }
