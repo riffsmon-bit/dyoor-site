@@ -1,7 +1,9 @@
 .env
+.env.local
 .DS_Store
 *.icloud
 node_modules/
+.next/
 dyoor-builder/layers/_disabled/
 *backup*.html
 *backup*.js
@@ -13,3 +15,4 @@ deno.lock
 artifacts/
 cache/
 .env
+tsconfig.tsbuildinfo

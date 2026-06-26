@@ -1,4 +1,6 @@
 const { createHash } = require("node:crypto");
+const fs = require("node:fs/promises");
+const path = require("node:path");
 const { getStore } = require("@netlify/blobs");
 const { ethers } = require("ethers");
 
@@ -6,6 +8,7 @@ const LIMIT = 500;
 const LAUNCH_AT = "2026-06-10T12:00:00-04:00";
 const STORE_NAME = "ascension-blueprints";
 const BLUEPRINTS_KEY = "ascension-blueprints.json";
+const LOCAL_BLUEPRINTS_PATH = path.join(process.cwd(), "data", "ascension-blueprints.json");
 const TRAITS = [
   "background",
   "droid",
@@ -112,9 +115,16 @@ function getBlobStore() {
 }
 
 async function readBlueprints() {
-  const store = getBlobStore();
-  const value = await store.get(BLUEPRINTS_KEY, { type: "json", consistency: "strong" });
-  return Array.isArray(value) ? value : [];
+  try {
+    const store = getBlobStore();
+    const value = await store.get(BLUEPRINTS_KEY, { type: "json", consistency: "strong" });
+    return Array.isArray(value) ? value : [];
+  } catch (error) {
+    const local = await fs.readFile(LOCAL_BLUEPRINTS_PATH, "utf8").catch(() => "[]");
+    const value = JSON.parse(local);
+    if (Array.isArray(value)) return value;
+    throw error;
+  }
 }
 
 async function writeBlueprints(blueprints) {

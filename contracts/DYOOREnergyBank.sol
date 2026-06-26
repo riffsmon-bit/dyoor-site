@@ -32,6 +32,7 @@ contract DYOOREnergyBank is AccessControl, Pausable, ReentrancyGuard, EIP712 {
     mapping(address => uint256) public nonces;
 
     mapping(bytes32 => bool) public usedClaimTxHash;
+    mapping(bytes32 => bool) public usedAirdropCampaign;
 
     event EnergyCredited(
         address indexed user,
@@ -54,6 +55,8 @@ contract DYOOREnergyBank is AccessControl, Pausable, ReentrancyGuard, EIP712 {
         bytes32 indexed reason
     );
 
+    event EnergyAirdropped(bytes32 indexed campaignId, address indexed recipient, uint256 amount);
+
     event SpenderSet(address indexed spender, bool approved);
     event CreditSignerSet(address indexed signer, bool approved);
 
@@ -63,6 +66,7 @@ contract DYOOREnergyBank is AccessControl, Pausable, ReentrancyGuard, EIP712 {
     error InvalidNonce();
     error InvalidSignature();
     error ClaimAlreadyUsed();
+    error CampaignAlreadyUsed();
     error InsufficientEnergy();
 
     constructor(
@@ -195,6 +199,31 @@ contract DYOOREnergyBank is AccessControl, Pausable, ReentrancyGuard, EIP712 {
         totalCredited[user] += amount;
 
         emit EnergyCredited(user, amount, claimTxHash, operator);
+    }
+
+    /// @notice Admin campaign airdrop for internal Energy points.
+    /// @dev Credits spendable and lifetime Energy only. Does not touch staking or pending harvest state.
+    function airdropEnergy(
+        address[] calldata recipients,
+        uint256 amount,
+        bytes32 campaignId
+    ) external onlyRole(DEFAULT_ADMIN_ROLE) whenNotPaused nonReentrant {
+        if (amount == 0) revert ZeroAmount();
+        if (recipients.length == 0) revert ZeroAmount();
+        if (campaignId == bytes32(0)) revert ZeroAmount();
+        if (usedAirdropCampaign[campaignId]) revert CampaignAlreadyUsed();
+
+        usedAirdropCampaign[campaignId] = true;
+
+        for (uint256 i = 0; i < recipients.length; i++) {
+            address recipient = recipients[i];
+            if (recipient == address(0)) revert ZeroAddress();
+
+            energyBalance[recipient] += amount;
+            totalCredited[recipient] += amount;
+
+            emit EnergyAirdropped(campaignId, recipient, amount);
+        }
     }
 
     // ------------------------------------------------------------

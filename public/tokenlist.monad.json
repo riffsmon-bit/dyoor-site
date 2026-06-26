@@ -1,0 +1,221 @@
+{
+  "name": "DYOOR Monad Top Tokens",
+  "timestamp": "2026-04-27T13:45:00.000000Z",
+  "chainId": 143,
+  "source": "Curated from Monad Foundation token list + Kuru popular pools",
+  "tokens": [
+    {
+      "symbol": "WMON",
+      "name": "Wrapped MON",
+      "address": "0x3bd359C1119dA7Da1D913D1C4D2B7c461115433A",
+      "chainId": 143,
+      "decimals": 18,
+      "logoURI": "https://raw.githubusercontent.com/monad-crypto/token-list/main/mainnet/WMON/logo.svg"
+    },
+    {
+      "symbol": "USDC",
+      "name": "USD Coin",
+      "address": "0x754704Bc059F8C67012fEd69BC8A327a5aafb603",
+      "chainId": 143,
+      "decimals": 6,
+      "logoURI": "https://raw.githubusercontent.com/monad-crypto/token-list/main/mainnet/USDC/logo.svg"
+    },
+    {
+      "symbol": "BOB",
+      "name": "BOB",
+      "address": "0x21E325B059Cd83d4037C82F0F5998Ba2dF3d7777",
+      "chainId": 143,
+      "decimals": 18,
+      "logoURI": "/assets/tokens/bob.png",
+      "popular": true
+    },
+    {
+      "symbol": "PamPam",
+      "name": "PamPam",
+      "address": "0x44812436147d162CE0A6b573DBCC7492eF117777",
+      "chainId": 143,
+      "decimals": 18,
+      "logoURI": "/tokens/pampam-token.png",
+      "popular": true
+    },
+    {
+      "symbol": "shramp",
+      "name": "shramp",
+      "address": "0x42a4aA89864A794dE135B23C6a8D2E05513d7777",
+      "chainId": 143,
+      "decimals": 18,
+      "logoURI": "/tokens/shramp-token.png",
+      "popular": true
+    },
+    {
+      "symbol": "CHOG",
+      "name": "Chog",
+      "address": "0x350035555E10D9aFaF1566aAEBFCeD5Ba6C27777",
+      "chainId": 143,
+      "decimals": 18,
+      "logoURI": "https://coin-images.coingecko.com/coins/images/70930/large/chog.png?1764628221"
+    },
+    {
+      "symbol": "BCHOG",
+      "name": "Burning Chog",
+      "address": "0xFD97581D397622f6E6662917ea3DeEEfB9F57777",
+      "chainId": 143,
+      "decimals": 18,
+      "logoURI": "/tokens/bchog-token.jpg",
+      "website": "https://www.burningchog.xyz",
+      "popular": true
+    },
+    {
+      "symbol": "emo",
+      "name": "emonad",
+      "address": "0x81a224F8A62f52BDe942DBf23A56Df77a10b7777",
+      "chainId": 143,
+      "decimals": 18,
+      "logoURI": "https://coin-images.coingecko.com/coins/images/102172808/large/wi13repazwee6wximmko4nk8jfbo.?1775837251"
+    },
+    {
+      "symbol": "USDT0",
+      "name": "Tether USD",
+      "address": "0xe7cd86e13AC4309349F30B3435a9d337750fC82D",
+      "chainId": 143,
+      "decimals": 6,
+      "logoURI": ""
+    },
+    {
+      "symbol": "AUSD",
+      "name": "Agora USD",
+      "address": "0x00000000eFE302BEAA2b3e6e1b18d08D69a9012a",
+      "chainId": 143,
+      "decimals": 6,
+      "logoURI": "https://raw.githubusercontent.com/monad-crypto/token-list/main/mainnet/AUSD/logo.svg"
+    },
+    {
+      "symbol": "USD1",
+      "name": "USD1",
+      "address": "0x111111d2bf19e43C34263401e0CAd979eD1cdb61",
+      "chainId": 143,
+      "decimals": 6,
+      "logoURI": "https://raw.githubusercontent.com/monad-crypto/token-list/main/mainnet/USD1/logo.svg"
+    },
+    {
+      "symbol": "WETH",
+      "name": "Wrapped Ether",
+      "address": "0xEE8c0E9f1BFFb4Eb878d8f15f368A02a35481242",
+      "chainId": 143,
+      "decimals": 18,
+      "logoURI": "https://coin-images.coingecko.com/coins/images/70824/large/weth_2.jpg?1764040144"
+    },
+    {
+      "symbol": "sMON",
+      "name": "Kintsu Staked Monad",
+      "address": "0xA3227C5969757783154C60bF0bC1944180ed81b9",
+      "chainId": 143,
+      "decimals": 18,
+      "logoURI": "https://coin-images.coingecko.com/coins/images/70835/large/sMON_%281%29.png?1764091581"
+    },
+    {
+      "symbol": "gMON",
+      "name": "gMON",
+      "address": "0x8498312A6B3cbD158Bf0C93AbdCf29e6e4F55081",
+      "chainId": 143,
+      "decimals": 18,
+      "logoURI": "https://coin-images.coingecko.com/coins/images/39746/large/gMonad_200px.png?1723781729"
+    },
+    {
+      "symbol": "shMON",
+      "name": "ShMonad",
+      "address": "0x1B68626dCa36c7Fe922fD2d55E4f631d962dE19c",
+      "chainId": 143,
+      "decimals": 18,
+      "logoURI": "https://coin-images.coingecko.com/coins/images/70837/large/SHMONAD_ICON_%281%29.png?1764108788"
+    },
+    {
+      "symbol": "CETES",
+      "name": "Etherfuse CETES",
+      "address": "0x834df4C1D8f51bE24322E39E4766697BE015512f",
+      "chainId": 143,
+      "decimals": 6,
+      "logoURI": "https://coin-images.coingecko.com/coins/images/37855/large/cetes.png?1715788161"
+    },
+    {
+      "symbol": "wstETH",
+      "name": "Lido Wrapped Staked ETH",
+      "address": "0x10Aeaf63194db8d453d4D85a06E5eFE1dd0b5417",
+      "chainId": 143,
+      "decimals": 18,
+      "logoURI": ""
+    },
+    {
+      "symbol": "WBTC",
+      "name": "Wrapped Bitcoin",
+      "address": "0x0555E30da8f98308EdB960aa94C0Db47230d2B9c",
+      "chainId": 143,
+      "decimals": 8,
+      "logoURI": ""
+    },
+    {
+      "symbol": "WSOL",
+      "name": "Wrapped SOL",
+      "address": "0xea17E5a9efEBf1477dB45082d67010E2245217f1",
+      "chainId": 143,
+      "decimals": 18,
+      "logoURI": "https://raw.githubusercontent.com/monad-crypto/token-list/main/mainnet/SOL/logo.svg"
+    },
+    {
+      "symbol": "LBTC",
+      "name": "Lombard Staked Bitcoin",
+      "address": "0xecAc9C5F704e954931349Da37F60E39f515c11c1",
+      "chainId": 143,
+      "decimals": 8,
+      "logoURI": "https://raw.githubusercontent.com/monad-crypto/token-list/main/mainnet/LBTC/logo.svg"
+    },
+    {
+      "symbol": "BTC.b",
+      "name": "BTC.b",
+      "address": "0xB0F70C0bD6FD87dbEb7C10dC692a2a6106817072",
+      "chainId": 143,
+      "decimals": 18,
+      "logoURI": "/assets/tokens/btcb.svg"
+    },
+    {
+      "symbol": "weETH",
+      "name": "Wrapped EtherFi ETH",
+      "address": "0xA3D68b74bF0528fdD07263c60d6488749044914b",
+      "chainId": 143,
+      "decimals": 18,
+      "logoURI": ""
+    },
+    {
+      "symbol": "ezETH",
+      "name": "Renzo Restaked ETH",
+      "address": "0x2416092f143378750bb29b79eD961ab195CcEea5",
+      "chainId": 143,
+      "decimals": 18,
+      "logoURI": "https://raw.githubusercontent.com/monad-crypto/token-list/main/mainnet/ezETH/logo.svg"
+    },
+    {
+      "symbol": "thBILL",
+      "name": "Theo Short Duration UST Fund",
+      "address": "0xfDD22Ce6D1F66bc0Ec89b20BF16CcB6670F55A5a",
+      "chainId": 143,
+      "decimals": 6,
+      "logoURI": "https://raw.githubusercontent.com/monad-crypto/token-list/main/mainnet/thBILL/logo.svg"
+    },
+    {
+      "symbol": "yzUSD",
+      "name": "Yuzu USD",
+      "address": "0x9dcB0D17eDDE04D27F387c89fECb78654C373858",
+      "chainId": 143,
+      "decimals": 6,
+      "logoURI": "https://raw.githubusercontent.com/monad-crypto/token-list/main/mainnet/yzUSD/logo.svg"
+    },
+    {
+      "symbol": "wsrUSD",
+      "name": "Wrapped srUSD",
+      "address": "0x4809010926aec940b550D34a46A52739f996D75D",
+      "chainId": 143,
+      "decimals": 6,
+      "logoURI": "https://raw.githubusercontent.com/monad-crypto/token-list/main/mainnet/wsrUSD/logo.svg"
+    }
+  ]
+}

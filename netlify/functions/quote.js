@@ -6,6 +6,7 @@ import { decodeFunctionResult, encodeFunctionData } from "viem";
 const DEFAULT_KURU_API_URL = "https://ws.kuru.io";
 const DEFAULT_KURU_FLOW_ROUTER = "0x0d3a1BE29E9dEd63c7a5678b31e847D68F71FFa2";
 const DEFAULT_MONAD_RPC_URL = "https://rpc.monad.xyz";
+const DEFAULT_TREASURY_WALLET = "0x4D540f7D0Eb841c839334655C9f88313D750c6d5";
 const NATIVE = "0x0000000000000000000000000000000000000000";
 const UI_NATIVE = "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee";
 const WMON = "0x3bd359C1119dA7Da1D913D1C4D2B7c461115433A";
@@ -127,6 +128,33 @@ async function rpcCall(to, data) {
   const json = await res.json().catch(() => null);
   if (!res.ok || json?.error) throw new Error(json?.error?.message || `Monad RPC HTTP ${res.status}`);
   return json?.result;
+}
+
+async function simulateTransaction({ from, to, data, value }) {
+  const rpcUrl = env("MONAD_RPC_URL", env("VITE_MONAD_RPC_URL", DEFAULT_MONAD_RPC_URL));
+  const res = await fetch(rpcUrl, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({
+      jsonrpc: "2.0",
+      id: 1,
+      method: "eth_call",
+      params: [{
+        from,
+        to,
+        data,
+        value: value || "0x0",
+        gas: "0x7a1200",
+      }, "latest"],
+    }),
+  });
+  const result = await res.json().catch(() => null);
+  if (!res.ok || result?.error) {
+    const reason = result?.error?.message || `Monad RPC HTTP ${res.status}`;
+    const data = result?.error?.data ? ` (${result.error.data})` : "";
+    throw new Error(`${reason}${data}`);
+  }
+  return result?.result;
 }
 
 async function tryNadFunQuote({ sellToken, buyToken, sellAmount, taker, slippageBps, supportOn }) {
@@ -274,7 +302,7 @@ export default async (request) => {
     const q = url.searchParams;
     if (!q.get("sellToken") && !q.get("buyToken")) {
       const feeBps = parseBps(env("DYOOR_SWAP_FEE_BPS", env("VITE_DYOOR_SWAP_FEE_BPS", "20")), 20);
-      const treasury = env("DYOOR_TREASURY", env("VITE_DYOOR_TREASURY"));
+      const treasury = env("DYOOR_TREASURY", env("VITE_DYOOR_TREASURY", DEFAULT_TREASURY_WALLET));
       return json(200, {
         ok: true,
         msg: "Kuru Flow quote function online",
@@ -295,7 +323,7 @@ export default async (request) => {
     const taker = q.get("taker");
     const slippageBps = parseBps(q.get("slippageBps"), 50);
     const supportOn = q.get("support") === "1";
-    const treasury = env("DYOOR_TREASURY", env("VITE_DYOOR_TREASURY"));
+    const treasury = env("DYOOR_TREASURY", env("VITE_DYOOR_TREASURY", DEFAULT_TREASURY_WALLET));
     const feeBps = parseBps(env("DYOOR_SWAP_FEE_BPS", env("VITE_DYOOR_SWAP_FEE_BPS", "20")), 20);
 
     if (!isAddr(sellToken) || !isAddr(buyToken)) return json(400, { error: "Invalid token address" });
@@ -361,10 +389,23 @@ export default async (request) => {
     }
 
     const spender = findStringDeep(kuru?.buildResponse || kuru, ["spender", "approvalAddress", "allowanceTarget"])
+      || tx.to
       || env("KURU_ROUTER_ADDRESS", env("VITE_KURU_ROUTER_ADDRESS", DEFAULT_KURU_FLOW_ROUTER));
     const warnings = [];
     if (supportOn && feeBps > 0) {
       warnings.push("Support DYOOR fee is included through Kuru Flow referrer fee support");
+    }
+
+    if (isSameToken(sellToken, NATIVE) && BigInt(tx.value || "0x0") > 0n) {
+      try {
+        await simulateTransaction({ from: taker, to: tx.to, data: tx.data, value: tx.value });
+      } catch (simulationError) {
+        return json(502, {
+          error: "Kuru Flow returned a route, but the transaction is currently reverting on Monad. Try another token, lower amount, or retry after Kuru routing updates.",
+          route: { label: "Kuru Flow", path: extractMarketPath(kuru?.path), raw: kuru?.path || null },
+          details: simulationError?.message || null,
+        });
+      }
     }
 
     const body = {

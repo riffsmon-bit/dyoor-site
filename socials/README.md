@@ -1,7 +1,7 @@
-Place the M3SH logo SVG here:
+Place the M3SH logo PNG here:
 
-socials/m3sh-logo.svg
+socials/M3SH.PNG
 
-It will be used on the homepage social link as:
+The homepage uses a cropped square icon generated from that source:
 
-/socials/m3sh-logo.svg
+/socials/M3SH-icon.png
