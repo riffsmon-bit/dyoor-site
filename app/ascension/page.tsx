@@ -214,6 +214,13 @@ function NftGrid({
 
 type HealthItemState = "ok" | "busy" | "warn" | "bad";
 
+function compactHealthDetail(detail: string) {
+  if (/eth_getLogs|block range|valid request object|RPC Request failed|range should work/i.test(detail)) {
+    return "Recovery scan needs a smaller RPC window. Counts are loaded; refresh to retry.";
+  }
+  return detail.length > 110 ? `${detail.slice(0, 107)}...` : detail;
+}
+
 function AscensionHealthDashboard({
   items,
   summary,
@@ -229,7 +236,7 @@ function AscensionHealthDashboard({
   };
 
   return (
-    <section className="mb-6 rounded border border-dyoor-purple/24 bg-[radial-gradient(520px_220px_at_12%_0%,rgba(57,255,226,.10),transparent_64%),linear-gradient(135deg,rgba(8,8,22,.84),rgba(21,12,48,.68))] p-4 shadow-[0_0_26px_rgba(131,110,249,.10)]">
+    <section className="mb-6 rounded border border-dyoor-purple/24 bg-[radial-gradient(520px_220px_at_12%_0%,rgba(57,255,226,.10),transparent_64%),linear-gradient(135deg,rgba(8,8,22,.84),rgba(21,12,48,.68))] p-3 shadow-[0_0_26px_rgba(131,110,249,.10)] md:p-4">
       <div className="flex flex-col gap-1 md:flex-row md:items-end md:justify-between">
         <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
           <p className="text-[0.68rem] font-black uppercase tracking-[0.22em] text-dyoor-cyan">Ascension Health</p>
@@ -237,16 +244,16 @@ function AscensionHealthDashboard({
         </div>
         <p className="text-xs font-bold leading-5 text-white/58 md:text-right">{summary}</p>
       </div>
-      <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+      <div className="mt-3 grid items-start gap-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
         {items.map((item) => {
           const showDetail = item.status !== "ok";
           return (
-          <div className={`rounded border px-3 py-2 ${toneClass[item.status]}`} key={item.label}>
+          <div className={`self-start rounded border px-3 py-2 ${toneClass[item.status]}`} key={item.label}>
             <div className="flex items-center justify-between gap-3">
               <p className="text-[0.68rem] font-black uppercase tracking-[0.14em]">{item.label}</p>
               <span className="text-base font-black leading-none">{item.status === "ok" ? "✓" : item.status === "busy" ? "…" : "!"}</span>
             </div>
-            {showDetail && <p className="mt-1.5 text-xs font-bold leading-4 opacity-80">{item.detail}</p>}
+            {showDetail && <p className="mt-1.5 text-xs font-bold leading-4 opacity-80">{compactHealthDetail(item.detail)}</p>}
           </div>
           );
         })}
@@ -484,7 +491,11 @@ export default function AscensionPage() {
       {
         label: "Recovery Required",
         status: recoveryAvailable ? "warn" as const : recoveryLimited ? "warn" as const : "ok" as const,
-        detail: recoveryAvailable ? `${ascension.recovery.recoverableTokenIds.length} NFT(s) need recovery.` : ascension.recovery.message,
+        detail: recoveryAvailable
+          ? `${ascension.recovery.recoverableTokenIds.length} NFT(s) need recovery.`
+          : recoveryLimited
+            ? "Recovery scan could not complete on the current RPC. Counts are still loaded."
+            : ascension.recovery.message,
       },
     ];
   }, [ascension, authenticated, blueprintHealth, walletService.providerName, walletService.status]);

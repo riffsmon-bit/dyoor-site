@@ -259,6 +259,7 @@ function PrivyFirstWalletServiceProvider({ children }: { children: ReactNode }) 
   const privyAddress = normalizeAddress(wallet?.address);
   const address = privyAddress || injected.address;
   const source: WalletSource = privyAddress ? "privy" : injected.source;
+  const uiReady = authReady || readyTimedOut || injected.ready;
 
   useEffect(() => {
     if (authReady) return;
@@ -349,9 +350,9 @@ function PrivyFirstWalletServiceProvider({ children }: { children: ReactNode }) 
     connected: Boolean(address),
     error: error || injected.error,
     providerName: source === "privy" ? "Privy" : injected.providerName,
-    ready: authReady || readyTimedOut || injected.ready,
+    ready: uiReady,
     source,
-    status: !(authReady || readyTimedOut)
+    status: !uiReady
       ? "loading"
       : connecting || injected.status === "connecting"
         ? "connecting"
@@ -383,7 +384,7 @@ function PrivyFirstWalletServiceProvider({ children }: { children: ReactNode }) 
       return await provider.request({ method: "personal_sign", params: [message, activeAddress] }) as string;
     },
     switchChain,
-  }), [address, authReady, connect, connecting, disconnect, error, getProvider, injected, readyTimedOut, source, switchChain, wrongNetwork]);
+  }), [address, connect, connecting, disconnect, error, getProvider, injected, source, switchChain, uiReady, wrongNetwork]);
 
   return <WalletServiceContext.Provider value={service}>{children}</WalletServiceContext.Provider>;
 }

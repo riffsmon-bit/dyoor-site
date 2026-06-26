@@ -206,9 +206,16 @@ function limitedRecoveryState(message: string, source = "bounded-scan") {
   return {
     ...clearRecoveryState,
     status: "limited" as const,
-    message,
+    message: formatRecoveryScanMessage(message),
     source,
   };
+}
+
+function formatRecoveryScanMessage(message: string) {
+  if (/eth_getLogs|block range|range should work|valid request object|RPC Request failed/i.test(message)) {
+    return "Recovery scan needs a smaller RPC window. NFT counts are loaded; refresh to retry recovery detection.";
+  }
+  return message.length > 160 ? `${message.slice(0, 157)}...` : message;
 }
 
 async function scanWalletTransferCandidateIds(wallet: Address) {
@@ -337,7 +344,7 @@ async function detectRecoverableDeposits(wallet: Address): Promise<AscensionReco
     return {
       ...clearRecoveryState,
       status: "error",
-      message: error instanceof Error ? error.message : "Recovery scan failed.",
+      message: formatRecoveryScanMessage(error instanceof Error ? error.message : "Recovery scan failed."),
       source: "wallet-transfer-log-scan",
       timingMs: Math.round(performance.now() - startedAt),
     };
