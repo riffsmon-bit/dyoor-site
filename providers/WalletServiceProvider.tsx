@@ -4,7 +4,7 @@ import { usePrivy } from "@privy-io/react-auth";
 import { BrowserProvider } from "ethers";
 import { createContext, ReactNode, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import { useActivePrivyWallet } from "@/hooks/useActivePrivyWallet";
-import { MONAD_CHAIN_HEX, MONAD_CHAIN_ID, DEFAULT_MONAD_RPC_URL, MONAD_EXPLORER_URL } from "@/lib/monad";
+import { MONAD_CHAIN_HEX, MONAD_CHAIN_ID, MONAD_EXPLORER_URL, MONAD_RPC_URL } from "@/lib/monad";
 
 export type Eip1193Provider = {
   request: (args: { method: string; params?: unknown[] }) => Promise<unknown>;
@@ -169,7 +169,7 @@ function useInjectedWallet() {
         params: [{
           chainId: MONAD_CHAIN_HEX,
           chainName: "Monad",
-          rpcUrls: [DEFAULT_MONAD_RPC_URL],
+          rpcUrls: [MONAD_RPC_URL],
           nativeCurrency: { name: "MON", symbol: "MON", decimals: 18 },
           blockExplorerUrls: [MONAD_EXPLORER_URL],
         }],
@@ -283,7 +283,7 @@ function PrivyFirstWalletServiceProvider({ children }: { children: ReactNode }) 
         params: [{
           chainId: MONAD_CHAIN_HEX,
           chainName: "Monad",
-          rpcUrls: [DEFAULT_MONAD_RPC_URL],
+          rpcUrls: [MONAD_RPC_URL],
           nativeCurrency: { name: "MON", symbol: "MON", decimals: 18 },
           blockExplorerUrls: [MONAD_EXPLORER_URL],
         }],

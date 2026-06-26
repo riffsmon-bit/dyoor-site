@@ -12,8 +12,13 @@ export function WalletButton() {
   const connecting = wallet.status === "connecting";
   const errored = wallet.status === "error";
   const connected = wallet.connected;
+  const wrongNetwork = wallet.status === "wrong-network";
 
   async function onClick() {
+    if (wrongNetwork) {
+      await wallet.switchChain().catch(() => {});
+      return;
+    }
     if (connected) {
       await wallet.disconnect();
       return;
@@ -26,8 +31,8 @@ export function WalletButton() {
     : connecting
       ? "Connecting..."
       : connected
-        ? wallet.status === "wrong-network"
-          ? "Wrong Network"
+        ? wrongNetwork
+          ? "Switch to Monad"
           : shortAddress(wallet.address)
         : errored
           ? "Retry Wallet"
@@ -37,9 +42,9 @@ export function WalletButton() {
     <button
       id="globalWalletBtn"
       className={`rounded border px-4 py-3 text-xs font-black uppercase transition ${
-        connected && wallet.status !== "wrong-network"
+        connected && !wrongNetwork
           ? "border-dyoor-cyan bg-dyoor-cyan/10 text-dyoor-cyan shadow-[0_0_22px_rgba(57,255,226,.16)] hover:bg-dyoor-cyan hover:text-black"
-          : wallet.status === "wrong-network"
+          : wrongNetwork
             ? "border-yellow-300/50 bg-yellow-300/10 text-yellow-100 hover:bg-yellow-300 hover:text-black"
             : errored
               ? "border-red-400/50 bg-red-400/10 text-red-100 hover:bg-red-400 hover:text-black"
@@ -48,7 +53,7 @@ export function WalletButton() {
       type="button"
       disabled={loading || connecting}
       onClick={() => void onClick()}
-      title={wallet.error || (connected ? `Disconnect ${wallet.providerName || "wallet"}` : "Connect wallet")}
+      title={wallet.error || (wrongNetwork ? "Switch wallet to Monad" : connected ? `Disconnect ${wallet.providerName || "wallet"}` : "Connect wallet")}
     >
       {label}
     </button>

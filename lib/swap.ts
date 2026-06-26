@@ -1,6 +1,8 @@
-export const SWAP_CHAIN_ID_DEC = 143;
-export const SWAP_CHAIN_ID_HEX = "0x8f";
-export const SWAP_MONAD_RPC = "https://rpc.monad.xyz";
+import { MONAD_CHAIN_HEX, MONAD_CHAIN_ID, MONAD_RPC_URL } from "@/lib/monad";
+
+export const SWAP_CHAIN_ID_DEC = MONAD_CHAIN_ID;
+export const SWAP_CHAIN_ID_HEX = MONAD_CHAIN_HEX;
+export const SWAP_MONAD_RPC = MONAD_RPC_URL;
 export const SWAP_NATIVE = "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee";
 export const SWAP_WMON = "0x3bd359C1119dA7Da1D913D1C4D2B7c461115433A";
 export const TOKEN_CACHE_KEY = "dyoor_kuru_tokens_v7";

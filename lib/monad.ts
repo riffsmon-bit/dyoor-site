@@ -1,9 +1,17 @@
 import { defineChain } from "viem";
 
-export const MONAD_CHAIN_ID = 143;
-export const MONAD_CHAIN_HEX = "0x8f";
+const configuredChainId = Number(
+  process.env.NEXT_PUBLIC_MONAD_CHAIN_ID
+  || process.env.EXPECTED_CHAIN_ID
+  || process.env.CHAIN_ID
+  || "143",
+);
+
+export const MONAD_CHAIN_ID = Number.isFinite(configuredChainId) && configuredChainId > 0 ? configuredChainId : 143;
+export const MONAD_CHAIN_HEX = `0x${MONAD_CHAIN_ID.toString(16)}`;
 export const MONAD_EXPLORER_URL = "https://monadscan.com";
 export const DEFAULT_MONAD_RPC_URL = "https://rpc.monad.xyz";
+export const MONAD_RPC_URL = process.env.NEXT_PUBLIC_MONAD_RPC_URL || DEFAULT_MONAD_RPC_URL;
 
 export const monadMainnet = defineChain({
   id: MONAD_CHAIN_ID,
@@ -15,10 +23,10 @@ export const monadMainnet = defineChain({
   },
   rpcUrls: {
     default: {
-      http: [process.env.NEXT_PUBLIC_MONAD_RPC_URL || DEFAULT_MONAD_RPC_URL],
+      http: [MONAD_RPC_URL],
     },
     public: {
-      http: [process.env.NEXT_PUBLIC_MONAD_RPC_URL || DEFAULT_MONAD_RPC_URL],
+      http: [MONAD_RPC_URL],
     },
   },
   blockExplorers: {
