@@ -73,7 +73,34 @@ function rechargeConfig() {
 
 export async function GET() {
   try {
-    return json(200, { ok: true, ...rechargeConfig() });
+    const energyBankAddress = requireAddress(
+      readEnv("ENERGY_BANK_ADDRESS", "NEXT_PUBLIC_ENERGY_BANK_ADDRESS") || DEFAULT_ENERGY_BANK_CONTRACT,
+      "ENERGY_BANK_ADDRESS",
+    );
+    const signerKey = normalizePrivateKey(
+      readEnv("ENERGY_BANK_OPERATOR_PRIVATE_KEY", "DEPLOYER_PRIVATE_KEY"),
+    );
+    const body: Record<string, unknown> = {
+      ok: true,
+      ...rechargeConfig(),
+      energyBankAddress,
+      creditReady: Boolean(signerKey),
+    };
+
+    if (signerKey) {
+      const provider = new ethers.JsonRpcProvider(readEnv("MONAD_RPC_URL", "NEXT_PUBLIC_MONAD_RPC_URL") || DEFAULT_RPC, MONAD_CHAIN_ID);
+      const signer = new ethers.Wallet(signerKey, provider);
+      const bank = new ethers.Contract(energyBankAddress, ENERGY_BANK_ABI, signer);
+      const creditRole = await bank.CREDIT_ROLE();
+      const hasCreditRole = await bank.hasRole(creditRole, signer.address);
+      body.operatorAddress = signer.address;
+      body.creditReady = hasCreditRole;
+      if (!hasCreditRole) body.creditUnavailableReason = "Energy Bank operator does not have CREDIT_ROLE.";
+    } else {
+      body.creditUnavailableReason = "Missing ENERGY_BANK_OPERATOR_PRIVATE_KEY.";
+    }
+
+    return json(200, body);
   } catch (error) {
     return json(500, { ok: false, error: error instanceof Error ? error.message : "Recharge config unavailable." });
   }

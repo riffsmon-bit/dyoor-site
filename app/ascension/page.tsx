@@ -375,6 +375,7 @@ export default function AscensionPage() {
   const [rechargeTxHash, setRechargeTxHash] = useState("");
   const [rechargeCreditTxHash, setRechargeCreditTxHash] = useState("");
   const [rechargeRecoveryTx, setRechargeRecoveryTx] = useState("");
+  const [rechargeCreditReady, setRechargeCreditReady] = useState(true);
   const [recharging, setRecharging] = useState(false);
   const [lendRecipient, setLendRecipient] = useState("");
   const [lendEnergy, setLendEnergy] = useState("");
@@ -420,10 +421,14 @@ export default function AscensionPage() {
       .then((data) => {
         if (!active) return;
         setTreasuryWallet(typeof data?.treasuryWallet === "string" ? data.treasuryWallet : "");
+        setRechargeCreditReady(data?.creditReady !== false);
         if (!data?.treasuryWallet) setRechargeStatus("Recharge is unavailable: treasury wallet is not configured.");
+        else if (data?.creditReady === false) setRechargeStatus(`Recharge is unavailable: ${data?.creditUnavailableReason || "Energy credit operator is not configured."}`);
       })
       .catch(() => {
-        if (active) setRechargeStatus("Recharge is unavailable: treasury config could not be loaded.");
+        if (!active) return;
+        setRechargeCreditReady(false);
+        setRechargeStatus("Recharge is unavailable: treasury config could not be loaded.");
       });
     return () => {
       active = false;
@@ -775,6 +780,10 @@ export default function AscensionPage() {
       setRechargeStatus("Recharge failed. Treasury wallet is not configured.");
       return;
     }
+    if (!rechargeCreditReady) {
+      setRechargeStatus("Recharge is unavailable: Energy credit operator is not configured.");
+      return;
+    }
     if (!rechargeMonRaw) {
       setRechargeStatus("Enter a valid MON amount.");
       return;
@@ -805,6 +814,10 @@ export default function AscensionPage() {
     if (recharging) return;
     if (!/^0x[a-fA-F0-9]{64}$/.test(txHash)) {
       setRechargeStatus("Enter a valid recharge transaction hash.");
+      return;
+    }
+    if (!rechargeCreditReady) {
+      setRechargeStatus("Recharge recovery is unavailable: Energy credit operator is not configured.");
       return;
     }
 
@@ -964,7 +977,7 @@ export default function AscensionPage() {
             <Button
               className="mt-3 w-full"
               variant="primary"
-              disabled={!authenticated || !rechargeMonRaw || !treasuryWallet || recharging}
+              disabled={!authenticated || !rechargeMonRaw || !treasuryWallet || !rechargeCreditReady || recharging}
               onClick={() => void rechargeEnergy()}
             >
               {recharging ? "Recharging..." : "Recharge Energy"}
@@ -1004,7 +1017,7 @@ export default function AscensionPage() {
                 <Button
                   className="px-3 py-2 text-xs"
                   variant="ghost"
-                  disabled={recharging || !rechargeRecoveryTx.trim()}
+                  disabled={recharging || !rechargeCreditReady || !rechargeRecoveryTx.trim()}
                   onClick={() => void recoverRechargePayment()}
                 >
                   Credit Tx
