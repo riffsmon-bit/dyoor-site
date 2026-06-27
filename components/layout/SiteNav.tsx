@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import dyoorLogo from "@/assets/dyoor-logo.png";
 import { WalletButton } from "@/components/wallet/WalletButton";
+import { useWalletService } from "@/providers/WalletServiceProvider";
 
 const navLinks = [
   { href: "/#swap", label: "Swap" },
@@ -16,9 +17,18 @@ const navLinks = [
   { href: "/whitepaper", label: "Whitepaper" },
 ];
 
+const adminLink = { href: "/admin-command-center", label: "Admin" };
+
+function normalizeAddress(address?: string) {
+  return /^0x[a-fA-F0-9]{40}$/.test(address || "") ? String(address).toLowerCase() : "";
+}
+
 export function SiteNav() {
   const pathname = usePathname();
+  const walletService = useWalletService();
+  const walletAddress = normalizeAddress(walletService.address);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [authorizedAdminWallet, setAuthorizedAdminWallet] = useState("");
   const menuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -37,13 +47,38 @@ export function SiteNav() {
     };
   }, [menuOpen]);
 
+  useEffect(() => {
+    let active = true;
+    if (!walletAddress) return () => {
+      active = false;
+    };
+
+    async function checkAdminAccess() {
+      try {
+        const response = await fetch(`/api/admin/snapshots?wallet=${encodeURIComponent(walletAddress)}`, { cache: "no-store" });
+        const data = await response.json().catch(() => ({}));
+        if (active) setAuthorizedAdminWallet(data.authorized ? walletAddress : "");
+      } catch {
+        if (active) setAuthorizedAdminWallet("");
+      }
+    }
+
+    void checkAdminAccess();
+    return () => {
+      active = false;
+    };
+  }, [walletAddress]);
+
   const isActive = (href: string) => {
     if (href === "/#swap") return pathname === "/";
     return pathname === href || pathname.startsWith(`${href}/`);
   };
 
+  const showAdminLink = Boolean(walletAddress && authorizedAdminWallet === walletAddress) || pathname.startsWith("/admin");
+  const links = showAdminLink ? [...navLinks, adminLink] : navLinks;
+
   return (
-    <header className="sticky top-0 z-50 border-b border-dyoor-purple/25 bg-[#050513]/90 shadow-[0_0_34px_rgba(131,110,249,.16)] backdrop-blur-xl">
+    <header className="sticky top-0 z-[90] border-b border-dyoor-purple/25 bg-[#050513] shadow-[0_0_34px_rgba(131,110,249,.16)]">
       <nav className="mx-auto flex min-h-20 max-w-7xl items-center justify-between gap-3 px-4 py-3 md:h-20 md:px-5 md:py-0">
         <Link className="group flex items-center gap-3" href="/" aria-label="DYOOR home">
           <Image
@@ -56,7 +91,7 @@ export function SiteNav() {
           />
         </Link>
         <div className="hidden items-center gap-5 text-xs font-black uppercase tracking-[0.15em] text-white/70 md:flex">
-          {navLinks.map((link) => (
+          {links.map((link) => (
             <Link className="transition hover:text-dyoor-cyan hover:drop-shadow-[0_0_10px_rgba(57,255,226,.55)]" href={link.href} key={link.href}>
               {link.label}
             </Link>
@@ -81,34 +116,29 @@ export function SiteNav() {
         </div>
       </nav>
       {menuOpen && (
-        <div className="fixed inset-x-0 bottom-0 top-20 z-40 md:hidden">
-          <button
-            aria-label="Close navigation menu"
-            className="absolute inset-0 h-full w-full cursor-default bg-black/64 backdrop-blur-sm"
-            type="button"
-            onClick={() => setMenuOpen(false)}
-          />
+        <div className="fixed inset-x-0 bottom-0 top-20 z-[80] border-t border-dyoor-cyan/30 bg-[#050513] md:hidden" role="dialog" aria-modal="true">
           <div
             ref={menuRef}
             id="mobile-site-menu"
-            className="absolute inset-x-0 top-0 max-h-[calc(100dvh-5rem)] overflow-y-auto border-b border-dyoor-purple/30 bg-[#070619]/96 px-4 pb-[calc(env(safe-area-inset-bottom)+1rem)] pt-3 shadow-[0_26px_60px_rgba(0,0,0,.58)]"
+            className="h-full overflow-y-auto bg-[#050513] px-4 pb-[calc(env(safe-area-inset-bottom)+1.25rem)] pt-4 shadow-[0_26px_60px_rgba(0,0,0,.58)]"
           >
-            <nav className="mx-auto grid w-full max-w-md gap-2" aria-label="Mobile navigation">
-              {navLinks.map((link) => {
+            <nav className="mx-auto grid w-full max-w-md gap-3" aria-label="Mobile navigation">
+              {links.map((link) => {
                 const active = isActive(link.href);
                 return (
                   <Link
-                    className={`flex min-h-12 items-center justify-between rounded border px-4 py-3 text-sm font-black uppercase tracking-[0.13em] transition ${
+                    aria-current={active ? "page" : undefined}
+                    className={`flex min-h-[4.25rem] items-center justify-between rounded border px-4 py-4 text-base font-black uppercase leading-tight tracking-normal transition ${
                       active
-                        ? "border-dyoor-cyan/70 bg-dyoor-cyan/14 text-dyoor-cyan shadow-[0_0_22px_rgba(57,255,226,.14)]"
-                        : "border-dyoor-purple/28 bg-white/[0.055] text-white/82 hover:border-dyoor-cyan/45 hover:text-dyoor-cyan"
+                        ? "border-dyoor-cyan bg-dyoor-cyan text-black shadow-[0_0_22px_rgba(57,255,226,.2)]"
+                        : "border-dyoor-purple/45 bg-[#0c1026] text-white hover:border-dyoor-cyan/65 hover:text-dyoor-cyan"
                     }`}
                     href={link.href}
                     key={link.href}
                     onClick={() => setMenuOpen(false)}
                   >
-                    <span>{link.label}</span>
-                    <span className="text-white/28" aria-hidden="true">/</span>
+                    <span className="truncate">{link.label}</span>
+                    <span className={active ? "text-black/45" : "text-dyoor-cyan"} aria-hidden="true">/</span>
                   </Link>
                 );
               })}
