@@ -84,6 +84,20 @@ function findTracePayment(call: TraceCall | null | undefined, user: string, trea
   return 0n;
 }
 
+async function tracePaymentValue(
+  txHash: string,
+  user: string,
+  treasuryWallet: string,
+  providers: ethers.JsonRpcProvider[],
+) {
+  for (const provider of providers) {
+    const trace = await provider.send("debug_traceTransaction", [txHash, { tracer: "callTracer" }]).catch(() => null) as TraceCall | null;
+    const tracedValue = findTracePayment(trace, user, treasuryWallet);
+    if (tracedValue > 0n) return tracedValue;
+  }
+  return 0n;
+}
+
 function normalizeAddressOrEmpty(value: unknown) {
   try {
     return ethers.getAddress(String(value || "")).toLowerCase();
@@ -97,6 +111,7 @@ async function resolveRechargePayment(
   txHash: string,
   user: string,
   treasuryWallet: string,
+  fallbackTraceProvider?: ethers.JsonRpcProvider,
 ) {
   const [tx, receipt] = await Promise.all([
     provider.getTransaction(txHash),
@@ -112,8 +127,8 @@ async function resolveRechargePayment(
     return { monAmountRaw: tx.value, paymentSource: "direct-transfer" };
   }
 
-  const trace = await provider.send("debug_traceTransaction", [txHash, { tracer: "callTracer" }]).catch(() => null) as TraceCall | null;
-  const tracedValue = findTracePayment(trace, user, treasuryWallet);
+  const traceProviders = fallbackTraceProvider ? [provider, fallbackTraceProvider] : [provider];
+  const tracedValue = await tracePaymentValue(txHash, user, treasuryWallet, traceProviders);
   if (tracedValue > 0n) {
     return { monAmountRaw: tracedValue, paymentSource: "smart-wallet-trace" };
   }
@@ -192,13 +207,15 @@ export async function POST(request: Request) {
     const txHash = requireTxHash(body.txHash);
     const requestedMonAmountRaw = body.monAmountRaw ? requireUint(body.monAmountRaw, "monAmountRaw") : null;
 
-    const provider = new ethers.JsonRpcProvider(readEnv("MONAD_RPC_URL", "NEXT_PUBLIC_MONAD_RPC_URL") || DEFAULT_RPC, MONAD_CHAIN_ID);
+    const rpcUrl = readEnv("MONAD_RPC_URL", "NEXT_PUBLIC_MONAD_RPC_URL") || DEFAULT_RPC;
+    const provider = new ethers.JsonRpcProvider(rpcUrl, MONAD_CHAIN_ID);
+    const fallbackTraceProvider = rpcUrl === DEFAULT_RPC ? undefined : new ethers.JsonRpcProvider(DEFAULT_RPC, MONAD_CHAIN_ID);
     const network = await provider.getNetwork();
     if (network.chainId !== BigInt(MONAD_CHAIN_ID)) {
       throw new Error(`Wrong RPC network. Expected chain ${MONAD_CHAIN_ID}, got ${network.chainId.toString()}.`);
     }
 
-    const payment = await resolveRechargePayment(provider, txHash, user, treasuryWallet);
+    const payment = await resolveRechargePayment(provider, txHash, user, treasuryWallet, fallbackTraceProvider);
     if (requestedMonAmountRaw && payment.monAmountRaw !== requestedMonAmountRaw) {
       return json(400, { ok: false, error: "Recharge amount does not match requested MON amount." });
     }
