@@ -73,7 +73,8 @@ export async function POST(request: Request) {
   try {
     const body = await request.json().catch(() => ({}));
     await verifyAdmin(body, "energy-airdrop");
-    const recipients = Array.from(new Set<string>((Array.isArray(body.recipients) ? body.recipients : [])
+    const inputRecipients: unknown[] = Array.isArray(body.recipients) ? body.recipients : [];
+    const recipients = Array.from(new Set<string>(inputRecipients
       .map((item: unknown) => normalizeAddress(item))
       .filter((item): item is string => Boolean(item))));
     const amount = requireUint(body.amountRaw, "amountRaw");
