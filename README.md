@@ -8,6 +8,35 @@
 ## Deploy
 Upload the folder contents to Netlify as a static site.
 
+## Energy Bank Admin
+
+Energy Bank deployment, backfill, and airdrop commands live in
+`DEPLOY_ENERGY_BANK.md`.
+
+For the 25,000 Energy wallet airdrop, run contract tests first:
+
+```bash
+npm run compile:contracts
+npm run test:contracts
+```
+
+Then dry-run before any broadcast:
+
+```bash
+export ENERGY_BANK_ADDRESS=<deployed DYOOREnergyBank address>
+export DEPLOYER_PRIVATE_KEY=<admin private key>
+export HARDHAT_NETWORK=monad
+export AIRDROP_WALLET_FILE=/Users/brandonduke/Desktop/dyoor_wallet_addresses.txt
+
+npm run airdrop:energy:dry-run
+```
+
+Broadcast command:
+
+```bash
+npm run airdrop:energy:broadcast
+```
+
 ## OpenSea collection preview (scrolling marquee)
 This site includes a "Collection Preview" section that pulls NFT images from OpenSea and scrolls them continuously.
 

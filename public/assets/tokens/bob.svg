@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-labelledby="title desc">
+  <title id="title">BOB token logo</title>
+  <desc id="desc">Cartoon orange fish head token logo for BOB.</desc>
+  <rect width="256" height="256" rx="36" fill="#6d52ff"/>
+  <path d="M84 235c-4-34-8-72-8-113 0-55 28-92 68-92 34 0 68 32 76 84 8 49 2 96-14 121H84Z" fill="#e47741" stroke="#12131a" stroke-width="7" stroke-linejoin="round"/>
+  <path d="M166 35c28 15 48 47 54 87 7 43 3 83-9 110h-31c11-35 14-78 4-120-8-36-25-62-48-78 9-3 20-3 30 1Z" fill="#9c542f" opacity=".58"/>
+  <path d="M38 92c4-19 25-26 58-21 28 4 47 16 43 33-4 18-28 22-61 18-31-4-44-13-40-30Z" fill="#f7f8ff" stroke="#11131a" stroke-width="7"/>
+  <path d="M130 92c4-19 25-26 58-21 28 4 47 16 43 33-4 18-28 22-61 18-31-4-44-13-40-30Z" fill="#f7f8ff" stroke="#11131a" stroke-width="7"/>
+  <circle cx="93" cy="96" r="8" fill="#11131a"/>
+  <circle cx="182" cy="96" r="8" fill="#11131a"/>
+  <path d="M25 152c8-13 141-14 169-2 9 4 8 15-1 18-33 11-153 10-167 3-7-4-7-12-1-19Z" fill="#ead49b" stroke="#11131a" stroke-width="7" stroke-linejoin="round"/>
+  <path d="M29 170c31 8 128 7 161-2" fill="none" stroke="#6d4637" stroke-width="5" stroke-linecap="round" opacity=".55"/>
+  <path d="M188 158c17 7 32 18 43 33" fill="none" stroke="#11131a" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M205 158c13 6 25 15 36 27" fill="none" stroke="#11131a" stroke-width="5" stroke-linecap="round" opacity=".85"/>
+</svg>

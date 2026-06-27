@@ -1,0 +1,12 @@
+{
+  "campaigns": {
+    "0xf7976c94d486c6d4d2d6b38e092abaa315cc80b2d2c6a8ac5978b66acb66a7b6": {
+      "label": "DYOOR_STAKE_BY_JUNE_9_2026_25000_ENERGY",
+      "walletFile": "/Users/brandonduke/Desktop/dyoor_wallet_addresses.txt",
+      "recipientCount": 31,
+      "amountPerRecipient": "25000000000000000000000",
+      "totalEnergy": "775000000000000000000000",
+      "updatedAt": "2026-06-10T02:41:47.819Z"
+    }
+  }
+}

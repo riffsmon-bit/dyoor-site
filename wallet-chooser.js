@@ -47,9 +47,18 @@
 
   function getInjectedProvider(type) {
     const eth = window.ethereum;
-    if (!eth) return null;
+    const tokenPocketProvider = window.tokenpocket?.ethereum
+      || window.tokenPocket?.ethereum
+      || window.tp?.ethereum
+      || window.tokenpocket
+      || window.tokenPocket
+      || window.tp;
+    if (!eth && !tokenPocketProvider) return null;
 
-    const providers = Array.isArray(eth.providers) ? eth.providers : [eth];
+    const providers = [
+      ...(eth ? (Array.isArray(eth.providers) ? eth.providers : [eth]) : []),
+      tokenPocketProvider
+    ].filter(Boolean);
     const pick = (predicate) => providers.find((provider) => {
       try {
         return predicate(provider);
@@ -70,12 +79,14 @@
       case "metamask":
         return pick((provider) => provider.isMetaMask);
       case "tokenpocket":
-        return pick((provider) => provider.isTokenPocket || provider.isTPWallet);
+        return tokenPocketProvider
+          || pick((provider) => provider.isTokenPocket || provider.isTPWallet || provider.isTokenPocketWallet || provider.isTpWallet)
+          || (isMobile() && providers.length === 1 ? providers[0] : null);
       case "rabby":
         return pick((provider) => provider.isRabby);
       case "injected":
       default:
-        return eth;
+        return eth || tokenPocketProvider;
     }
   }
 
@@ -532,7 +543,8 @@
     const links = root.querySelector("#walletDeepLinks");
     const hasInjected = !!window.ethereum
       || !!(window.okxwallet && (window.okxwallet.ethereum || window.okxwallet))
-      || !!(window.phantom && window.phantom.ethereum);
+      || !!(window.phantom && window.phantom.ethereum)
+      || !!(window.tokenpocket?.ethereum || window.tokenPocket?.ethereum || window.tp?.ethereum || window.tokenpocket || window.tokenPocket || window.tp);
     const mobileNoInjected = isMobile() && !hasInjected;
 
     if (hint) hint.style.display = mobileNoInjected ? "block" : "none";
