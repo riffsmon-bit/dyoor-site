@@ -79,6 +79,17 @@ Server execution batches recipients in groups of 150. For multi-batch airdrops, 
 
 Each batch checks `usedAirdropCampaign` before sending. Results include per-wallet success or failure.
 
+## Snapshot Tools
+
+The owner snapshot suite exports:
+
+- Ascension Staking Snapshot: one row per wallet with staked count, token IDs, pending Energy, harvested Energy, lifetime Energy, and timestamp
+- Ascended S1 NFT Snapshot: one row per ascended Season 1 NFT with token ID, owner wallet, source, Energy values, contracts, and timestamp
+- Blueprint Snapshot: saved blueprint data, image fields, traits, and eligibility
+- Combined Ascension Snapshot: wallet-level staking and blueprint records merged for campaign review
+
+Ascended S1 token IDs are sourced from staking wallet reads first, with transfer-log plus `stakeInfo` discovery used as fallback coverage.
+
 ## CSV Format
 
 CSV input can be simple wallet-only rows. The parser accepts wallet addresses separated by whitespace, commas, semicolons, or line breaks. Extra CSV columns are ignored unless they contain valid EVM addresses.

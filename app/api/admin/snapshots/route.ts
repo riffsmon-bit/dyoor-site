@@ -214,19 +214,55 @@ async function generateSnapshots() {
   const harvestLedger = await readHarvestLedger();
   const blueprint = blueprintRows(blueprints, timestamp);
   const discovered = await discoverStakingWallets(provider, stakingAddress, nftAddress);
+  const ascendedTokenOwners = new Map<string, string>();
   const walletSet = new Set<string>(blueprint.map((row) => String(row.wallet)));
 
   for (const tokenId of discovered.tokenIds) {
     const currentOwner = normalizeAddress(await safeContract(async () => await nft.ownerOf(BigInt(tokenId)), ""));
     if (currentOwner !== stakingAddress.toLowerCase()) continue;
     const staker = await tokenOwnerFromStakeInfo(staking, tokenId);
-    if (staker) walletSet.add(staker);
+    if (staker) {
+      ascendedTokenOwners.set(tokenId, staker);
+      walletSet.add(staker);
+    }
   }
   for (const wallet of discovered.wallets) walletSet.add(wallet);
 
   const stakingRows = (await Promise.all(Array.from(walletSet).map((wallet) => stakingRow(wallet, staking, energyBank, harvestLedger, timestamp))))
     .filter((row) => row.stakedCount > 0 || blueprint.some((item) => item.wallet === row.wallet));
   const stakingByWallet = new Map(stakingRows.map((row) => [row.wallet, row]));
+  const ascendedS1ByToken = new Map<string, Record<string, unknown>>();
+
+  function addAscendedS1Row(tokenId: string, wallet: string, source: string) {
+    if (!/^\d+$/.test(tokenId) || !wallet) return;
+    const stake = stakingByWallet.get(wallet);
+    ascendedS1ByToken.set(tokenId, {
+      tokenId,
+      wallet,
+      ascended: "yes",
+      tokenIdSource: source,
+      stakedCountForWallet: stake?.stakedCount || "",
+      pendingEnergy: stake?.pendingEnergy || "0",
+      pendingEnergyRaw: stake?.pendingEnergyRaw || "0",
+      harvestedEnergy: stake?.harvestedEnergy || "",
+      harvestedEnergyRaw: stake?.harvestedEnergyRaw || "0",
+      lifetimeEnergy: stake?.lifetimeEnergy || "0",
+      lifetimeEnergyRaw: stake?.lifetimeEnergyRaw || "0",
+      nftContract: nftAddress.toLowerCase(),
+      stakingContract: stakingAddress.toLowerCase(),
+      snapshotTimestamp: timestamp,
+    });
+  }
+
+  for (const row of stakingRows) {
+    for (const tokenId of row.tokenIds || []) addAscendedS1Row(String(tokenId), row.wallet, "staking-wallet-read");
+  }
+  for (const [tokenId, wallet] of ascendedTokenOwners.entries()) {
+    if (!ascendedS1ByToken.has(tokenId)) addAscendedS1Row(tokenId, wallet, "transfer-log-stakeInfo");
+  }
+
+  const ascendedS1 = Array.from(ascendedS1ByToken.values())
+    .sort((a, b) => Number(a.tokenId || 0) - Number(b.tokenId || 0));
   const blueprintByWallet = new Map(blueprint.map((row) => [String(row.wallet), row]));
   const combined = Array.from(new Set([...stakingByWallet.keys(), ...blueprintByWallet.keys()])).sort().map((wallet) => {
     const stake = stakingByWallet.get(wallet);
@@ -257,9 +293,12 @@ async function generateSnapshots() {
     totals: {
       walletsFound: combined.length,
       totalStaked: stakingRows.reduce((sum, row) => sum + Number(row.stakedCount || 0), 0),
+      totalAscendedS1: ascendedS1.length,
+      ascendedS1Wallets: new Set(ascendedS1.map((row) => String(row.wallet))).size,
       totalBlueprintsSaved: blueprint.length,
     },
     staking: stakingRows,
+    ascendedS1,
     blueprints: blueprint,
     combined,
   };

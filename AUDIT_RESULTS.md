@@ -86,6 +86,7 @@ Wallet loading has timeout behavior and retry/error state.
 - Admin APIs now share server-side owner verification, timestamp validation, and in-memory nonce replay protection.
 - Energy Airdrop preview now reports raw entries, valid wallets, duplicates removed, invalid entries, Energy totals, and estimated action count.
 - Energy Airdrop execution now supports server-side batching, per-wallet result rows, partial-success status, and CSV/JSON result exports with note/reason fields.
+- Admin snapshot suite now includes a dedicated Ascended S1 NFT Snapshot export with one row per ascended S1 token ID.
 - See `ADMIN_COMMAND_CENTER.md` for route, ENV, security, CSV, and export details.
 
 ## Cloudflare Verification

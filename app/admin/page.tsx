@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { formatUnits, parseUnits } from "viem";
 import { Alert, Button, Card, EmptyState, LoadingSkeleton, PageShell, SectionHeader, StatCard } from "@/components/ui/DyoorUi";
 import { adminMessage } from "@/lib/adminMessage";
+import { MONAD_CHAIN_HEX } from "@/lib/monad";
 import { useWalletService } from "@/providers/WalletServiceProvider";
 
 type Eip1193Provider = {
@@ -15,9 +16,12 @@ type Snapshot = {
   totals: {
     walletsFound: number;
     totalStaked: number;
+    totalAscendedS1?: number;
+    ascendedS1Wallets?: number;
     totalBlueprintsSaved: number;
   };
   staking: Array<Record<string, any>>;
+  ascendedS1?: Array<Record<string, any>>;
   blueprints: Array<Record<string, any>>;
   combined: Array<Record<string, any>>;
 };
@@ -204,6 +208,7 @@ export default function AdminPage() {
   const [airdropResult, setAirdropResult] = useState<AirdropResult | null>(null);
   const [lastVerifiedAt, setLastVerifiedAt] = useState("");
   const [lastSignatureAt, setLastSignatureAt] = useState("");
+  const [currentChainId, setCurrentChainId] = useState("");
 
   useEffect(() => {
     let active = true;
@@ -213,20 +218,24 @@ export default function AdminPage() {
       if (!walletAddress) {
         setAuthorized(false);
         setAuthStatus("Connect owner wallet.");
+        setCurrentChainId("");
         return;
       }
       const response = await fetch(`/api/admin/snapshots?wallet=${encodeURIComponent(walletAddress)}`, { cache: "no-store" });
       const data = await response.json().catch(() => ({}));
+      const provider = await walletService.getProvider().catch(() => null) as Eip1193Provider | null;
+      const chainId = provider ? await provider.request({ method: "eth_chainId" }).catch(() => "") : "";
       if (!active) return;
       setAuthorized(Boolean(data.authorized));
       setAuthStatus(data.authorized ? "Owner wallet connected. Sign to unlock snapshots." : "Not authorized.");
+      setCurrentChainId(String(chainId || ""));
       setLastVerifiedAt(new Date().toISOString());
     }
     void checkOwner();
     return () => {
       active = false;
     };
-  }, [walletAddress]);
+  }, [walletAddress, walletService]);
 
   const filenameBase = useMemo(() => `dyoor-admin-${stamp(snapshot?.generatedAt)}`, [snapshot?.generatedAt]);
   const parsedAirdropRecipients = useMemo(() => parseWalletList(airdropRecipientsInput), [airdropRecipientsInput]);
@@ -373,7 +382,7 @@ export default function AdminPage() {
           eyebrow="Owner Command"
           title="DYOOR Admin Command Center"
           copy="Owner-only command surface for protected snapshots and internal Energy operations. Every action requires the configured owner wallet, a fresh signature, timestamp, and nonce."
-          actions={<Button variant="primary" onClick={authenticated ? generateSnapshot : () => void walletService.connect()} disabled={loading || (authenticated && !authorized)}>{loading ? "Generating..." : authenticated ? "Generate Staking Snapshot" : "Connect Owner Wallet"}</Button>}
+          actions={<Button variant="primary" onClick={authenticated ? generateSnapshot : () => void walletService.connect()} disabled={loading || (authenticated && !authorized)}>{loading ? "Generating..." : authenticated ? "Generate Snapshots" : "Connect Owner Wallet"}</Button>}
         />
         <Alert tone={!walletAddress ? "warning" : authorized ? "success" : "danger"}>{authStatus}</Alert>
       </Card>
@@ -391,7 +400,7 @@ export default function AdminPage() {
             {authorized ? "Owner verified" : walletAddress ? "Wallet rejected" : "Wallet required"}
           </p>
         </div>
-        <div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-5">
+        <div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-6">
           <div className="rounded border border-dyoor-purple/25 bg-black/30 p-3">
             <p className="text-[0.66rem] font-black uppercase tracking-[0.14em] text-white/40">Connected Wallet</p>
             <p className="mt-2 break-all text-sm font-black text-white">{walletAddress ? shortAddress(walletAddress) : "Connect owner wallet"}</p>
@@ -408,6 +417,10 @@ export default function AdminPage() {
             <p className="text-[0.66rem] font-black uppercase tracking-[0.14em] text-white/40">Wallet State</p>
             <p className="mt-2 text-sm font-black uppercase text-white">{walletService.status}</p>
           </div>
+          <div className={`rounded border p-3 ${currentChainId && currentChainId.toLowerCase() !== MONAD_CHAIN_HEX ? "border-yellow-300/25 bg-yellow-300/10" : "border-dyoor-purple/25 bg-black/30"}`}>
+            <p className="text-[0.66rem] font-black uppercase tracking-[0.14em] text-white/40">Current Network</p>
+            <p className="mt-2 text-sm font-black uppercase text-white">{currentChainId ? currentChainId.toLowerCase() === MONAD_CHAIN_HEX ? "Monad" : currentChainId : "-"}</p>
+          </div>
           <div className="rounded border border-dyoor-purple/25 bg-black/30 p-3">
             <p className="text-[0.66rem] font-black uppercase tracking-[0.14em] text-white/40">Last Verified</p>
             <p className="mt-2 text-sm font-black text-white">{lastSignatureAt ? new Date(lastSignatureAt).toLocaleTimeString() : lastVerifiedAt ? new Date(lastVerifiedAt).toLocaleTimeString() : "-"}</p>
@@ -415,15 +428,16 @@ export default function AdminPage() {
         </div>
       </Card>
 
-      <div className="mb-6 grid gap-4 md:grid-cols-3">
+      <div className="mb-6 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         <StatCard label="Total Wallets Found" value={snapshot?.totals.walletsFound ?? "-"} />
         <StatCard label="Total Staked" value={snapshot?.totals.totalStaked ?? "-"} />
+        <StatCard label="Ascended S1 NFTs" value={snapshot?.totals.totalAscendedS1 ?? "-"} />
         <StatCard label="Blueprints Saved" value={snapshot?.totals.totalBlueprintsSaved ?? "-"} />
       </div>
 
       <div className="mb-6 flex flex-wrap items-center justify-between gap-3 rounded border border-dyoor-purple/25 bg-white/[0.035] p-4 text-sm font-bold text-white/62">
         <span>Last generated: {snapshot?.generatedAt ? new Date(snapshot.generatedAt).toLocaleString() : "Not generated yet"}</span>
-        <Button variant="secondary" onClick={generateSnapshot} disabled={!authorized || loading}>Generate Staking Snapshot</Button>
+        <Button variant="secondary" onClick={generateSnapshot} disabled={!authorized || loading}>Refresh Snapshot Suite</Button>
       </div>
 
       <div className="grid gap-6">
@@ -432,6 +446,12 @@ export default function AdminPage() {
           description="Wallets, staked S1 counts, token IDs when available, pending Energy, lifetime Energy, ascended flag, and snapshot timestamp."
           rows={snapshot?.staking || []}
           filename={`${filenameBase}-staking`}
+        />
+        <SnapshotSection
+          title="Ascended S1 NFT Snapshot"
+          description="One row per ascended Season 1 NFT, including token ID, owner wallet, source, Energy values, and snapshot timestamp."
+          rows={snapshot?.ascendedS1 || []}
+          filename={`${filenameBase}-ascended-s1`}
         />
         <SnapshotSection
           title="Blueprint Snapshot"
