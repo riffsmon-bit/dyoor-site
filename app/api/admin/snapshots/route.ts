@@ -2,6 +2,7 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import { getStore } from "@netlify/blobs";
 import { ethers } from "ethers";
+import { adminOwnerWallet, verifyAdmin } from "@/lib/adminAuth";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -14,7 +15,6 @@ const DEFAULT_ENERGY_BANK = "0x291a8cC0FCa08EBd64a0e4d67B4455d24e9E6767";
 const BLUEPRINTS_KEY = "ascension-blueprints.json";
 const LOCAL_BLUEPRINTS_PATH = path.join(process.cwd(), "data", "ascension-blueprints.json");
 const LOCAL_HARVEST_LEDGER_PATH = path.join(process.cwd(), "data", "harvested-energy.json");
-const ADMIN_WINDOW_MS = 5 * 60 * 1000;
 
 const TRAIT_EXPORT_ORDER = [
   ["background", "Background"],
@@ -62,19 +62,6 @@ function normalizeAddress(value: unknown) {
   }
 }
 
-function ownerWallet() {
-  return normalizeAddress(readEnv("ENERGY_ADMIN_ADDRESS", "DYOOR_OWNER_ADDRESS", "ADMIN_WALLET", "OWNER_WALLET", "ADMIN_WALLETS").split(",")[0]);
-}
-
-function adminMessage(wallet: string, timestamp: string, nonce: string) {
-  return [
-    "DYOOR Admin Snapshot",
-    `Wallet: ${wallet}`,
-    `Timestamp: ${timestamp}`,
-    `Nonce: ${nonce}`,
-  ].join("\n");
-}
-
 function json(status: number, body: Record<string, unknown>) {
   return Response.json(body, {
     status,
@@ -95,34 +82,6 @@ function serialize(value: unknown): unknown {
     return Object.fromEntries(Object.entries(value).map(([key, val]) => [key, serialize(val)]));
   }
   return value;
-}
-
-async function verifyAdmin(body: Record<string, unknown>) {
-  const owner = ownerWallet();
-  if (!owner) throw Object.assign(new Error("Admin owner wallet is not configured."), { status: 500 });
-
-  const wallet = normalizeAddress(body.wallet);
-  const timestamp = String(body.timestamp || "");
-  const nonce = String(body.nonce || "");
-  const signature = String(body.signature || "");
-
-  if (!wallet) throw Object.assign(new Error("Missing wallet."), { status: 400 });
-  if (wallet !== owner) throw Object.assign(new Error("Not authorized."), { status: 403 });
-  if (!/^\d+$/.test(timestamp) || Math.abs(Date.now() - Number(timestamp)) > ADMIN_WINDOW_MS) {
-    throw Object.assign(new Error("Admin signature expired. Sign again."), { status: 401 });
-  }
-  if (!nonce || nonce.length < 8 || !signature) {
-    throw Object.assign(new Error("Missing admin signature."), { status: 400 });
-  }
-
-  let recovered = "";
-  try {
-    recovered = normalizeAddress(ethers.verifyMessage(adminMessage(wallet, timestamp, nonce), signature));
-  } catch {
-    recovered = "";
-  }
-  if (recovered !== owner) throw Object.assign(new Error("Admin signature does not match owner wallet."), { status: 401 });
-  return owner;
 }
 
 function getBlueprintStore() {
@@ -309,7 +268,7 @@ async function generateSnapshots() {
 export async function GET(request: Request) {
   const url = new URL(request.url);
   const wallet = normalizeAddress(url.searchParams.get("wallet"));
-  const owner = ownerWallet();
+  const owner = normalizeAddress(adminOwnerWallet());
   if (!owner) return json(500, { ok: false, error: "Admin owner wallet is not configured." });
   return json(200, { ok: true, connected: Boolean(wallet), authorized: Boolean(wallet && wallet === owner) });
 }
@@ -317,7 +276,7 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   try {
     const body = await request.json().catch(() => ({}));
-    await verifyAdmin(body);
+    await verifyAdmin(body, "snapshot");
     return json(200, serialize(await generateSnapshots()) as Record<string, unknown>);
   } catch (error: any) {
     return json(Number(error?.status || 500), { ok: false, error: error?.message || "Admin snapshot failed." });

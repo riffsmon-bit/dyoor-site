@@ -41,7 +41,7 @@ export function WalletButton() {
   return (
     <button
       id="globalWalletBtn"
-      className={`rounded border px-4 py-3 text-xs font-black uppercase transition ${
+      className={`max-w-[9.5rem] shrink-0 rounded border px-3 py-3 text-xs font-black uppercase transition sm:max-w-[12rem] sm:px-4 md:max-w-none ${
         connected && !wrongNetwork
           ? "border-dyoor-cyan bg-dyoor-cyan/10 text-dyoor-cyan shadow-[0_0_22px_rgba(57,255,226,.16)] hover:bg-dyoor-cyan hover:text-black"
           : wrongNetwork
@@ -55,7 +55,7 @@ export function WalletButton() {
       onClick={() => void onClick()}
       title={wallet.error || (wrongNetwork ? "Switch wallet to Monad" : connected ? `Disconnect ${wallet.providerName || "wallet"}` : "Connect wallet")}
     >
-      {label}
+      <span className="block truncate">{label}</span>
     </button>
   );
 }

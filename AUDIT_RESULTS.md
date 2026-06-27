@@ -77,6 +77,17 @@ Wallet loading has timeout behavior and retry/error state.
 - Lend to a Fren added to Ascension with recipient validation, balance preview, signed authorization, server verification, and refresh after success.
 - Recharge Energy retained: MON payment to treasury is verified before Energy Bank credit.
 
+### 2026-06-26 Admin Command Center Update
+
+- Mobile navigation was replaced with a controlled fixed overlay for mobile widths, including backdrop close, Escape close, body scroll lock, route-close behavior, active link highlighting, safe-area bottom padding, and contained scrolling.
+- Header wallet button was constrained on mobile so connected addresses and network prompts cannot overflow the nav row.
+- `/admin-command-center` was added as an alias for `/admin`.
+- Admin signatures are now action-specific through `DYOOR Admin Command` messages, so snapshot signatures cannot authorize Energy airdrops.
+- Admin APIs now share server-side owner verification, timestamp validation, and in-memory nonce replay protection.
+- Energy Airdrop preview now reports raw entries, valid wallets, duplicates removed, invalid entries, Energy totals, and estimated action count.
+- Energy Airdrop execution now supports server-side batching, per-wallet result rows, partial-success status, and CSV/JSON result exports with note/reason fields.
+- See `ADMIN_COMMAND_CENTER.md` for route, ENV, security, CSV, and export details.
+
 ## Cloudflare Verification
 
 Final Cloudflare tunnel tested:
