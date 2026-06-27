@@ -60,6 +60,21 @@ function formatEnergyAmount(raw: bigint) {
   return formatUnits(raw, 18).replace(/\.0+$/, "").replace(/(\.\d*?)0+$/, "$1");
 }
 
+function formatCompactEnergy(value: string) {
+  const raw = Number(value);
+  if (!Number.isFinite(raw)) return value || "0";
+  const abs = Math.abs(raw);
+  const options = abs >= 1000
+    ? { maximumFractionDigits: 1 }
+    : abs >= 100
+      ? { maximumFractionDigits: 2 }
+      : { maximumFractionDigits: 3 };
+  return new Intl.NumberFormat("en-US", {
+    notation: abs >= 100000 ? "compact" : "standard",
+    maximumFractionDigits: options.maximumFractionDigits,
+  }).format(raw);
+}
+
 function energyTransferMessage(sender: string, recipient: string, amountRaw: string, timestamp: string, nonce: string) {
   return [
     "DYOOR Energy Transfer",
@@ -360,6 +375,7 @@ export default function AscensionPage() {
   const [rechargeTxHash, setRechargeTxHash] = useState("");
   const [rechargeCreditTxHash, setRechargeCreditTxHash] = useState("");
   const [rechargeRecoveryTx, setRechargeRecoveryTx] = useState("");
+  const [rechargeCreditReady, setRechargeCreditReady] = useState(true);
   const [recharging, setRecharging] = useState(false);
   const [lendRecipient, setLendRecipient] = useState("");
   const [lendEnergy, setLendEnergy] = useState("");
@@ -405,10 +421,14 @@ export default function AscensionPage() {
       .then((data) => {
         if (!active) return;
         setTreasuryWallet(typeof data?.treasuryWallet === "string" ? data.treasuryWallet : "");
+        setRechargeCreditReady(data?.creditReady !== false);
         if (!data?.treasuryWallet) setRechargeStatus("Recharge is unavailable: treasury wallet is not configured.");
+        else if (data?.creditReady === false) setRechargeStatus(`Recharge is unavailable: ${data?.creditUnavailableReason || "Energy credit operator is not configured."}`);
       })
       .catch(() => {
-        if (active) setRechargeStatus("Recharge is unavailable: treasury config could not be loaded.");
+        if (!active) return;
+        setRechargeCreditReady(false);
+        setRechargeStatus("Recharge is unavailable: treasury config could not be loaded.");
       });
     return () => {
       active = false;
@@ -760,6 +780,10 @@ export default function AscensionPage() {
       setRechargeStatus("Recharge failed. Treasury wallet is not configured.");
       return;
     }
+    if (!rechargeCreditReady) {
+      setRechargeStatus("Recharge is unavailable: Energy credit operator is not configured.");
+      return;
+    }
     if (!rechargeMonRaw) {
       setRechargeStatus("Enter a valid MON amount.");
       return;
@@ -790,6 +814,10 @@ export default function AscensionPage() {
     if (recharging) return;
     if (!/^0x[a-fA-F0-9]{64}$/.test(txHash)) {
       setRechargeStatus("Enter a valid recharge transaction hash.");
+      return;
+    }
+    if (!rechargeCreditReady) {
+      setRechargeStatus("Recharge recovery is unavailable: Energy credit operator is not configured.");
       return;
     }
 
@@ -912,10 +940,10 @@ export default function AscensionPage() {
         <StatCard label="Unstaked" value={countValue(ascension.walletUnstakedCount)} />
         <StatCard label="Ascended" value={countValue(ascension.ascendedCount)} />
         <StatCard label="Total Controlled" value={countValue(ascension.totalControlled)} />
-        <StatCard label="Pending Energy" value={ascension.pendingEnergy} />
-        <StatCard label="Harvested Energy" value={ascension.harvestedEnergy} />
-        <StatCard label="Lifetime Energy" value={ascension.lifetimeEnergy} />
-        <StatCard label="Energy Bank" value={ascension.bankedEnergy} />
+        <StatCard label="Pending Energy" value={formatCompactEnergy(ascension.pendingEnergy)} />
+        <StatCard label="Harvested Energy" value={formatCompactEnergy(ascension.harvestedEnergy)} />
+        <StatCard label="Lifetime Energy" value={formatCompactEnergy(ascension.lifetimeEnergy)} />
+        <StatCard label="Energy Bank" value={formatCompactEnergy(ascension.bankedEnergy)} />
       </div>
 
       <AscensionHealthDashboard items={healthItems} summary={healthSummary} />
@@ -949,7 +977,7 @@ export default function AscensionPage() {
             <Button
               className="mt-3 w-full"
               variant="primary"
-              disabled={!authenticated || !rechargeMonRaw || !treasuryWallet || recharging}
+              disabled={!authenticated || !rechargeMonRaw || !treasuryWallet || !rechargeCreditReady || recharging}
               onClick={() => void rechargeEnergy()}
             >
               {recharging ? "Recharging..." : "Recharge Energy"}
@@ -989,7 +1017,7 @@ export default function AscensionPage() {
                 <Button
                   className="px-3 py-2 text-xs"
                   variant="ghost"
-                  disabled={recharging || !rechargeRecoveryTx.trim()}
+                  disabled={recharging || !rechargeCreditReady || !rechargeRecoveryTx.trim()}
                   onClick={() => void recoverRechargePayment()}
                 >
                   Credit Tx
@@ -1034,10 +1062,10 @@ export default function AscensionPage() {
             />
             <div className="mt-3 grid gap-2 text-sm font-bold text-white/68 md:grid-cols-2">
               <div className="rounded border border-white/10 bg-white/[0.035] p-3">
-                Current: <span className="text-dyoor-cyan">{ascension.bankedEnergy} Energy</span>
+                Current: <span className="text-dyoor-cyan">{formatCompactEnergy(ascension.bankedEnergy)} Energy</span>
               </div>
               <div className="rounded border border-white/10 bg-white/[0.035] p-3">
-                Remaining: <span className="text-dyoor-cyan">{lendEnergyRaw ? formatEnergyAmount(lendRemainingRaw) : ascension.bankedEnergy}</span>
+                Remaining: <span className="text-dyoor-cyan">{formatCompactEnergy(lendEnergyRaw ? formatEnergyAmount(lendRemainingRaw) : ascension.bankedEnergy)}</span>
               </div>
               <div className="rounded border border-white/10 bg-white/[0.035] p-3 md:col-span-2">
                 Recipient: <span className="break-all text-dyoor-cyan">{isAddress(lendRecipient) ? getAddress(lendRecipient) : "Not set"}</span>

@@ -1,3 +1,10 @@
+const { getAddress, isAddress } = require('viem');
+
+function normalizeAddress(address) {
+  if (!isAddress(address)) throw new Error('Invalid wallet address');
+  return getAddress(address);
+}
+
 exports.handler = async function (event) {
   try {
     const cookieName = process.env.VERIFY_SESSION_COOKIE || 'dyoor_verify_session';
@@ -63,9 +70,10 @@ exports.handler = async function (event) {
     }
 
     const body = event.body ? JSON.parse(event.body) : {};
-    const wallet = String(body.wallet || '').trim();
-
-    if (!/^0x[a-fA-F0-9]{40}$/.test(wallet)) {
+    let wallet;
+    try {
+      wallet = normalizeAddress(String(body.wallet || '').trim());
+    } catch (e) {
       return {
         statusCode: 400,
         headers: {

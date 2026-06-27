@@ -12,6 +12,13 @@ const ENERGY_BANK_ABI = [
   "function hasRole(bytes32 role,address account) view returns (bool)",
 ];
 
+type TraceCall = {
+  from?: string;
+  to?: string;
+  value?: string;
+  calls?: TraceCall[];
+};
+
 function json(status: number, body: Record<string, unknown>) {
   return Response.json(body, {
     status,
@@ -56,6 +63,81 @@ function normalizePrivateKey(value: string) {
   return value.startsWith("0x") ? value : `0x${value}`;
 }
 
+function traceValue(value: unknown) {
+  try {
+    return BigInt(String(value || "0x0"));
+  } catch {
+    return 0n;
+  }
+}
+
+function findTracePayment(call: TraceCall | null | undefined, user: string, treasuryWallet: string): bigint {
+  if (!call) return 0n;
+  const from = normalizeAddressOrEmpty(call.from);
+  const to = normalizeAddressOrEmpty(call.to);
+  const value = traceValue(call.value);
+  if (from === user.toLowerCase() && to === treasuryWallet.toLowerCase() && value > 0n) return value;
+  for (const child of call.calls || []) {
+    const childValue = findTracePayment(child, user, treasuryWallet);
+    if (childValue > 0n) return childValue;
+  }
+  return 0n;
+}
+
+async function tracePaymentValue(
+  txHash: string,
+  user: string,
+  treasuryWallet: string,
+  providers: ethers.JsonRpcProvider[],
+) {
+  for (const provider of providers) {
+    const trace = await provider.send("debug_traceTransaction", [txHash, { tracer: "callTracer" }]).catch(() => null) as TraceCall | null;
+    const tracedValue = findTracePayment(trace, user, treasuryWallet);
+    if (tracedValue > 0n) return tracedValue;
+  }
+  return 0n;
+}
+
+function normalizeAddressOrEmpty(value: unknown) {
+  try {
+    return ethers.getAddress(String(value || "")).toLowerCase();
+  } catch {
+    return "";
+  }
+}
+
+async function resolveRechargePayment(
+  provider: ethers.JsonRpcProvider,
+  txHash: string,
+  user: string,
+  treasuryWallet: string,
+  fallbackTraceProvider?: ethers.JsonRpcProvider,
+) {
+  const [tx, receipt] = await Promise.all([
+    provider.getTransaction(txHash),
+    provider.getTransactionReceipt(txHash),
+  ]);
+  if (!tx) throw Object.assign(new Error("Recharge transaction is not available yet."), { status: 409 });
+  if (!receipt) throw Object.assign(new Error("Recharge transaction is not confirmed yet."), { status: 409 });
+  if (receipt.status !== 1) throw Object.assign(new Error("Recharge transaction failed on-chain."), { status: 400 });
+
+  const directSenderMatches = ethers.getAddress(tx.from) === user;
+  const directRecipientMatches = Boolean(tx.to && ethers.getAddress(tx.to) === treasuryWallet);
+  if (directSenderMatches && directRecipientMatches && tx.value > 0n) {
+    return { monAmountRaw: tx.value, paymentSource: "direct-transfer" };
+  }
+
+  const traceProviders = fallbackTraceProvider ? [provider, fallbackTraceProvider] : [provider];
+  const tracedValue = await tracePaymentValue(txHash, user, treasuryWallet, traceProviders);
+  if (tracedValue > 0n) {
+    return { monAmountRaw: tracedValue, paymentSource: "smart-wallet-trace" };
+  }
+
+  if (!directSenderMatches) throw Object.assign(new Error("Recharge sender does not match connected wallet."), { status: 400 });
+  if (!directRecipientMatches) throw Object.assign(new Error("Recharge recipient does not match treasury wallet."), { status: 400 });
+  throw Object.assign(new Error("Recharge transaction did not send MON."), { status: 400 });
+}
+
 function rechargeConfig() {
   const treasuryWallet = readEnv(
     "VITE_TREASURY_WALLET",
@@ -73,7 +155,34 @@ function rechargeConfig() {
 
 export async function GET() {
   try {
-    return json(200, { ok: true, ...rechargeConfig() });
+    const energyBankAddress = requireAddress(
+      readEnv("ENERGY_BANK_ADDRESS", "NEXT_PUBLIC_ENERGY_BANK_ADDRESS") || DEFAULT_ENERGY_BANK_CONTRACT,
+      "ENERGY_BANK_ADDRESS",
+    );
+    const signerKey = normalizePrivateKey(
+      readEnv("ENERGY_BANK_OPERATOR_PRIVATE_KEY", "DEPLOYER_PRIVATE_KEY"),
+    );
+    const body: Record<string, unknown> = {
+      ok: true,
+      ...rechargeConfig(),
+      energyBankAddress,
+      creditReady: Boolean(signerKey),
+    };
+
+    if (signerKey) {
+      const provider = new ethers.JsonRpcProvider(readEnv("MONAD_RPC_URL", "NEXT_PUBLIC_MONAD_RPC_URL") || DEFAULT_RPC, MONAD_CHAIN_ID);
+      const signer = new ethers.Wallet(signerKey, provider);
+      const bank = new ethers.Contract(energyBankAddress, ENERGY_BANK_ABI, signer);
+      const creditRole = await bank.CREDIT_ROLE();
+      const hasCreditRole = await bank.hasRole(creditRole, signer.address);
+      body.operatorAddress = signer.address;
+      body.creditReady = hasCreditRole;
+      if (!hasCreditRole) body.creditUnavailableReason = "Energy Bank operator does not have CREDIT_ROLE.";
+    } else {
+      body.creditUnavailableReason = "Missing ENERGY_BANK_OPERATOR_PRIVATE_KEY.";
+    }
+
+    return json(200, body);
   } catch (error) {
     return json(500, { ok: false, error: error instanceof Error ? error.message : "Recharge config unavailable." });
   }
@@ -98,34 +207,20 @@ export async function POST(request: Request) {
     const txHash = requireTxHash(body.txHash);
     const requestedMonAmountRaw = body.monAmountRaw ? requireUint(body.monAmountRaw, "monAmountRaw") : null;
 
-    const provider = new ethers.JsonRpcProvider(readEnv("MONAD_RPC_URL", "NEXT_PUBLIC_MONAD_RPC_URL") || DEFAULT_RPC, MONAD_CHAIN_ID);
+    const rpcUrl = readEnv("MONAD_RPC_URL", "NEXT_PUBLIC_MONAD_RPC_URL") || DEFAULT_RPC;
+    const provider = new ethers.JsonRpcProvider(rpcUrl, MONAD_CHAIN_ID);
+    const fallbackTraceProvider = rpcUrl === DEFAULT_RPC ? undefined : new ethers.JsonRpcProvider(DEFAULT_RPC, MONAD_CHAIN_ID);
     const network = await provider.getNetwork();
     if (network.chainId !== BigInt(MONAD_CHAIN_ID)) {
       throw new Error(`Wrong RPC network. Expected chain ${MONAD_CHAIN_ID}, got ${network.chainId.toString()}.`);
     }
 
-    const [tx, receipt] = await Promise.all([
-      provider.getTransaction(txHash),
-      provider.getTransactionReceipt(txHash),
-    ]);
-    if (!tx) return json(409, { ok: false, error: "Recharge transaction is not available yet." });
-    if (!receipt) return json(409, { ok: false, error: "Recharge transaction is not confirmed yet." });
-    if (receipt.status !== 1) return json(400, { ok: false, error: "Recharge transaction failed on-chain." });
-
-    if (ethers.getAddress(tx.from) !== user) {
-      return json(400, { ok: false, error: "Recharge sender does not match connected wallet." });
-    }
-    if (!tx.to || ethers.getAddress(tx.to) !== treasuryWallet) {
-      return json(400, { ok: false, error: "Recharge recipient does not match treasury wallet." });
-    }
-    if (requestedMonAmountRaw && tx.value !== requestedMonAmountRaw) {
+    const payment = await resolveRechargePayment(provider, txHash, user, treasuryWallet, fallbackTraceProvider);
+    if (requestedMonAmountRaw && payment.monAmountRaw !== requestedMonAmountRaw) {
       return json(400, { ok: false, error: "Recharge amount does not match requested MON amount." });
     }
-    if (tx.value <= 0n) {
-      return json(400, { ok: false, error: "Recharge transaction did not send MON." });
-    }
 
-    const monAmountRaw = tx.value;
+    const monAmountRaw = payment.monAmountRaw;
     const expectedEnergyRaw = monAmountRaw * ENERGY_PER_MON;
 
     const signer = new ethers.Wallet(signerKey, provider);
@@ -141,6 +236,7 @@ export async function POST(request: Request) {
         monAmountRaw: monAmountRaw.toString(),
         energyAmountRaw: expectedEnergyRaw.toString(),
         paymentTxHash: txHash,
+        paymentSource: payment.paymentSource,
       });
     }
 
@@ -161,10 +257,11 @@ export async function POST(request: Request) {
       monAmountRaw: monAmountRaw.toString(),
       energyAmountRaw: expectedEnergyRaw.toString(),
       paymentTxHash: txHash,
+      paymentSource: payment.paymentSource,
       creditTxHash: creditTx.hash,
       creditBlock: creditReceipt?.blockNumber ?? null,
     });
   } catch (error) {
-    return json(500, { ok: false, error: error instanceof Error ? error.message : "Recharge failed. Please try again." });
+    return json(Number((error as any)?.status || 500), { ok: false, error: error instanceof Error ? error.message : "Recharge failed. Please try again." });
   }
 }
