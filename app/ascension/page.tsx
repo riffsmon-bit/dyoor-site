@@ -338,6 +338,7 @@ function RecoveryPanel({
   const available = status.status === "available" && status.recoverableTokenIds.length > 0;
   const limited = status.status === "limited";
   const title = available ? "Recovery Available" : limited ? "Recovery Check Limited" : "No Recovery Required";
+  if (!available) return null;
   return (
     <section className="mt-10 rounded border border-white/12 bg-white/[0.04] p-5">
       <div className="flex flex-col justify-between gap-4 md:flex-row md:items-start">
@@ -554,9 +555,8 @@ export default function AscensionPage() {
 
   const healthItems = useMemo(() => {
     const synced = ascension.hasLoaded && !ascension.loading && !ascension.error;
-    const recoveryAvailable = ascension.recovery.status === "available";
-    const recoveryLimited = ascension.recovery.status === "limited" || ascension.recovery.status === "error";
-    return [
+    const recoveryAvailable = ascension.recovery.status === "available" && ascension.recovery.recoverableTokenIds.length > 0;
+    const items = [
       {
         label: "Wallet Connected",
         status: authenticated ? "ok" as const : "warn" as const,
@@ -597,16 +597,15 @@ export default function AscensionPage() {
         status: blueprintHealth.loading ? "busy" as const : blueprintHealth.eligible ? "ok" as const : "warn" as const,
         detail: blueprintHealth.eligible ? "Ascension Blueprint eligible." : "No eligibility record loaded.",
       },
-      {
-        label: "Recovery Required",
-        status: recoveryAvailable ? "warn" as const : recoveryLimited ? "warn" as const : "ok" as const,
-        detail: recoveryAvailable
-          ? `${ascension.recovery.recoverableTokenIds.length} NFT(s) need recovery.`
-          : recoveryLimited
-            ? "Recovery scan could not complete on the current RPC. Counts are still loaded."
-            : ascension.recovery.message,
-      },
     ];
+    if (recoveryAvailable) {
+      items.push({
+        label: "Recovery Required",
+        status: "warn" as const,
+        detail: `${ascension.recovery.recoverableTokenIds.length} NFT(s) need recovery.`,
+      });
+    }
+    return items;
   }, [ascension, authenticated, blueprintHealth, walletService.providerName, walletService.status]);
 
   const healthSummary = useMemo(() => {
@@ -764,7 +763,7 @@ export default function AscensionPage() {
       await sendContract(provider, ascensionStakingContract, data);
       setActionStatus("Unstake complete. Refreshing NFTs...");
       setSelected(new Set());
-      await ascension.refresh({ scanLogs: true });
+      await ascension.refresh();
     } catch (error) {
       setActionStatus(formatWalletError(error, "Unstake failed."));
     } finally {
@@ -793,16 +792,25 @@ export default function AscensionPage() {
       const tx = await sendContract(provider, ascensionStakingContract, data);
       const harvestedRaw = harvestAmountFromReceipt(tx.receipt, ascension.walletAddress) || pendingBefore;
       if (harvestedRaw > 0n) {
-        const response = await fetch("/.netlify/functions/ascension-stats", {
+        const harvestRecordBody = JSON.stringify({
+          action: "recordHarvest",
+          address: getAddress(ascension.walletAddress),
+          amountRaw: harvestedRaw.toString(),
+          txHash: tx.hash,
+        });
+        let response = await fetch("/.netlify/functions/ascension-stats", {
           method: "POST",
           headers: { "content-type": "application/json" },
-          body: JSON.stringify({
-            action: "recordHarvest",
-            address: getAddress(ascension.walletAddress),
-            amountRaw: harvestedRaw.toString(),
-            txHash: tx.hash,
-          }),
+          body: harvestRecordBody,
         });
+        if (response.status === 409) {
+          await new Promise((resolve) => window.setTimeout(resolve, 2500));
+          response = await fetch("/.netlify/functions/ascension-stats", {
+            method: "POST",
+            headers: { "content-type": "application/json" },
+            body: harvestRecordBody,
+          });
+        }
         const record = await response.json().catch(() => ({}));
         if (!response.ok || record?.ok === false) {
           setActionStatus(`Harvest confirmed, but harvested Energy display ledger did not update: ${record?.error || "ledger update failed"}`);
@@ -812,7 +820,7 @@ export default function AscensionPage() {
       } else {
         setActionStatus("Energy harvest confirmed. Refreshing state...");
       }
-      await ascension.refresh();
+      await ascension.refresh({ scanLogs: true });
     } catch (error) {
       setActionStatus(formatWalletError(error, "Harvest failed."));
     } finally {

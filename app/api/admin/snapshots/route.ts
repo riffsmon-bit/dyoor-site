@@ -24,7 +24,9 @@ const DEFAULT_OWNER_SCAN_CONCURRENCY = 6;
 const GOLDSKY_PAGE_SIZE = 1000;
 const DEFAULT_DISCOVERY_BUDGET_MS = 8_000;
 const DEFAULT_RPC_TIMEOUT_MS = 7_000;
+const DEFAULT_ENERGY_RPC_TIMEOUT_MS = 1_500;
 const DEFAULT_FINALIZE_CONCURRENCY = 4;
+const DEFAULT_INDEXED_FINALIZE_CONCURRENCY = 16;
 
 const TRAIT_EXPORT_ORDER = [
   ["background", "Background"],
@@ -203,6 +205,14 @@ async function readHarvestLedger() {
 async function safeContract<T>(task: () => Promise<T>, fallback: T) {
   try {
     return await withTimeout(task(), readWholeNumberEnv(["ASCENSION_SNAPSHOT_RPC_TIMEOUT_MS"], DEFAULT_RPC_TIMEOUT_MS));
+  } catch {
+    return fallback;
+  }
+}
+
+async function safeContractWithTimeout<T>(task: () => Promise<T>, fallback: T, timeoutMs: number) {
+  try {
+    return await withTimeout(task(), timeoutMs);
   } catch {
     return fallback;
   }
@@ -678,17 +688,21 @@ async function stakingRow(
   timestamp: string,
   supplementalTokenIds: string[] = [],
 ) {
-  const tokenValues = await safeContract(async () => await staking.tokensOfStaker(wallet), null)
-    || await safeContract(async () => await staking.getStakedTokens(wallet), null)
-    || [];
-  const tokenIds = Array.from(new Set([
-    ...(Array.isArray(tokenValues) ? tokenValues : []).map((id) => id.toString()),
-    ...supplementalTokenIds,
-  ].filter((id) => /^\d+$/.test(String(id))))).sort((a, b) => Number(a) - Number(b));
-  const fallbackCount = await safeContract(async () => await staking.stakedBalance(wallet), 0n)
-    || await safeContract(async () => await staking.balanceOf(wallet), 0n);
-  const pendingRaw = await safeContract(async () => await staking.pendingPoints(wallet), 0n);
-  const lifetimeRaw = await safeContract(async () => await energyBank.lifetimeEnergy(wallet), 0n);
+  let tokenIds = normalizeTokenIdList(supplementalTokenIds);
+  let fallbackCount = 0n;
+  if (!tokenIds.length) {
+    const tokenValues = await safeContract(async () => await staking.tokensOfStaker(wallet), null)
+      || await safeContract(async () => await staking.getStakedTokens(wallet), null)
+      || [];
+    tokenIds = normalizeTokenIdList(Array.isArray(tokenValues) ? tokenValues.map((id) => id.toString()) : []);
+    fallbackCount = await safeContract(async () => await staking.stakedBalance(wallet), 0n)
+      || await safeContract(async () => await staking.balanceOf(wallet), 0n);
+  }
+  const energyTimeoutMs = readWholeNumberEnv(["ASCENSION_SNAPSHOT_ENERGY_RPC_TIMEOUT_MS"], DEFAULT_ENERGY_RPC_TIMEOUT_MS);
+  const [pendingRaw, lifetimeRaw] = await Promise.all([
+    safeContractWithTimeout(async () => await staking.pendingPoints(wallet), 0n, energyTimeoutMs),
+    safeContractWithTimeout(async () => await energyBank.lifetimeEnergy(wallet), 0n, energyTimeoutMs),
+  ]);
   const harvestedRaw = BigInt(String(harvestLedger[wallet.toLowerCase()]?.harvestedRaw || "0"));
 
   return {
@@ -745,7 +759,10 @@ async function generateSnapshots(input?: {
   const warnings = [...discovered.warnings];
   const ascendedTokenOwners = new Map<string, string>();
   const walletSet = new Set<string>(blueprint.map((row) => String(row.wallet)));
-  const finalizeConcurrency = readWholeNumberEnv(["ASCENSION_SNAPSHOT_FINALIZE_CONCURRENCY"], DEFAULT_FINALIZE_CONCURRENCY);
+  const hasIndexedOwners = Boolean(input?.tokenOwners?.size);
+  const finalizeConcurrency = hasIndexedOwners
+    ? readWholeNumberEnv(["ASCENSION_SNAPSHOT_INDEXED_FINALIZE_CONCURRENCY", "ASCENSION_SNAPSHOT_FINALIZE_CONCURRENCY"], DEFAULT_INDEXED_FINALIZE_CONCURRENCY)
+    : readWholeNumberEnv(["ASCENSION_SNAPSHOT_FINALIZE_CONCURRENCY"], DEFAULT_FINALIZE_CONCURRENCY);
 
   for (const [tokenId, wallet] of input?.tokenOwners || []) {
     if (!/^\d+$/.test(tokenId) || !wallet) continue;
@@ -809,10 +826,13 @@ async function generateSnapshots(input?: {
   }
 
   for (const row of stakingRows) {
-    for (const tokenId of row.tokenIds || []) addAscendedS1Row(String(tokenId), row.wallet, "staking-wallet-read");
+    for (const tokenId of row.tokenIds || []) {
+      const tokenIdString = String(tokenId);
+      addAscendedS1Row(tokenIdString, row.wallet, ascendedTokenOwners.has(tokenIdString) ? "goldsky-events" : "staking-wallet-read");
+    }
   }
   for (const [tokenId, wallet] of ascendedTokenOwners.entries()) {
-    if (!ascendedS1ByToken.has(tokenId)) addAscendedS1Row(tokenId, wallet, wallet ? "ownerOf-stakeInfo" : "ownerOf-unregistered");
+    if (!ascendedS1ByToken.has(tokenId)) addAscendedS1Row(tokenId, wallet, wallet ? "goldsky-events" : "ownerOf-unregistered");
   }
 
   const ascendedS1 = Array.from(ascendedS1ByToken.values())
