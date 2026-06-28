@@ -105,6 +105,56 @@ type AirdropResult = {
   error?: string;
 };
 
+type ReconciliationRow = {
+  wallet: string;
+  totalHarvestedFromEvents?: string;
+  harvestedShown?: string;
+  lifetimeShown?: string;
+  bankShown?: string;
+  expectedHarvested?: string;
+  expectedLifetime?: string;
+  expectedBank?: string;
+  missing?: string;
+  affected?: string;
+  recommendedCredit?: string;
+  recommendedCreditRaw?: string;
+  repairable?: string;
+  evidenceTxHashes?: string;
+  evidenceClaimKeys?: string;
+  notes?: string;
+  repairItems?: Array<Record<string, string>>;
+  [key: string]: any;
+};
+
+type ReconciliationReport = {
+  generatedAt: string;
+  indexedBlock?: number;
+  energyBankAddress?: string;
+  rowCount: number;
+  affectedCount: number;
+  totalMissingRaw: string;
+  totalMissing: string;
+  totalRecommendedCreditRaw: string;
+  totalRecommendedCredit: string;
+  rows: ReconciliationRow[];
+};
+
+type ReconciliationRepairResult = {
+  ok?: boolean;
+  partial?: boolean;
+  reportSummary?: Record<string, unknown>;
+  repair?: {
+    repairedAt?: string;
+    operator?: string;
+    results?: Array<Record<string, any>>;
+    successCount?: number;
+    failureCount?: number;
+    skippedCount?: number;
+    logged?: boolean;
+  };
+  error?: string;
+};
+
 function normalizeAddress(address?: string) {
   return /^0x[a-fA-F0-9]{40}$/.test(address || "") ? String(address).toLowerCase() : "";
 }
@@ -369,6 +419,12 @@ export default function AdminPage() {
   const [airdropLoading, setAirdropLoading] = useState(false);
   const [airdropStatus, setAirdropStatus] = useState("Paste wallets or upload a CSV to preview an Energy airdrop.");
   const [airdropResult, setAirdropResult] = useState<AirdropResult | null>(null);
+  const [reconciliationReport, setReconciliationReport] = useState<ReconciliationReport | null>(null);
+  const [reconciliationResult, setReconciliationResult] = useState<ReconciliationRepairResult | null>(null);
+  const [reconciliationLoading, setReconciliationLoading] = useState(false);
+  const [reconciliationStatus, setReconciliationStatus] = useState("Load the Energy reconciliation report before applying any repair credits.");
+  const [reconciliationConfirm, setReconciliationConfirm] = useState(false);
+  const [reconciliationLimit, setReconciliationLimit] = useState("10");
   const [lastVerifiedAt, setLastVerifiedAt] = useState("");
   const [lastSignatureAt, setLastSignatureAt] = useState("");
   const [currentChainId, setCurrentChainId] = useState("");
@@ -435,9 +491,37 @@ export default function AdminPage() {
       note: airdropResult.note || "",
     }));
   }, [airdropResult]);
+  const reconciliationRows = useMemo(() => (reconciliationReport?.rows || []).map((row) => ({
+    wallet: row.wallet,
+    totalHarvestedFromEvents: row.totalHarvestedFromEvents || "",
+    harvestedShown: row.harvestedShown || "",
+    lifetimeShown: row.lifetimeShown || "",
+    bankShown: row.bankShown || "",
+    expectedHarvested: row.expectedHarvested || "",
+    expectedLifetime: row.expectedLifetime || "",
+    expectedBank: row.expectedBank || "",
+    missing: row.missing || "",
+    affected: row.affected || "no",
+    recommendedCredit: row.recommendedCredit || "",
+    repairable: row.repairable || "no",
+    evidenceTxHashes: row.evidenceTxHashes || "",
+    notes: row.notes || "",
+  })), [reconciliationReport]);
+  const affectedReconciliationRows = useMemo(() => reconciliationRows.filter((row) => row.affected === "yes"), [reconciliationRows]);
+  const reconciliationFilename = useMemo(() => `energy-reconciliation-${new Date().toISOString().slice(0, 10)}`, []);
 
   async function getProvider() {
     return await walletService.getProvider() as Eip1193Provider;
+  }
+
+  async function signAdminAction(action: "snapshot" | "energy-airdrop" | "energy-reconciliation") {
+    const timestamp = String(Date.now());
+    const nonce = crypto.randomUUID();
+    const message = adminMessage(walletAddress, timestamp, nonce, action);
+    const provider = await getProvider();
+    const signature = await provider.request({ method: "personal_sign", params: [message, walletAddress] });
+    setLastSignatureAt(new Date().toISOString());
+    return { timestamp, nonce, signature };
   }
 
   async function createSnapshotSession() {
@@ -634,6 +718,70 @@ export default function AdminPage() {
       setAirdropStatus(err instanceof Error ? err.message : "Energy airdrop failed.");
     } finally {
       setAirdropLoading(false);
+    }
+  }
+
+  async function loadEnergyReconciliation() {
+    if (!walletAddress || !authorized) return;
+    setReconciliationLoading(true);
+    setReconciliationStatus("Sign owner authorization for Energy reconciliation.");
+    setReconciliationResult(null);
+    try {
+      const signature = await signAdminAction("energy-reconciliation");
+      setReconciliationStatus("Building Energy reconciliation report.");
+      const response = await fetch("/api/admin/energy-reconciliation", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          ...signature,
+          wallet: walletAddress,
+          mode: "report",
+        }),
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok || data?.ok === false) throw new Error(data?.error || "Energy reconciliation report failed.");
+      setReconciliationReport(data.report as ReconciliationReport);
+      setReconciliationStatus(`Report ready. ${data.report?.affectedCount || 0} affected wallet(s), ${data.report?.totalRecommendedCredit || "0"} Energy recommended.`);
+      setReconciliationConfirm(false);
+    } catch (err) {
+      setReconciliationStatus(err instanceof Error ? err.message : "Energy reconciliation report failed.");
+    } finally {
+      setReconciliationLoading(false);
+    }
+  }
+
+  async function applyEnergyReconciliation() {
+    if (!walletAddress || !authorized || !reconciliationReport) return;
+    if (!reconciliationConfirm) {
+      setReconciliationStatus("Confirm the reconciliation preview before applying credits.");
+      return;
+    }
+    setReconciliationLoading(true);
+    setReconciliationStatus("Sign owner authorization to apply reconciliation credits.");
+    try {
+      const signature = await signAdminAction("energy-reconciliation");
+      setReconciliationStatus("Applying reconciliation credits in a safe batch.");
+      const response = await fetch("/api/admin/energy-reconciliation", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          ...signature,
+          wallet: walletAddress,
+          mode: "repair",
+          limit: Number(reconciliationLimit || 10),
+        }),
+      });
+      const data = await response.json().catch(() => ({}));
+      setReconciliationResult(data as ReconciliationRepairResult);
+      if (!response.ok || (data?.ok === false && !data?.partial)) throw new Error(data?.error || "Energy reconciliation repair failed.");
+      setReconciliationStatus(data.partial
+        ? `Repair partially complete. ${data.repair?.successCount || 0} credited, ${data.repair?.failureCount || 0} failed.`
+        : `Repair batch complete. ${data.repair?.successCount || 0} credit(s) applied, ${data.repair?.skippedCount || 0} skipped.`);
+      setReconciliationConfirm(false);
+    } catch (err) {
+      setReconciliationStatus(err instanceof Error ? err.message : "Energy reconciliation repair failed.");
+    } finally {
+      setReconciliationLoading(false);
     }
   }
 
@@ -916,6 +1064,166 @@ export default function AdminPage() {
                       </table>
                     </div>
                   )}
+                </div>
+              )}
+            </div>
+          </div>
+        </Card>
+
+        <Card className="p-5 md:p-6">
+          <div className="flex flex-col justify-between gap-4 md:flex-row md:items-start">
+            <div>
+              <p className="eyebrow">Owner Tool</p>
+              <h2 className="mt-2 text-2xl font-black uppercase text-white">Energy Reconciliation</h2>
+              <p className="mt-2 max-w-2xl text-sm font-semibold leading-6 text-white/60">
+                Compare indexed Ascension harvests against Energy Bank balances, export affected wallets, and apply missing harvest credits only when claim keys have not already been used.
+              </p>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <Button variant="secondary" disabled={reconciliationLoading || !authorized} onClick={() => void loadEnergyReconciliation()}>
+                {reconciliationLoading ? "Working..." : "Load Report"}
+              </Button>
+              <Button
+                variant="secondary"
+                disabled={!reconciliationRows.length}
+                onClick={() => downloadFile(`${reconciliationFilename}.csv`, toCsv(reconciliationRows), "text/csv")}
+              >
+                Export CSV
+              </Button>
+              <Button
+                variant="ghost"
+                disabled={!reconciliationReport}
+                onClick={() => downloadFile(`${reconciliationFilename}.json`, JSON.stringify(reconciliationReport, null, 2), "application/json")}
+              >
+                Export JSON
+              </Button>
+            </div>
+          </div>
+
+          <Alert className="mt-5" tone={reconciliationLoading ? "busy" : reconciliationResult?.error ? "danger" : reconciliationReport ? "success" : "idle"}>
+            {reconciliationStatus}
+          </Alert>
+
+          <div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-5">
+            <div className="rounded border border-dyoor-purple/25 bg-black/30 p-3">
+              <p className="text-[0.66rem] font-black uppercase tracking-[0.14em] text-white/40">Wallets Checked</p>
+              <p className="mt-2 text-sm font-black text-white">{reconciliationReport?.rowCount ?? "-"}</p>
+            </div>
+            <div className="rounded border border-dyoor-purple/25 bg-black/30 p-3">
+              <p className="text-[0.66rem] font-black uppercase tracking-[0.14em] text-white/40">Affected</p>
+              <p className="mt-2 text-sm font-black text-dyoor-cyan">{reconciliationReport?.affectedCount ?? "-"}</p>
+            </div>
+            <div className="rounded border border-dyoor-purple/25 bg-black/30 p-3">
+              <p className="text-[0.66rem] font-black uppercase tracking-[0.14em] text-white/40">Missing Energy</p>
+              <p className="mt-2 text-sm font-black text-white">{reconciliationReport?.totalMissing ?? "-"}</p>
+            </div>
+            <div className="rounded border border-dyoor-purple/25 bg-black/30 p-3">
+              <p className="text-[0.66rem] font-black uppercase tracking-[0.14em] text-white/40">Recommended Credit</p>
+              <p className="mt-2 text-sm font-black text-white">{reconciliationReport?.totalRecommendedCredit ?? "-"}</p>
+            </div>
+            <div className="rounded border border-dyoor-purple/25 bg-black/30 p-3">
+              <p className="text-[0.66rem] font-black uppercase tracking-[0.14em] text-white/40">Indexed Block</p>
+              <p className="mt-2 text-sm font-black text-white">{reconciliationReport?.indexedBlock?.toLocaleString() ?? "-"}</p>
+            </div>
+          </div>
+
+          <div className="mt-5 grid gap-4 lg:grid-cols-[1fr_0.72fr]">
+            <div className="rounded border border-dyoor-purple/25 bg-black/35 p-4">
+              <div className="flex flex-col justify-between gap-3 md:flex-row md:items-center">
+                <div>
+                  <p className="text-xs font-black uppercase tracking-[0.16em] text-white/45">Affected Preview</p>
+                  <p className="mt-1 text-sm font-semibold text-white/55">Only wallets with missing usable Energy are shown here.</p>
+                </div>
+                <p className="text-xs font-black uppercase tracking-[0.14em] text-white/45">
+                  {affectedReconciliationRows.length} row(s)
+                </p>
+              </div>
+              {!affectedReconciliationRows.length ? (
+                <EmptyState className="mt-4" title="No Affected Wallets Loaded" copy="Load the report to check indexed harvests against Energy Bank balances." />
+              ) : (
+                <div className="mt-4 max-h-80 overflow-auto rounded border border-white/10 bg-black/30">
+                  <table className="min-w-full text-left text-xs">
+                    <thead className="bg-white/[0.04] uppercase tracking-[0.12em] text-white/40">
+                      <tr>
+                        <th className="px-3 py-2">Wallet</th>
+                        <th className="px-3 py-2">Harvested</th>
+                        <th className="px-3 py-2">Bank</th>
+                        <th className="px-3 py-2">Missing</th>
+                        <th className="px-3 py-2">Credit</th>
+                        <th className="px-3 py-2">Repairable</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {affectedReconciliationRows.slice(0, 60).map((row, index) => (
+                        <tr className="border-t border-white/8" key={`${row.wallet}-${index}`}>
+                          <td className="px-3 py-2 font-black text-white/75">{shortAddress(row.wallet)}</td>
+                          <td className="px-3 py-2 text-white/60">{row.expectedHarvested || "-"}</td>
+                          <td className="px-3 py-2 text-white/60">{row.bankShown || "-"}</td>
+                          <td className="px-3 py-2 text-yellow-100">{row.missing || "-"}</td>
+                          <td className="px-3 py-2 text-dyoor-cyan">{row.recommendedCredit || "-"}</td>
+                          <td className={row.repairable === "yes" ? "px-3 py-2 text-dyoor-cyan" : "px-3 py-2 text-red-200"}>{row.repairable}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+
+            <div className="rounded border border-dyoor-purple/25 bg-black/35 p-4">
+              <p className="text-xs font-black uppercase tracking-[0.16em] text-white/45">Repair Batch</p>
+              <label className="mt-4 block text-xs font-black uppercase tracking-[0.16em] text-white/45" htmlFor="reconciliation-limit">
+                Max credits this batch
+              </label>
+              <input
+                id="reconciliation-limit"
+                className="field-control mt-2"
+                inputMode="numeric"
+                value={reconciliationLimit}
+                onChange={(event) => setReconciliationLimit(event.target.value.replace(/[^\d]/g, ""))}
+              />
+              <label className="mt-4 flex items-start gap-3 rounded border border-white/10 bg-white/[0.035] p-3 text-sm font-bold text-white/70">
+                <input className="mt-1" type="checkbox" checked={reconciliationConfirm} onChange={(event) => setReconciliationConfirm(event.target.checked)} />
+                I reviewed the affected-wallet preview and understand this will credit missing harvest Energy in the Energy Bank.
+              </label>
+              <Button
+                className="mt-4 w-full"
+                variant="primary"
+                disabled={!authorized || reconciliationLoading || !reconciliationReport || !affectedReconciliationRows.length || !reconciliationConfirm}
+                onClick={() => void applyEnergyReconciliation()}
+              >
+                {reconciliationLoading ? "Repair Running..." : "Apply Next Credit Batch"}
+              </Button>
+              <p className="mt-3 break-all text-xs font-semibold text-white/45">
+                Energy Bank: {reconciliationReport?.energyBankAddress || "-"}
+              </p>
+              {reconciliationResult?.repair && (
+                <div className="mt-4 rounded border border-white/10 bg-white/[0.035] p-3 text-sm font-bold text-white/65">
+                  <div className="grid gap-2 sm:grid-cols-3">
+                    <p>Credited: <span className="text-dyoor-cyan">{reconciliationResult.repair.successCount || 0}</span></p>
+                    <p>Skipped: <span className="text-white">{reconciliationResult.repair.skippedCount || 0}</span></p>
+                    <p>Failed: <span className="text-red-200">{reconciliationResult.repair.failureCount || 0}</span></p>
+                  </div>
+                  <div className="mt-3 max-h-52 overflow-auto rounded border border-white/10 bg-black/30">
+                    <table className="min-w-full text-left text-xs">
+                      <thead className="bg-white/[0.04] uppercase tracking-[0.12em] text-white/40">
+                        <tr>
+                          <th className="px-3 py-2">Wallet</th>
+                          <th className="px-3 py-2">Status</th>
+                          <th className="px-3 py-2">Tx / Error</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {(reconciliationResult.repair.results || []).map((row, index) => (
+                          <tr className="border-t border-white/8" key={`${row.wallet || index}-${index}`}>
+                            <td className="px-3 py-2 text-white/70">{shortAddress(String(row.wallet || ""))}</td>
+                            <td className={row.status === "success" ? "px-3 py-2 text-dyoor-cyan" : row.status === "failed" ? "px-3 py-2 text-red-200" : "px-3 py-2 text-yellow-100"}>{String(row.status || "")}</td>
+                            <td className="max-w-40 truncate px-3 py-2 text-white/45">{String(row.creditTxHash || row.error || row.reason || "-")}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
                 </div>
               )}
             </div>

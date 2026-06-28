@@ -197,6 +197,22 @@ type EnergyRefreshOptions = {
   scanGrants?: boolean;
 };
 
+type EnergyStatsResponse = {
+  pendingEnergy?: string;
+  harvestedEnergy?: string;
+  creditedEnergy?: string;
+  incomingTransfersEnergy?: string;
+  outgoingTransfersEnergy?: string;
+  spentEnergy?: string;
+  lifetimeEnergy?: string;
+  bankedEnergy?: string;
+  harvestEventsFound?: number;
+  fromBlock?: string;
+  toBlock?: string;
+  dataSource?: string;
+  energyDebug?: Record<string, unknown>;
+};
+
 const clearRecoveryState: AscensionRecoveryState = {
   status: "clear",
   recoverableTokenIds: [],
@@ -596,11 +612,27 @@ async function fetchEnergy(wallet: Address, options: EnergyRefreshOptions = {}) 
   try {
     const response = statsResult.status === "fulfilled" ? statsResult.value : null;
     if (response?.ok) {
-      const json = await response.json();
+      const json = await response.json() as EnergyStatsResponse;
       pendingEnergy = String(json.pendingEnergy || pendingEnergy);
       bankedEnergy = String(json.bankedEnergy || bankedEnergy);
       harvestedEnergy = String(json.harvestedEnergy || harvestedEnergy);
       lifetimeEnergy = String(json.lifetimeEnergy || lifetimeEnergy);
+      if (process.env.NODE_ENV !== "production") {
+        console.table({
+          wallet,
+          pendingEnergy,
+          harvestedEnergy,
+          creditedEnergy: json.creditedEnergy || "0",
+          incomingTransfers: json.incomingTransfersEnergy || "0",
+          outgoingTransfers: json.outgoingTransfersEnergy || "0",
+          spentEnergy: json.spentEnergy || "0",
+          lifetimeEnergy,
+          energyBank: bankedEnergy,
+          harvestEventsFound: json.harvestEventsFound || 0,
+          blockRangeScanned: `${json.fromBlock || "0"}-${json.toBlock || "0"}`,
+          dataSource: json.dataSource || "unknown",
+        });
+      }
     }
   } catch {}
 
@@ -684,18 +716,22 @@ async function loadAscensionState(walletAddress: string): Promise<AscensionState
 
 async function loadAscensionEnergy(walletAddress: string, options: EnergyRefreshOptions = {}) {
   if (!isAddress(walletAddress)) return {
+    walletAddress: "",
     pendingEnergy: "0.00",
     bankedEnergy: "0.00",
     harvestedEnergy: "0.00",
     lifetimeEnergy: "0.00",
   };
-  return fetchEnergy(getAddress(walletAddress), options);
+  return {
+    walletAddress: getAddress(walletAddress),
+    ...await fetchEnergy(getAddress(walletAddress), options),
+  };
 }
 
 export function useAscension() {
   const wallet = useWalletService();
   const queryClient = useQueryClient();
-  const address = wallet.address || "";
+  const address = isAddress(wallet.address || "") ? getAddress(wallet.address as Address) : "";
 
   const query = useQuery({
     queryKey: ["ascension", address],
@@ -717,26 +753,29 @@ export function useAscension() {
     placeholderData: (previousData) => previousData,
   });
 
+  const stateData = query.data?.walletAddress && address && sameAddress(query.data.walletAddress, address) ? query.data : undefined;
+  const energyData = energyQuery.data?.walletAddress && address && sameAddress(energyQuery.data.walletAddress, address) ? energyQuery.data : undefined;
+
   return {
     walletAddress: address,
-    walletNfts: query.data?.walletNfts || [],
-    walletUnstakedCount: query.data?.walletUnstakedCount || 0,
-    ascendedNfts: query.data?.ascendedNfts || [],
-    ascendedCount: query.data?.ascendedCount || 0,
-    totalControlled: query.data?.totalControlled || 0,
-    pendingEnergy: energyQuery.data?.pendingEnergy || query.data?.pendingEnergy || "0.00",
-    bankedEnergy: energyQuery.data?.bankedEnergy || query.data?.bankedEnergy || "0.00",
-    harvestedEnergy: energyQuery.data?.harvestedEnergy || query.data?.harvestedEnergy || "0.00",
-    lifetimeEnergy: energyQuery.data?.lifetimeEnergy || query.data?.lifetimeEnergy || "0.00",
+    walletNfts: stateData?.walletNfts || [],
+    walletUnstakedCount: stateData?.walletUnstakedCount || 0,
+    ascendedNfts: stateData?.ascendedNfts || [],
+    ascendedCount: stateData?.ascendedCount || 0,
+    totalControlled: stateData?.totalControlled || 0,
+    pendingEnergy: energyData?.pendingEnergy || stateData?.pendingEnergy || "0.00",
+    bankedEnergy: energyData?.bankedEnergy || stateData?.bankedEnergy || "0.00",
+    harvestedEnergy: energyData?.harvestedEnergy || stateData?.harvestedEnergy || "0.00",
+    lifetimeEnergy: energyData?.lifetimeEnergy || stateData?.lifetimeEnergy || "0.00",
     loading: query.isLoading,
     refreshing: query.isFetching && !query.isLoading,
     energyLoading: energyQuery.isLoading || energyQuery.isFetching,
-    hasLoaded: Boolean(query.data),
+    hasLoaded: Boolean(stateData),
     error: query.error,
-    isPartial: query.data?.isPartial || false,
-    recovery: query.data?.recovery || clearRecoveryState,
-    warnings: query.data?.warnings || [],
-    sources: query.data?.sources,
+    isPartial: stateData?.isPartial || false,
+    recovery: stateData?.recovery || clearRecoveryState,
+    warnings: stateData?.warnings || [],
+    sources: stateData?.sources,
     refresh: async (options: EnergyRefreshOptions = {}) => {
       await queryClient.cancelQueries({ queryKey: ["ascension", address] });
       await queryClient.cancelQueries({ queryKey: ["ascension-energy", address] });

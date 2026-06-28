@@ -34,13 +34,13 @@ The signed message format is:
 
 ```text
 DYOOR Admin Command
-Action: <snapshot|energy-airdrop>
+Action: <snapshot|energy-airdrop|energy-reconciliation>
 Wallet: <owner wallet>
 Timestamp: <unix milliseconds>
 Nonce: <uuid>
 ```
 
-Snapshot signatures cannot be reused for Energy airdrops because the action is part of the signed payload.
+Snapshot, Energy airdrop, and Energy reconciliation signatures cannot be reused across actions because the action is part of the signed payload.
 
 ## Energy Airdrop
 
@@ -90,6 +90,39 @@ The owner snapshot suite exports:
 
 Ascended S1 token IDs are sourced from staking wallet reads first, with transfer-log plus `stakeInfo` discovery used as fallback coverage.
 
+## Energy Reconciliation
+
+The Energy Reconciliation tool compares indexed Ascension harvests with Energy Bank balances and repairs only missing usable Energy from uncredited harvest claim keys.
+
+Report sources:
+
+- Goldsky `pointsClaimeds` harvest events
+- non-duplicated `data/harvested-energy.json` legacy rows
+- Energy Bank `spendableEnergy`
+- Energy Bank `lifetimeEnergy`
+- Energy Bank `totalSpent`
+- Energy Bank `usedClaimTxHash`
+
+Controls:
+
+- Load Report
+- Export CSV
+- Export JSON
+- max credits per repair batch
+- confirmation checkbox
+- Apply Next Credit Batch
+
+Repair execution requires:
+
+- owner wallet connection
+- owner signature for `energy-reconciliation`
+- configured Energy Bank operator private key
+- operator wallet with `CREDIT_ROLE`
+- operator wallet with `DEFAULT_ADMIN_ROLE` if already-used claim shortfalls require `correctEnergy`
+- unused harvest claim key
+
+Unused harvests are submitted with `creditEnergy(wallet, amount, claimKey)` and are marked by claim key so the same harvest cannot be repaired twice. Already-used claim shortfalls are submitted with `correctEnergy(wallet, amount, reconciliationReason)` and logged with a reconciliation issue id.
+
 ## CSV Format
 
 CSV input can be simple wallet-only rows. The parser accepts wallet addresses separated by whitespace, commas, semicolons, or line breaks. Extra CSV columns are ignored unless they contain valid EVM addresses.
@@ -120,4 +153,5 @@ CSV/JSON result exports include:
 
 - Nonce replay protection is in-memory for the current server process. A durable nonce store should be added before high-volume production admin usage on stateless hosts.
 - Energy airdrop execution requires the Energy Bank operator private key ENV and `DEFAULT_ADMIN_ROLE`.
+- Energy reconciliation repair execution requires the Energy Bank operator private key ENV, `CREDIT_ROLE`, and sometimes `DEFAULT_ADMIN_ROLE` for correction rows.
 - Real airdrop execution should be tested with a small owner-approved wallet list before any large campaign.

@@ -77,6 +77,16 @@ Wallet loading has timeout behavior and retry/error state.
 - Lend to a Fren added to Ascension with recipient validation, balance preview, signed authorization, server verification, and refresh after success.
 - Recharge Energy retained: MON payment to treasury is verified before Energy Bank credit.
 
+### 2026-06-28 Harvested Energy Reconciliation Update
+
+- Root cause: Ascension harvests could be indexed or present in the historical harvest ledger without a matching Energy Bank `creditEnergy` entry, so Harvested Energy, Lifetime Energy, and Energy Bank could diverge after the site started relying on the Energy Bank as the usable balance source of truth.
+- Ascension stats now read harvested Energy from Goldsky `PointsClaimed` events by default, merge non-duplicated historical ledger rows, and expose actual Energy Bank `spendableEnergy`, `lifetimeEnergy`, and `totalSpent`.
+- New harvests now call `/api/energy-harvest-credit` after the `claimPoints` transaction is confirmed. The API verifies the `PointsClaimed` event for the wallet before calling Energy Bank `creditEnergy`.
+- The Ascension hook normalizes wallet addresses and prevents previous-wallet Energy/NFT data from rendering after a wallet switch.
+- Admin Command Center now includes an owner-only Energy Reconciliation report and repair tool.
+- `npm run energy:reconciliation:report` exports dated CSV/JSON reconciliation files from Goldsky events plus Energy Bank reads.
+- Added `ENERGY_SYSTEM_AUDIT.md` and `ENERGY_RECONCILIATION_REPORT.md` for formulas, data sources, repair process, and remaining risks.
+
 ### 2026-06-26 Admin Command Center Update
 
 - Mobile navigation was replaced with a controlled fixed overlay for mobile widths, including backdrop close, Escape close, body scroll lock, route-close behavior, active link highlighting, safe-area bottom padding, and contained scrolling.
