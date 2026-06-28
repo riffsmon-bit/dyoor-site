@@ -128,7 +128,7 @@ export async function POST(request: Request) {
       campaignIds.push(campaignId);
 
       try {
-        if (hasAdminRole) {
+        if (!hasCreditRole && hasAdminRole) {
           const alreadyUsed = await bank.usedAirdropCampaign(campaignId);
           if (alreadyUsed) {
             batch.forEach((wallet) => results.push({
@@ -240,7 +240,7 @@ export async function POST(request: Request) {
       blockNumbers,
       batchSize: AIRDROP_BATCH_SIZE,
       batchCount: batches.length,
-      executionMode: hasAdminRole ? "airdropEnergy" : "creditEnergy",
+      executionMode: hasCreditRole ? "creditEnergy" : "airdropEnergy",
       actionId: txHashes[0] || campaignIds[0] || "",
       note,
       timestamp: new Date().toISOString(),
