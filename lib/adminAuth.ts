@@ -49,7 +49,8 @@ export async function verifyAdmin(body: Record<string, unknown>, action: AdminAc
   const owner = adminOwnerWallet();
   if (!owner) throw Object.assign(new Error("Admin owner wallet is not configured."), { status: 500 });
 
-  const wallet = normalizeAdminAddress(body.wallet);
+  const signedWallet = String(body.wallet || "").trim();
+  const wallet = normalizeAdminAddress(signedWallet);
   const timestamp = String(body.timestamp || "");
   const nonce = String(body.nonce || "");
   const signature = String(body.signature || "");
@@ -66,7 +67,7 @@ export async function verifyAdmin(body: Record<string, unknown>, action: AdminAc
 
   let recovered = "";
   try {
-    recovered = normalizeAdminAddress(ethers.verifyMessage(adminMessage(wallet, timestamp, nonce, action), signature));
+    recovered = normalizeAdminAddress(ethers.verifyMessage(adminMessage(signedWallet, timestamp, nonce, action), signature));
   } catch {
     recovered = "";
   }
