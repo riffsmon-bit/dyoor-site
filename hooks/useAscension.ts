@@ -23,6 +23,7 @@ export type AscensionNft = {
   tokenId: string;
   name: string;
   image: string;
+  imageFallbacks: string[];
   source: "wallet" | "ascended";
   metadataStatus: "loaded" | "fallback";
 };
@@ -35,6 +36,9 @@ export type AscensionState = {
   ascendedCount: number;
   pendingEnergy: string;
   bankedEnergy: string;
+  spendableEnergy: string;
+  calculatedBankEnergy: string;
+  missingSpendableEnergy: string;
   harvestedEnergy: string;
   lifetimeEnergy: string;
   totalControlled: number;
@@ -121,10 +125,53 @@ function formatUnits18(raw: bigint) {
   return `${whole.toString()}.${frac}`;
 }
 
+function configuredIpfsGateways() {
+  const configured = process.env.NEXT_PUBLIC_IPFS_GATEWAY || "";
+  return [
+    configured,
+    "https://ipfs.io/ipfs/",
+    "https://gateway.pinata.cloud/ipfs/",
+    "https://dweb.link/ipfs/",
+  ].filter(Boolean).map((gateway) => gateway.endsWith("/") ? gateway : `${gateway}/`);
+}
+
+function ipfsPath(uri: string) {
+  const trimmed = String(uri || "").trim();
+  if (!trimmed) return "";
+  if (trimmed.startsWith("ipfs://")) return trimmed.slice("ipfs://".length).replace(/^ipfs\//, "");
+  const match = trimmed.match(/\/ipfs\/(.+)$/);
+  return match?.[1] || "";
+}
+
+function ipfsGatewayUrls(uri: string) {
+  const path = ipfsPath(uri);
+  if (!path) return uri ? [uri] : [];
+  return Array.from(new Set(configuredIpfsGateways().map((gateway) => `${gateway}${path}`)));
+}
+
 function normalizeIpfs(uri: string) {
-  if (!uri) return "";
-  if (uri.startsWith("ipfs://")) return `https://ipfs.io/ipfs/${uri.slice("ipfs://".length)}`;
-  return uri;
+  return ipfsGatewayUrls(uri)[0] || "";
+}
+
+async function fetchJsonFromUrls(urls: string[]) {
+  let lastError: unknown = null;
+  for (const url of urls) {
+    try {
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), 8000);
+      const response = await fetch(url, {
+        cache: "force-cache",
+        headers: { accept: "application/json" },
+        signal: controller.signal,
+      });
+      clearTimeout(timer);
+      if (!response.ok) throw new Error(`Metadata HTTP ${response.status}`);
+      return await response.json();
+    } catch (error) {
+      lastError = error;
+    }
+  }
+  throw lastError instanceof Error ? lastError : new Error("Metadata unavailable.");
 }
 
 function fallbackNft(tokenId: string, source: AscensionNft["source"]): AscensionNft {
@@ -133,6 +180,7 @@ function fallbackNft(tokenId: string, source: AscensionNft["source"]): Ascension
     source,
     name: `DYOOR #${tokenId}`,
     image: "",
+    imageFallbacks: [],
     metadataStatus: "fallback",
   };
 }
@@ -154,19 +202,18 @@ export async function fetchTokenMetadata(tokenId: string, source: AscensionNft["
         source,
         name: json.name || `DYOOR #${tokenId}`,
         image: normalizeIpfs(json.image || ""),
+        imageFallbacks: ipfsGatewayUrls(json.image || ""),
         metadataStatus: "loaded",
       };
     }
 
-    uri = normalizeIpfs(uri);
-    const response = await fetch(uri, { cache: "force-cache" });
-    if (!response.ok) throw new Error(`Metadata HTTP ${response.status}`);
-    const json = await response.json();
+    const json = await fetchJsonFromUrls(ipfsGatewayUrls(uri));
     return {
       tokenId,
       source,
       name: json.name || `DYOOR #${tokenId}`,
       image: normalizeIpfs(json.image || ""),
+      imageFallbacks: ipfsGatewayUrls(json.image || ""),
       metadataStatus: "loaded",
     };
   } catch {
@@ -175,6 +222,7 @@ export async function fetchTokenMetadata(tokenId: string, source: AscensionNft["
       source,
       name: `DYOOR #${tokenId}`,
       image: "",
+      imageFallbacks: [],
       metadataStatus: "fallback",
     };
   }
@@ -205,7 +253,10 @@ type EnergyStatsResponse = {
   outgoingTransfersEnergy?: string;
   spentEnergy?: string;
   lifetimeEnergy?: string;
+  spendableEnergy?: string;
   bankedEnergy?: string;
+  calculatedBankEnergy?: string;
+  missingSpendableEnergy?: string;
   harvestEventsFound?: number;
   fromBlock?: string;
   toBlock?: string;
@@ -606,6 +657,9 @@ async function fetchEnergy(wallet: Address, options: EnergyRefreshOptions = {}) 
 
   let pendingEnergy = pendingResult.status === "fulfilled" ? formatUnits18(pendingResult.value as bigint) : "0.00";
   let bankedEnergy = bankedResult.status === "fulfilled" ? formatUnits18(bankedResult.value as bigint) : "0.00";
+  let spendableEnergy = bankedEnergy;
+  let calculatedBankEnergy = bankedEnergy;
+  let missingSpendableEnergy = "0";
   let lifetimeEnergy = lifetimeResult.status === "fulfilled" ? formatUnits18(lifetimeResult.value as bigint) : "0.00";
   let harvestedEnergy = "0.00";
 
@@ -615,6 +669,9 @@ async function fetchEnergy(wallet: Address, options: EnergyRefreshOptions = {}) 
       const json = await response.json() as EnergyStatsResponse;
       pendingEnergy = String(json.pendingEnergy || pendingEnergy);
       bankedEnergy = String(json.bankedEnergy || bankedEnergy);
+      spendableEnergy = String(json.spendableEnergy || json.bankedEnergy || spendableEnergy);
+      calculatedBankEnergy = String(json.calculatedBankEnergy || calculatedBankEnergy);
+      missingSpendableEnergy = String(json.missingSpendableEnergy || "0");
       harvestedEnergy = String(json.harvestedEnergy || harvestedEnergy);
       lifetimeEnergy = String(json.lifetimeEnergy || lifetimeEnergy);
       if (process.env.NODE_ENV !== "production") {
@@ -628,6 +685,8 @@ async function fetchEnergy(wallet: Address, options: EnergyRefreshOptions = {}) 
           spentEnergy: json.spentEnergy || "0",
           lifetimeEnergy,
           energyBank: bankedEnergy,
+          calculatedBankEnergy,
+          missingSpendableEnergy,
           harvestEventsFound: json.harvestEventsFound || 0,
           blockRangeScanned: `${json.fromBlock || "0"}-${json.toBlock || "0"}`,
           dataSource: json.dataSource || "unknown",
@@ -636,7 +695,7 @@ async function fetchEnergy(wallet: Address, options: EnergyRefreshOptions = {}) 
     }
   } catch {}
 
-  return { pendingEnergy, bankedEnergy, harvestedEnergy, lifetimeEnergy };
+  return { pendingEnergy, bankedEnergy, spendableEnergy, calculatedBankEnergy, missingSpendableEnergy, harvestedEnergy, lifetimeEnergy };
 }
 
 async function loadAscensionState(walletAddress: string): Promise<AscensionState> {
@@ -675,6 +734,9 @@ async function loadAscensionState(walletAddress: string): Promise<AscensionState
     totalControlled,
     pendingEnergy: "0.00",
     bankedEnergy: "0.00",
+    spendableEnergy: "0.00",
+    calculatedBankEnergy: "0.00",
+    missingSpendableEnergy: "0",
     harvestedEnergy: "0.00",
     lifetimeEnergy: "0.00",
     isPartial: warnings.length > 0,
@@ -719,6 +781,9 @@ async function loadAscensionEnergy(walletAddress: string, options: EnergyRefresh
     walletAddress: "",
     pendingEnergy: "0.00",
     bankedEnergy: "0.00",
+    spendableEnergy: "0.00",
+    calculatedBankEnergy: "0.00",
+    missingSpendableEnergy: "0",
     harvestedEnergy: "0.00",
     lifetimeEnergy: "0.00",
   };
@@ -765,6 +830,9 @@ export function useAscension() {
     totalControlled: stateData?.totalControlled || 0,
     pendingEnergy: energyData?.pendingEnergy || stateData?.pendingEnergy || "0.00",
     bankedEnergy: energyData?.bankedEnergy || stateData?.bankedEnergy || "0.00",
+    spendableEnergy: energyData?.spendableEnergy || stateData?.spendableEnergy || "0.00",
+    calculatedBankEnergy: energyData?.calculatedBankEnergy || stateData?.calculatedBankEnergy || "0.00",
+    missingSpendableEnergy: energyData?.missingSpendableEnergy || stateData?.missingSpendableEnergy || "0",
     harvestedEnergy: energyData?.harvestedEnergy || stateData?.harvestedEnergy || "0.00",
     lifetimeEnergy: energyData?.lifetimeEnergy || stateData?.lifetimeEnergy || "0.00",
     loading: query.isLoading,

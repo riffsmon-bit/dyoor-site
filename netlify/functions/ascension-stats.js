@@ -616,6 +616,8 @@ exports.handler = async function (event) {
         spentEnergy: formatUnits(accounting.spentRaw),
         lifetimeRaw: accounting.lifetimeRaw.toString(),
         lifetimeEnergy: formatUnits(accounting.lifetimeRaw),
+        spendableRaw: accounting.bankRaw.toString(),
+        spendableEnergy: formatUnits(accounting.bankRaw),
         bankedRaw: accounting.bankRaw.toString(),
         bankedEnergy: formatUnits(accounting.bankRaw),
         bankLifetimeRaw: bankLifetimeRaw.toString(),
