@@ -64,9 +64,9 @@ export function Button({
 
 export function StatCard({ label, value, className = "" }: { label: string; value: ReactNode; className?: string }) {
   return (
-    <div className={joinClasses("glass-panel hover-lift p-4", className)}>
+    <div className={joinClasses("glass-panel hover-lift min-w-0 overflow-hidden p-4", className)}>
       <p className="text-xs font-black uppercase tracking-[0.16em] text-white/45">{label}</p>
-      <p className="mt-2 text-3xl font-black text-white">{value}</p>
+      <p className="mt-2 max-w-full overflow-hidden text-2xl font-black leading-tight text-white md:text-3xl">{value}</p>
     </div>
   );
 }

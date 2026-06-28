@@ -15,6 +15,7 @@ type Snapshot = {
   ok?: boolean;
   generatedAt: string;
   discovery?: {
+    scanMode?: string;
     startBlock?: number;
     latestBlock?: number;
     lastScannedBlock?: number;
@@ -24,6 +25,11 @@ type Snapshot = {
     limited?: boolean;
     discoveredWallets?: number;
     discoveredTokenIds?: number;
+    startTokenId?: number;
+    lastScannedTokenId?: number;
+    maxTokenId?: number;
+    batchTokens?: number;
+    failedTokenReads?: number;
   };
   totals: {
     walletsFound: number;
@@ -43,6 +49,10 @@ type SnapshotCursor = {
   nextBlock?: number;
   latestBlock?: number;
   batchBlocks?: number;
+  scanMode?: string;
+  nextTokenId?: number;
+  maxTokenId?: number;
+  batchTokens?: number;
 } | null;
 
 type SnapshotDiscoverResponse = {
@@ -51,9 +61,23 @@ type SnapshotDiscoverResponse = {
   cursor?: SnapshotCursor;
   wallets?: string[];
   tokenIds?: string[];
+  tokenOwners?: Record<string, string>;
   discovery?: Snapshot["discovery"];
   warnings?: string[];
   error?: string;
+};
+
+type SnapshotSession = {
+  timestamp: string;
+  nonce: string;
+  signature: unknown;
+  cursor?: SnapshotCursor;
+  discoveredWallets: string[];
+  discoveredTokenIds: string[];
+  tokenOwners: Record<string, string>;
+  discovery?: Snapshot["discovery"];
+  warnings: string[];
+  complete: boolean;
 };
 
 type AirdropResult = {
@@ -180,6 +204,87 @@ async function postSnapshotRequest(payload: Record<string, unknown>, attempts = 
   throw new Error(lastError);
 }
 
+function mergeSnapshotSession(session: SnapshotSession, data: SnapshotDiscoverResponse): SnapshotSession {
+  const discoveredWallets = new Set(session.discoveredWallets);
+  const discoveredTokenIds = new Set(session.discoveredTokenIds);
+  const tokenOwners = { ...session.tokenOwners };
+  const warnings = new Set(session.warnings);
+
+  for (const wallet of data.wallets || []) {
+    const normalized = normalizeAddress(wallet);
+    if (normalized) discoveredWallets.add(normalized);
+  }
+  for (const tokenId of data.tokenIds || []) {
+    const value = String(tokenId);
+    if (/^\d+$/.test(value)) discoveredTokenIds.add(value);
+  }
+  for (const [tokenId, wallet] of Object.entries(data.tokenOwners || {})) {
+    const normalized = normalizeAddress(wallet);
+    if (/^\d+$/.test(tokenId) && normalized) {
+      discoveredTokenIds.add(tokenId);
+      discoveredWallets.add(normalized);
+      tokenOwners[tokenId] = normalized;
+    }
+  }
+  for (const warning of data.warnings || []) warnings.add(warning);
+
+  const page = data.discovery || {};
+  const discovery = {
+    scanMode: page.scanMode ?? session.discovery?.scanMode,
+    startBlock: page.startBlock ?? session.discovery?.startBlock,
+    latestBlock: page.latestBlock ?? session.discovery?.latestBlock,
+    lastScannedBlock: page.lastScannedBlock ?? session.discovery?.lastScannedBlock,
+    chunkSize: page.chunkSize ?? session.discovery?.chunkSize,
+    chunksScanned: (session.discovery?.chunksScanned || 0) + (page.chunksScanned || 0),
+    failedChunks: (session.discovery?.failedChunks || 0) + (page.failedChunks || 0),
+    limited: Boolean(session.discovery?.limited || page.limited),
+    discoveredWallets: discoveredWallets.size,
+    discoveredTokenIds: discoveredTokenIds.size,
+    startTokenId: page.startTokenId ?? session.discovery?.startTokenId,
+    lastScannedTokenId: page.lastScannedTokenId ?? session.discovery?.lastScannedTokenId,
+    maxTokenId: page.maxTokenId ?? session.discovery?.maxTokenId,
+    batchTokens: page.batchTokens ?? session.discovery?.batchTokens,
+    failedTokenReads: (session.discovery?.failedTokenReads || 0) + (page.failedTokenReads || 0),
+  };
+
+  return {
+    ...session,
+    cursor: data.cursor || undefined,
+    discoveredWallets: Array.from(discoveredWallets).sort(),
+    discoveredTokenIds: Array.from(discoveredTokenIds).sort((a, b) => Number(a) - Number(b)),
+    tokenOwners,
+    discovery,
+    warnings: Array.from(warnings),
+    complete: Boolean(data.complete),
+  };
+}
+
+function snapshotSessionLabel(session: SnapshotSession) {
+  const discovery = session.discovery;
+  if (!discovery) return "Snapshot scan signed. Scan the first range.";
+  if (discovery.scanMode === "ownerOf") {
+    const tokenLabel = discovery.maxTokenId
+      ? `${(discovery.lastScannedTokenId || 0).toLocaleString()} / ${discovery.maxTokenId.toLocaleString()}`
+      : `${discovery.lastScannedTokenId || 0}`;
+    const stakedLabel = `${session.discoveredTokenIds.length} staked token${session.discoveredTokenIds.length === 1 ? "" : "s"}`;
+    return session.complete
+      ? `Exact S1 owner scan complete: ${tokenLabel}. Found ${stakedLabel}.`
+      : `Exact S1 owner scan: ${tokenLabel}. Found ${stakedLabel}.`;
+  }
+  if (discovery.scanMode === "goldsky-events") {
+    const blockLabel = discovery.latestBlock ? discovery.latestBlock.toLocaleString() : "latest indexed block";
+    const stakedLabel = `${session.discoveredTokenIds.length} active staked token${session.discoveredTokenIds.length === 1 ? "" : "s"}`;
+    return `Goldsky Ascension index complete at block ${blockLabel}. Found ${stakedLabel}.`;
+  }
+  const blockLabel = discovery.latestBlock
+    ? `${(discovery.lastScannedBlock || 0).toLocaleString()} / ${discovery.latestBlock.toLocaleString()}`
+    : `${discovery.lastScannedBlock || 0}`;
+  const tokenLabel = `${session.discoveredTokenIds.length} token ID${session.discoveredTokenIds.length === 1 ? "" : "s"}`;
+  return session.complete
+    ? `Discovery complete at block ${blockLabel}. Found ${tokenLabel}.`
+    : `Scanned Ascension logs: ${blockLabel}. Found ${tokenLabel}.`;
+}
+
 function SnapshotSection({
   rows,
   title,
@@ -253,6 +358,7 @@ export default function AdminPage() {
   const [authStatus, setAuthStatus] = useState("Connect owner wallet.");
   const [loading, setLoading] = useState(false);
   const [snapshot, setSnapshot] = useState<Snapshot | null>(null);
+  const [snapshotSession, setSnapshotSession] = useState<SnapshotSession | null>(null);
   const [error, setError] = useState("");
   const [snapshotProgress, setSnapshotProgress] = useState("");
   const [airdropRecipientsInput, setAirdropRecipientsInput] = useState("");
@@ -271,7 +377,9 @@ export default function AdminPage() {
     let active = true;
     async function checkOwner() {
       setSnapshot(null);
+      setSnapshotSession(null);
       setError("");
+      setSnapshotProgress("");
       if (!walletAddress) {
         setAuthorized(false);
         setAuthStatus("Connect owner wallet.");
@@ -332,100 +440,133 @@ export default function AdminPage() {
     return await walletService.getProvider() as Eip1193Provider;
   }
 
-  async function generateSnapshot() {
+  async function createSnapshotSession() {
     if (!walletAddress) {
       await walletService.connect().catch(() => {});
-      return;
+      return null;
     }
-    if (!authorized) return;
+    if (!authorized) return null;
+    setSnapshotProgress("Sign owner authorization for snapshot exports.");
+    const timestamp = String(Date.now());
+    const nonce = crypto.randomUUID();
+    const message = adminMessage(walletAddress, timestamp, nonce, "snapshot");
+    const provider = await getProvider();
+    const signature = await provider.request({ method: "personal_sign", params: [message, walletAddress] });
+    const session: SnapshotSession = {
+      timestamp,
+      nonce,
+      signature,
+      discoveredWallets: [],
+      discoveredTokenIds: [],
+      tokenOwners: {},
+      warnings: [],
+      complete: false,
+    };
+    setLastSignatureAt(new Date().toISOString());
+    setSnapshotSession(session);
+    setSnapshot(null);
+    setAuthStatus("Snapshot signed. Scan the first range.");
+    setSnapshotProgress("Snapshot signed. Scan the first range.");
+    return session;
+  }
+
+  async function startSnapshotSession() {
     setLoading(true);
     setError("");
-    setSnapshot(null);
-    setSnapshotProgress("Sign owner authorization for snapshot exports.");
     try {
-      const timestamp = String(Date.now());
-      const nonce = crypto.randomUUID();
-      const message = adminMessage(walletAddress, timestamp, nonce, "snapshot");
-      const provider = await getProvider();
-      const signature = await provider.request({ method: "personal_sign", params: [message, walletAddress] });
-      setLastSignatureAt(new Date().toISOString());
-
-      const discoveredWallets = new Set<string>();
-      const discoveredTokenIds = new Set<string>();
-      const warningSet = new Set<string>();
-      let cursor: SnapshotCursor | undefined = undefined;
-      let discovery: Snapshot["discovery"] | undefined;
-      const maxBatches = 240;
-
-      for (let batch = 1; batch <= maxBatches; batch += 1) {
-        const data = await postSnapshotRequest({
-          mode: "discover",
-          wallet: walletAddress,
-          timestamp,
-          nonce,
-          signature,
-          cursor,
-        }) as SnapshotDiscoverResponse;
-
-        for (const wallet of data.wallets || []) {
-          const normalized = normalizeAddress(wallet);
-          if (normalized) discoveredWallets.add(normalized);
-        }
-        for (const tokenId of data.tokenIds || []) {
-          if (/^\d+$/.test(String(tokenId))) discoveredTokenIds.add(String(tokenId));
-        }
-        for (const warning of data.warnings || []) warningSet.add(warning);
-
-        const page = data.discovery || {};
-        discovery = {
-          startBlock: page.startBlock ?? discovery?.startBlock,
-          latestBlock: page.latestBlock ?? discovery?.latestBlock,
-          lastScannedBlock: page.lastScannedBlock ?? discovery?.lastScannedBlock,
-          chunkSize: page.chunkSize ?? discovery?.chunkSize,
-          chunksScanned: (discovery?.chunksScanned || 0) + (page.chunksScanned || 0),
-          failedChunks: (discovery?.failedChunks || 0) + (page.failedChunks || 0),
-          limited: Boolean(discovery?.limited || page.limited),
-          discoveredWallets: discoveredWallets.size,
-          discoveredTokenIds: discoveredTokenIds.size,
-        };
-
-        const blockLabel = discovery.latestBlock
-          ? `${(discovery.lastScannedBlock || 0).toLocaleString()} / ${discovery.latestBlock.toLocaleString()}`
-          : `${discovery.lastScannedBlock || 0}`;
-        const progress = `Scanning Ascension logs: ${blockLabel}. Found ${discoveredTokenIds.size} token ID${discoveredTokenIds.size === 1 ? "" : "s"}.`;
-        setSnapshotProgress(progress);
-        setAuthStatus(progress);
-
-        if (data.complete) break;
-        cursor = data.cursor || undefined;
-        if (!cursor || batch === maxBatches) throw new Error("Snapshot scan reached the batch limit before completion.");
-        await sleep(100);
-      }
-
-      setSnapshotProgress("Building snapshot export tables.");
-      setAuthStatus("Building snapshot export tables.");
-      const data = await postSnapshotRequest({
-        mode: "finalize",
-        wallet: walletAddress,
-        timestamp,
-        nonce,
-        signature,
-        discoveredWallets: Array.from(discoveredWallets),
-        discoveredTokenIds: Array.from(discoveredTokenIds),
-        discovery,
-        warnings: Array.from(warningSet),
-      }, 3) as Snapshot;
-      if (data?.ok === false) throw new Error("Admin snapshot failed.");
-      setSnapshot(data);
-      setAuthStatus("Snapshot generated.");
-      setSnapshotProgress("");
+      await createSnapshotSession();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Admin snapshot failed.");
     } finally {
       setLoading(false);
-      setSnapshotProgress("");
     }
   }
+
+  async function scanSnapshotRange() {
+    setLoading(true);
+    setError("");
+    try {
+      const session = snapshotSession || await createSnapshotSession();
+      if (!session) return;
+      setSnapshotProgress("Scanning next Ascension log range.");
+      const data = await postSnapshotRequest({
+        mode: "discover",
+        wallet: walletAddress,
+        timestamp: session.timestamp,
+        nonce: session.nonce,
+        signature: session.signature,
+        cursor: session.cursor,
+      }) as SnapshotDiscoverResponse;
+      const nextSession = mergeSnapshotSession(session, data);
+      const label = snapshotSessionLabel(nextSession);
+      setSnapshotSession(nextSession);
+      setSnapshotProgress(label);
+      setAuthStatus(label);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Admin snapshot failed.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function finalizeSnapshotSession() {
+    if (!snapshotSession) {
+      setError("Start a snapshot scan first.");
+      return;
+    }
+    setLoading(true);
+    setError("");
+    setSnapshotProgress("Building snapshot export tables.");
+    setAuthStatus("Building snapshot export tables.");
+    try {
+      const data = await postSnapshotRequest({
+        mode: "finalize",
+        wallet: walletAddress,
+        timestamp: snapshotSession.timestamp,
+        nonce: snapshotSession.nonce,
+        signature: snapshotSession.signature,
+        discoveredWallets: snapshotSession.discoveredWallets,
+        discoveredTokenIds: snapshotSession.discoveredTokenIds,
+        tokenOwners: snapshotSession.tokenOwners,
+        discovery: snapshotSession.discovery,
+        warnings: snapshotSession.warnings,
+      }, 3) as Snapshot;
+      if (data?.ok === false) throw new Error("Admin snapshot failed.");
+      setSnapshot(data);
+      setAuthStatus("Snapshot generated.");
+      setSnapshotProgress("Snapshot export tables built.");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Admin snapshot failed.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  function resetSnapshotSession() {
+    setSnapshotSession(null);
+    setSnapshot(null);
+    setError("");
+    setSnapshotProgress("");
+    setAuthStatus(authorized ? "Owner wallet connected. Sign to unlock snapshots." : "Connect owner wallet.");
+  }
+
+  function runSnapshotPrimaryAction() {
+    if (!authenticated) return void walletService.connect();
+    if (!snapshotSession) return void startSnapshotSession();
+    if (!snapshotSession.complete) return void scanSnapshotRange();
+    if (!snapshot) return void finalizeSnapshotSession();
+    resetSnapshotSession();
+  }
+
+  const snapshotPrimaryLabel = !authenticated
+    ? "Connect Owner Wallet"
+    : !snapshotSession
+      ? "Start Snapshot"
+      : !snapshotSession.complete
+        ? "Scan Next Range"
+        : !snapshot
+          ? "Build Exports"
+          : "New Snapshot";
 
   async function loadCsvFile(file?: File | null) {
     if (!file) return;
@@ -503,13 +644,70 @@ export default function AdminPage() {
           eyebrow="Owner Command"
           title="DYOOR Admin Command Center"
           copy="Owner-only command surface for protected snapshots and internal Energy operations. Every action requires the configured owner wallet, a fresh signature, timestamp, and nonce."
-          actions={<Button variant="primary" onClick={authenticated ? generateSnapshot : () => void walletService.connect()} disabled={loading || (authenticated && !authorized)}>{loading ? "Running Snapshot" : authenticated ? "Generate Snapshots" : "Connect Owner Wallet"}</Button>}
+          actions={<Button variant="primary" onClick={runSnapshotPrimaryAction} disabled={loading || (authenticated && !authorized)}>{loading ? "Working..." : snapshotPrimaryLabel}</Button>}
         />
         <Alert tone={!walletAddress ? "warning" : authorized ? "success" : "danger"}>{authStatus}</Alert>
       </Card>
 
       {error && <Alert className="mb-6" tone="danger">{error}</Alert>}
-      {loading && snapshotProgress ? <Alert className="mb-6" tone="busy">{snapshotProgress}</Alert> : null}
+      {snapshotProgress ? <Alert className="mb-6" tone={loading ? "busy" : "success"}>{snapshotProgress}</Alert> : null}
+      {snapshotSession ? (
+        <Card className="mb-6 p-5 md:p-6">
+          <div className="flex flex-col justify-between gap-4 lg:flex-row lg:items-end">
+            <div>
+              <p className="eyebrow">Snapshot Session</p>
+              <h2 className="mt-2 text-xl font-black uppercase text-white">{snapshotSession.complete ? "Discovery Complete" : "Discovery In Progress"}</h2>
+              <p className="mt-2 text-sm font-semibold leading-6 text-white/62">{snapshotSessionLabel(snapshotSession)}</p>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <Button variant="secondary" disabled={loading || snapshotSession.complete} onClick={() => void scanSnapshotRange()}>Scan Next Range</Button>
+              <Button variant="primary" disabled={loading || !snapshotSession.complete} onClick={() => void finalizeSnapshotSession()}>Build Exports</Button>
+              <Button variant="ghost" disabled={loading} onClick={resetSnapshotSession}>Reset</Button>
+            </div>
+          </div>
+          <div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-5">
+            <div className="rounded border border-dyoor-purple/25 bg-black/30 p-3">
+              <p className="text-[0.66rem] font-black uppercase tracking-[0.14em] text-white/40">Last Scanned</p>
+              <p className="mt-2 text-sm font-black text-white">
+                {snapshotSession.discovery?.scanMode === "ownerOf"
+                  ? snapshotSession.discovery?.lastScannedTokenId?.toLocaleString() || "-"
+                  : snapshotSession.discovery?.lastScannedBlock?.toLocaleString() || "-"}
+              </p>
+            </div>
+            <div className="rounded border border-dyoor-purple/25 bg-black/30 p-3">
+              <p className="text-[0.66rem] font-black uppercase tracking-[0.14em] text-white/40">
+                {snapshotSession.discovery?.scanMode === "ownerOf" ? "Max Token" : "Latest Block"}
+              </p>
+              <p className="mt-2 text-sm font-black text-white">
+                {snapshotSession.discovery?.scanMode === "ownerOf"
+                  ? snapshotSession.discovery?.maxTokenId?.toLocaleString() || "-"
+                  : snapshotSession.discovery?.latestBlock?.toLocaleString() || "-"}
+              </p>
+            </div>
+            <div className="rounded border border-dyoor-purple/25 bg-black/30 p-3">
+              <p className="text-[0.66rem] font-black uppercase tracking-[0.14em] text-white/40">Next Batch</p>
+              <p className="mt-2 text-sm font-black text-white">
+                {snapshotSession.discovery?.scanMode === "ownerOf"
+                  ? snapshotSession.cursor?.batchTokens?.toLocaleString() || snapshotSession.discovery?.batchTokens?.toLocaleString() || "-"
+                  : snapshotSession.cursor?.batchBlocks?.toLocaleString() || snapshotSession.discovery?.chunkSize?.toLocaleString() || "-"}
+              </p>
+            </div>
+            <div className="rounded border border-dyoor-purple/25 bg-black/30 p-3">
+              <p className="text-[0.66rem] font-black uppercase tracking-[0.14em] text-white/40">Staked IDs</p>
+              <p className="mt-2 text-sm font-black text-dyoor-cyan">{snapshotSession.discoveredTokenIds.length}</p>
+            </div>
+            <div className="rounded border border-dyoor-purple/25 bg-black/30 p-3">
+              <p className="text-[0.66rem] font-black uppercase tracking-[0.14em] text-white/40">Warnings</p>
+              <p className="mt-2 text-sm font-black text-white">{snapshotSession.warnings.length}</p>
+            </div>
+          </div>
+        </Card>
+      ) : null}
+      {snapshotSession?.warnings.length ? (
+        <Alert className="mb-6" tone="warning">
+          {snapshotSession.warnings.slice(-3).join(" ")}
+        </Alert>
+      ) : null}
       {snapshot?.warnings?.length ? (
         <Alert className="mb-6" tone="warning">
           {snapshot.warnings.join(" ")}
@@ -564,14 +762,14 @@ export default function AdminPage() {
 
       <div className="mb-6 flex flex-wrap items-center justify-between gap-3 rounded border border-dyoor-purple/25 bg-white/[0.035] p-4 text-sm font-bold text-white/62">
         <div className="grid gap-1">
-          <span>Last generated: {snapshot?.generatedAt ? new Date(snapshot.generatedAt).toLocaleString() : "Not generated yet"}</span>
+        <span>Last generated: {snapshot?.generatedAt ? new Date(snapshot.generatedAt).toLocaleString() : "Not generated yet"}</span>
           {snapshot?.discovery ? (
             <span className="text-xs text-white/45">
               Log scan: {snapshot.discovery.lastScannedBlock?.toLocaleString() || "-"} / {snapshot.discovery.latestBlock?.toLocaleString() || "-"} blocks, {snapshot.discovery.chunksScanned || 0} chunks
             </span>
           ) : null}
         </div>
-        <Button variant="secondary" onClick={generateSnapshot} disabled={!authorized || loading}>Refresh Snapshot Suite</Button>
+        <Button variant="secondary" onClick={runSnapshotPrimaryAction} disabled={!authorized || loading}>{snapshotPrimaryLabel}</Button>
       </div>
 
       <div className="grid gap-6">

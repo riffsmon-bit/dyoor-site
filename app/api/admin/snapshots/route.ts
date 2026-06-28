@@ -15,9 +15,13 @@ const DEFAULT_ENERGY_BANK = "0x291a8cC0FCa08EBd64a0e4d67B4455d24e9E6767";
 const BLUEPRINTS_KEY = "ascension-blueprints.json";
 const LOCAL_BLUEPRINTS_PATH = path.join(process.cwd(), "data", "ascension-blueprints.json");
 const LOCAL_HARVEST_LEDGER_PATH = path.join(process.cwd(), "data", "harvested-energy.json");
+const DEFAULT_S1_MAX_SUPPLY = 1111;
 const DEFAULT_ASCENSION_START_BLOCK = 54_985_442;
 const DEFAULT_ASCENSION_LOG_CHUNK_SIZE = 50_000;
-const DEFAULT_DISCOVERY_BATCH_BLOCKS = 500_000;
+const DEFAULT_DISCOVERY_BATCH_BLOCKS = 100_000;
+const DEFAULT_OWNER_SCAN_BATCH_SIZE = 100;
+const DEFAULT_OWNER_SCAN_CONCURRENCY = 6;
+const GOLDSKY_PAGE_SIZE = 1000;
 const DEFAULT_DISCOVERY_BUDGET_MS = 8_000;
 const DEFAULT_RPC_TIMEOUT_MS = 7_000;
 const DEFAULT_FINALIZE_CONCURRENCY = 4;
@@ -51,6 +55,15 @@ const energyBankAbi = [
   "function spendableEnergy(address user) view returns (uint256)",
   "function lifetimeEnergy(address user) view returns (uint256)",
 ];
+
+type GoldskyStakeEvent = {
+  id?: string;
+  block_number?: string;
+  timestamp_?: string;
+  transactionHash_?: string;
+  user?: string;
+  tokenId?: string;
+};
 
 function readEnv(...names: string[]) {
   for (const name of names) {
@@ -96,6 +109,21 @@ function normalizeTokenIdList(value: unknown) {
   return Array.from(new Set(readStringArray(value).filter((item) => /^\d+$/.test(item)))).sort(compareNumericStrings);
 }
 
+function normalizeTokenOwnerMap(value: unknown) {
+  const owners = new Map<string, string>();
+  if (!value || typeof value !== "object" || Array.isArray(value)) return owners;
+  for (const [tokenId, wallet] of Object.entries(value as Record<string, unknown>)) {
+    if (!/^\d+$/.test(tokenId)) continue;
+    const normalizedWallet = normalizeAddress(wallet);
+    if (normalizedWallet) owners.set(tokenId, normalizedWallet);
+  }
+  return owners;
+}
+
+function tokenOwnerRecord(owners: Map<string, string>) {
+  return Object.fromEntries(Array.from(owners.entries()).sort(([a], [b]) => compareNumericStrings(a, b)));
+}
+
 function readDiscoveryInput(value: unknown) {
   const input = value && typeof value === "object" ? value as Record<string, unknown> : {};
   const numberValue = (key: string) => {
@@ -112,6 +140,12 @@ function readDiscoveryInput(value: unknown) {
     limited: Boolean(input.limited),
     discoveredWallets: numberValue("discoveredWallets") || 0,
     discoveredTokenIds: numberValue("discoveredTokenIds") || 0,
+    scanMode: typeof input.scanMode === "string" ? input.scanMode : "",
+    startTokenId: numberValue("startTokenId"),
+    lastScannedTokenId: numberValue("lastScannedTokenId"),
+    maxTokenId: numberValue("maxTokenId"),
+    batchTokens: numberValue("batchTokens"),
+    failedTokenReads: numberValue("failedTokenReads") || 0,
   };
 }
 
@@ -336,14 +370,232 @@ async function discoverStakingWalletBatch(
   };
 }
 
-async function discoverSnapshotPage(body: Record<string, unknown>) {
+function goldskyEventBlock(event: GoldskyStakeEvent) {
+  const value = Number(event.block_number || 0);
+  return Number.isFinite(value) ? value : 0;
+}
+
+function activeGoldskyStakes(staked: GoldskyStakeEvent[], unstaked: GoldskyStakeEvent[]) {
+  const events = [
+    ...staked.map((event) => ({ ...event, kind: "staked" as const })),
+    ...unstaked.map((event) => ({ ...event, kind: "unstaked" as const })),
+  ].filter((event) => /^\d+$/.test(String(event.tokenId || "")));
+
+  events.sort((a, b) => {
+    const blockDiff = goldskyEventBlock(a) - goldskyEventBlock(b);
+    if (blockDiff !== 0) return blockDiff;
+    return String(a.id || "").localeCompare(String(b.id || ""));
+  });
+
+  const active = new Map<string, string>();
+  for (const event of events) {
+    const tokenId = String(event.tokenId);
+    if (event.kind === "unstaked") {
+      active.delete(tokenId);
+      continue;
+    }
+    const wallet = normalizeAddress(event.user);
+    if (wallet) active.set(tokenId, wallet);
+  }
+
+  return active;
+}
+
+async function fetchGoldskyEvents(endpoint: string, field: "stakeds" | "unstakeds") {
+  const rows: GoldskyStakeEvent[] = [];
+  let indexedBlock = 0;
+
+  for (let skip = 0; skip < 50_000; skip += GOLDSKY_PAGE_SIZE) {
+    const query = `
+      query DyoorGoldskySnapshotEvents($skip: Int!) {
+        _meta { block { number } }
+        ${field}(first: ${GOLDSKY_PAGE_SIZE}, skip: $skip, orderBy: block_number, orderDirection: asc) {
+          id
+          block_number
+          timestamp_
+          transactionHash_
+          user
+          tokenId
+        }
+      }
+    `;
+    const response = await fetch(endpoint, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ query, variables: { skip } }),
+      cache: "no-store",
+    });
+    const payload = await response.json().catch(() => ({}));
+    if (!response.ok || payload?.errors?.length) {
+      throw Object.assign(new Error(`Goldsky ${field} query failed.`), { status: 502 });
+    }
+
+    indexedBlock = Math.max(indexedBlock, Number(payload?.data?._meta?.block?.number || 0));
+    const batch = Array.isArray(payload?.data?.[field]) ? payload.data[field] as GoldskyStakeEvent[] : [];
+    rows.push(...batch);
+    if (batch.length < GOLDSKY_PAGE_SIZE) break;
+  }
+
+  return { rows, indexedBlock };
+}
+
+async function discoverGoldskySnapshotPage(endpoint: string) {
+  const [staked, unstaked] = await Promise.all([
+    fetchGoldskyEvents(endpoint, "stakeds"),
+    fetchGoldskyEvents(endpoint, "unstakeds"),
+  ]);
+  const tokenOwners = activeGoldskyStakes(staked.rows, unstaked.rows);
+  const wallets = Array.from(new Set(tokenOwners.values())).sort();
+  const tokenIds = Array.from(tokenOwners.keys()).sort(compareNumericStrings);
+  const indexedBlock = Math.max(staked.indexedBlock, unstaked.indexedBlock);
+
+  return {
+    ok: true,
+    phase: "discover",
+    complete: true,
+    wallets,
+    tokenIds,
+    tokenOwners: tokenOwnerRecord(tokenOwners),
+    cursor: null,
+    discovery: {
+      scanMode: "goldsky-events",
+      startBlock: 0,
+      latestBlock: indexedBlock,
+      lastScannedBlock: indexedBlock,
+      chunkSize: GOLDSKY_PAGE_SIZE,
+      chunksScanned: Math.ceil((staked.rows.length + unstaked.rows.length) / GOLDSKY_PAGE_SIZE) || 1,
+      failedChunks: 0,
+      limited: false,
+      discoveredWallets: wallets.length,
+      discoveredTokenIds: tokenIds.length,
+    },
+    warnings: [
+      `Goldsky active stake index used: ${staked.rows.length} stake event${staked.rows.length === 1 ? "" : "s"}, ${unstaked.rows.length} unstake event${unstaked.rows.length === 1 ? "" : "s"}.`,
+    ],
+  };
+}
+
+async function discoverOwnerOfSnapshotPage(body: Record<string, unknown>) {
   const provider = new ethers.JsonRpcProvider(readEnv("MONAD_RPC_URL", "NEXT_PUBLIC_MONAD_RPC_URL") || DEFAULT_RPC, CHAIN_ID);
   const stakingAddress = ethers.getAddress(readEnv("ASCENSION_STAKING_ADDRESS", "ASCENSION_STAKING_CONTRACT", "NEXT_PUBLIC_ASCENSION_STAKING_CONTRACT") || DEFAULT_ASCENSION_STAKING);
   const nftAddress = ethers.getAddress(readEnv("DYOOR_S1_CONTRACT", "NEXT_PUBLIC_DYOOR_S1_CONTRACT") || DEFAULT_DYOOR_S1);
-  const latest = await withTimeout(provider.getBlockNumber(), readWholeNumberEnv(["ASCENSION_SNAPSHOT_RPC_TIMEOUT_MS"], DEFAULT_RPC_TIMEOUT_MS));
+  const nft = new ethers.Contract(nftAddress, erc721Abi, provider);
+  const cursor = body.cursor && typeof body.cursor === "object" ? body.cursor as Record<string, unknown> : {};
+  const maxTokenId = readWholeNumberEnv(["DYOOR_S1_MAX_SUPPLY", "NEXT_PUBLIC_DYOOR_S1_MAX_SUPPLY"], DEFAULT_S1_MAX_SUPPLY);
+  const configuredBatchTokens = readWholeNumberEnv(["ASCENSION_SNAPSHOT_TOKEN_BATCH_SIZE"], DEFAULT_OWNER_SCAN_BATCH_SIZE);
+  const requestedBatchTokens = Number(cursor.batchTokens || 0);
+  const batchTokens = Number.isSafeInteger(requestedBatchTokens) && requestedBatchTokens > 0
+    ? Math.min(configuredBatchTokens, Math.max(1, requestedBatchTokens))
+    : configuredBatchTokens;
+  const requestedNextTokenId = Number(cursor.nextTokenId || 1);
+  const fromTokenId = Math.min(maxTokenId + 1, Math.max(1, Number.isSafeInteger(requestedNextTokenId) ? requestedNextTokenId : 1));
+  const toTokenId = fromTokenId > maxTokenId ? maxTokenId : Math.min(maxTokenId, fromTokenId + batchTokens - 1);
+  const timeoutMs = readWholeNumberEnv(["ASCENSION_SNAPSHOT_RPC_TIMEOUT_MS"], DEFAULT_RPC_TIMEOUT_MS);
+  const concurrency = readWholeNumberEnv(["ASCENSION_SNAPSHOT_OWNER_SCAN_CONCURRENCY"], DEFAULT_OWNER_SCAN_CONCURRENCY);
+
+  if (fromTokenId > maxTokenId) {
+    return {
+      ok: true,
+      phase: "discover",
+      complete: true,
+      wallets: [],
+      tokenIds: [],
+      cursor: null,
+      discovery: {
+        scanMode: "ownerOf",
+        startTokenId: 1,
+        lastScannedTokenId: maxTokenId,
+        maxTokenId,
+        batchTokens,
+        chunksScanned: 0,
+        failedChunks: 0,
+        failedTokenReads: 0,
+        limited: false,
+        discoveredWallets: 0,
+        discoveredTokenIds: 0,
+      },
+      warnings: [],
+    };
+  }
+
+  const tokenIdsToRead = Array.from({ length: toTokenId - fromTokenId + 1 }, (_, index) => fromTokenId + index);
+  const reads = await mapLimit(tokenIdsToRead, concurrency, async (tokenId) => {
+    try {
+      const owner = normalizeAddress(await withTimeout(nft.ownerOf(BigInt(tokenId)), timeoutMs));
+      return {
+        tokenId: String(tokenId),
+        staked: owner === stakingAddress.toLowerCase(),
+        failed: false,
+      };
+    } catch {
+      return {
+        tokenId: String(tokenId),
+        staked: false,
+        failed: true,
+      };
+    }
+  });
+  const failedReads = reads.filter((row) => row.failed);
+  const stakedTokenIds = reads.filter((row) => row.staked).map((row) => row.tokenId);
+  if (failedReads.length > 0 && batchTokens <= 1) {
+    throw Object.assign(new Error(`ownerOf failed for token #${failedReads[0].tokenId}. Retry the scan range.`), { status: 502 });
+  }
+  const rangeNeedsRetry = failedReads.length > 0;
+  const nextBatchTokens = rangeNeedsRetry ? Math.max(1, Math.floor(batchTokens / 2)) : configuredBatchTokens;
+  const nextTokenId = rangeNeedsRetry ? fromTokenId : toTokenId + 1;
+  const complete = !rangeNeedsRetry && toTokenId >= maxTokenId;
+  const warnings = failedReads.length
+    ? [`${failedReads.length} ownerOf read${failedReads.length === 1 ? "" : "s"} failed inside token range ${fromTokenId}-${toTokenId}. Retrying this range with ${nextBatchTokens}-token batches.`]
+    : [];
+
+  return {
+    ok: true,
+    phase: "discover",
+    complete,
+    wallets: [],
+    tokenIds: stakedTokenIds,
+    cursor: complete ? null : { scanMode: "ownerOf", nextTokenId, maxTokenId, batchTokens: nextBatchTokens },
+    discovery: {
+      scanMode: "ownerOf",
+      startTokenId: 1,
+      lastScannedTokenId: rangeNeedsRetry ? Math.max(0, fromTokenId - 1) : toTokenId,
+      maxTokenId,
+      batchTokens,
+      chunksScanned: 1,
+      failedChunks: 0,
+      failedTokenReads: failedReads.length,
+      limited: rangeNeedsRetry,
+      discoveredWallets: 0,
+      discoveredTokenIds: stakedTokenIds.length,
+    },
+    warnings,
+  };
+}
+
+async function discoverSnapshotPage(body: Record<string, unknown>) {
+  const cursor = body.cursor && typeof body.cursor === "object" ? body.cursor as Record<string, unknown> : {};
+  const requestedMode = typeof cursor.scanMode === "string" ? cursor.scanMode : "";
+  const goldskyEndpoint = readEnv("GOLDSKY_SUBGRAPH_URL", "NEXT_PUBLIC_GOLDSKY_SUBGRAPH_URL");
+  if (goldskyEndpoint && (!requestedMode || requestedMode === "goldsky-events")) {
+    return discoverGoldskySnapshotPage(goldskyEndpoint);
+  }
+  return discoverOwnerOfSnapshotPage(body);
+}
+
+async function discoverTransferLogSnapshotPage(body: Record<string, unknown>) {
+  const provider = new ethers.JsonRpcProvider(readEnv("MONAD_RPC_URL", "NEXT_PUBLIC_MONAD_RPC_URL") || DEFAULT_RPC, CHAIN_ID);
+  const stakingAddress = ethers.getAddress(readEnv("ASCENSION_STAKING_ADDRESS", "ASCENSION_STAKING_CONTRACT", "NEXT_PUBLIC_ASCENSION_STAKING_CONTRACT") || DEFAULT_ASCENSION_STAKING);
+  const nftAddress = ethers.getAddress(readEnv("DYOOR_S1_CONTRACT", "NEXT_PUBLIC_DYOOR_S1_CONTRACT") || DEFAULT_DYOOR_S1);
+  const cursor = body.cursor && typeof body.cursor === "object" ? body.cursor as Record<string, unknown> : {};
+  const cursorLatestBlock = typeof cursor.latestBlock === "number" && Number.isSafeInteger(cursor.latestBlock) && cursor.latestBlock > 0 ? cursor.latestBlock : 0;
+  let latest = cursorLatestBlock;
+  try {
+    latest = await withTimeout(provider.getBlockNumber(), readWholeNumberEnv(["ASCENSION_SNAPSHOT_RPC_TIMEOUT_MS"], DEFAULT_RPC_TIMEOUT_MS));
+  } catch (error) {
+    if (!cursorLatestBlock) throw error;
+  }
   const start = Math.min(latest, readWholeNumberEnv(["ASCENSION_START_BLOCK", "NEXT_PUBLIC_DYOOR_S1_START_BLOCK"], DEFAULT_ASCENSION_START_BLOCK, true));
   const configuredBatchBlocks = readWholeNumberEnv(["ASCENSION_SNAPSHOT_BATCH_BLOCKS"], DEFAULT_DISCOVERY_BATCH_BLOCKS);
-  const cursor = body.cursor && typeof body.cursor === "object" ? body.cursor as Record<string, unknown> : {};
   const requestedBatchBlocks = Number(cursor.batchBlocks || 0);
   const maxBatchBlocks = Number.isSafeInteger(requestedBatchBlocks) && requestedBatchBlocks > 0
     ? Math.min(configuredBatchBlocks, Math.max(250, requestedBatchBlocks))
@@ -418,11 +670,21 @@ async function tokenOwnerFromStakeInfo(staking: ethers.Contract, tokenId: string
   return normalizeAddress(info?.owner);
 }
 
-async function stakingRow(wallet: string, staking: ethers.Contract, energyBank: ethers.Contract, harvestLedger: Record<string, { harvestedRaw?: string }>, timestamp: string) {
+async function stakingRow(
+  wallet: string,
+  staking: ethers.Contract,
+  energyBank: ethers.Contract,
+  harvestLedger: Record<string, { harvestedRaw?: string }>,
+  timestamp: string,
+  supplementalTokenIds: string[] = [],
+) {
   const tokenValues = await safeContract(async () => await staking.tokensOfStaker(wallet), null)
     || await safeContract(async () => await staking.getStakedTokens(wallet), null)
     || [];
-  const tokenIds = Array.from(new Set((Array.isArray(tokenValues) ? tokenValues : []).map((id) => id.toString()))).sort((a, b) => Number(a) - Number(b));
+  const tokenIds = Array.from(new Set([
+    ...(Array.isArray(tokenValues) ? tokenValues : []).map((id) => id.toString()),
+    ...supplementalTokenIds,
+  ].filter((id) => /^\d+$/.test(String(id))))).sort((a, b) => Number(a) - Number(b));
   const fallbackCount = await safeContract(async () => await staking.stakedBalance(wallet), 0n)
     || await safeContract(async () => await staking.balanceOf(wallet), 0n);
   const pendingRaw = await safeContract(async () => await staking.pendingPoints(wallet), 0n);
@@ -431,7 +693,7 @@ async function stakingRow(wallet: string, staking: ethers.Contract, energyBank: 
 
   return {
     wallet,
-    stakedCount: tokenIds.length || Number(fallbackCount || 0n),
+    stakedCount: Math.max(tokenIds.length, Number(fallbackCount || 0n)),
     tokenIds,
     pendingEnergy: formatUnits(pendingRaw),
     pendingEnergyRaw: pendingRaw.toString(),
@@ -464,6 +726,7 @@ function blueprintRows(blueprints: Array<Record<string, any>>, timestamp: string
 async function generateSnapshots(input?: {
   wallets: Set<string>;
   tokenIds: Set<string>;
+  tokenOwners?: Map<string, string>;
   discovery: ReturnType<typeof readDiscoveryInput>;
   warnings: string[];
 }) {
@@ -484,31 +747,52 @@ async function generateSnapshots(input?: {
   const walletSet = new Set<string>(blueprint.map((row) => String(row.wallet)));
   const finalizeConcurrency = readWholeNumberEnv(["ASCENSION_SNAPSHOT_FINALIZE_CONCURRENCY"], DEFAULT_FINALIZE_CONCURRENCY);
 
-  const ascendedOwnerRows = await mapLimit(Array.from(discovered.tokenIds), finalizeConcurrency, async (tokenId) => {
+  for (const [tokenId, wallet] of input?.tokenOwners || []) {
+    if (!/^\d+$/.test(tokenId) || !wallet) continue;
+    ascendedTokenOwners.set(tokenId, wallet);
+    walletSet.add(wallet);
+  }
+
+  const unresolvedTokenIds = Array.from(discovered.tokenIds).filter((tokenId) => !ascendedTokenOwners.has(tokenId));
+  const ascendedOwnerRows = await mapLimit(unresolvedTokenIds, finalizeConcurrency, async (tokenId) => {
     const currentOwner = normalizeAddress(await safeContract(async () => await nft.ownerOf(BigInt(tokenId)), ""));
     if (currentOwner !== stakingAddress.toLowerCase()) return null;
     const staker = await tokenOwnerFromStakeInfo(staking, tokenId);
-    return staker ? { tokenId, staker } : null;
+    return { tokenId, staker, registered: Boolean(staker) };
   });
   for (const row of ascendedOwnerRows) {
     if (!row) continue;
-    ascendedTokenOwners.set(row.tokenId, row.staker);
-    walletSet.add(row.staker);
+    if (row.staker) {
+      ascendedTokenOwners.set(row.tokenId, row.staker);
+      walletSet.add(row.staker);
+    } else {
+      ascendedTokenOwners.set(row.tokenId, "");
+    }
   }
   for (const wallet of discovered.wallets) walletSet.add(wallet);
 
+  const indexedTokenIdsByWallet = new Map<string, string[]>();
+  for (const [tokenId, wallet] of ascendedTokenOwners.entries()) {
+    if (!wallet) continue;
+    const tokenIds = indexedTokenIdsByWallet.get(wallet) || [];
+    tokenIds.push(tokenId);
+    indexedTokenIdsByWallet.set(wallet, tokenIds);
+  }
+
   const blueprintWallets = new Set(blueprint.map((item) => String(item.wallet)));
-  const stakingRows = (await mapLimit(Array.from(walletSet), finalizeConcurrency, (wallet) => stakingRow(wallet, staking, energyBank, harvestLedger, timestamp)))
+  const stakingRows = (await mapLimit(Array.from(walletSet), finalizeConcurrency, (wallet) => (
+    stakingRow(wallet, staking, energyBank, harvestLedger, timestamp, indexedTokenIdsByWallet.get(wallet) || [])
+  )))
     .filter((row) => row.stakedCount > 0 || blueprintWallets.has(row.wallet));
   const stakingByWallet = new Map(stakingRows.map((row) => [row.wallet, row]));
   const ascendedS1ByToken = new Map<string, Record<string, unknown>>();
 
   function addAscendedS1Row(tokenId: string, wallet: string, source: string) {
-    if (!/^\d+$/.test(tokenId) || !wallet) return;
+    if (!/^\d+$/.test(tokenId)) return;
     const stake = stakingByWallet.get(wallet);
     ascendedS1ByToken.set(tokenId, {
       tokenId,
-      wallet,
+      wallet: wallet || "unregistered",
       ascended: "yes",
       tokenIdSource: source,
       stakedCountForWallet: stake?.stakedCount || "",
@@ -528,7 +812,7 @@ async function generateSnapshots(input?: {
     for (const tokenId of row.tokenIds || []) addAscendedS1Row(String(tokenId), row.wallet, "staking-wallet-read");
   }
   for (const [tokenId, wallet] of ascendedTokenOwners.entries()) {
-    if (!ascendedS1ByToken.has(tokenId)) addAscendedS1Row(tokenId, wallet, "transfer-log-stakeInfo");
+    if (!ascendedS1ByToken.has(tokenId)) addAscendedS1Row(tokenId, wallet, wallet ? "ownerOf-stakeInfo" : "ownerOf-unregistered");
   }
 
   const ascendedS1 = Array.from(ascendedS1ByToken.values())
@@ -562,9 +846,9 @@ async function generateSnapshots(input?: {
     generatedAt: timestamp,
     totals: {
       walletsFound: combined.length,
-      totalStaked: stakingRows.reduce((sum, row) => sum + Number(row.stakedCount || 0), 0),
+      totalStaked: Math.max(stakingRows.reduce((sum, row) => sum + Number(row.stakedCount || 0), 0), ascendedS1.length),
       totalAscendedS1: ascendedS1.length,
-      ascendedS1Wallets: new Set(ascendedS1.map((row) => String(row.wallet))).size,
+      ascendedS1Wallets: new Set(ascendedS1.map((row) => String(row.wallet)).filter((wallet) => wallet.startsWith("0x"))).size,
       totalBlueprintsSaved: blueprint.length,
     },
     staking: stakingRows,
@@ -579,15 +863,26 @@ async function generateSnapshots(input?: {
 async function finalizeSnapshotFromBody(body: Record<string, unknown>) {
   const discoveredWallets = normalizeAddressList(body.discoveredWallets);
   const discoveredTokenIds = normalizeTokenIdList(body.discoveredTokenIds);
+  const tokenOwners = normalizeTokenOwnerMap(body.tokenOwners);
   const incomingDiscovery = readDiscoveryInput(body.discovery);
   const incomingWarnings = Array.from(new Set(readStringArray(body.warnings))).slice(0, 40);
+  if (incomingDiscovery.scanMode === "ownerOf" && incomingDiscovery.maxTokenId && incomingDiscovery.lastScannedTokenId !== incomingDiscovery.maxTokenId) {
+    throw Object.assign(new Error("Exact S1 owner scan is not complete. Scan the remaining token ranges before building exports."), { status: 409 });
+  }
+  for (const [tokenId, wallet] of tokenOwners.entries()) {
+    discoveredTokenIds.push(tokenId);
+    discoveredWallets.push(wallet);
+  }
+  const finalTokenIds = normalizeTokenIdList(discoveredTokenIds);
+  const finalWallets = normalizeAddressList(discoveredWallets);
   return generateSnapshots({
-    wallets: new Set(discoveredWallets),
-    tokenIds: new Set(discoveredTokenIds),
+    wallets: new Set(finalWallets),
+    tokenIds: new Set(finalTokenIds),
+    tokenOwners,
     discovery: {
       ...incomingDiscovery,
-      discoveredWallets: discoveredWallets.length,
-      discoveredTokenIds: discoveredTokenIds.length,
+      discoveredWallets: finalWallets.length,
+      discoveredTokenIds: finalTokenIds.length,
     },
     warnings: incomingWarnings,
   });
