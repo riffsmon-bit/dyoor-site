@@ -76,6 +76,14 @@ function formatEnergyAmount(raw: bigint) {
   return formatUnits(raw, 18).replace(/\.0+$/, "").replace(/(\.\d*?)0+$/, "$1");
 }
 
+function parseDisplayEnergy(value: string) {
+  try {
+    return parseUnits(String(value || "0"), 18);
+  } catch {
+    return 0n;
+  }
+}
+
 function formatCompactEnergy(value: string) {
   const raw = Number(value);
   if (!Number.isFinite(raw)) return value || "0";
@@ -175,6 +183,9 @@ function ActionNftCard({
   const actionLabel = mode === "wallet" ? "Stake" : "Unstake";
   const [loadedNft, setLoadedNft] = useState<AscensionNft | null>(null);
   const displayNft = loadedNft?.tokenId === nft.tokenId && loadedNft.source === nft.source ? loadedNft : nft;
+  const imageFallbacks = displayNft.imageFallbacks?.length ? displayNft.imageFallbacks : displayNft.image ? [displayNft.image] : [];
+  const [failedImageUrls, setFailedImageUrls] = useState<Set<string>>(() => new Set());
+  const imageUrl = imageFallbacks.find((url) => !failedImageUrls.has(url)) || "";
 
   useEffect(() => {
     let active = true;
@@ -189,13 +200,18 @@ function ActionNftCard({
     };
   }, [nft]);
 
+  function loadNextImageFallback() {
+    if (!imageUrl) return;
+    setFailedImageUrls((previous) => new Set(previous).add(imageUrl));
+  }
+
   return (
     <article className={`group relative overflow-hidden rounded border bg-white/[0.04] transition duration-200 hover:-translate-y-0.5 hover:shadow-[0_18px_42px_rgba(57,255,226,.10)] ${selected ? "border-dyoor-cyan shadow-[0_0_22px_rgba(57,255,226,.14)]" : "border-dyoor-purple/20 hover:border-dyoor-cyan/45"}`}>
       <button className="block w-full text-left" type="button" onClick={() => onToggle(nft)}>
         <div className="aspect-square bg-black/45">
-          {displayNft.image ? (
+          {imageUrl ? (
             // eslint-disable-next-line @next/next/no-img-element
-            <img className="h-full w-full object-cover" src={displayNft.image} alt={displayNft.name} />
+            <img className="h-full w-full object-cover" src={imageUrl} alt={displayNft.name} onError={loadNextImageFallback} />
           ) : (
             <div className="grid h-full place-items-center text-sm font-black uppercase text-white/35">DYOOR</div>
           )}
@@ -483,13 +499,11 @@ export default function AscensionPage() {
   const rechargeMonRaw = useMemo(() => parseMonInput(rechargeMon), [rechargeMon]);
   const rechargeEnergyPreview = useMemo(() => formatEnergyPreview(rechargeMonRaw), [rechargeMonRaw]);
   const lendEnergyRaw = useMemo(() => parseEnergyInput(lendEnergy), [lendEnergy]);
-  let bankedEnergyRaw = 0n;
-  try {
-    bankedEnergyRaw = parseUnits(String(ascension.bankedEnergy || "0"), 18);
-  } catch {
-    bankedEnergyRaw = 0n;
-  }
-  const lendRemainingRaw = lendEnergyRaw && bankedEnergyRaw > lendEnergyRaw ? bankedEnergyRaw - lendEnergyRaw : 0n;
+  const spendableEnergyRaw = parseDisplayEnergy(ascension.spendableEnergy || ascension.bankedEnergy);
+  const missingSpendableRaw = parseDisplayEnergy(ascension.missingSpendableEnergy);
+  const energyBankSyncPending = missingSpendableRaw > 0n;
+  const energyBankDisplay = energyBankSyncPending ? ascension.calculatedBankEnergy : ascension.bankedEnergy;
+  const lendRemainingRaw = lendEnergyRaw && spendableEnergyRaw > lendEnergyRaw ? spendableEnergyRaw - lendEnergyRaw : 0n;
   const countValue = useCallback((value: string | number) => ascension.hasLoaded ? value : "Loading", [ascension.hasLoaded]);
 
   const selectedWalletIds = useMemo(() => {
@@ -584,8 +598,12 @@ export default function AscensionPage() {
       },
       {
         label: "Energy Synced",
-        status: ascension.energyLoading ? "busy" as const : "ok" as const,
-        detail: ascension.energyLoading ? "Refreshing Energy values..." : "Pending, banked, harvested, and lifetime values loaded.",
+        status: ascension.energyLoading ? "busy" as const : energyBankSyncPending ? "warn" as const : "ok" as const,
+        detail: ascension.energyLoading
+          ? "Refreshing Energy values..."
+          : energyBankSyncPending
+            ? `${formatCompactEnergy(ascension.missingSpendableEnergy)} Energy needs owner sync before it is spendable.`
+            : "Pending, banked, harvested, and lifetime values loaded.",
       },
       {
         label: "Blueprint Saved",
@@ -606,7 +624,7 @@ export default function AscensionPage() {
       });
     }
     return items;
-  }, [ascension, authenticated, blueprintHealth, walletService.providerName, walletService.status]);
+  }, [ascension, authenticated, blueprintHealth, energyBankSyncPending, walletService.providerName, walletService.status]);
 
   const healthSummary = useMemo(() => {
     if (!authenticated) return "Connect wallet to run the complete health check.";
@@ -1037,7 +1055,7 @@ export default function AscensionPage() {
       setLendStatus("Enter a positive Energy amount.");
       return;
     }
-    if (lendEnergyRaw > bankedEnergyRaw) {
+    if (lendEnergyRaw > spendableEnergyRaw) {
       setLendStatus("Energy amount exceeds your transferable Energy Bank balance.");
       return;
     }
@@ -1118,8 +1136,26 @@ export default function AscensionPage() {
         <StatCard label="Pending Energy" value={formatCompactEnergy(ascension.pendingEnergy)} />
         <StatCard label="Harvested Energy" value={formatCompactEnergy(ascension.harvestedEnergy)} />
         <StatCard label="Lifetime Energy" value={formatCompactEnergy(ascension.lifetimeEnergy)} />
-        <StatCard label="Energy Bank" value={formatCompactEnergy(ascension.bankedEnergy)} />
+        <StatCard
+          label="Energy Bank"
+          value={(
+            <span className="grid gap-1">
+              <span>{formatCompactEnergy(energyBankDisplay)}</span>
+              {energyBankSyncPending ? (
+                <span className="text-[0.68rem] font-black uppercase tracking-[0.12em] text-yellow-100">
+                  Spendable {formatCompactEnergy(ascension.spendableEnergy)} syncing
+                </span>
+              ) : null}
+            </span>
+          )}
+        />
       </div>
+
+      {energyBankSyncPending ? (
+        <Alert className="mb-8" tone="warning">
+          Energy Bank sync is pending for this wallet. Indexed Harvested and Lifetime Energy are shown, but only {formatCompactEnergy(ascension.spendableEnergy)} Energy is currently spendable until the owner reconciliation credit runs.
+        </Alert>
+      ) : null}
 
       <AscensionHealthDashboard items={healthItems} summary={healthSummary} />
 
@@ -1237,10 +1273,10 @@ export default function AscensionPage() {
             />
             <div className="mt-3 grid gap-2 text-sm font-bold text-white/68 md:grid-cols-2">
               <div className="rounded border border-white/10 bg-white/[0.035] p-3">
-                Current: <span className="text-dyoor-cyan">{formatCompactEnergy(ascension.bankedEnergy)} Energy</span>
+                Current: <span className="text-dyoor-cyan">{formatCompactEnergy(ascension.spendableEnergy)} spendable Energy</span>
               </div>
               <div className="rounded border border-white/10 bg-white/[0.035] p-3">
-                Remaining: <span className="text-dyoor-cyan">{formatCompactEnergy(lendEnergyRaw ? formatEnergyAmount(lendRemainingRaw) : ascension.bankedEnergy)}</span>
+                Remaining: <span className="text-dyoor-cyan">{formatCompactEnergy(lendEnergyRaw ? formatEnergyAmount(lendRemainingRaw) : ascension.spendableEnergy)}</span>
               </div>
               <div className="rounded border border-white/10 bg-white/[0.035] p-3 md:col-span-2">
                 Recipient: <span className="break-all text-dyoor-cyan">{isAddress(lendRecipient) ? getAddress(lendRecipient) : "Not set"}</span>

@@ -17,12 +17,27 @@ import { useWalletService } from "@/providers/WalletServiceProvider";
 const SAVED_BLUEPRINT_TRAITS: Array<{ key: keyof BlueprintTraits; label: string }> = [
   { key: "background", label: "Background" },
   { key: "droid", label: "Droid" },
+  { key: "condition", label: "Condition" },
   { key: "eyes", label: "Eyes" },
   { key: "clothes", label: "Clothes" },
   { key: "mouth", label: "Mouth" },
   { key: "hat", label: "Hat" },
   { key: "special", label: "Special" },
   { key: "accessories", label: "Accessories" },
+  { key: "accessories 2", label: "Accessories 2" },
+];
+
+const SHARE_TRAIT_PARAMS: Array<{ key: keyof BlueprintTraits; param: string }> = [
+  { key: "background", param: "Background" },
+  { key: "droid", param: "Droid" },
+  { key: "condition", param: "Condition" },
+  { key: "eyes", param: "Eyes" },
+  { key: "clothes", param: "Clothes" },
+  { key: "mouth", param: "Mouth" },
+  { key: "hat", param: "Hat" },
+  { key: "special", param: "Special" },
+  { key: "accessories", param: "Accessories" },
+  { key: "accessories 2", param: "Accessories 2" },
 ];
 
 type SavedBlueprint = {
@@ -161,6 +176,58 @@ function SavedBlueprintPreview({ blueprint }: { blueprint: SavedBlueprint }) {
   );
 }
 
+function blueprintImage(blueprint: SavedBlueprint) {
+  return blueprint.image || blueprint.imageUrl || blueprint.png || "";
+}
+
+function blueprintShareParams(blueprint: SavedBlueprint) {
+  const params = new URLSearchParams();
+  params.set("saved", "1");
+  if (blueprint.rank) params.set("rank", String(blueprint.rank));
+  if (blueprint.blueprintId) params.set("blueprintId", blueprint.blueprintId);
+  for (const trait of SHARE_TRAIT_PARAMS) {
+    const value = blueprint.traits?.[trait.key];
+    if (value) params.set(trait.param, value);
+  }
+  return params;
+}
+
+function absoluteBlueprintUrl(path: string) {
+  const origin = typeof window !== "undefined" ? window.location.origin : "https://dyoor.netlify.app";
+  return `${origin}${path}`;
+}
+
+function blueprintShareUrl(blueprint: SavedBlueprint) {
+  const params = blueprintShareParams(blueprint);
+  return absoluteBlueprintUrl(`/blueprint-share${params.toString() ? `?${params}` : ""}`);
+}
+
+function blueprintShareImageUrl(blueprint: SavedBlueprint) {
+  const params = blueprintShareParams(blueprint);
+  return absoluteBlueprintUrl(`/blueprint-share-image.png${params.toString() ? `?${params}` : ""}`);
+}
+
+function blueprintDownloadName(blueprint: SavedBlueprint, fallbackExtension = "png") {
+  const id = String(blueprint.blueprintId || "dyoor-blueprint").toLowerCase().replace(/[^a-z0-9-]+/g, "-");
+  return `${id}.${fallbackExtension}`;
+}
+
+async function downloadBlueprintCard(blueprint: SavedBlueprint) {
+  const source = blueprintImage(blueprint) || blueprintShareImageUrl(blueprint);
+  if (!source) throw new Error("No blueprint image available.");
+  const response = await fetch(source);
+  if (!response.ok) throw new Error("Blueprint image download failed.");
+  const blob = await response.blob();
+  const extension = blob.type.includes("jpeg") ? "jpg" : blob.type.includes("svg") ? "svg" : "png";
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = blueprintDownloadName(blueprint, extension);
+  link.rel = "noopener";
+  link.click();
+  window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
 function SavedBlueprintCard({
   blueprint,
   loading,
@@ -170,13 +237,50 @@ function SavedBlueprintCard({
   loading: boolean;
   status: string;
 }) {
+  const [shareStatus, setShareStatus] = useState("");
+
+  async function handleDownload() {
+    if (!blueprint) return;
+    setShareStatus("Preparing download...");
+    try {
+      await downloadBlueprintCard(blueprint);
+      setShareStatus("Blueprint card downloaded.");
+    } catch {
+      const image = blueprintImage(blueprint) || blueprintShareImageUrl(blueprint);
+      window.open(image, "_blank", "noopener,noreferrer");
+      setShareStatus("Download blocked by the browser. Opened the image instead.");
+    }
+  }
+
+  function shareToX() {
+    if (!blueprint) return;
+    const shareUrl = blueprintShareUrl(blueprint);
+    const text = blueprint.blueprintId
+      ? `My ${blueprint.blueprintId} DYOOR Ascension Blueprint`
+      : "My DYOOR Ascension Blueprint";
+    const intent = `https://x.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(shareUrl)}`;
+    window.open(intent, "_blank", "noopener,noreferrer");
+    setShareStatus("X share window opened.");
+  }
+
   return (
     <Card className="p-5 md:p-6">
-      <p className="text-xs font-black uppercase tracking-[0.16em] text-white/45">My Saved Blueprint</p>
-      <h2 className="mt-2 text-2xl font-black uppercase">Saved Build</h2>
+      <div className="flex flex-col justify-between gap-3 md:flex-row md:items-start">
+        <div>
+          <p className="text-xs font-black uppercase tracking-[0.16em] text-white/45">My Saved Blueprint</p>
+          <h2 className="mt-2 text-2xl font-black uppercase">Saved Build</h2>
+        </div>
+        {blueprint ? (
+          <div className="flex flex-wrap gap-2">
+            <Button variant="secondary" onClick={() => void handleDownload()}>Download Card</Button>
+            <Button variant="primary" onClick={shareToX}>Share on X</Button>
+          </div>
+        ) : null}
+      </div>
       <Alert className="mt-4" tone={loading ? "busy" : blueprint ? "success" : "idle"}>
         {loading ? "Loading saved blueprint..." : status}
       </Alert>
+      {shareStatus ? <Alert className="mt-3" tone="idle">{shareStatus}</Alert> : null}
 
       {loading && <LoadingSkeleton className="mt-5" lines={5} />}
 

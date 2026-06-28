@@ -11,8 +11,11 @@ const AIRDROP_BATCH_SIZE = 150;
 
 const ENERGY_BANK_ABI = [
   "function usedAirdropCampaign(bytes32 campaignId) view returns (bool)",
+  "function usedClaimTxHash(bytes32 claimTxHash) view returns (bool)",
   "function hasRole(bytes32 role,address account) view returns (bool)",
+  "function CREDIT_ROLE() view returns (bytes32)",
   "function airdropEnergy(address[] recipients,uint256 amount,bytes32 campaignId)",
+  "function creditEnergy(address user,uint256 amount,bytes32 claimTxHash)",
 ];
 
 function json(status: number, body: Record<string, unknown>) {
@@ -61,6 +64,14 @@ function campaignHash(label: string) {
   return campaignId;
 }
 
+function recipientClaimHash(campaignLabel: string, wallet: string) {
+  return ethers.keccak256(ethers.toUtf8Bytes([
+    "dyoor-energy-airdrop",
+    campaignLabel,
+    wallet.toLowerCase(),
+  ].join("|")));
+}
+
 function chunkRecipients(recipients: string[]) {
   const chunks: string[][] = [];
   for (let index = 0; index < recipients.length; index += AIRDROP_BATCH_SIZE) {
@@ -91,14 +102,18 @@ export async function POST(request: Request) {
     const provider = new ethers.JsonRpcProvider(readEnv("MONAD_RPC_URL", "NEXT_PUBLIC_MONAD_RPC_URL") || DEFAULT_RPC, MONAD_CHAIN_ID);
     const signer = new ethers.Wallet(signerKey, provider);
     const bank = new ethers.Contract(energyBankAddress, ENERGY_BANK_ABI, signer);
-    const [network, hasAdminRole] = await Promise.all([
+    const [network, creditRole, hasAdminRole] = await Promise.all([
       provider.getNetwork(),
+      bank.CREDIT_ROLE(),
       bank.hasRole(ethers.ZeroHash, signer.address),
     ]);
     if (network.chainId !== BigInt(MONAD_CHAIN_ID)) {
       throw new Error(`Wrong RPC network. Expected chain ${MONAD_CHAIN_ID}, got ${network.chainId.toString()}.`);
     }
-    if (!hasAdminRole) return json(500, { ok: false, error: "Energy Bank operator does not have DEFAULT_ADMIN_ROLE." });
+    const hasCreditRole = await bank.hasRole(creditRole, signer.address);
+    if (!hasAdminRole && !hasCreditRole) {
+      return json(500, { ok: false, error: "Energy Bank operator needs DEFAULT_ADMIN_ROLE or CREDIT_ROLE." });
+    }
 
     const batches = chunkRecipients(recipients);
     const results: Array<Record<string, unknown>> = [];
@@ -113,31 +128,77 @@ export async function POST(request: Request) {
       campaignIds.push(campaignId);
 
       try {
-        const alreadyUsed = await bank.usedAirdropCampaign(campaignId);
-        if (alreadyUsed) {
+        if (!hasCreditRole && hasAdminRole) {
+          const alreadyUsed = await bank.usedAirdropCampaign(campaignId);
+          if (alreadyUsed) {
+            batch.forEach((wallet) => results.push({
+              wallet,
+              status: "skipped",
+              amountRaw: amount.toString(),
+              campaignId,
+              error: "Airdrop campaign was already used.",
+            }));
+            continue;
+          }
+
+          await bank.airdropEnergy.staticCall(batch, amount, campaignId);
+          const tx = await bank.airdropEnergy(batch, amount, campaignId);
+          const receipt = await tx.wait();
+          txHashes.push(tx.hash);
+          blockNumbers.push(receipt?.blockNumber ?? null);
           batch.forEach((wallet) => results.push({
             wallet,
-            status: "failed",
+            status: "success",
+            method: "airdropEnergy",
             amountRaw: amount.toString(),
             campaignId,
-            error: "Airdrop campaign was already used.",
+            txHash: tx.hash,
+            blockNumber: receipt?.blockNumber ?? null,
           }));
           continue;
         }
 
-        await bank.airdropEnergy.staticCall(batch, amount, campaignId);
-        const tx = await bank.airdropEnergy(batch, amount, campaignId);
-        const receipt = await tx.wait();
-        txHashes.push(tx.hash);
-        blockNumbers.push(receipt?.blockNumber ?? null);
-        batch.forEach((wallet) => results.push({
-          wallet,
-          status: "success",
-          amountRaw: amount.toString(),
-          campaignId,
-          txHash: tx.hash,
-          blockNumber: receipt?.blockNumber ?? null,
-        }));
+        for (const wallet of batch) {
+          const claimId = recipientClaimHash(batchLabel, wallet);
+          try {
+            const alreadyUsed = await bank.usedClaimTxHash(claimId);
+            if (alreadyUsed) {
+              results.push({
+                wallet,
+                status: "skipped",
+                method: "creditEnergy",
+                amountRaw: amount.toString(),
+                campaignId: claimId,
+                error: "Recipient campaign credit was already used.",
+              });
+              continue;
+            }
+
+            await bank.creditEnergy.staticCall(wallet, amount, claimId);
+            const tx = await bank.creditEnergy(wallet, amount, claimId);
+            const receipt = await tx.wait();
+            txHashes.push(tx.hash);
+            blockNumbers.push(receipt?.blockNumber ?? null);
+            results.push({
+              wallet,
+              status: "success",
+              method: "creditEnergy",
+              amountRaw: amount.toString(),
+              campaignId: claimId,
+              txHash: tx.hash,
+              blockNumber: receipt?.blockNumber ?? null,
+            });
+          } catch (error: any) {
+            results.push({
+              wallet,
+              status: "failed",
+              method: "creditEnergy",
+              amountRaw: amount.toString(),
+              campaignId: claimId,
+              error: error?.shortMessage || error?.message || "Recipient credit failed.",
+            });
+          }
+        }
       } catch (error: any) {
         batch.forEach((wallet) => results.push({
           wallet,
@@ -150,19 +211,23 @@ export async function POST(request: Request) {
     }
 
     const successfulWallets = results.filter((row) => row.status === "success").map((row) => String(row.wallet));
+    const skippedWallets = results.filter((row) => row.status === "skipped").map((row) => String(row.wallet));
     const failedWallets = results.filter((row) => row.status === "failed").map((row) => ({
       wallet: String(row.wallet),
       error: String(row.error || "Airdrop failed."),
     }));
 
-    return json(successfulWallets.length ? 200 : 500, {
-      ok: successfulWallets.length > 0 && failedWallets.length === 0,
-      partial: successfulWallets.length > 0 && failedWallets.length > 0,
+    const handledWallets = successfulWallets.length + skippedWallets.length;
+    return json(handledWallets ? 200 : 500, {
+      ok: handledWallets > 0 && failedWallets.length === 0,
+      partial: handledWallets > 0 && failedWallets.length > 0,
       recipients,
       recipientCount: recipients.length,
       successfulWallets,
+      skippedWallets,
       failedWallets,
       successCount: successfulWallets.length,
+      skippedCount: skippedWallets.length,
       failureCount: failedWallets.length,
       amountRaw: amount.toString(),
       requestedTotalRaw: (amount * BigInt(recipients.length)).toString(),
@@ -175,6 +240,7 @@ export async function POST(request: Request) {
       blockNumbers,
       batchSize: AIRDROP_BATCH_SIZE,
       batchCount: batches.length,
+      executionMode: hasCreditRole ? "creditEnergy" : "airdropEnergy",
       actionId: txHashes[0] || campaignIds[0] || "",
       note,
       timestamp: new Date().toISOString(),

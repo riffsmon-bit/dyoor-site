@@ -86,8 +86,10 @@ type AirdropResult = {
   recipients?: string[];
   recipientCount?: number;
   successfulWallets?: string[];
+  skippedWallets?: string[];
   failedWallets?: Array<{ wallet: string; error?: string }>;
   successCount?: number;
+  skippedCount?: number;
   failureCount?: number;
   amountRaw?: string;
   totalRaw?: string;
@@ -98,6 +100,7 @@ type AirdropResult = {
   txHashes?: string[];
   blockNumber?: number | null;
   batchCount?: number;
+  executionMode?: string;
   actionId?: string;
   note?: string;
   timestamp?: string;
@@ -711,8 +714,8 @@ export default function AdminPage() {
       setAirdropResult(data as AirdropResult);
       if (!response.ok || (data?.ok === false && !data?.partial)) throw new Error(data?.error || "Energy airdrop failed.");
       setAirdropStatus(data.partial
-        ? `Airdrop partially complete. ${data.successCount || 0} credited, ${data.failureCount || 0} failed.`
-        : `Airdrop complete. ${data.successCount || data.recipientCount || airdropRecipients.length} wallets credited.`);
+        ? `Airdrop partially complete. ${data.successCount || 0} credited, ${data.skippedCount || 0} skipped, ${data.failureCount || 0} failed.`
+        : `Airdrop complete. ${data.successCount || 0} credited, ${data.skippedCount || 0} skipped.`);
       setAirdropConfirm(false);
     } catch (err) {
       setAirdropStatus(err instanceof Error ? err.message : "Energy airdrop failed.");
@@ -1037,9 +1040,11 @@ export default function AdminPage() {
                 <div className="mt-4 rounded border border-white/10 bg-white/[0.035] p-3 text-sm font-bold text-white/65">
                   <div className="grid gap-2 sm:grid-cols-2">
                     <p>Successful: <span className="text-dyoor-cyan">{airdropResult.successCount ?? airdropResult.successfulWallets?.length ?? 0}</span></p>
+                    <p>Skipped: <span className="text-yellow-100">{airdropResult.skippedCount ?? airdropResult.skippedWallets?.length ?? 0}</span></p>
                     <p>Failed: <span className="text-red-200">{airdropResult.failureCount ?? airdropResult.failedWallets?.length ?? 0}</span></p>
                     <p>Total credited: <span className="text-dyoor-cyan">{airdropResult.totalRaw ? formatUnits(BigInt(airdropResult.totalRaw), 18) : "0"}</span></p>
                     <p>Batches: <span className="text-dyoor-cyan">{airdropResult.batchCount || 0}</span></p>
+                    <p>Mode: <span className="text-dyoor-cyan">{airdropResult.executionMode || "-"}</span></p>
                   </div>
                   {airdropResult.actionId && <p className="mt-2 break-all text-white/50">Action ID: {airdropResult.actionId}</p>}
                   {airdropRows.length > 0 && (
@@ -1056,7 +1061,7 @@ export default function AdminPage() {
                           {airdropRows.slice(0, 40).map((row, index) => (
                             <tr className="border-t border-white/8" key={`${row.wallet}-${index}`}>
                               <td className="px-3 py-2 text-white/70">{shortAddress(String(row.wallet))}</td>
-                              <td className={row.status === "success" ? "px-3 py-2 text-dyoor-cyan" : "px-3 py-2 text-red-200"}>{String(row.status || "")}</td>
+                              <td className={row.status === "success" ? "px-3 py-2 text-dyoor-cyan" : row.status === "skipped" ? "px-3 py-2 text-yellow-100" : "px-3 py-2 text-red-200"}>{String(row.status || "")}</td>
                               <td className="max-w-36 truncate px-3 py-2 text-white/45">{row.txHash || row.error || "-"}</td>
                             </tr>
                           ))}
