@@ -12,6 +12,7 @@ type Eip1193Provider = {
 };
 
 type Snapshot = {
+  ok?: boolean;
   generatedAt: string;
   discovery?: {
     startBlock?: number;
@@ -36,6 +37,23 @@ type Snapshot = {
   blueprints: Array<Record<string, any>>;
   combined: Array<Record<string, any>>;
   warnings?: string[];
+};
+
+type SnapshotCursor = {
+  nextBlock?: number;
+  latestBlock?: number;
+  batchBlocks?: number;
+} | null;
+
+type SnapshotDiscoverResponse = {
+  ok?: boolean;
+  complete?: boolean;
+  cursor?: SnapshotCursor;
+  wallets?: string[];
+  tokenIds?: string[];
+  discovery?: Snapshot["discovery"];
+  warnings?: string[];
+  error?: string;
 };
 
 type AirdropResult = {
@@ -136,6 +154,32 @@ function parseEnergyAmount(value: string) {
   }
 }
 
+function sleep(ms: number) {
+  return new Promise((resolve) => window.setTimeout(resolve, ms));
+}
+
+async function postSnapshotRequest(payload: Record<string, unknown>, attempts = 3) {
+  let lastError = "Admin snapshot failed.";
+  for (let attempt = 1; attempt <= attempts; attempt += 1) {
+    try {
+      const response = await fetch("/api/admin/snapshots", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      const data = await response.json().catch(() => ({}));
+      if (response.ok && data?.ok !== false) return data;
+      lastError = data?.error || `Admin snapshot failed (${response.status}).`;
+      if (response.status < 500 || attempt === attempts) break;
+    } catch (err) {
+      lastError = err instanceof Error ? err.message : "Admin snapshot failed.";
+      if (attempt === attempts) break;
+    }
+    await sleep(700 * attempt);
+  }
+  throw new Error(lastError);
+}
+
 function SnapshotSection({
   rows,
   title,
@@ -210,6 +254,7 @@ export default function AdminPage() {
   const [loading, setLoading] = useState(false);
   const [snapshot, setSnapshot] = useState<Snapshot | null>(null);
   const [error, setError] = useState("");
+  const [snapshotProgress, setSnapshotProgress] = useState("");
   const [airdropRecipientsInput, setAirdropRecipientsInput] = useState("");
   const [airdropAmount, setAirdropAmount] = useState("");
   const [airdropCampaign, setAirdropCampaign] = useState(`dyoor-energy-${new Date().toISOString().slice(0, 10)}`);
@@ -295,26 +340,90 @@ export default function AdminPage() {
     if (!authorized) return;
     setLoading(true);
     setError("");
+    setSnapshot(null);
+    setSnapshotProgress("Sign owner authorization for snapshot exports.");
     try {
       const timestamp = String(Date.now());
       const nonce = crypto.randomUUID();
       const message = adminMessage(walletAddress, timestamp, nonce, "snapshot");
       const provider = await getProvider();
       const signature = await provider.request({ method: "personal_sign", params: [message, walletAddress] });
-      const response = await fetch("/api/admin/snapshots", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ wallet: walletAddress, timestamp, nonce, signature }),
-      });
-      const data = await response.json().catch(() => ({}));
-      if (!response.ok || data?.ok === false) throw new Error(data?.error || `Admin snapshot failed (${response.status}).`);
-      setSnapshot(data as Snapshot);
-      setAuthStatus("Snapshot generated.");
       setLastSignatureAt(new Date().toISOString());
+
+      const discoveredWallets = new Set<string>();
+      const discoveredTokenIds = new Set<string>();
+      const warningSet = new Set<string>();
+      let cursor: SnapshotCursor | undefined = undefined;
+      let discovery: Snapshot["discovery"] | undefined;
+      const maxBatches = 240;
+
+      for (let batch = 1; batch <= maxBatches; batch += 1) {
+        const data = await postSnapshotRequest({
+          mode: "discover",
+          wallet: walletAddress,
+          timestamp,
+          nonce,
+          signature,
+          cursor,
+        }) as SnapshotDiscoverResponse;
+
+        for (const wallet of data.wallets || []) {
+          const normalized = normalizeAddress(wallet);
+          if (normalized) discoveredWallets.add(normalized);
+        }
+        for (const tokenId of data.tokenIds || []) {
+          if (/^\d+$/.test(String(tokenId))) discoveredTokenIds.add(String(tokenId));
+        }
+        for (const warning of data.warnings || []) warningSet.add(warning);
+
+        const page = data.discovery || {};
+        discovery = {
+          startBlock: page.startBlock ?? discovery?.startBlock,
+          latestBlock: page.latestBlock ?? discovery?.latestBlock,
+          lastScannedBlock: page.lastScannedBlock ?? discovery?.lastScannedBlock,
+          chunkSize: page.chunkSize ?? discovery?.chunkSize,
+          chunksScanned: (discovery?.chunksScanned || 0) + (page.chunksScanned || 0),
+          failedChunks: (discovery?.failedChunks || 0) + (page.failedChunks || 0),
+          limited: Boolean(discovery?.limited || page.limited),
+          discoveredWallets: discoveredWallets.size,
+          discoveredTokenIds: discoveredTokenIds.size,
+        };
+
+        const blockLabel = discovery.latestBlock
+          ? `${(discovery.lastScannedBlock || 0).toLocaleString()} / ${discovery.latestBlock.toLocaleString()}`
+          : `${discovery.lastScannedBlock || 0}`;
+        const progress = `Scanning Ascension logs: ${blockLabel}. Found ${discoveredTokenIds.size} token ID${discoveredTokenIds.size === 1 ? "" : "s"}.`;
+        setSnapshotProgress(progress);
+        setAuthStatus(progress);
+
+        if (data.complete) break;
+        cursor = data.cursor || undefined;
+        if (!cursor || batch === maxBatches) throw new Error("Snapshot scan reached the batch limit before completion.");
+        await sleep(100);
+      }
+
+      setSnapshotProgress("Building snapshot export tables.");
+      setAuthStatus("Building snapshot export tables.");
+      const data = await postSnapshotRequest({
+        mode: "finalize",
+        wallet: walletAddress,
+        timestamp,
+        nonce,
+        signature,
+        discoveredWallets: Array.from(discoveredWallets),
+        discoveredTokenIds: Array.from(discoveredTokenIds),
+        discovery,
+        warnings: Array.from(warningSet),
+      }, 3) as Snapshot;
+      if (data?.ok === false) throw new Error("Admin snapshot failed.");
+      setSnapshot(data);
+      setAuthStatus("Snapshot generated.");
+      setSnapshotProgress("");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Admin snapshot failed.");
     } finally {
       setLoading(false);
+      setSnapshotProgress("");
     }
   }
 
@@ -394,12 +503,13 @@ export default function AdminPage() {
           eyebrow="Owner Command"
           title="DYOOR Admin Command Center"
           copy="Owner-only command surface for protected snapshots and internal Energy operations. Every action requires the configured owner wallet, a fresh signature, timestamp, and nonce."
-          actions={<Button variant="primary" onClick={authenticated ? generateSnapshot : () => void walletService.connect()} disabled={loading || (authenticated && !authorized)}>{loading ? "Generating..." : authenticated ? "Generate Snapshots" : "Connect Owner Wallet"}</Button>}
+          actions={<Button variant="primary" onClick={authenticated ? generateSnapshot : () => void walletService.connect()} disabled={loading || (authenticated && !authorized)}>{loading ? "Running Snapshot" : authenticated ? "Generate Snapshots" : "Connect Owner Wallet"}</Button>}
         />
         <Alert tone={!walletAddress ? "warning" : authorized ? "success" : "danger"}>{authStatus}</Alert>
       </Card>
 
       {error && <Alert className="mb-6" tone="danger">{error}</Alert>}
+      {loading && snapshotProgress ? <Alert className="mb-6" tone="busy">{snapshotProgress}</Alert> : null}
       {snapshot?.warnings?.length ? (
         <Alert className="mb-6" tone="warning">
           {snapshot.warnings.join(" ")}

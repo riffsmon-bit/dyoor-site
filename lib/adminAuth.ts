@@ -36,16 +36,16 @@ function pruneExpiredNonces(now: number) {
   }
 }
 
-function markNonce(wallet: string, action: AdminAction, nonce: string, now: number) {
+function markNonce(wallet: string, action: AdminAction, nonce: string, now: number, windowMs = ADMIN_WINDOW_MS) {
   pruneExpiredNonces(now);
   const key = `${wallet.toLowerCase()}:${action}:${nonce}`;
   if (usedAdminNonces.has(key)) {
     throw Object.assign(new Error("Admin nonce was already used. Sign again."), { status: 409 });
   }
-  usedAdminNonces.set(key, now + ADMIN_WINDOW_MS);
+  usedAdminNonces.set(key, now + windowMs);
 }
 
-export async function verifyAdmin(body: Record<string, unknown>, action: AdminAction) {
+export async function verifyAdmin(body: Record<string, unknown>, action: AdminAction, options: { consumeNonce?: boolean; windowMs?: number } = {}) {
   const owner = adminOwnerWallet();
   if (!owner) throw Object.assign(new Error("Admin owner wallet is not configured."), { status: 500 });
 
@@ -55,10 +55,11 @@ export async function verifyAdmin(body: Record<string, unknown>, action: AdminAc
   const nonce = String(body.nonce || "");
   const signature = String(body.signature || "");
   const now = Date.now();
+  const windowMs = options.windowMs || ADMIN_WINDOW_MS;
 
   if (!wallet) throw Object.assign(new Error("Missing wallet."), { status: 400 });
   if (wallet.toLowerCase() !== owner.toLowerCase()) throw Object.assign(new Error("Not authorized."), { status: 403 });
-  if (!/^\d+$/.test(timestamp) || Math.abs(now - Number(timestamp)) > ADMIN_WINDOW_MS) {
+  if (!/^\d+$/.test(timestamp) || Math.abs(now - Number(timestamp)) > windowMs) {
     throw Object.assign(new Error("Admin signature expired. Sign again."), { status: 401 });
   }
   if (!nonce || nonce.length < 8 || !signature) {
@@ -75,6 +76,6 @@ export async function verifyAdmin(body: Record<string, unknown>, action: AdminAc
     throw Object.assign(new Error("Admin signature does not match owner wallet."), { status: 401 });
   }
 
-  markNonce(owner, action, nonce, now);
+  if (options.consumeNonce !== false) markNonce(owner, action, nonce, now, windowMs);
   return owner;
 }
