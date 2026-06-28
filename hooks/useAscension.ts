@@ -192,6 +192,11 @@ type WalletTransferScanResult = {
   pageCount: number;
 };
 
+type EnergyRefreshOptions = {
+  scanLogs?: boolean;
+  scanGrants?: boolean;
+};
+
 const clearRecoveryState: AscensionRecoveryState = {
   status: "clear",
   recoverableTokenIds: [],
@@ -551,7 +556,11 @@ async function discoverStakedTokenIds(wallet: Address) {
   };
 }
 
-async function fetchEnergy(wallet: Address) {
+async function fetchEnergy(wallet: Address, options: EnergyRefreshOptions = {}) {
+  const params = new URLSearchParams({ address: wallet });
+  if (options.scanLogs) params.set("scanLogs", "1");
+  if (options.scanGrants) params.set("scanGrants", "1");
+
   const [pendingResult, bankedResult, lifetimeResult, statsResult] = await Promise.allSettled([
     readContractWithFailover({
       address: ascensionStakingContract,
@@ -574,7 +583,7 @@ async function fetchEnergy(wallet: Address) {
       args: [wallet],
       label: "Energy Bank lifetimeEnergy",
     }),
-    fetch(`/.netlify/functions/ascension-stats?address=${encodeURIComponent(wallet)}`, {
+    fetch(`/.netlify/functions/ascension-stats?${params.toString()}`, {
       cache: "no-store",
     }),
   ]);
@@ -673,14 +682,14 @@ async function loadAscensionState(walletAddress: string): Promise<AscensionState
   return nextState;
 }
 
-async function loadAscensionEnergy(walletAddress: string) {
+async function loadAscensionEnergy(walletAddress: string, options: EnergyRefreshOptions = {}) {
   if (!isAddress(walletAddress)) return {
     pendingEnergy: "0.00",
     bankedEnergy: "0.00",
     harvestedEnergy: "0.00",
     lifetimeEnergy: "0.00",
   };
-  return fetchEnergy(getAddress(walletAddress));
+  return fetchEnergy(getAddress(walletAddress), options);
 }
 
 export function useAscension() {
@@ -728,9 +737,17 @@ export function useAscension() {
     recovery: query.data?.recovery || clearRecoveryState,
     warnings: query.data?.warnings || [],
     sources: query.data?.sources,
-    refresh: async () => {
+    refresh: async (options: EnergyRefreshOptions = {}) => {
       await queryClient.cancelQueries({ queryKey: ["ascension", address] });
       await queryClient.cancelQueries({ queryKey: ["ascension-energy", address] });
+      if (options.scanLogs || options.scanGrants) {
+        const [energy] = await Promise.all([
+          loadAscensionEnergy(address, options),
+          query.refetch(),
+        ]);
+        queryClient.setQueryData(["ascension-energy", address], energy);
+        return;
+      }
       await Promise.all([query.refetch(), energyQuery.refetch()]);
     },
   };

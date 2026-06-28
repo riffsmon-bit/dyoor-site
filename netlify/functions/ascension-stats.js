@@ -97,6 +97,10 @@ function addressTopic(address) {
   return `0x${encodeAddressArg(address)}`;
 }
 
+function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
 async function rpc(method, params = []) {
   const rpcUrl = process.env.MONAD_RPC_URL || DEFAULT_RPC;
   const response = await fetch(rpcUrl, {
@@ -152,7 +156,7 @@ async function getLogsChunk(filter, fromBlock, toBlock) {
 async function scanHarvestLogs(address) {
   const stakingAddress = normalizeAddress(process.env.ASCENSION_STAKING_ADDRESS || DEFAULT_ASCENSION_STAKING);
   const latestBlock = safeBigInt(await rpc("eth_blockNumber"));
-  const startBlock = safeBigInt(process.env.ASCENSION_START_BLOCK || "0");
+  const startBlock = safeBigInt(process.env.ASCENSION_START_BLOCK || process.env.NEXT_PUBLIC_DYOOR_S1_START_BLOCK || "0");
   const chunkSize = safeBigInt(process.env.ASCENSION_LOG_CHUNK_SIZE || DEFAULT_LOG_CHUNK_SIZE.toString(), DEFAULT_LOG_CHUNK_SIZE);
   const safeChunkSize = chunkSize > 0n ? chunkSize : DEFAULT_LOG_CHUNK_SIZE;
   let fromBlock = startBlock;
@@ -245,6 +249,27 @@ async function scanEnergyGrantLogs(address, energyBankAddress) {
   }
 
   return { airdroppedRaw, bonusRaw, logsScanned };
+}
+
+async function verifiedHarvestAmount(address, txHash) {
+  if (!isTxHash(txHash)) throw new Error("Invalid harvest txHash");
+  const stakingAddress = normalizeAddress(process.env.ASCENSION_STAKING_ADDRESS || DEFAULT_ASCENSION_STAKING);
+  if (!stakingAddress) throw new Error("Ascension staking contract is not configured");
+  let receipt = null;
+  for (let attempt = 0; attempt < 5; attempt += 1) {
+    receipt = await rpc("eth_getTransactionReceipt", [txHash]);
+    if (receipt) break;
+    await sleep(1500);
+  }
+  if (!receipt) throw new Error("Harvest transaction is not confirmed yet");
+  if (receipt.status && receipt.status !== "0x1") throw new Error("Harvest transaction failed on-chain");
+  const claimLog = (receipt.logs || []).find((log) => (
+    normalizeAddress(log.address) === stakingAddress &&
+    String(log.topics?.[0] || "").toLowerCase() === POINTS_CLAIMED_TOPIC &&
+    String(log.topics?.[1] || "").toLowerCase() === addressTopic(address)
+  ));
+  if (!claimLog) throw new Error("Harvest transaction did not emit PointsClaimed for this wallet");
+  return decodeUint256(claimLog.data);
 }
 
 function ledgerScanFallback(record) {
@@ -479,10 +504,28 @@ exports.handler = async function (event) {
 
       if (action === "recordHarvest") {
         const address = normalizeAddress(body.address);
-        const amountRaw = safeBigInt(body.amountRaw || "0");
+        let amountRaw = safeBigInt(body.amountRaw || "0");
+        const txHash = String(body.txHash || "").toLowerCase();
 
         if (!address) {
           return json(400, { ok: false, error: "Invalid address" });
+        }
+
+        if (txHash && !isTxHash(txHash)) {
+          return json(400, { ok: false, error: "Invalid txHash" });
+        }
+
+        if (txHash) {
+          let verifiedRaw;
+          try {
+            verifiedRaw = await verifiedHarvestAmount(address, txHash);
+          } catch (err) {
+            return json(409, { ok: false, error: err?.message || "Harvest transaction could not be verified yet" });
+          }
+          if (amountRaw > 0n && amountRaw !== verifiedRaw) {
+            return json(400, { ok: false, error: "Harvest amount does not match PointsClaimed event" });
+          }
+          amountRaw = verifiedRaw;
         }
 
         if (amountRaw <= 0n) {
@@ -496,10 +539,6 @@ exports.handler = async function (event) {
           claims: []
         };
 
-        const txHash = String(body.txHash || "").toLowerCase();
-        if (txHash && !isTxHash(txHash)) {
-          return json(400, { ok: false, error: "Invalid txHash" });
-        }
         const existingClaims = Array.isArray(existing.claims) ? existing.claims : [];
 
         if (txHash && existingClaims.some((c) => String(c.txHash || "").toLowerCase() === txHash)) {

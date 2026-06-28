@@ -15,10 +15,22 @@ type Eip1193Provider = {
   request: (args: { method: string; params?: unknown[] }) => Promise<unknown>;
 };
 
+type TransactionReceipt = {
+  blockNumber?: string;
+  status?: string;
+  logs?: Array<{
+    address?: string;
+    topics?: string[];
+    data?: string;
+    transactionHash?: string;
+  }>;
+};
+
 type CardMode = "wallet" | "ascended";
 
 const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
 const ENERGY_PER_MON = 50n;
+const POINTS_CLAIMED_TOPIC = "0xba953728785de35be3827ee7a7a7867a8472947562602939440e6c0bdbf4725e";
 
 function tokenKey(mode: CardMode, tokenId: string) {
   return `${mode}:${tokenId}`;
@@ -74,7 +86,7 @@ function formatCompactEnergy(value: string) {
       ? { maximumFractionDigits: 2 }
       : { maximumFractionDigits: 3 };
   return new Intl.NumberFormat("en-US", {
-    notation: abs >= 100000 ? "compact" : "standard",
+    notation: abs >= 10000 ? "compact" : "standard",
     maximumFractionDigits: options.maximumFractionDigits,
   }).format(raw);
 }
@@ -108,7 +120,7 @@ function formatWalletError(error: unknown, fallback: string) {
 async function waitReceipt(provider: Eip1193Provider, hash: string) {
   const started = Date.now();
   while (Date.now() - started < 120_000) {
-    const receipt = await provider.request({ method: "eth_getTransactionReceipt", params: [hash] }).catch(() => null) as { blockNumber?: string; status?: string } | null;
+    const receipt = await provider.request({ method: "eth_getTransactionReceipt", params: [hash] }).catch(() => null) as TransactionReceipt | null;
     if (receipt?.blockNumber) {
       if (receipt.status && receipt.status !== "0x1") throw new Error(`Transaction reverted: ${hash}`);
       return receipt;
@@ -116,6 +128,33 @@ async function waitReceipt(provider: Eip1193Provider, hash: string) {
     await new Promise((resolve) => window.setTimeout(resolve, 1800));
   }
   throw new Error("Timed out waiting for transaction confirmation.");
+}
+
+function harvestAmountFromReceipt(receipt: TransactionReceipt, wallet: string) {
+  const normalizedWallet = getAddress(wallet).toLowerCase();
+  for (const log of receipt.logs || []) {
+    const topics = log.topics || [];
+    const logAddress = log.address && isAddress(log.address) ? getAddress(log.address).toLowerCase() : "";
+    let topicWallet = "";
+    try {
+      topicWallet = topics[1] ? getAddress(`0x${String(topics[1]).slice(-40)}`).toLowerCase() : "";
+    } catch {
+      topicWallet = "";
+    }
+    if (
+      logAddress === ascensionStakingContract.toLowerCase() &&
+      String(topics[0] || "").toLowerCase() === POINTS_CLAIMED_TOPIC &&
+      topicWallet === normalizedWallet &&
+      log.data
+    ) {
+      try {
+        return BigInt(log.data);
+      } catch {
+        return 0n;
+      }
+    }
+  }
+  return 0n;
 }
 
 function ActionNftCard({
@@ -299,6 +338,7 @@ function RecoveryPanel({
   const available = status.status === "available" && status.recoverableTokenIds.length > 0;
   const limited = status.status === "limited";
   const title = available ? "Recovery Available" : limited ? "Recovery Check Limited" : "No Recovery Required";
+  if (!available) return null;
   return (
     <section className="mt-10 rounded border border-white/12 bg-white/[0.04] p-5">
       <div className="flex flex-col justify-between gap-4 md:flex-row md:items-start">
@@ -515,9 +555,8 @@ export default function AscensionPage() {
 
   const healthItems = useMemo(() => {
     const synced = ascension.hasLoaded && !ascension.loading && !ascension.error;
-    const recoveryAvailable = ascension.recovery.status === "available";
-    const recoveryLimited = ascension.recovery.status === "limited" || ascension.recovery.status === "error";
-    return [
+    const recoveryAvailable = ascension.recovery.status === "available" && ascension.recovery.recoverableTokenIds.length > 0;
+    const items = [
       {
         label: "Wallet Connected",
         status: authenticated ? "ok" as const : "warn" as const,
@@ -558,16 +597,15 @@ export default function AscensionPage() {
         status: blueprintHealth.loading ? "busy" as const : blueprintHealth.eligible ? "ok" as const : "warn" as const,
         detail: blueprintHealth.eligible ? "Ascension Blueprint eligible." : "No eligibility record loaded.",
       },
-      {
-        label: "Recovery Required",
-        status: recoveryAvailable ? "warn" as const : recoveryLimited ? "warn" as const : "ok" as const,
-        detail: recoveryAvailable
-          ? `${ascension.recovery.recoverableTokenIds.length} NFT(s) need recovery.`
-          : recoveryLimited
-            ? "Recovery scan could not complete on the current RPC. Counts are still loaded."
-            : ascension.recovery.message,
-      },
     ];
+    if (recoveryAvailable) {
+      items.push({
+        label: "Recovery Required",
+        status: "warn" as const,
+        detail: `${ascension.recovery.recoverableTokenIds.length} NFT(s) need recovery.`,
+      });
+    }
+    return items;
   }, [ascension, authenticated, blueprintHealth, walletService.providerName, walletService.status]);
 
   const healthSummary = useMemo(() => {
@@ -614,8 +652,8 @@ export default function AscensionPage() {
       method: "eth_sendTransaction",
       params: [{ from, to, data, value: "0x0" }],
     }) as string;
-    await waitReceipt(provider, hash);
-    return hash;
+    const receipt = await waitReceipt(provider, hash);
+    return { hash, receipt };
   }
 
   async function sendNative(provider: Eip1193Provider, to: `0x${string}`, value: bigint) {
@@ -739,14 +777,50 @@ export default function AscensionPage() {
     try {
       const provider = await ensureReady();
       setActionStatus("Harvesting pending Energy...");
+      const pendingBefore = await readContractWithFailover({
+        address: ascensionStakingContract,
+        abi: ascensionStakingAbi,
+        functionName: "pendingPoints",
+        args: [getAddress(ascension.walletAddress)],
+        label: "Ascension pendingPoints before harvest",
+      }) as bigint;
       const data = encodeFunctionData({
         abi: ascensionStakingAbi,
         functionName: "claimPoints",
         args: [],
       });
-      await sendContract(provider, ascensionStakingContract, data);
-      setActionStatus("Energy harvest submitted. Refreshing state...");
-      await ascension.refresh();
+      const tx = await sendContract(provider, ascensionStakingContract, data);
+      const harvestedRaw = harvestAmountFromReceipt(tx.receipt, ascension.walletAddress) || pendingBefore;
+      if (harvestedRaw > 0n) {
+        const harvestRecordBody = JSON.stringify({
+          action: "recordHarvest",
+          address: getAddress(ascension.walletAddress),
+          amountRaw: harvestedRaw.toString(),
+          txHash: tx.hash,
+        });
+        let response = await fetch("/.netlify/functions/ascension-stats", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: harvestRecordBody,
+        });
+        if (response.status === 409) {
+          await new Promise((resolve) => window.setTimeout(resolve, 2500));
+          response = await fetch("/.netlify/functions/ascension-stats", {
+            method: "POST",
+            headers: { "content-type": "application/json" },
+            body: harvestRecordBody,
+          });
+        }
+        const record = await response.json().catch(() => ({}));
+        if (!response.ok || record?.ok === false) {
+          setActionStatus(`Harvest confirmed, but harvested Energy display ledger did not update: ${record?.error || "ledger update failed"}`);
+        } else {
+          setActionStatus("Energy harvest recorded. Refreshing state...");
+        }
+      } else {
+        setActionStatus("Energy harvest confirmed. Refreshing state...");
+      }
+      await ascension.refresh({ scanLogs: true });
     } catch (error) {
       setActionStatus(formatWalletError(error, "Harvest failed."));
     } finally {
@@ -777,12 +851,6 @@ export default function AscensionPage() {
           label: `S1 ownerOf recovery #${tokenId}`,
         }) as string;
         const ownerAddress = getAddress(owner);
-        if (ownerAddress !== ascensionStakingContract) {
-          if (ownerAddress === getAddress(ascension.walletAddress)) {
-            throw new Error(`Token #${tokenId} is still in your connected wallet. Use Stake By Token ID, not recovery.`);
-          }
-          throw new Error(`Token #${tokenId} is owned by ${shortAddress(ownerAddress)}. Recovery only applies after an NFT is inside Ascension.`);
-        }
         const info = await readContractWithFailover({
           address: ascensionStakingContract,
           abi: ascensionStakingAbi,
@@ -790,8 +858,15 @@ export default function AscensionPage() {
           args: [BigInt(tokenId)],
           label: `Ascension stakeInfo #${tokenId}`,
         }) as readonly [string, number | bigint];
-        if (info?.[0] && getAddress(info[0]) !== getAddress(ZERO_ADDRESS)) {
-          throw new Error(`Token #${tokenId} is already registered to ${shortAddress(getAddress(info[0]))}.`);
+        const registeredWallet = info?.[0] && getAddress(info[0]) !== getAddress(ZERO_ADDRESS) ? getAddress(info[0]) : "";
+        if (registeredWallet) {
+          throw new Error(`Token #${tokenId} is already registered to ${shortAddress(registeredWallet)}. Refresh Ascension if it is not visible yet.`);
+        }
+        if (ownerAddress !== ascensionStakingContract) {
+          if (ownerAddress === getAddress(ascension.walletAddress)) {
+            throw new Error(`Token #${tokenId} is still in your connected wallet. Use Stake By Token ID, not recovery.`);
+          }
+          throw new Error(`Token #${tokenId} is owned by ${shortAddress(ownerAddress)}. Recovery only applies after an NFT is inside Ascension.`);
         }
         ids.push(BigInt(tokenId));
       }
@@ -998,7 +1073,7 @@ export default function AscensionPage() {
           title="Ascension Command Center"
           copy="Stake Season 1 DYOOR into the Ascension chamber, generate Energy, unstake when needed, and recover deposits that need final registration."
           actions={
-            <Button variant="primary" onClick={authenticated ? ascension.refresh : connectWallet} disabled={working || ascension.refreshing}>
+            <Button variant="primary" onClick={authenticated ? () => void ascension.refresh() : connectWallet} disabled={working || ascension.refreshing}>
               {authenticated ? ascension.refreshing ? "Refreshing..." : "Refresh Signal" : "Connect Wallet"}
             </Button>
           }
