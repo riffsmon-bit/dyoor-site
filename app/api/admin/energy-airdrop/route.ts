@@ -8,6 +8,9 @@ export const dynamic = "force-dynamic";
 
 const DEFAULT_RPC = "https://rpc.monad.xyz";
 const AIRDROP_BATCH_SIZE = 150;
+const ENERGY_CREDIT_GAS_LIMIT = 160_000n;
+const AIRDROP_BASE_GAS_LIMIT = 120_000n;
+const AIRDROP_PER_WALLET_GAS_LIMIT = 70_000n;
 
 const ENERGY_BANK_ABI = [
   "function usedAirdropCampaign(bytes32 campaignId) view returns (bool)",
@@ -161,7 +164,9 @@ export async function POST(request: Request) {
           }
 
           await bank.airdropEnergy.staticCall(batch, amount, campaignId);
-          const tx = await bank.airdropEnergy(batch, amount, campaignId);
+          const tx = await bank.airdropEnergy(batch, amount, campaignId, {
+            gasLimit: AIRDROP_BASE_GAS_LIMIT + (AIRDROP_PER_WALLET_GAS_LIMIT * BigInt(batch.length)),
+          });
           const receipt = await tx.wait();
           txHashes.push(tx.hash);
           blockNumbers.push(receipt?.blockNumber ?? null);
@@ -194,7 +199,7 @@ export async function POST(request: Request) {
             }
 
             await bank.creditEnergy.staticCall(wallet, amount, claimId);
-            const tx = await bank.creditEnergy(wallet, amount, claimId);
+            const tx = await bank.creditEnergy(wallet, amount, claimId, { gasLimit: ENERGY_CREDIT_GAS_LIMIT });
             const receipt = await tx.wait();
             txHashes.push(tx.hash);
             blockNumbers.push(receipt?.blockNumber ?? null);

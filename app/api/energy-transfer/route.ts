@@ -7,6 +7,7 @@ export const dynamic = "force-dynamic";
 
 const DEFAULT_RPC = "https://rpc.monad.xyz";
 const TRANSFER_WINDOW_MS = 5 * 60 * 1000;
+const ENERGY_WRITE_GAS_LIMIT = 160_000n;
 
 const ENERGY_BANK_ABI = [
   "function spendableEnergy(address user) view returns (uint256)",
@@ -136,9 +137,9 @@ export async function POST(request: Request) {
     await bank.spendEnergy.staticCall(sender, amount, transferId);
     await bank.creditEnergy.staticCall(recipient, amount, transferId);
 
-    const spendTx = await bank.spendEnergy(sender, amount, transferId);
+    const spendTx = await bank.spendEnergy(sender, amount, transferId, { gasLimit: ENERGY_WRITE_GAS_LIMIT });
     const spendReceipt = await spendTx.wait();
-    const creditTx = await bank.creditEnergy(recipient, amount, transferId);
+    const creditTx = await bank.creditEnergy(recipient, amount, transferId, { gasLimit: ENERGY_WRITE_GAS_LIMIT });
     const creditReceipt = await creditTx.wait();
 
     return json(200, {

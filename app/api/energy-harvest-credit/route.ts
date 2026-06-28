@@ -6,6 +6,7 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 const DEFAULT_RPC = "https://rpc.monad.xyz";
+const ENERGY_CREDIT_GAS_LIMIT = 160_000n;
 
 const ENERGY_BANK_ABI = [
   "function creditEnergy(address user,uint256 amount,bytes32 claimTxHash)",
@@ -124,7 +125,7 @@ export async function POST(request: Request) {
     }
 
     await bank.creditEnergy.staticCall(user, amount, txHash);
-    const creditTx = await bank.creditEnergy(user, amount, txHash);
+    const creditTx = await bank.creditEnergy(user, amount, txHash, { gasLimit: ENERGY_CREDIT_GAS_LIMIT });
     const receipt = await creditTx.wait();
 
     return json(200, {

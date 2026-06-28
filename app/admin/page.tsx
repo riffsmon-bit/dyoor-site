@@ -1226,7 +1226,9 @@ export default function AdminPage() {
                           <tr className="border-t border-white/8" key={`${row.wallet || index}-${index}`}>
                             <td className="px-3 py-2 text-white/70">{shortAddress(String(row.wallet || ""))}</td>
                             <td className={row.status === "success" ? "px-3 py-2 text-dyoor-cyan" : row.status === "failed" ? "px-3 py-2 text-red-200" : "px-3 py-2 text-yellow-100"}>{String(row.status || "")}</td>
-                            <td className="max-w-40 truncate px-3 py-2 text-white/45">{String(row.creditTxHash || row.error || row.reason || "-")}</td>
+                            <td className="min-w-64 max-w-[28rem] whitespace-normal break-words px-3 py-2 text-white/45">
+                              {String(row.creditTxHash || row.error || row.reason || "-")}
+                            </td>
                           </tr>
                         ))}
                       </tbody>

@@ -14,6 +14,7 @@ const GOLDSKY_PAGE_SIZE = 1000;
 const LOCAL_HARVEST_LEDGER_PATH = path.join(process.cwd(), "data", "harvested-energy.json");
 const REPAIR_BATCH_LIMIT = 10;
 const MAX_REPAIR_BATCH_LIMIT = 25;
+const ENERGY_REPAIR_GAS_LIMIT = 160_000n;
 
 const ENERGY_BANK_ABI = [
   "function spendableEnergy(address user) view returns (uint256)",
@@ -454,7 +455,7 @@ async function repairMissingCredits(report: Awaited<ReturnType<typeof buildRepor
       let tx;
       if (item.method === "correctEnergy") {
         await bank.correctEnergy.staticCall(item.wallet, amount, item.claimKey);
-        tx = await bank.correctEnergy(item.wallet, amount, item.claimKey);
+        tx = await bank.correctEnergy(item.wallet, amount, item.claimKey, { gasLimit: ENERGY_REPAIR_GAS_LIMIT });
       } else {
         const alreadyUsed = await bank.usedClaimTxHash(item.claimKey);
         if (alreadyUsed) {
@@ -462,7 +463,7 @@ async function repairMissingCredits(report: Awaited<ReturnType<typeof buildRepor
           continue;
         }
         await bank.creditEnergy.staticCall(item.wallet, amount, item.claimKey);
-        tx = await bank.creditEnergy(item.wallet, amount, item.claimKey);
+        tx = await bank.creditEnergy(item.wallet, amount, item.claimKey, { gasLimit: ENERGY_REPAIR_GAS_LIMIT });
       }
       const receipt = await tx.wait();
       results.push({
