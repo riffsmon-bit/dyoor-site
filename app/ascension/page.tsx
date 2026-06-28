@@ -792,6 +792,33 @@ export default function AscensionPage() {
       const tx = await sendContract(provider, ascensionStakingContract, data);
       const harvestedRaw = harvestAmountFromReceipt(tx.receipt, ascension.walletAddress) || pendingBefore;
       if (harvestedRaw > 0n) {
+        let bankCreditOk = false;
+        let bankCreditMessage = "";
+        let bankCreditResponse = await fetch("/api/energy-harvest-credit", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({
+            user: getAddress(ascension.walletAddress),
+            amountRaw: harvestedRaw.toString(),
+            txHash: tx.hash,
+          }),
+        });
+        if (bankCreditResponse.status === 409) {
+          await new Promise((resolve) => window.setTimeout(resolve, 2500));
+          bankCreditResponse = await fetch("/api/energy-harvest-credit", {
+            method: "POST",
+            headers: { "content-type": "application/json" },
+            body: JSON.stringify({
+              user: getAddress(ascension.walletAddress),
+              amountRaw: harvestedRaw.toString(),
+              txHash: tx.hash,
+            }),
+          });
+        }
+        const bankCredit = await bankCreditResponse.json().catch(() => ({}));
+        bankCreditOk = bankCreditResponse.ok && bankCredit?.ok !== false;
+        if (!bankCreditOk) bankCreditMessage = bankCredit?.error || "Energy Bank credit failed";
+
         const harvestRecordBody = JSON.stringify({
           action: "recordHarvest",
           address: getAddress(ascension.walletAddress),
@@ -813,9 +840,13 @@ export default function AscensionPage() {
         }
         const record = await response.json().catch(() => ({}));
         if (!response.ok || record?.ok === false) {
-          setActionStatus(`Harvest confirmed, but harvested Energy display ledger did not update: ${record?.error || "ledger update failed"}`);
+          setActionStatus(`Harvest confirmed${bankCreditOk ? " and bank credited" : ""}, but the legacy display ledger did not update: ${record?.error || "ledger update failed"}`);
+        } else if (!bankCreditOk) {
+          setActionStatus(`Harvest confirmed and indexed, but Energy Bank was not credited: ${bankCreditMessage}. Use admin reconciliation.`);
+        } else if (bankCredit?.alreadyCredited) {
+          setActionStatus("Energy harvest was already credited. Refreshing state...");
         } else {
-          setActionStatus("Energy harvest recorded. Refreshing state...");
+          setActionStatus("Energy harvest credited to Energy Bank. Refreshing state...");
         }
       } else {
         setActionStatus("Energy harvest confirmed. Refreshing state...");

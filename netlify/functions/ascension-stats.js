@@ -7,6 +7,7 @@ const DEFAULT_ENERGY_BANK = "0x291a8cC0FCa08EBd64a0e4d67B4455d24e9E6767";
 const DEFAULT_LEDGER_URL = "https://raw.githubusercontent.com/riffsmon-bit/dyoor-site/main/data/harvested-energy.json";
 const MAX_SUPPLY = 1111;
 const DEFAULT_LOG_CHUNK_SIZE = 5000n;
+const GOLDSKY_PAGE_SIZE = 1000;
 const POINTS_CLAIMED_TOPIC = "0xba953728785de35be3827ee7a7a7867a8472947562602939440e6c0bdbf4725e";
 const ENERGY_AIRDROPPED_TOPIC = "0xc87ee47d849e744604f4b906a3f99f2cb6e8a58a1a1b26d434a1516242c875e9";
 const ENERGY_CORRECTED_TOPIC = "0xf0699d0e65e837d170097a88cefd0bfa81782baf2dd64f938951289e8b967568";
@@ -166,6 +167,7 @@ async function scanHarvestLogs(address) {
   let lastHarvestBlock = null;
   let logsScanned = 0;
   let chunksScanned = 0;
+  const events = [];
 
   if (!stakingAddress || fromBlock > latestBlock) {
     return {
@@ -197,6 +199,14 @@ async function scanHarvestLogs(address) {
       lastHarvestRaw = amountRaw;
       lastHarvestTxHash = String(log.transactionHash || "");
       lastHarvestBlock = safeBigInt(log.blockNumber).toString();
+      events.push({
+        id: `${lastHarvestTxHash}:${String(log.logIndex || "")}`,
+        txHash: lastHarvestTxHash.toLowerCase(),
+        user: address,
+        amountRaw,
+        blockNumber: lastHarvestBlock,
+        timestamp: ""
+      });
     }
 
     chunksScanned += 1;
@@ -211,7 +221,126 @@ async function scanHarvestLogs(address) {
     logsScanned,
     chunksScanned,
     fromBlock: startBlock,
-    toBlock: latestBlock
+    toBlock: latestBlock,
+    events,
+    dataSource: "rpc-logs"
+  };
+}
+
+function goldskyEndpoint() {
+  return process.env.GOLDSKY_SUBGRAPH_URL || process.env.NEXT_PUBLIC_GOLDSKY_SUBGRAPH_URL || "";
+}
+
+function dedupeHarvestEvents(rows) {
+  const seen = new Set();
+  const events = [];
+  for (const row of rows || []) {
+    const txHash = String(row.transactionHash_ || row.transactionHash || "").toLowerCase();
+    const id = String(row.id || "");
+    const key = id || `${txHash}:${String(row.logIndex || "")}`;
+    const user = normalizeAddress(row.user);
+    if (!key || seen.has(key) || !isTxHash(txHash) || !user) continue;
+    seen.add(key);
+    events.push({
+      id: key,
+      txHash,
+      user,
+      amountRaw: safeBigInt(row.amount || row.amountRaw || "0"),
+      blockNumber: safeBigInt(row.block_number || row.blockNumber || "0").toString(),
+      timestamp: String(row.timestamp_ || row.timestamp || "")
+    });
+  }
+  return events;
+}
+
+async function fetchGoldskyHarvestLogs(address) {
+  const endpoint = goldskyEndpoint();
+  if (!endpoint) return null;
+
+  const rows = [];
+  let indexedBlock = 0;
+  for (let skip = 0; skip < 50_000; skip += GOLDSKY_PAGE_SIZE) {
+    const query = `
+      query DyoorHarvestEvents($wallet: String!, $skip: Int!) {
+        _meta { block { number } }
+        pointsClaimeds(first: ${GOLDSKY_PAGE_SIZE}, skip: $skip, where: { user: $wallet }, orderBy: block_number, orderDirection: asc) {
+          id
+          block_number
+          timestamp_
+          transactionHash_
+          user
+          amount
+        }
+      }
+    `;
+    const response = await fetch(endpoint, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ query, variables: { wallet: address.toLowerCase(), skip } })
+    });
+    const payload = await response.json().catch(() => ({}));
+    if (!response.ok || payload?.errors?.length) throw new Error("Goldsky harvest query failed");
+    indexedBlock = Math.max(indexedBlock, Number(payload?.data?._meta?.block?.number || 0));
+    const batch = Array.isArray(payload?.data?.pointsClaimeds) ? payload.data.pointsClaimeds : [];
+    rows.push(...batch);
+    if (batch.length < GOLDSKY_PAGE_SIZE) break;
+  }
+
+  const events = dedupeHarvestEvents(rows);
+  let harvestedRaw = 0n;
+  let lastHarvestRaw = 0n;
+  let lastHarvestTxHash = "";
+  let lastHarvestBlock = null;
+  for (const event of events) {
+    harvestedRaw += event.amountRaw;
+    lastHarvestRaw = event.amountRaw;
+    lastHarvestTxHash = event.txHash;
+    lastHarvestBlock = event.blockNumber;
+  }
+
+  return {
+    harvestedRaw,
+    lastHarvestRaw,
+    lastHarvestTxHash,
+    lastHarvestBlock,
+    logsScanned: events.length,
+    chunksScanned: Math.ceil(rows.length / GOLDSKY_PAGE_SIZE) || 1,
+    fromBlock: 0n,
+    toBlock: BigInt(indexedBlock || 0),
+    events,
+    dataSource: "goldsky"
+  };
+}
+
+function mergeLegacyHarvestLedger(logs, record) {
+  const claims = Array.isArray(record?.claims) ? record.claims : [];
+  const eventTxs = new Set((logs.events || []).map((event) => event.txHash));
+  let legacyRaw = 0n;
+  let legacyCount = 0;
+
+  for (const claim of claims) {
+    const txHash = String(claim?.txHash || "").toLowerCase();
+    if (isTxHash(txHash) && eventTxs.has(txHash)) continue;
+    const amount = safeBigInt(claim?.amountRaw || "0");
+    if (amount <= 0n) continue;
+    legacyRaw += amount;
+    legacyCount += 1;
+  }
+
+  const ledgerTotalRaw = safeBigInt(record?.harvestedRaw || "0");
+  if (ledgerTotalRaw > logs.harvestedRaw + legacyRaw) {
+    legacyRaw += ledgerTotalRaw - logs.harvestedRaw - legacyRaw;
+    legacyCount += 1;
+  }
+
+  if (legacyRaw <= 0n) return logs;
+  return {
+    ...logs,
+    harvestedRaw: logs.harvestedRaw + legacyRaw,
+    logsScanned: logs.logsScanned + legacyCount,
+    legacyHarvestRaw: legacyRaw,
+    legacyHarvestCount: legacyCount,
+    dataSource: `${logs.dataSource || "events"}+legacy-ledger`
   };
 }
 
@@ -283,7 +412,9 @@ function ledgerScanFallback(record) {
     logsScanned: claims.length,
     chunksScanned: 0,
     fromBlock: 0n,
-    toBlock: 0n
+    toBlock: 0n,
+    events: [],
+    dataSource: "legacy-ledger"
   };
 }
 
@@ -330,23 +461,26 @@ function resolveEnergyAccounting({
     ? bankLifetimeRaw - harvestedRaw - explicitAirdroppedRaw - combinedBonusRaw
     : 0n;
   const airdroppedRaw = explicitAirdroppedRaw + inferredAirdroppedRaw;
+  const creditedRaw = bankLifetimeRaw;
   const calculatedLifetimeRaw = harvestedRaw + airdroppedRaw + combinedBonusRaw;
   const lifetimeRaw = bankHasAccounting && bankLifetimeRaw > calculatedLifetimeRaw
     ? bankLifetimeRaw
     : calculatedLifetimeRaw;
   const calculatedBankRaw = lifetimeRaw > spentRaw ? lifetimeRaw - spentRaw : 0n;
-  const bankRaw = bankHasAccounting && bankedRaw > calculatedBankRaw
-    ? bankedRaw
-    : calculatedBankRaw;
+  const bankRaw = hasEnergyBank ? bankedRaw : calculatedBankRaw;
+  const missingSpendableRaw = calculatedBankRaw > bankRaw ? calculatedBankRaw - bankRaw : 0n;
 
   return {
     harvestedRaw,
     airdroppedRaw,
+    creditedRaw,
     bonusRaw: combinedBonusRaw,
     spentRaw,
     lifetimeRaw,
     bankRaw,
-    calculatedLifetimeRaw
+    calculatedLifetimeRaw,
+    calculatedBankRaw,
+    missingSpendableRaw
   };
 }
 
@@ -385,19 +519,24 @@ exports.handler = async function (event) {
       const shouldScanLogs = event?.queryStringParameters?.scanLogs === "1";
       const shouldScanGrantLogs = event?.queryStringParameters?.scanGrants === "1";
       let apiStatus = shouldScanLogs ? "ok" : "partial";
-      let apiMessage = shouldScanLogs
-        ? "Energy totals loaded from Ascension harvest events with chunked RPC log scans."
-        : "Energy totals loaded from the harvest ledger and Energy Bank contract. Add scanLogs=1 to force a harvest-event scan.";
+      let apiMessage = "Energy totals loaded from indexed Ascension harvest events and Energy Bank contract reads.";
       let logs = ledgerScanFallback(record);
 
-      if (shouldScanLogs) {
-        try {
+      try {
+        const indexedLogs = await fetchGoldskyHarvestLogs(address);
+        if (indexedLogs) {
+          logs = mergeLegacyHarvestLedger(indexedLogs, record);
+          apiStatus = "ok";
+        } else if (shouldScanLogs) {
           logs = await scanHarvestLogs(address);
-        } catch (scanErr) {
-          logs = ledgerScanFallback(record);
-          apiStatus = "partial";
-          apiMessage = `RPC harvest log scan failed; using the off-chain harvest ledger fallback. ${String(scanErr?.message || scanErr)}`;
+          logs = mergeLegacyHarvestLedger(logs, record);
+          apiStatus = "ok";
+          apiMessage = "Energy totals loaded from Ascension harvest events with chunked RPC log scans.";
         }
+      } catch (scanErr) {
+        logs = ledgerScanFallback(record);
+        apiStatus = "partial";
+        apiMessage = `Indexed harvest scan failed; using the off-chain harvest ledger fallback. ${String(scanErr?.message || scanErr)}`;
       }
       const pendingRaw = stakingAddress
         ? await safeEthCall(stakingAddress, SELECTORS.pendingPoints, address)
@@ -439,11 +578,18 @@ exports.handler = async function (event) {
 
       console.log("DYOOR energy accounting", {
         address,
+        pendingEnergy: pendingRaw.toString(),
         harvestedEnergy: accounting.harvestedRaw.toString(),
-        airdroppedEnergy: accounting.airdroppedRaw.toString(),
+        creditedEnergy: accounting.creditedRaw.toString(),
+        incomingTransfers: "0",
+        outgoingTransfers: "0",
         spentEnergy: accounting.spentRaw.toString(),
         lifetimeEnergy: accounting.lifetimeRaw.toString(),
-        bankEnergy: accounting.bankRaw.toString()
+        bankEnergy: accounting.bankRaw.toString(),
+        harvestEvents: logs.logsScanned,
+        fromBlock: logs.fromBlock.toString(),
+        toBlock: logs.toBlock.toString(),
+        dataSource: logs.dataSource
       });
 
       return json(200, {
@@ -456,8 +602,14 @@ exports.handler = async function (event) {
         pendingEnergy: formatUnits(pendingRaw),
         harvestedRaw: harvestedRaw.toString(),
         harvestedEnergy: formatUnits(harvestedRaw),
+        creditedRaw: accounting.creditedRaw.toString(),
+        creditedEnergy: formatUnits(accounting.creditedRaw),
         airdroppedRaw: accounting.airdroppedRaw.toString(),
         airdroppedEnergy: formatUnits(accounting.airdroppedRaw),
+        incomingTransfersRaw: "0",
+        incomingTransfersEnergy: "0",
+        outgoingTransfersRaw: "0",
+        outgoingTransfersEnergy: "0",
         bonusRaw: accounting.bonusRaw.toString(),
         bonusEnergy: formatUnits(accounting.bonusRaw),
         spentRaw: accounting.spentRaw.toString(),
@@ -471,12 +623,23 @@ exports.handler = async function (event) {
         bankSpentRaw: bankSpentRaw.toString(),
         calculatedLifetimeRaw: accounting.calculatedLifetimeRaw.toString(),
         calculatedLifetimeEnergy: formatUnits(accounting.calculatedLifetimeRaw),
+        calculatedBankRaw: accounting.calculatedBankRaw.toString(),
+        calculatedBankEnergy: formatUnits(accounting.calculatedBankRaw),
+        missingSpendableRaw: accounting.missingSpendableRaw.toString(),
+        missingSpendableEnergy: formatUnits(accounting.missingSpendableRaw),
         energyDebug: {
+          pendingEnergy: pendingRaw.toString(),
           harvestedEnergy: accounting.harvestedRaw.toString(),
-          airdroppedEnergy: accounting.airdroppedRaw.toString(),
+          creditedEnergy: accounting.creditedRaw.toString(),
+          incomingTransfers: "0",
+          outgoingTransfers: "0",
           spentEnergy: accounting.spentRaw.toString(),
           lifetimeEnergy: accounting.lifetimeRaw.toString(),
-          bankEnergy: accounting.bankRaw.toString()
+          bankEnergy: accounting.bankRaw.toString(),
+          harvestEvents: logs.logsScanned,
+          fromBlock: logs.fromBlock.toString(),
+          toBlock: logs.toBlock.toString(),
+          dataSource: logs.dataSource
         },
         totalStakedRaw: totalStakedRaw.toString(),
         totalStaked: totalStakedRaw.toString(),
@@ -488,6 +651,10 @@ exports.handler = async function (event) {
         lastHarvestTxHash: logs.lastHarvestTxHash,
         lastHarvestBlock: logs.lastHarvestBlock,
         logsScanned: logs.logsScanned,
+        harvestEventsFound: logs.logsScanned,
+        dataSource: logs.dataSource,
+        legacyHarvestRaw: String(logs.legacyHarvestRaw || "0"),
+        legacyHarvestCount: logs.legacyHarvestCount || 0,
         energyGrantLogsScanned: grantScan.logsScanned,
         chunksScanned: logs.chunksScanned,
         fromBlock: logs.fromBlock.toString(),
