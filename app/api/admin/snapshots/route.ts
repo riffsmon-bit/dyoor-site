@@ -15,6 +15,9 @@ const DEFAULT_ENERGY_BANK = "0x291a8cC0FCa08EBd64a0e4d67B4455d24e9E6767";
 const BLUEPRINTS_KEY = "ascension-blueprints.json";
 const LOCAL_BLUEPRINTS_PATH = path.join(process.cwd(), "data", "ascension-blueprints.json");
 const LOCAL_HARVEST_LEDGER_PATH = path.join(process.cwd(), "data", "harvested-energy.json");
+const DEFAULT_ASCENSION_START_BLOCK = 54_985_442;
+const DEFAULT_ASCENSION_LOG_CHUNK_SIZE = 50_000;
+const DEFAULT_DISCOVERY_BUDGET_MS = 14_000;
 
 const TRAIT_EXPORT_ORDER = [
   ["background", "Background"],
@@ -52,6 +55,16 @@ function readEnv(...names: string[]) {
     if (value && String(value).trim()) return String(value).trim();
   }
   return "";
+}
+
+function readWholeNumberEnv(names: string[], fallback: number, allowZero = false) {
+  for (const name of names) {
+    const value = readEnv(name);
+    if (!/^\d+$/.test(value)) continue;
+    const parsed = Number(value);
+    if (Number.isSafeInteger(parsed) && (allowZero ? parsed >= 0 : parsed > 0)) return parsed;
+  }
+  return fallback;
 }
 
 function normalizeAddress(value: unknown) {
@@ -121,24 +134,55 @@ async function safeContract<T>(task: () => Promise<T>, fallback: T) {
   }
 }
 
+async function getLogsWithSplit(
+  provider: ethers.JsonRpcProvider,
+  filter: { address: string; topics: Array<string | Array<string> | null> },
+  fromBlock: number,
+  toBlock: number,
+): Promise<ethers.Log[]> {
+  try {
+    return await provider.getLogs({ ...filter, fromBlock, toBlock });
+  } catch (error) {
+    if (fromBlock >= toBlock) throw error;
+    const mid = Math.floor((fromBlock + toBlock) / 2);
+    const left = await getLogsWithSplit(provider, filter, fromBlock, mid);
+    const right = await getLogsWithSplit(provider, filter, mid + 1, toBlock);
+    return left.concat(right);
+  }
+}
+
 async function discoverStakingWallets(provider: ethers.JsonRpcProvider, stakingAddress: string, nftAddress: string) {
   const wallets = new Set<string>();
   const tokenIds = new Set<string>();
   const iface = new ethers.Interface(erc721Abi);
   const latest = await provider.getBlockNumber();
-  const start = Number(readEnv("ASCENSION_START_BLOCK") || "0") || 0;
-  const chunk = Math.max(1000, Number(readEnv("ASCENSION_LOG_CHUNK_SIZE") || "5000") || 5000);
+  const start = Math.min(latest, readWholeNumberEnv(["ASCENSION_START_BLOCK", "NEXT_PUBLIC_DYOOR_S1_START_BLOCK"], DEFAULT_ASCENSION_START_BLOCK, true));
+  const chunk = readWholeNumberEnv(["ASCENSION_LOG_CHUNK_SIZE"], DEFAULT_ASCENSION_LOG_CHUNK_SIZE);
+  const budgetMs = readWholeNumberEnv(["ASCENSION_SNAPSHOT_LOG_BUDGET_MS", "ASCENSION_SNAPSHOT_DISCOVERY_BUDGET_MS"], DEFAULT_DISCOVERY_BUDGET_MS);
+  const deadline = Date.now() + budgetMs;
   const transferTopic = ethers.id("Transfer(address,address,uint256)");
   const stakingTopic = ethers.zeroPadValue(stakingAddress, 32);
+  const filter = {
+    address: nftAddress,
+    topics: [transferTopic, null, stakingTopic],
+  };
+  let chunksScanned = 0;
+  let failedChunks = 0;
+  let lastScannedBlock = start > 0 ? start - 1 : 0;
+  let limited = false;
 
   for (let from = start; from <= latest; from += chunk) {
+    if (Date.now() >= deadline) {
+      limited = true;
+      break;
+    }
     const to = Math.min(latest, from + chunk - 1);
-    const logs = await safeContract(() => provider.getLogs({
-      address: nftAddress,
-      fromBlock: from,
-      toBlock: to,
-      topics: [transferTopic, null, stakingTopic],
-    }), [] as ethers.Log[]);
+    let logs: ethers.Log[] = [];
+    try {
+      logs = await getLogsWithSplit(provider, filter, from, to);
+    } catch {
+      failedChunks += 1;
+    }
     for (const log of logs) {
       try {
         const parsed = iface.parseLog(log);
@@ -148,9 +192,34 @@ async function discoverStakingWallets(provider: ethers.JsonRpcProvider, stakingA
         if (tokenId) tokenIds.add(tokenId);
       } catch {}
     }
+    chunksScanned += 1;
+    lastScannedBlock = to;
   }
 
-  return { wallets, tokenIds };
+  const warnings: string[] = [];
+  if (limited) {
+    warnings.push(`Transfer-log discovery stopped at block ${lastScannedBlock} of ${latest} to keep the hosted snapshot request responsive.`);
+  }
+  if (failedChunks > 0) {
+    warnings.push(`${failedChunks} transfer-log range${failedChunks === 1 ? "" : "s"} could not be read from the RPC and were skipped.`);
+  }
+
+  return {
+    wallets,
+    tokenIds,
+    discovery: {
+      startBlock: start,
+      latestBlock: latest,
+      lastScannedBlock,
+      chunkSize: chunk,
+      chunksScanned,
+      failedChunks,
+      limited,
+      discoveredWallets: wallets.size,
+      discoveredTokenIds: tokenIds.size,
+    },
+    warnings,
+  };
 }
 
 async function tokenOwnerFromStakeInfo(staking: ethers.Contract, tokenId: string) {
@@ -214,6 +283,7 @@ async function generateSnapshots() {
   const harvestLedger = await readHarvestLedger();
   const blueprint = blueprintRows(blueprints, timestamp);
   const discovered = await discoverStakingWallets(provider, stakingAddress, nftAddress);
+  const warnings = [...discovered.warnings];
   const ascendedTokenOwners = new Map<string, string>();
   const walletSet = new Set<string>(blueprint.map((row) => String(row.wallet)));
 
@@ -301,6 +371,8 @@ async function generateSnapshots() {
     ascendedS1,
     blueprints: blueprint,
     combined,
+    discovery: discovered.discovery,
+    warnings,
   };
 }
 

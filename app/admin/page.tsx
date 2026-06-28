@@ -13,6 +13,17 @@ type Eip1193Provider = {
 
 type Snapshot = {
   generatedAt: string;
+  discovery?: {
+    startBlock?: number;
+    latestBlock?: number;
+    lastScannedBlock?: number;
+    chunkSize?: number;
+    chunksScanned?: number;
+    failedChunks?: number;
+    limited?: boolean;
+    discoveredWallets?: number;
+    discoveredTokenIds?: number;
+  };
   totals: {
     walletsFound: number;
     totalStaked: number;
@@ -24,6 +35,7 @@ type Snapshot = {
   ascendedS1?: Array<Record<string, any>>;
   blueprints: Array<Record<string, any>>;
   combined: Array<Record<string, any>>;
+  warnings?: string[];
 };
 
 type AirdropResult = {
@@ -295,7 +307,7 @@ export default function AdminPage() {
         body: JSON.stringify({ wallet: walletAddress, timestamp, nonce, signature }),
       });
       const data = await response.json().catch(() => ({}));
-      if (!response.ok || data?.ok === false) throw new Error(data?.error || "Admin snapshot failed.");
+      if (!response.ok || data?.ok === false) throw new Error(data?.error || `Admin snapshot failed (${response.status}).`);
       setSnapshot(data as Snapshot);
       setAuthStatus("Snapshot generated.");
       setLastSignatureAt(new Date().toISOString());
@@ -388,6 +400,11 @@ export default function AdminPage() {
       </Card>
 
       {error && <Alert className="mb-6" tone="danger">{error}</Alert>}
+      {snapshot?.warnings?.length ? (
+        <Alert className="mb-6" tone="warning">
+          {snapshot.warnings.join(" ")}
+        </Alert>
+      ) : null}
       {loading && <Card className="mb-6 p-5"><LoadingSkeleton lines={5} /></Card>}
 
       <Card className="mb-6 p-5 md:p-6">
@@ -436,7 +453,14 @@ export default function AdminPage() {
       </div>
 
       <div className="mb-6 flex flex-wrap items-center justify-between gap-3 rounded border border-dyoor-purple/25 bg-white/[0.035] p-4 text-sm font-bold text-white/62">
-        <span>Last generated: {snapshot?.generatedAt ? new Date(snapshot.generatedAt).toLocaleString() : "Not generated yet"}</span>
+        <div className="grid gap-1">
+          <span>Last generated: {snapshot?.generatedAt ? new Date(snapshot.generatedAt).toLocaleString() : "Not generated yet"}</span>
+          {snapshot?.discovery ? (
+            <span className="text-xs text-white/45">
+              Log scan: {snapshot.discovery.lastScannedBlock?.toLocaleString() || "-"} / {snapshot.discovery.latestBlock?.toLocaleString() || "-"} blocks, {snapshot.discovery.chunksScanned || 0} chunks
+            </span>
+          ) : null}
+        </div>
         <Button variant="secondary" onClick={generateSnapshot} disabled={!authorized || loading}>Refresh Snapshot Suite</Button>
       </div>
 
