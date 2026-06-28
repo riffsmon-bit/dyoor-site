@@ -80,6 +80,24 @@ function chunkRecipients(recipients: string[]) {
   return chunks;
 }
 
+async function readRole(bank: ethers.Contract, roleName: "CREDIT_ROLE") {
+  try {
+    const role = await bank[roleName]();
+    return ethers.getBytes(role).length === 32 ? String(role) : "";
+  } catch {
+    return "";
+  }
+}
+
+async function hasRole(bank: ethers.Contract, role: string, account: string) {
+  if (!role) return null;
+  try {
+    return Boolean(await bank.hasRole(role, account));
+  } catch {
+    return null;
+  }
+}
+
 export async function POST(request: Request) {
   try {
     const body = await request.json().catch(() => ({}));
@@ -99,19 +117,20 @@ export async function POST(request: Request) {
     const signerKey = normalizePrivateKey(readEnv("ENERGY_BANK_OPERATOR_PRIVATE_KEY", "DEPLOYER_PRIVATE_KEY"));
     if (!signerKey) return json(500, { ok: false, error: "Missing ENERGY_BANK_OPERATOR_PRIVATE_KEY." });
 
-    const provider = new ethers.JsonRpcProvider(readEnv("MONAD_RPC_URL", "NEXT_PUBLIC_MONAD_RPC_URL") || DEFAULT_RPC, MONAD_CHAIN_ID);
+    const provider = new ethers.JsonRpcProvider(readEnv("MONAD_RPC_URL", "NEXT_PUBLIC_MONAD_RPC_URL") || DEFAULT_RPC);
     const signer = new ethers.Wallet(signerKey, provider);
     const bank = new ethers.Contract(energyBankAddress, ENERGY_BANK_ABI, signer);
     const [network, creditRole, hasAdminRole] = await Promise.all([
       provider.getNetwork(),
-      bank.CREDIT_ROLE(),
-      bank.hasRole(ethers.ZeroHash, signer.address),
+      readRole(bank, "CREDIT_ROLE"),
+      bank.hasRole(ethers.ZeroHash, signer.address).then(Boolean).catch(() => false),
     ]);
     if (network.chainId !== BigInt(MONAD_CHAIN_ID)) {
       throw new Error(`Wrong RPC network. Expected chain ${MONAD_CHAIN_ID}, got ${network.chainId.toString()}.`);
     }
-    const hasCreditRole = await bank.hasRole(creditRole, signer.address);
-    if (!hasAdminRole && !hasCreditRole) {
+    const hasCreditRole = await hasRole(bank, creditRole, signer.address);
+    const preferCreditEnergy = hasCreditRole !== false;
+    if (!hasAdminRole && hasCreditRole === false) {
       return json(500, { ok: false, error: "Energy Bank operator needs DEFAULT_ADMIN_ROLE or CREDIT_ROLE." });
     }
 
@@ -128,7 +147,7 @@ export async function POST(request: Request) {
       campaignIds.push(campaignId);
 
       try {
-        if (!hasCreditRole && hasAdminRole) {
+        if (!preferCreditEnergy && hasAdminRole) {
           const alreadyUsed = await bank.usedAirdropCampaign(campaignId);
           if (alreadyUsed) {
             batch.forEach((wallet) => results.push({
@@ -240,7 +259,12 @@ export async function POST(request: Request) {
       blockNumbers,
       batchSize: AIRDROP_BATCH_SIZE,
       batchCount: batches.length,
-      executionMode: hasCreditRole ? "creditEnergy" : "airdropEnergy",
+      executionMode: preferCreditEnergy ? "creditEnergy" : "airdropEnergy",
+      roleCheck: {
+        creditRoleAvailable: Boolean(creditRole),
+        hasCreditRole,
+        hasAdminRole,
+      },
       actionId: txHashes[0] || campaignIds[0] || "",
       note,
       timestamp: new Date().toISOString(),

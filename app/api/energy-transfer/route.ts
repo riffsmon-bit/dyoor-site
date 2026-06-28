@@ -100,7 +100,7 @@ export async function POST(request: Request) {
     const signerKey = normalizePrivateKey(readEnv("ENERGY_BANK_OPERATOR_PRIVATE_KEY", "DEPLOYER_PRIVATE_KEY"));
     if (!signerKey) return json(500, { ok: false, error: "Missing ENERGY_BANK_OPERATOR_PRIVATE_KEY." });
 
-    const provider = new ethers.JsonRpcProvider(readEnv("MONAD_RPC_URL", "NEXT_PUBLIC_MONAD_RPC_URL") || DEFAULT_RPC, MONAD_CHAIN_ID);
+    const provider = new ethers.JsonRpcProvider(readEnv("MONAD_RPC_URL", "NEXT_PUBLIC_MONAD_RPC_URL") || DEFAULT_RPC);
     const network = await provider.getNetwork();
     if (network.chainId !== BigInt(MONAD_CHAIN_ID)) {
       throw new Error(`Wrong RPC network. Expected chain ${MONAD_CHAIN_ID}, got ${network.chainId.toString()}.`);
@@ -128,20 +128,10 @@ export async function POST(request: Request) {
       });
     }
 
-    const [creditRole, spenderRole, senderBalance] = await Promise.all([
-      bank.CREDIT_ROLE(),
-      bank.SPENDER_ROLE(),
+    const [senderBalance] = await Promise.all([
       bank.spendableEnergy(sender),
     ]);
     if (BigInt(senderBalance) < amount) return json(400, { ok: false, error: "Insufficient transferable Energy." });
-
-    const [hasCreditRole, hasSpenderRole] = await Promise.all([
-      bank.hasRole(creditRole, signer.address),
-      bank.hasRole(spenderRole, signer.address),
-    ]);
-    if (!hasCreditRole || !hasSpenderRole) {
-      return json(500, { ok: false, error: "Energy Bank operator is missing CREDIT_ROLE or SPENDER_ROLE." });
-    }
 
     await bank.spendEnergy.staticCall(sender, amount, transferId);
     await bank.creditEnergy.staticCall(recipient, amount, transferId);

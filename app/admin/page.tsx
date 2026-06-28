@@ -1178,7 +1178,7 @@ export default function AdminPage() {
             <div className="rounded border border-dyoor-purple/25 bg-black/35 p-4">
               <p className="text-xs font-black uppercase tracking-[0.16em] text-white/45">Repair Batch</p>
               <label className="mt-4 block text-xs font-black uppercase tracking-[0.16em] text-white/45" htmlFor="reconciliation-limit">
-                Max credits this batch
+                Max repair actions this run
               </label>
               <input
                 id="reconciliation-limit"
@@ -1187,6 +1187,9 @@ export default function AdminPage() {
                 value={reconciliationLimit}
                 onChange={(event) => setReconciliationLimit(event.target.value.replace(/[^\d]/g, ""))}
               />
+              <p className="mt-2 text-xs font-semibold leading-5 text-white/45">
+                This is a count of wallet credit actions, not an Energy amount. The server caps each run at 25 actions.
+              </p>
               <label className="mt-4 flex items-start gap-3 rounded border border-white/10 bg-white/[0.035] p-3 text-sm font-bold text-white/70">
                 <input className="mt-1" type="checkbox" checked={reconciliationConfirm} onChange={(event) => setReconciliationConfirm(event.target.checked)} />
                 I reviewed the affected-wallet preview and understand this will credit missing harvest Energy in the Energy Bank.

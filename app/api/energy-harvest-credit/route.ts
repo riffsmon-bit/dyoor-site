@@ -98,7 +98,7 @@ export async function POST(request: Request) {
     const signerKey = normalizePrivateKey(readEnv("ENERGY_BANK_OPERATOR_PRIVATE_KEY", "DEPLOYER_PRIVATE_KEY"));
     if (!signerKey) return json(500, { ok: false, error: "Missing ENERGY_BANK_OPERATOR_PRIVATE_KEY." });
 
-    const provider = new ethers.JsonRpcProvider(readEnv("MONAD_RPC_URL", "NEXT_PUBLIC_MONAD_RPC_URL") || DEFAULT_RPC, MONAD_CHAIN_ID);
+    const provider = new ethers.JsonRpcProvider(readEnv("MONAD_RPC_URL", "NEXT_PUBLIC_MONAD_RPC_URL") || DEFAULT_RPC);
     const network = await provider.getNetwork();
     if (network.chainId !== BigInt(MONAD_CHAIN_ID)) {
       throw new Error(`Wrong RPC network. Expected chain ${MONAD_CHAIN_ID}, got ${network.chainId.toString()}.`);
@@ -122,10 +122,6 @@ export async function POST(request: Request) {
         energyBankAddress,
       });
     }
-
-    const creditRole = await bank.CREDIT_ROLE();
-    const hasCreditRole = await bank.hasRole(creditRole, signer.address);
-    if (!hasCreditRole) return json(500, { ok: false, error: "Energy Bank operator does not have CREDIT_ROLE." });
 
     await bank.creditEnergy.staticCall(user, amount, txHash);
     const creditTx = await bank.creditEnergy(user, amount, txHash);

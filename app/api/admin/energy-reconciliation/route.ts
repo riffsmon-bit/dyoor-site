@@ -269,7 +269,7 @@ async function buildReport() {
     readHarvestLedger(),
   ]);
   const energyBankAddress = ethers.getAddress(readEnv("ENERGY_BANK_ADDRESS", "NEXT_PUBLIC_ENERGY_BANK_ADDRESS") || DEFAULT_ENERGY_BANK_CONTRACT);
-  const provider = new ethers.JsonRpcProvider(readEnv("MONAD_RPC_URL", "NEXT_PUBLIC_MONAD_RPC_URL") || DEFAULT_RPC, MONAD_CHAIN_ID);
+  const provider = new ethers.JsonRpcProvider(readEnv("MONAD_RPC_URL", "NEXT_PUBLIC_MONAD_RPC_URL") || DEFAULT_RPC);
   const bank = new ethers.Contract(energyBankAddress, ENERGY_BANK_ABI, provider);
   const harvests = mergeLegacyHarvests(indexed.harvests, ledger);
   const wallets = Array.from(new Set(harvests.map((item) => item.wallet))).sort();
@@ -419,7 +419,7 @@ async function readRepairLog() {
 async function repairMissingCredits(report: Awaited<ReturnType<typeof buildReport>>, body: Record<string, unknown>) {
   const signerKey = normalizePrivateKey(readEnv("ENERGY_BANK_OPERATOR_PRIVATE_KEY", "DEPLOYER_PRIVATE_KEY"));
   if (!signerKey) throw Object.assign(new Error("Missing ENERGY_BANK_OPERATOR_PRIVATE_KEY."), { status: 500 });
-  const provider = new ethers.JsonRpcProvider(readEnv("MONAD_RPC_URL", "NEXT_PUBLIC_MONAD_RPC_URL") || DEFAULT_RPC, MONAD_CHAIN_ID);
+  const provider = new ethers.JsonRpcProvider(readEnv("MONAD_RPC_URL", "NEXT_PUBLIC_MONAD_RPC_URL") || DEFAULT_RPC);
   const signer = new ethers.Wallet(signerKey, provider);
   const bank = new ethers.Contract(report.energyBankAddress, ENERGY_BANK_ABI, signer);
 
@@ -433,19 +433,6 @@ async function repairMissingCredits(report: Awaited<ReturnType<typeof buildRepor
     .filter((row) => !requestedWallets || requestedWallets.has(row.wallet))
     .flatMap((row) => row.repairItems.map((item) => ({ wallet: row.wallet, ...item })))
     .slice(0, limit);
-
-  const needsCreditRole = candidates.some((item) => item.method === "creditEnergy");
-  const needsAdminRole = candidates.some((item) => item.method === "correctEnergy");
-  const [creditRole, adminRole] = await Promise.all([
-    needsCreditRole ? bank.CREDIT_ROLE() : Promise.resolve(ethers.ZeroHash),
-    Promise.resolve(ethers.ZeroHash),
-  ]);
-  const [hasCreditRole, hasAdminRole] = await Promise.all([
-    needsCreditRole ? bank.hasRole(creditRole, signer.address) : Promise.resolve(true),
-    needsAdminRole ? bank.hasRole(adminRole, signer.address) : Promise.resolve(true),
-  ]);
-  if (!hasCreditRole) throw Object.assign(new Error("Energy Bank operator does not have CREDIT_ROLE."), { status: 500 });
-  if (!hasAdminRole) throw Object.assign(new Error("Energy Bank operator does not have DEFAULT_ADMIN_ROLE for reconciliation corrections."), { status: 500 });
 
   const previousLog = await readRepairLog();
   const successfulIssueIds = new Set(previousLog.flatMap((entry) => (

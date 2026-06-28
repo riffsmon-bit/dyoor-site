@@ -7,7 +7,10 @@ const configuredChainId = Number(
   || "143",
 );
 
-export const MONAD_CHAIN_ID = Number.isFinite(configuredChainId) && configuredChainId > 0 ? configuredChainId : 143;
+export const MONAD_MAINNET_CHAIN_ID = 143;
+const resolvedChainId = configuredChainId === 10143 ? MONAD_MAINNET_CHAIN_ID : configuredChainId;
+
+export const MONAD_CHAIN_ID = Number.isFinite(resolvedChainId) && resolvedChainId > 0 ? resolvedChainId : MONAD_MAINNET_CHAIN_ID;
 export const MONAD_CHAIN_HEX = `0x${MONAD_CHAIN_ID.toString(16)}`;
 export const MONAD_EXPLORER_URL = "https://monadscan.com";
 export const DEFAULT_MONAD_RPC_URL = "https://rpc.monad.xyz";

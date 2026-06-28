@@ -59,6 +59,7 @@ export function blueprintShareParamsFromRequest(request: Request): BlueprintShar
   params.saved = url.searchParams.get("saved") === "1";
   params.rank = String(url.searchParams.get("rank") || "").trim();
   params.blueprintId = String(url.searchParams.get("blueprintId") || "").trim();
+  params.v = String(url.searchParams.get("v") || "").trim();
   return params;
 }
 
@@ -116,6 +117,7 @@ function canonicalQuery(params: BlueprintShareParams) {
   if (params.saved) query.set("saved", "1");
   if (params.rank) query.set("rank", String(params.rank));
   if (params.blueprintId) query.set("blueprintId", String(params.blueprintId));
+  if (params.v) query.set("v", String(params.v));
   return query.toString();
 }
 

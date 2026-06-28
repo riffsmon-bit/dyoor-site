@@ -192,13 +192,19 @@ function blueprintShareParams(blueprint: SavedBlueprint) {
   return params;
 }
 
+function withShareVersion(params: URLSearchParams) {
+  const versioned = new URLSearchParams(params);
+  versioned.set("v", `share-${Date.now().toString(36)}`);
+  return versioned;
+}
+
 function absoluteBlueprintUrl(path: string) {
   const origin = typeof window !== "undefined" ? window.location.origin : "https://dyoor.netlify.app";
   return `${origin}${path}`;
 }
 
 function blueprintShareUrl(blueprint: SavedBlueprint) {
-  const params = blueprintShareParams(blueprint);
+  const params = withShareVersion(blueprintShareParams(blueprint));
   return absoluteBlueprintUrl(`/blueprint-share${params.toString() ? `?${params}` : ""}`);
 }
 
