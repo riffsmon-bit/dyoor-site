@@ -28,6 +28,10 @@ function parseTokenIds(value: string) {
   return Array.from(new Set(value.split(/[,\s]+/).map((item) => item.trim()).filter((item) => /^\d+$/.test(item))));
 }
 
+function shortAddress(address: string) {
+  return `${address.slice(0, 6)}...${address.slice(-4)}`;
+}
+
 function parseMonInput(value: string) {
   const trimmed = value.trim();
   if (!trimmed || !/^\d+(\.\d{0,18})?$/.test(trimmed)) return null;
@@ -293,20 +297,22 @@ function RecoveryPanel({
   working: boolean;
 }) {
   const available = status.status === "available" && status.recoverableTokenIds.length > 0;
+  const limited = status.status === "limited";
+  const title = available ? "Recovery Available" : limited ? "Recovery Check Limited" : "No Recovery Required";
   return (
     <section className="mt-10 rounded border border-white/12 bg-white/[0.04] p-5">
       <div className="flex flex-col justify-between gap-4 md:flex-row md:items-start">
         <div>
           <p className="text-xs font-black uppercase tracking-[0.22em] text-dyoor-cyan">Recovery Tool</p>
-          <h2 className="mt-2 text-2xl font-black uppercase text-white">{available ? "Recovery Available" : "No Recovery Required"}</h2>
+          <h2 className="mt-2 text-2xl font-black uppercase text-white">{title}</h2>
           <p className="mt-2 max-w-3xl text-sm font-semibold leading-6 text-white/64">
             {available
               ? "Recoverable deposits were detected from this wallet's Ascension transfer history."
               : status.message || "No recovery required."}
           </p>
         </div>
-        <span className={`rounded border px-3 py-2 text-xs font-black uppercase ${available ? "border-yellow-300/45 text-yellow-100" : "border-emerald-300/40 text-emerald-100"}`}>
-          {available ? `${status.recoverableTokenIds.length} recoverable` : "Synchronized"}
+        <span className={`rounded border px-3 py-2 text-xs font-black uppercase ${available || limited ? "border-yellow-300/45 text-yellow-100" : "border-emerald-300/40 text-emerald-100"}`}>
+          {available ? `${status.recoverableTokenIds.length} recoverable` : limited ? "Manual Check" : "Synchronized"}
         </span>
       </div>
 
@@ -361,6 +367,49 @@ function RecoveryPanel({
   );
 }
 
+function ManualStakePanel({
+  manualStake,
+  onManualStake,
+  setManualStake,
+  working,
+}: {
+  manualStake: string;
+  onManualStake: () => void;
+  setManualStake: (value: string) => void;
+  working: boolean;
+}) {
+  return (
+    <section className="rounded border border-white/12 bg-white/[0.04] p-5">
+      <div className="flex flex-col justify-between gap-4 md:flex-row md:items-start">
+        <div>
+          <p className="text-xs font-black uppercase tracking-[0.22em] text-dyoor-cyan">Manual Stake</p>
+          <h2 className="mt-2 text-2xl font-black uppercase text-white">Stake By Token ID</h2>
+          <p className="mt-2 max-w-3xl text-sm font-semibold leading-6 text-white/64">
+            Use this when the wallet count loaded but a specific NFT card has not rendered.
+          </p>
+        </div>
+      </div>
+      <div className="mt-4 flex flex-col gap-3 md:flex-row">
+        <input
+          className="min-w-0 flex-1 rounded border border-white/14 bg-black/35 px-4 py-3 text-sm font-bold text-white outline-none focus:border-dyoor-cyan"
+          placeholder="Token ID, e.g. 595"
+          inputMode="numeric"
+          value={manualStake}
+          onChange={(event) => setManualStake(event.target.value)}
+        />
+        <button
+          className="rounded border border-dyoor-cyan px-4 py-3 text-sm font-black uppercase text-dyoor-cyan disabled:opacity-50"
+          type="button"
+          disabled={working}
+          onClick={onManualStake}
+        >
+          Stake Manually
+        </button>
+      </div>
+    </section>
+  );
+}
+
 export default function AscensionPage() {
   const walletService = useWalletService();
   const authenticated = walletService.connected;
@@ -368,6 +417,7 @@ export default function AscensionPage() {
   const ascension = useAscension();
   const [selected, setSelected] = useState<Set<string>>(() => new Set());
   const [manualRecovery, setManualRecovery] = useState("");
+  const [manualStake, setManualStake] = useState("");
   const [actionStatus, setActionStatus] = useState("Select NFTs to stake or unstake. Hover a card for quick actions.");
   const [treasuryWallet, setTreasuryWallet] = useState("");
   const [rechargeMon, setRechargeMon] = useState("");
@@ -605,7 +655,11 @@ export default function AscensionPage() {
   }
 
   async function stakeTokenIds(tokenIds: string[]) {
-    if (!tokenIds.length || working) return;
+    if (working) return;
+    if (!tokenIds.length) {
+      setActionStatus("Enter a token ID first.");
+      return;
+    }
     setWorking(true);
     try {
       const provider = await ensureReady();
@@ -620,8 +674,13 @@ export default function AscensionPage() {
           args: [id],
           label: `S1 ownerOf before stake #${id.toString()}`,
         }) as string;
-        if (getAddress(owner) !== getAddress(ascension.walletAddress)) {
-          throw new Error(`Token #${id.toString()} is not currently in your connected wallet.`);
+        const ownerAddress = getAddress(owner);
+        const connectedWallet = getAddress(ascension.walletAddress);
+        if (ownerAddress !== connectedWallet) {
+          if (ownerAddress === ascensionStakingContract) {
+            throw new Error(`Token #${id.toString()} is already inside Ascension. Use manual recovery for this token.`);
+          }
+          throw new Error(`Token #${id.toString()} is owned by ${shortAddress(ownerAddress)}, not your connected wallet.`);
         }
       }
       setActionStatus(`Depositing ${ids.length} NFT${ids.length === 1 ? "" : "s"} into Ascension...`);
@@ -642,6 +701,7 @@ export default function AscensionPage() {
       await sendContract(provider, ascensionStakingContract, registerData);
       setActionStatus("Ascension complete. Refreshing NFTs...");
       setSelected(new Set());
+      setManualStake("");
       await ascension.refresh();
     } catch (error) {
       setActionStatus(formatWalletError(error, "Ascension failed."));
@@ -695,7 +755,8 @@ export default function AscensionPage() {
   }
 
   async function recoverTokenIds(tokenIds: string[], source: "auto" | "manual") {
-    if (!tokenIds.length || working) {
+    if (working) return;
+    if (!tokenIds.length) {
       setActionStatus("Enter a stuck token ID first.");
       return;
     }
@@ -715,8 +776,12 @@ export default function AscensionPage() {
           args: [BigInt(tokenId)],
           label: `S1 ownerOf recovery #${tokenId}`,
         }) as string;
-        if (getAddress(owner) !== ascensionStakingContract) {
-          throw new Error(`Token #${tokenId} is not inside the staking contract.`);
+        const ownerAddress = getAddress(owner);
+        if (ownerAddress !== ascensionStakingContract) {
+          if (ownerAddress === getAddress(ascension.walletAddress)) {
+            throw new Error(`Token #${tokenId} is still in your connected wallet. Use Stake By Token ID, not recovery.`);
+          }
+          throw new Error(`Token #${tokenId} is owned by ${shortAddress(ownerAddress)}. Recovery only applies after an NFT is inside Ascension.`);
         }
         const info = await readContractWithFailover({
           address: ascensionStakingContract,
@@ -726,7 +791,7 @@ export default function AscensionPage() {
           label: `Ascension stakeInfo #${tokenId}`,
         }) as readonly [string, number | bigint];
         if (info?.[0] && getAddress(info[0]) !== getAddress(ZERO_ADDRESS)) {
-          throw new Error(`Token #${tokenId} is already registered.`);
+          throw new Error(`Token #${tokenId} is already registered to ${shortAddress(getAddress(info[0]))}.`);
         }
         ids.push(BigInt(tokenId));
       }
@@ -749,6 +814,10 @@ export default function AscensionPage() {
 
   async function recoverManualDeposits() {
     await recoverTokenIds(parseTokenIds(manualRecovery), "manual");
+  }
+
+  async function stakeManualDeposits() {
+    await stakeTokenIds(parseTokenIds(manualStake));
   }
 
   async function recoverDetectedDeposits() {
@@ -1200,6 +1269,12 @@ export default function AscensionPage() {
             working={working}
             onToggle={(nft) => toggleSelection("wallet", nft)}
             onPrimary={(nft) => void stakeTokenIds([nft.tokenId])}
+          />
+          <ManualStakePanel
+            manualStake={manualStake}
+            setManualStake={setManualStake}
+            working={working}
+            onManualStake={() => void stakeManualDeposits()}
           />
           <NftGrid
             title="Ascended NFTs"

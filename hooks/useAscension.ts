@@ -15,7 +15,7 @@ const OWNER_SCAN_CONCURRENCY = 2;
 const OWNER_SCAN_ATTEMPTS = 5;
 const ENUMERABLE_CONCURRENCY = 8;
 const GOLDSKY_TIMEOUT_MS = 3500;
-const RECOVERY_SCAN_TIMEOUT_MS = 4500;
+const RECOVERY_SCAN_TIMEOUT_MS = 9000;
 const TRANSFER_LOG_CHUNK_SIZE = 50_000n;
 const TRANSFER_EVENT = parseAbiItem("event Transfer(address indexed from, address indexed to, uint256 indexed tokenId)");
 
@@ -213,7 +213,7 @@ function limitedRecoveryState(message: string, source = "bounded-scan") {
 
 function formatRecoveryScanMessage(message: string) {
   if (/eth_getLogs|block range|range should work|valid request object|RPC Request failed/i.test(message)) {
-    return "Recovery scan needs a smaller RPC window. NFT counts are loaded; refresh to retry recovery detection.";
+    return "Automatic recovery scan could not finish on the current RPC. If support provided a token ID, use manual recovery below; it verifies the token on-chain before submitting.";
   }
   return message.length > 160 ? `${message.slice(0, 157)}...` : message;
 }
@@ -343,7 +343,7 @@ async function detectRecoverableDeposits(wallet: Address): Promise<AscensionReco
   } catch (error) {
     return {
       ...clearRecoveryState,
-      status: "error",
+      status: "limited",
       message: formatRecoveryScanMessage(error instanceof Error ? error.message : "Recovery scan failed."),
       source: "wallet-transfer-log-scan",
       timingMs: Math.round(performance.now() - startedAt),
@@ -610,7 +610,7 @@ async function loadAscensionState(walletAddress: string): Promise<AscensionState
     withTimeout(
       detectRecoverableDeposits(wallet),
       RECOVERY_SCAN_TIMEOUT_MS,
-      limitedRecoveryState("Recovery scan is still indexing. Counts are loaded; refresh to retry recovery detection."),
+      limitedRecoveryState("Automatic recovery scan timed out on the current RPC. If support provided a token ID, use manual recovery below; it verifies the token on-chain before submitting."),
     ),
   ]);
 
