@@ -242,7 +242,9 @@ function ActionNftCard({
 
 function NftGrid({
   className = "",
+  count,
   empty,
+  emptyTitle,
   gridClassName = "",
   items,
   mode,
@@ -254,7 +256,9 @@ function NftGrid({
   working,
 }: {
   className?: string;
+  count?: number | string;
   empty: string;
+  emptyTitle?: string;
   gridClassName?: string;
   items: AscensionNft[];
   mode: CardMode;
@@ -266,11 +270,13 @@ function NftGrid({
   working: boolean;
 }) {
   const layoutClassName = gridClassName || "grid-cols-2 md:grid-cols-4 lg:grid-cols-5";
+  const displayCount = count ?? items.length;
+  const hasDetectedItems = Number(displayCount) > 0;
   return (
     <section className={className}>
       <div className="mb-4 flex items-end justify-between gap-4">
         <h2 className="text-2xl font-black uppercase">{title}</h2>
-        <span className="text-sm font-black uppercase text-dyoor-cyan">{items.length}</span>
+        <span className="text-sm font-black uppercase text-dyoor-cyan">{displayCount}</span>
       </div>
       {items.length ? (
         <div className={`${scroll ? "max-h-[34rem] overflow-y-auto pr-2" : ""} grid gap-4 ${layoutClassName}`}>
@@ -287,7 +293,7 @@ function NftGrid({
           ))}
         </div>
       ) : (
-        <EmptyState title="No Droid Signal" copy={empty} />
+        <EmptyState title={emptyTitle || (hasDetectedItems ? "Droid Cards Resolving" : "No Droid Signal")} copy={empty} />
       )}
     </section>
   );
@@ -1257,8 +1263,10 @@ export default function AscensionPage() {
                 className="rounded border border-white/10 bg-black/24 p-4"
                 title="Wallet NFTs"
                 mode="wallet"
+                count={ascension.walletUnstakedCount}
                 items={ascension.walletNfts}
                 empty={ascension.walletUnstakedCount ? `${ascension.walletUnstakedCount} unstaked DYOOR detected. Token cards are still resolving; use manual token IDs if needed.` : "No unstaked DYOOR found after discovery completes."}
+                emptyTitle={ascension.walletUnstakedCount ? "Droid Cards Resolving" : "No Droid Signal"}
                 selectedIds={selected}
                 working={working}
                 onToggle={(nft) => toggleSelection("wallet", nft)}
@@ -1270,8 +1278,10 @@ export default function AscensionPage() {
                 className="rounded border border-white/10 bg-black/24 p-4"
                 title="Ascended NFTs"
                 mode="ascended"
+                count={ascension.ascendedCount}
                 items={ascension.ascendedNfts}
                 empty={ascension.ascendedCount ? `${ascension.ascendedCount} ascended DYOOR detected. Token IDs are still loading.` : "No ascended DYOOR found."}
+                emptyTitle={ascension.ascendedCount ? "Droid Cards Resolving" : "No Droid Signal"}
                 selectedIds={selected}
                 working={working}
                 onToggle={(nft) => toggleSelection("ascended", nft)}
