@@ -30,6 +30,7 @@ type Snapshot = {
     maxTokenId?: number;
     batchTokens?: number;
     failedTokenReads?: number;
+    stakingContractBalance?: number;
   };
   totals: {
     walletsFound: number;
@@ -298,6 +299,7 @@ function mergeSnapshotSession(session: SnapshotSession, data: SnapshotDiscoverRe
     maxTokenId: page.maxTokenId ?? session.discovery?.maxTokenId,
     batchTokens: page.batchTokens ?? session.discovery?.batchTokens,
     failedTokenReads: (session.discovery?.failedTokenReads || 0) + (page.failedTokenReads || 0),
+    stakingContractBalance: page.stakingContractBalance ?? session.discovery?.stakingContractBalance,
   };
 
   return {
@@ -319,7 +321,10 @@ function snapshotSessionLabel(session: SnapshotSession) {
     const tokenLabel = discovery.maxTokenId
       ? `${(discovery.lastScannedTokenId || 0).toLocaleString()} / ${discovery.maxTokenId.toLocaleString()}`
       : `${discovery.lastScannedTokenId || 0}`;
-    const stakedLabel = `${session.discoveredTokenIds.length} staked token${session.discoveredTokenIds.length === 1 ? "" : "s"}`;
+    const contractBalance = discovery.stakingContractBalance || 0;
+    const stakedLabel = contractBalance
+      ? `${session.discoveredTokenIds.length} / ${contractBalance.toLocaleString()} staked token${contractBalance === 1 ? "" : "s"}`
+      : `${session.discoveredTokenIds.length} staked token${session.discoveredTokenIds.length === 1 ? "" : "s"}`;
     return session.complete
       ? `Exact S1 owner scan complete: ${tokenLabel}. Found ${stakedLabel}.`
       : `Exact S1 owner scan: ${tokenLabel}. Found ${stakedLabel}.`;
@@ -583,6 +588,7 @@ export default function AdminPage() {
         nonce: session.nonce,
         signature: session.signature,
         cursor: session.cursor,
+        discoveredTokenIds: session.discoveredTokenIds,
       }) as SnapshotDiscoverResponse;
       const nextSession = mergeSnapshotSession(session, data);
       const label = snapshotSessionLabel(nextSession);
@@ -816,7 +822,7 @@ export default function AdminPage() {
               <Button variant="ghost" disabled={loading} onClick={resetSnapshotSession}>Reset</Button>
             </div>
           </div>
-          <div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-5">
+          <div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-6">
             <div className="rounded border border-dyoor-purple/25 bg-black/30 p-3">
               <p className="text-[0.66rem] font-black uppercase tracking-[0.14em] text-white/40">Last Scanned</p>
               <p className="mt-2 text-sm font-black text-white">
@@ -846,6 +852,10 @@ export default function AdminPage() {
             <div className="rounded border border-dyoor-purple/25 bg-black/30 p-3">
               <p className="text-[0.66rem] font-black uppercase tracking-[0.14em] text-white/40">Staked IDs</p>
               <p className="mt-2 text-sm font-black text-dyoor-cyan">{snapshotSession.discoveredTokenIds.length}</p>
+            </div>
+            <div className="rounded border border-dyoor-purple/25 bg-black/30 p-3">
+              <p className="text-[0.66rem] font-black uppercase tracking-[0.14em] text-white/40">Contract Balance</p>
+              <p className="mt-2 text-sm font-black text-white">{snapshotSession.discovery?.stakingContractBalance?.toLocaleString() || "-"}</p>
             </div>
             <div className="rounded border border-dyoor-purple/25 bg-black/30 p-3">
               <p className="text-[0.66rem] font-black uppercase tracking-[0.14em] text-white/40">Warnings</p>
