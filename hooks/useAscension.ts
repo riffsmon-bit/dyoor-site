@@ -529,17 +529,6 @@ async function discoverWalletTokenIds(wallet: Address) {
     };
   }
 
-  if (walletBalance !== null) {
-    return {
-      walletBalance,
-      indexedIds: indexedSorted,
-      ownerScanIds: indexedSorted,
-      tokenIds: indexedSorted,
-      pageCount: walletBalance ? Math.ceil(walletBalance / ENUMERABLE_CONCURRENCY) : 0,
-      source: indexedSorted.length ? "erc721-enumerable-partial-balance-count" : "balance-count-token-ids-deferred",
-    };
-  }
-
   let transferScan: WalletTransferScanResult = { tokenIds: [], candidateIds: [], pageCount: 0 };
   if (configuredS1StartBlock() > 0n) {
     try {

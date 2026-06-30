@@ -50,6 +50,7 @@ const stakingAbi = [
 
 const erc721Abi = [
   "event Transfer(address indexed from,address indexed to,uint256 indexed tokenId)",
+  "function balanceOf(address owner) view returns (uint256)",
   "function ownerOf(uint256 tokenId) view returns (address)",
 ];
 
@@ -148,6 +149,7 @@ function readDiscoveryInput(value: unknown) {
     maxTokenId: numberValue("maxTokenId"),
     batchTokens: numberValue("batchTokens"),
     failedTokenReads: numberValue("failedTokenReads") || 0,
+    stakingContractBalance: numberValue("stakingContractBalance"),
   };
 }
 
@@ -490,6 +492,7 @@ async function discoverOwnerOfSnapshotPage(body: Record<string, unknown>) {
   const stakingAddress = ethers.getAddress(readEnv("ASCENSION_STAKING_ADDRESS", "ASCENSION_STAKING_CONTRACT", "NEXT_PUBLIC_ASCENSION_STAKING_CONTRACT") || DEFAULT_ASCENSION_STAKING);
   const nftAddress = ethers.getAddress(readEnv("DYOOR_S1_CONTRACT", "NEXT_PUBLIC_DYOOR_S1_CONTRACT") || DEFAULT_DYOOR_S1);
   const nft = new ethers.Contract(nftAddress, erc721Abi, provider);
+  const stakingContractBalance = Number(await safeContract(async () => await nft.balanceOf(stakingAddress), 0n));
   const cursor = body.cursor && typeof body.cursor === "object" ? body.cursor as Record<string, unknown> : {};
   const maxTokenId = readWholeNumberEnv(["DYOOR_S1_MAX_SUPPLY", "NEXT_PUBLIC_DYOOR_S1_MAX_SUPPLY"], DEFAULT_S1_MAX_SUPPLY);
   const configuredBatchTokens = readWholeNumberEnv(["ASCENSION_SNAPSHOT_TOKEN_BATCH_SIZE"], DEFAULT_OWNER_SCAN_BATCH_SIZE);
@@ -520,6 +523,7 @@ async function discoverOwnerOfSnapshotPage(body: Record<string, unknown>) {
         chunksScanned: 0,
         failedChunks: 0,
         failedTokenReads: 0,
+        stakingContractBalance,
         limited: false,
         discoveredWallets: 0,
         discoveredTokenIds: 0,
@@ -545,18 +549,23 @@ async function discoverOwnerOfSnapshotPage(body: Record<string, unknown>) {
       };
     }
   });
+  const previousDiscoveredTokenIds = normalizeTokenIdList(body.discoveredTokenIds);
   const failedReads = reads.filter((row) => row.failed);
   const stakedTokenIds = reads.filter((row) => row.staked).map((row) => row.tokenId);
+  const discoveredCount = new Set([...previousDiscoveredTokenIds, ...stakedTokenIds]).size;
   if (failedReads.length > 0 && batchTokens <= 1) {
     throw Object.assign(new Error(`ownerOf failed for token #${failedReads[0].tokenId}. Retry the scan range.`), { status: 502 });
   }
   const rangeNeedsRetry = failedReads.length > 0;
   const nextBatchTokens = rangeNeedsRetry ? Math.max(1, Math.floor(batchTokens / 2)) : configuredBatchTokens;
   const nextTokenId = rangeNeedsRetry ? fromTokenId : toTokenId + 1;
-  const complete = !rangeNeedsRetry && toTokenId >= maxTokenId;
+  const complete = !rangeNeedsRetry && (toTokenId >= maxTokenId || (stakingContractBalance > 0 && discoveredCount >= stakingContractBalance));
   const warnings = failedReads.length
     ? [`${failedReads.length} ownerOf read${failedReads.length === 1 ? "" : "s"} failed inside token range ${fromTokenId}-${toTokenId}. Retrying this range with ${nextBatchTokens}-token batches.`]
     : [];
+  if (complete && stakingContractBalance > 0 && discoveredCount !== stakingContractBalance) {
+    warnings.push(`Owner scan found ${discoveredCount} staked token ID${discoveredCount === 1 ? "" : "s"}, but the S1 contract reports ${stakingContractBalance} NFTs at the staking contract.`);
+  }
 
   return {
     ok: true,
@@ -574,6 +583,7 @@ async function discoverOwnerOfSnapshotPage(body: Record<string, unknown>) {
       chunksScanned: 1,
       failedChunks: 0,
       failedTokenReads: failedReads.length,
+      stakingContractBalance,
       limited: rangeNeedsRetry,
       discoveredWallets: 0,
       discoveredTokenIds: stakedTokenIds.length,
@@ -585,8 +595,9 @@ async function discoverOwnerOfSnapshotPage(body: Record<string, unknown>) {
 async function discoverSnapshotPage(body: Record<string, unknown>) {
   const cursor = body.cursor && typeof body.cursor === "object" ? body.cursor as Record<string, unknown> : {};
   const requestedMode = typeof cursor.scanMode === "string" ? cursor.scanMode : "";
+  const configuredMode = readEnv("ASCENSION_SNAPSHOT_DISCOVERY_MODE").toLowerCase();
   const goldskyEndpoint = readEnv("GOLDSKY_SUBGRAPH_URL", "NEXT_PUBLIC_GOLDSKY_SUBGRAPH_URL");
-  if (goldskyEndpoint && (!requestedMode || requestedMode === "goldsky-events")) {
+  if (goldskyEndpoint && (requestedMode === "goldsky-events" || (!requestedMode && configuredMode === "goldsky-events"))) {
     return discoverGoldskySnapshotPage(goldskyEndpoint);
   }
   return discoverOwnerOfSnapshotPage(body);
@@ -677,7 +688,7 @@ async function discoverTransferLogSnapshotPage(body: Record<string, unknown>) {
 
 async function tokenOwnerFromStakeInfo(staking: ethers.Contract, tokenId: string) {
   const info = await safeContract(async () => await staking.stakeInfo(BigInt(tokenId)), null);
-  return normalizeAddress(info?.owner);
+  return normalizeAddress(info?.owner ?? info?.[0]);
 }
 
 async function stakingRow(
@@ -757,6 +768,13 @@ async function generateSnapshots(input?: {
   const blueprint = blueprintRows(blueprints, timestamp);
   const discovered = input || await discoverStakingWallets(provider, stakingAddress, nftAddress);
   const warnings = [...discovered.warnings];
+  const discoveryRecord = discovered.discovery as { scanMode?: string };
+  const discoveryMode = String(discoveryRecord.scanMode || "");
+  const indexedTokenSource = discoveryMode === "ownerOf"
+    ? "ownerOf-staking-contract"
+    : discoveryMode === "goldsky-events"
+      ? "goldsky-events"
+      : "transfer-log-ownerOf";
   const ascendedTokenOwners = new Map<string, string>();
   const walletSet = new Set<string>(blueprint.map((row) => String(row.wallet)));
   const hasIndexedOwners = Boolean(input?.tokenOwners?.size);
@@ -828,11 +846,11 @@ async function generateSnapshots(input?: {
   for (const row of stakingRows) {
     for (const tokenId of row.tokenIds || []) {
       const tokenIdString = String(tokenId);
-      addAscendedS1Row(tokenIdString, row.wallet, ascendedTokenOwners.has(tokenIdString) ? "goldsky-events" : "staking-wallet-read");
+      addAscendedS1Row(tokenIdString, row.wallet, ascendedTokenOwners.has(tokenIdString) ? indexedTokenSource : "staking-wallet-read");
     }
   }
   for (const [tokenId, wallet] of ascendedTokenOwners.entries()) {
-    if (!ascendedS1ByToken.has(tokenId)) addAscendedS1Row(tokenId, wallet, wallet ? "goldsky-events" : "ownerOf-unregistered");
+    if (!ascendedS1ByToken.has(tokenId)) addAscendedS1Row(tokenId, wallet, wallet ? indexedTokenSource : "ownerOf-unregistered");
   }
 
   const ascendedS1 = Array.from(ascendedS1ByToken.values())
@@ -887,7 +905,12 @@ async function finalizeSnapshotFromBody(body: Record<string, unknown>) {
   const incomingDiscovery = readDiscoveryInput(body.discovery);
   const incomingWarnings = Array.from(new Set(readStringArray(body.warnings))).slice(0, 40);
   if (incomingDiscovery.scanMode === "ownerOf" && incomingDiscovery.maxTokenId && incomingDiscovery.lastScannedTokenId !== incomingDiscovery.maxTokenId) {
-    throw Object.assign(new Error("Exact S1 owner scan is not complete. Scan the remaining token ranges before building exports."), { status: 409 });
+    const discoveredCount = new Set([...discoveredTokenIds, ...tokenOwners.keys()]).size;
+    const contractBalance = incomingDiscovery.stakingContractBalance || 0;
+    const scanReachedKnownBalance = contractBalance > 0 && discoveredCount >= contractBalance;
+    if (!scanReachedKnownBalance) {
+      throw Object.assign(new Error("Exact S1 owner scan is not complete. Scan the remaining token ranges before building exports."), { status: 409 });
+    }
   }
   for (const [tokenId, wallet] of tokenOwners.entries()) {
     discoveredTokenIds.push(tokenId);
@@ -895,6 +918,9 @@ async function finalizeSnapshotFromBody(body: Record<string, unknown>) {
   }
   const finalTokenIds = normalizeTokenIdList(discoveredTokenIds);
   const finalWallets = normalizeAddressList(discoveredWallets);
+  if (incomingDiscovery.scanMode === "ownerOf" && incomingDiscovery.stakingContractBalance && finalTokenIds.length !== incomingDiscovery.stakingContractBalance) {
+    throw Object.assign(new Error(`Exact S1 owner scan found ${finalTokenIds.length} token ID${finalTokenIds.length === 1 ? "" : "s"}, but the S1 contract reports ${incomingDiscovery.stakingContractBalance} NFTs at the staking contract. Reset and rescan before exporting.`), { status: 409 });
+  }
   return generateSnapshots({
     wallets: new Set(finalWallets),
     tokenIds: new Set(finalTokenIds),

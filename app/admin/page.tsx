@@ -30,6 +30,7 @@ type Snapshot = {
     maxTokenId?: number;
     batchTokens?: number;
     failedTokenReads?: number;
+    stakingContractBalance?: number;
   };
   totals: {
     walletsFound: number;
@@ -133,6 +134,15 @@ type ReconciliationReport = {
   generatedAt: string;
   indexedBlock?: number;
   energyBankAddress?: string;
+  repairPreflight?: {
+    ready?: boolean;
+    reason?: string;
+    operator?: string;
+    chainId?: string;
+    hasCreditRole?: boolean | null;
+    hasAdminRole?: boolean | null;
+    paused?: boolean | null;
+  };
   rowCount: number;
   affectedCount: number;
   totalMissingRaw: string;
@@ -154,7 +164,9 @@ type ReconciliationRepairResult = {
     failureCount?: number;
     skippedCount?: number;
     logged?: boolean;
+    preflight?: ReconciliationReport["repairPreflight"];
   };
+  preflight?: ReconciliationReport["repairPreflight"];
   error?: string;
 };
 
@@ -298,6 +310,7 @@ function mergeSnapshotSession(session: SnapshotSession, data: SnapshotDiscoverRe
     maxTokenId: page.maxTokenId ?? session.discovery?.maxTokenId,
     batchTokens: page.batchTokens ?? session.discovery?.batchTokens,
     failedTokenReads: (session.discovery?.failedTokenReads || 0) + (page.failedTokenReads || 0),
+    stakingContractBalance: page.stakingContractBalance ?? session.discovery?.stakingContractBalance,
   };
 
   return {
@@ -319,7 +332,10 @@ function snapshotSessionLabel(session: SnapshotSession) {
     const tokenLabel = discovery.maxTokenId
       ? `${(discovery.lastScannedTokenId || 0).toLocaleString()} / ${discovery.maxTokenId.toLocaleString()}`
       : `${discovery.lastScannedTokenId || 0}`;
-    const stakedLabel = `${session.discoveredTokenIds.length} staked token${session.discoveredTokenIds.length === 1 ? "" : "s"}`;
+    const contractBalance = discovery.stakingContractBalance || 0;
+    const stakedLabel = contractBalance
+      ? `${session.discoveredTokenIds.length} / ${contractBalance.toLocaleString()} staked token${contractBalance === 1 ? "" : "s"}`
+      : `${session.discoveredTokenIds.length} staked token${session.discoveredTokenIds.length === 1 ? "" : "s"}`;
     return session.complete
       ? `Exact S1 owner scan complete: ${tokenLabel}. Found ${stakedLabel}.`
       : `Exact S1 owner scan: ${tokenLabel}. Found ${stakedLabel}.`;
@@ -583,6 +599,7 @@ export default function AdminPage() {
         nonce: session.nonce,
         signature: session.signature,
         cursor: session.cursor,
+        discoveredTokenIds: session.discoveredTokenIds,
       }) as SnapshotDiscoverResponse;
       const nextSession = mergeSnapshotSession(session, data);
       const label = snapshotSessionLabel(nextSession);
@@ -744,7 +761,10 @@ export default function AdminPage() {
       const data = await response.json().catch(() => ({}));
       if (!response.ok || data?.ok === false) throw new Error(data?.error || "Energy reconciliation report failed.");
       setReconciliationReport(data.report as ReconciliationReport);
-      setReconciliationStatus(`Report ready. ${data.report?.affectedCount || 0} affected wallet(s), ${data.report?.totalRecommendedCredit || "0"} Energy recommended.`);
+      const preflight = data.report?.repairPreflight;
+      setReconciliationStatus(preflight?.ready === false
+        ? `Report ready, but repair is blocked: ${preflight.reason || "Energy Bank operator preflight failed."}`
+        : `Report ready. ${data.report?.affectedCount || 0} affected wallet(s), ${data.report?.totalRecommendedCredit || "0"} Energy recommended.`);
       setReconciliationConfirm(false);
     } catch (err) {
       setReconciliationStatus(err instanceof Error ? err.message : "Energy reconciliation report failed.");
@@ -816,7 +836,7 @@ export default function AdminPage() {
               <Button variant="ghost" disabled={loading} onClick={resetSnapshotSession}>Reset</Button>
             </div>
           </div>
-          <div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-5">
+          <div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-6">
             <div className="rounded border border-dyoor-purple/25 bg-black/30 p-3">
               <p className="text-[0.66rem] font-black uppercase tracking-[0.14em] text-white/40">Last Scanned</p>
               <p className="mt-2 text-sm font-black text-white">
@@ -846,6 +866,10 @@ export default function AdminPage() {
             <div className="rounded border border-dyoor-purple/25 bg-black/30 p-3">
               <p className="text-[0.66rem] font-black uppercase tracking-[0.14em] text-white/40">Staked IDs</p>
               <p className="mt-2 text-sm font-black text-dyoor-cyan">{snapshotSession.discoveredTokenIds.length}</p>
+            </div>
+            <div className="rounded border border-dyoor-purple/25 bg-black/30 p-3">
+              <p className="text-[0.66rem] font-black uppercase tracking-[0.14em] text-white/40">Contract Balance</p>
+              <p className="mt-2 text-sm font-black text-white">{snapshotSession.discovery?.stakingContractBalance?.toLocaleString() || "-"}</p>
             </div>
             <div className="rounded border border-dyoor-purple/25 bg-black/30 p-3">
               <p className="text-[0.66rem] font-black uppercase tracking-[0.14em] text-white/40">Warnings</p>
@@ -1109,7 +1133,7 @@ export default function AdminPage() {
             {reconciliationStatus}
           </Alert>
 
-          <div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-5">
+          <div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-6">
             <div className="rounded border border-dyoor-purple/25 bg-black/30 p-3">
               <p className="text-[0.66rem] font-black uppercase tracking-[0.14em] text-white/40">Wallets Checked</p>
               <p className="mt-2 text-sm font-black text-white">{reconciliationReport?.rowCount ?? "-"}</p>
@@ -1130,7 +1154,25 @@ export default function AdminPage() {
               <p className="text-[0.66rem] font-black uppercase tracking-[0.14em] text-white/40">Indexed Block</p>
               <p className="mt-2 text-sm font-black text-white">{reconciliationReport?.indexedBlock?.toLocaleString() ?? "-"}</p>
             </div>
+            <div className={`rounded border p-3 ${reconciliationReport?.repairPreflight?.ready ? "border-dyoor-cyan/30 bg-dyoor-cyan/10" : "border-yellow-300/25 bg-yellow-300/10"}`}>
+              <p className="text-[0.66rem] font-black uppercase tracking-[0.14em] text-white/40">Repair Preflight</p>
+              <p className={`mt-2 text-sm font-black ${reconciliationReport?.repairPreflight?.ready ? "text-dyoor-cyan" : "text-yellow-100"}`}>
+                {reconciliationReport ? reconciliationReport.repairPreflight?.ready ? "Ready" : "Blocked" : "-"}
+              </p>
+            </div>
           </div>
+
+          {reconciliationReport?.repairPreflight ? (
+            <div className="mt-4 grid gap-3 rounded border border-white/10 bg-white/[0.03] p-4 text-xs font-bold text-white/58 md:grid-cols-2 xl:grid-cols-4">
+              <p>Operator: <span className="text-white">{shortAddress(reconciliationReport.repairPreflight.operator || "")}</span></p>
+              <p>Chain: <span className="text-white">{reconciliationReport.repairPreflight.chainId || "-"}</span></p>
+              <p>Credit Role: <span className={reconciliationReport.repairPreflight.hasCreditRole ? "text-dyoor-cyan" : "text-yellow-100"}>{String(reconciliationReport.repairPreflight.hasCreditRole)}</span></p>
+              <p>Paused: <span className={reconciliationReport.repairPreflight.paused ? "text-red-200" : "text-dyoor-cyan"}>{String(reconciliationReport.repairPreflight.paused)}</span></p>
+              {reconciliationReport.repairPreflight.reason ? (
+                <p className="md:col-span-2 xl:col-span-4">Reason: <span className="text-yellow-100">{reconciliationReport.repairPreflight.reason}</span></p>
+              ) : null}
+            </div>
+          ) : null}
 
           <div className="mt-5 grid gap-4 lg:grid-cols-[1fr_0.72fr]">
             <div className="rounded border border-dyoor-purple/25 bg-black/35 p-4">
@@ -1178,7 +1220,7 @@ export default function AdminPage() {
             <div className="rounded border border-dyoor-purple/25 bg-black/35 p-4">
               <p className="text-xs font-black uppercase tracking-[0.16em] text-white/45">Repair Batch</p>
               <label className="mt-4 block text-xs font-black uppercase tracking-[0.16em] text-white/45" htmlFor="reconciliation-limit">
-                Max credits this batch
+                Max repair actions this run
               </label>
               <input
                 id="reconciliation-limit"
@@ -1187,6 +1229,9 @@ export default function AdminPage() {
                 value={reconciliationLimit}
                 onChange={(event) => setReconciliationLimit(event.target.value.replace(/[^\d]/g, ""))}
               />
+              <p className="mt-2 text-xs font-semibold leading-5 text-white/45">
+                This is a count of wallet credit actions, not an Energy amount. The server caps each run at 25 actions.
+              </p>
               <label className="mt-4 flex items-start gap-3 rounded border border-white/10 bg-white/[0.035] p-3 text-sm font-bold text-white/70">
                 <input className="mt-1" type="checkbox" checked={reconciliationConfirm} onChange={(event) => setReconciliationConfirm(event.target.checked)} />
                 I reviewed the affected-wallet preview and understand this will credit missing harvest Energy in the Energy Bank.
@@ -1194,7 +1239,7 @@ export default function AdminPage() {
               <Button
                 className="mt-4 w-full"
                 variant="primary"
-                disabled={!authorized || reconciliationLoading || !reconciliationReport || !affectedReconciliationRows.length || !reconciliationConfirm}
+                disabled={!authorized || reconciliationLoading || !reconciliationReport || reconciliationReport.repairPreflight?.ready === false || !affectedReconciliationRows.length || !reconciliationConfirm}
                 onClick={() => void applyEnergyReconciliation()}
               >
                 {reconciliationLoading ? "Repair Running..." : "Apply Next Credit Batch"}
@@ -1209,6 +1254,9 @@ export default function AdminPage() {
                     <p>Skipped: <span className="text-white">{reconciliationResult.repair.skippedCount || 0}</span></p>
                     <p>Failed: <span className="text-red-200">{reconciliationResult.repair.failureCount || 0}</span></p>
                   </div>
+                  {reconciliationResult.repair.preflight?.reason ? (
+                    <p className="mt-3 break-words text-xs text-yellow-100">{reconciliationResult.repair.preflight.reason}</p>
+                  ) : null}
                   <div className="mt-3 max-h-52 overflow-auto rounded border border-white/10 bg-black/30">
                     <table className="min-w-full text-left text-xs">
                       <thead className="bg-white/[0.04] uppercase tracking-[0.12em] text-white/40">
@@ -1223,7 +1271,9 @@ export default function AdminPage() {
                           <tr className="border-t border-white/8" key={`${row.wallet || index}-${index}`}>
                             <td className="px-3 py-2 text-white/70">{shortAddress(String(row.wallet || ""))}</td>
                             <td className={row.status === "success" ? "px-3 py-2 text-dyoor-cyan" : row.status === "failed" ? "px-3 py-2 text-red-200" : "px-3 py-2 text-yellow-100"}>{String(row.status || "")}</td>
-                            <td className="max-w-40 truncate px-3 py-2 text-white/45">{String(row.creditTxHash || row.error || row.reason || "-")}</td>
+                            <td className="min-w-64 max-w-[28rem] whitespace-normal break-words px-3 py-2 text-white/45">
+                              {String(row.creditTxHash || row.error || row.reason || "-")}
+                            </td>
                           </tr>
                         ))}
                       </tbody>

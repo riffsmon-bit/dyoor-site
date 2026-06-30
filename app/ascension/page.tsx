@@ -241,32 +241,45 @@ function ActionNftCard({
 }
 
 function NftGrid({
+  className = "",
+  count,
   empty,
+  emptyTitle,
+  gridClassName = "",
   items,
   mode,
   onPrimary,
   onToggle,
+  scroll = false,
   selectedIds,
   title,
   working,
 }: {
+  className?: string;
+  count?: number | string;
   empty: string;
+  emptyTitle?: string;
+  gridClassName?: string;
   items: AscensionNft[];
   mode: CardMode;
   onPrimary: (nft: AscensionNft) => void;
   onToggle: (nft: AscensionNft) => void;
+  scroll?: boolean;
   selectedIds: Set<string>;
   title: string;
   working: boolean;
 }) {
+  const layoutClassName = gridClassName || "grid-cols-2 md:grid-cols-4 lg:grid-cols-5";
+  const displayCount = count ?? items.length;
+  const hasDetectedItems = Number(displayCount) > 0;
   return (
-    <section>
+    <section className={className}>
       <div className="mb-4 flex items-end justify-between gap-4">
         <h2 className="text-2xl font-black uppercase">{title}</h2>
-        <span className="text-sm font-black uppercase text-dyoor-cyan">{items.length}</span>
+        <span className="text-sm font-black uppercase text-dyoor-cyan">{displayCount}</span>
       </div>
       {items.length ? (
-        <div className="grid grid-cols-2 gap-4 md:grid-cols-4 lg:grid-cols-5">
+        <div className={`${scroll ? "max-h-[34rem] overflow-y-auto pr-2" : ""} grid gap-4 ${layoutClassName}`}>
           {items.map((nft) => (
             <ActionNftCard
               key={`${nft.source}-${nft.tokenId}`}
@@ -280,7 +293,7 @@ function NftGrid({
           ))}
         </div>
       ) : (
-        <EmptyState title="No Droid Signal" copy={empty} />
+        <EmptyState title={emptyTitle || (hasDetectedItems ? "Droid Cards Resolving" : "No Droid Signal")} copy={empty} />
       )}
     </section>
   );
@@ -1114,6 +1127,10 @@ export default function AscensionPage() {
     });
   }
 
+  function scrollToEnergyTools() {
+    document.getElementById("energy-tools")?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+
   return (
     <PageShell>
       <div className="glass-panel-strong energy-grid mb-8 p-6">
@@ -1122,9 +1139,14 @@ export default function AscensionPage() {
           title="Ascension Command Center"
           copy="Stake Season 1 DYOOR into the Ascension chamber, generate Energy, unstake when needed, and recover deposits that need final registration."
           actions={
-            <Button variant="primary" onClick={authenticated ? () => void ascension.refresh() : connectWallet} disabled={working || ascension.refreshing}>
-              {authenticated ? ascension.refreshing ? "Refreshing..." : "Refresh Signal" : "Connect Wallet"}
-            </Button>
+            <div className="flex flex-wrap gap-2">
+              <Button variant="secondary" onClick={scrollToEnergyTools}>
+                Energy Tools
+              </Button>
+              <Button variant="primary" onClick={authenticated ? () => void ascension.refresh() : connectWallet} disabled={working || ascension.refreshing}>
+                {authenticated ? ascension.refreshing ? "Refreshing..." : "Refresh Signal" : "Connect Wallet"}
+              </Button>
+            </div>
           }
         />
       </div>
@@ -1157,197 +1179,6 @@ export default function AscensionPage() {
         </Alert>
       ) : null}
 
-      <AscensionHealthDashboard items={healthItems} summary={healthSummary} />
-
-      <section className="mb-8 grid gap-5 lg:grid-cols-2">
-        <div className="rounded border border-dyoor-purple/30 bg-gradient-to-br from-dyoor-cyan/[0.10] via-dyoor-purple/[0.10] to-fuchsia-500/[0.08] p-5 shadow-[0_0_42px_rgba(131,110,249,.12)] md:p-6">
-          <p className="text-xs font-black uppercase tracking-[0.2em] text-dyoor-cyan">Energy Bank</p>
-          <h2 className="mt-2 text-3xl font-black uppercase text-white">Recharge Energy</h2>
-          <p className="mt-2 text-sm font-semibold leading-6 text-white/66">
-            Power up your Ascension bank with MON.
-          </p>
-          <p className="mt-4 inline-flex rounded border border-dyoor-cyan/35 bg-black/30 px-3 py-2 text-sm font-black uppercase text-dyoor-cyan">
-            1 MON = 50 Energy
-          </p>
-          <div className="rounded border border-dyoor-purple/24 bg-black/35 p-4 shadow-[inset_0_1px_0_rgba(255,255,255,.05)]">
-            <label className="text-xs font-black uppercase tracking-[0.16em] text-white/45" htmlFor="recharge-mon">
-              MON Amount
-            </label>
-            <input
-              id="recharge-mon"
-              className="field-control mt-2 text-lg font-black"
-              inputMode="decimal"
-              placeholder="10"
-              value={rechargeMon}
-              onChange={(event) => setRechargeMon(event.target.value)}
-              disabled={recharging}
-            />
-            <div className="mt-3 rounded border border-white/10 bg-white/[0.035] p-3 text-sm font-bold text-white/68">
-              Preview: {rechargeMon || "0"} MON = <span className="text-dyoor-cyan">{rechargeEnergyPreview} Energy</span>
-            </div>
-            <Button
-              className="mt-3 w-full"
-              variant="primary"
-              disabled={!authenticated || !rechargeMonRaw || !treasuryWallet || !rechargeCreditReady || recharging}
-              onClick={() => void rechargeEnergy()}
-            >
-              {recharging ? "Recharging..." : "Recharge Energy"}
-            </Button>
-            <div className="mt-3 rounded border border-white/10 bg-black/30 p-3 text-sm font-bold leading-6 text-white/68">
-              {rechargeStatus}
-              {rechargeTxHash && (
-                <p className="mt-2">
-                  Payment:{" "}
-                  <a className="text-dyoor-cyan underline" href={`${MONAD_EXPLORER_URL}/tx/${rechargeTxHash}`} target="_blank" rel="noreferrer">
-                    {rechargeTxHash.slice(0, 10)}...{rechargeTxHash.slice(-6)}
-                  </a>
-                </p>
-              )}
-              {rechargeCreditTxHash && (
-                <p>
-                  Credit:{" "}
-                  <a className="text-dyoor-cyan underline" href={`${MONAD_EXPLORER_URL}/tx/${rechargeCreditTxHash}`} target="_blank" rel="noreferrer">
-                    {rechargeCreditTxHash.slice(0, 10)}...{rechargeCreditTxHash.slice(-6)}
-                  </a>
-                </p>
-              )}
-            </div>
-            <div className="mt-3 rounded border border-white/10 bg-black/25 p-3">
-              <label className="text-xs font-black uppercase tracking-[0.16em] text-white/45" htmlFor="recharge-recovery">
-                Recover Recharge
-              </label>
-              <div className="mt-2 flex flex-col gap-2 md:flex-row">
-                <input
-                  id="recharge-recovery"
-                  className="min-w-0 flex-1 rounded border border-white/15 bg-black/45 px-3 py-2 text-xs font-bold text-white outline-none focus:border-dyoor-cyan"
-                  placeholder="Paste payment tx hash"
-                  value={rechargeRecoveryTx}
-                  onChange={(event) => setRechargeRecoveryTx(event.target.value)}
-                  disabled={recharging}
-                />
-                <Button
-                  className="px-3 py-2 text-xs"
-                  variant="ghost"
-                  disabled={recharging || !rechargeCreditReady || !rechargeRecoveryTx.trim()}
-                  onClick={() => void recoverRechargePayment()}
-                >
-                  Credit Tx
-                </Button>
-              </div>
-              <p className="mt-2 text-xs leading-5 text-white/48">
-                Use this only if MON was sent but Energy did not appear.
-              </p>
-            </div>
-          </div>
-        </div>
-
-        <div className="rounded border border-dyoor-purple/30 bg-[radial-gradient(560px_260px_at_80%_0%,rgba(57,255,226,.14),transparent_60%),linear-gradient(135deg,rgba(8,8,24,.88),rgba(24,13,54,.72))] p-5 shadow-[0_0_42px_rgba(57,255,226,.10)] md:p-6">
-          <p className="text-xs font-black uppercase tracking-[0.2em] text-dyoor-cyan">Energy Utility</p>
-          <h2 className="mt-2 text-3xl font-black uppercase text-white">Lend to a Fren</h2>
-          <p className="mt-2 text-sm font-semibold leading-6 text-white/66">
-            Transfer spendable Energy from your Energy Bank to another wallet after server verification.
-          </p>
-          <div className="mt-5 rounded border border-dyoor-purple/24 bg-black/35 p-4 shadow-[inset_0_1px_0_rgba(255,255,255,.05)]">
-            <label className="text-xs font-black uppercase tracking-[0.16em] text-white/45" htmlFor="lend-recipient">
-              Recipient Wallet
-            </label>
-            <input
-              id="lend-recipient"
-              className="field-control mt-2 text-sm font-black"
-              placeholder="0x..."
-              value={lendRecipient}
-              onChange={(event) => setLendRecipient(event.target.value)}
-              disabled={lending}
-            />
-            <label className="mt-4 block text-xs font-black uppercase tracking-[0.16em] text-white/45" htmlFor="lend-energy">
-              Energy Amount
-            </label>
-            <input
-              id="lend-energy"
-              className="field-control mt-2 text-lg font-black"
-              inputMode="decimal"
-              placeholder="250"
-              value={lendEnergy}
-              onChange={(event) => setLendEnergy(event.target.value)}
-              disabled={lending}
-            />
-            <div className="mt-3 grid gap-2 text-sm font-bold text-white/68 md:grid-cols-2">
-              <div className="rounded border border-white/10 bg-white/[0.035] p-3">
-                Current: <span className="text-dyoor-cyan">{formatCompactEnergy(ascension.spendableEnergy)} spendable Energy</span>
-              </div>
-              <div className="rounded border border-white/10 bg-white/[0.035] p-3">
-                Remaining: <span className="text-dyoor-cyan">{formatCompactEnergy(lendEnergyRaw ? formatEnergyAmount(lendRemainingRaw) : ascension.spendableEnergy)}</span>
-              </div>
-              <div className="rounded border border-white/10 bg-white/[0.035] p-3 md:col-span-2">
-                Recipient: <span className="break-all text-dyoor-cyan">{isAddress(lendRecipient) ? getAddress(lendRecipient) : "Not set"}</span>
-              </div>
-            </div>
-            <Button
-              className="mt-3 w-full"
-              variant="primary"
-              disabled={!authenticated || !lendEnergyRaw || !isAddress(lendRecipient) || lending}
-              onClick={() => void lendEnergyToFren()}
-            >
-              {lending ? "Sending Energy..." : "Lend Energy"}
-            </Button>
-            <div className="mt-3 rounded border border-white/10 bg-black/30 p-3 text-sm font-bold leading-6 text-white/68">
-              {lendStatus}
-              {lendTxHash && (
-                <p className="mt-2">
-                  Tx:{" "}
-                  <a className="text-dyoor-cyan underline" href={`${MONAD_EXPLORER_URL}/tx/${lendTxHash}`} target="_blank" rel="noreferrer">
-                    {lendTxHash.slice(0, 10)}...{lendTxHash.slice(-6)}
-                  </a>
-                </p>
-              )}
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <section className="mb-8 rounded border border-dyoor-purple/28 bg-[linear-gradient(135deg,rgba(57,255,226,.08),rgba(131,110,249,.10))] p-5 shadow-[0_0_34px_rgba(131,110,249,.10)]">
-        <div className="grid gap-4 lg:grid-cols-[1fr_1.2fr] lg:items-center">
-          <div>
-            <h2 className="text-2xl font-black uppercase text-white">Staking Flow</h2>
-            <p className="mt-2 text-sm font-semibold leading-6 text-white/68">
-              Select wallet NFTs, approve once, deposit them into the Ascension contract, then register the deposit.
-              Ascended NFTs can be selected and unstaked from the same page.
-            </p>
-          </div>
-          <div className="grid gap-2 text-center text-xs font-black uppercase text-white/70 md:grid-cols-[1fr_auto_1fr_auto_1fr_auto_1fr] md:items-center">
-            {["Select", "Approve", "Deposit", "Register"].map((step, index) => (
-              <div key={step} className="contents">
-                <div className="rounded border border-white/12 bg-black/25 p-3">{step}</div>
-                {index < 3 && <div className="text-dyoor-cyan">↓</div>}
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      <section className="glass-panel sticky bottom-3 z-20 mb-8 p-4 md:static md:p-5">
-        <div className="grid grid-cols-2 gap-2 md:flex md:flex-wrap md:gap-3">
-          <Button variant="primary" disabled={!selectedWalletIds.length || working} onClick={() => void stakeTokenIds(selectedWalletIds)}>
-            Stake Selected ({selectedWalletIds.length})
-          </Button>
-          <Button variant="secondary" disabled={!ascension.walletNfts.length || working} onClick={() => void stakeTokenIds(ascension.walletNfts.map((nft) => nft.tokenId))}>
-            Stake All ({ascension.walletNfts.length})
-          </Button>
-          <Button variant="ghost" disabled={!selectedAscendedIds.length || working} onClick={() => void unstakeTokenIds(selectedAscendedIds)}>
-            Unstake Selected ({selectedAscendedIds.length})
-          </Button>
-          <Button variant="ghost" disabled={working || Number(ascension.pendingEnergy) <= 0} onClick={() => void harvestEnergy()}>
-            Harvest Energy
-          </Button>
-          <Button variant="ghost" disabled={!selected.size || working} onClick={() => setSelected(new Set())}>
-            Clear Selection
-          </Button>
-        </div>
-        <Alert className="mt-4" tone={working ? "busy" : /complete|success/i.test(actionStatus) ? "success" : "idle"}>
-          {working ? "Working. Confirm each wallet prompt and wait for confirmation." : actionStatus}
-        </Alert>
-      </section>
-
       {ascension.loading && (
         <div className="mb-6">
           <Alert tone="busy">Loading Ascension state...</Alert>
@@ -1366,6 +1197,104 @@ export default function AscensionPage() {
           {ascension.warnings[0]}
         </Alert>
       )}
+
+      <section className="mb-8 rounded border border-dyoor-purple/28 bg-[radial-gradient(720px_300px_at_12%_0%,rgba(57,255,226,.12),transparent_62%),linear-gradient(135deg,rgba(7,8,18,.96),rgba(18,11,42,.86))] p-4 shadow-[0_0_34px_rgba(131,110,249,.12)] md:p-5">
+        <div className="flex flex-col justify-between gap-4 lg:flex-row lg:items-start">
+          <div>
+            <p className="text-xs font-black uppercase tracking-[0.22em] text-dyoor-cyan">Ascension Workspace</p>
+            <h2 className="mt-2 text-2xl font-black uppercase text-white md:text-3xl">Stake / Unstake Console</h2>
+            <p className="mt-2 max-w-3xl text-sm font-semibold leading-6 text-white/64">
+              Select wallet NFTs to stake, select ascended NFTs to unstake, and run the action from this same panel.
+            </p>
+          </div>
+          <div className="grid grid-cols-3 gap-2 text-center text-xs font-black uppercase text-white/70 sm:min-w-[24rem]">
+            <div className="rounded border border-dyoor-cyan/30 bg-dyoor-cyan/[0.07] p-3">
+              <span className="block text-lg text-dyoor-cyan">{selectedWalletIds.length}</span>
+              Stake
+            </div>
+            <div className="rounded border border-dyoor-purple/30 bg-white/[0.04] p-3">
+              <span className="block text-lg text-white">{selectedAscendedIds.length}</span>
+              Unstake
+            </div>
+            <div className="rounded border border-white/12 bg-black/25 p-3">
+              <span className="block text-lg text-white">{selected.size}</span>
+              Selected
+            </div>
+          </div>
+        </div>
+
+        <div className="mt-5 grid gap-4 xl:grid-cols-[0.86fr_1.4fr] xl:items-start">
+          <div className="rounded border border-white/10 bg-black/28 p-4">
+            <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-1">
+              <Button variant="primary" disabled={!selectedWalletIds.length || working} onClick={() => void stakeTokenIds(selectedWalletIds)}>
+                Stake Selected ({selectedWalletIds.length})
+              </Button>
+              <Button variant="secondary" disabled={!ascension.walletNfts.length || working} onClick={() => void stakeTokenIds(ascension.walletNfts.map((nft) => nft.tokenId))}>
+                Stake All ({ascension.walletNfts.length})
+              </Button>
+              <Button variant="ghost" disabled={!selectedAscendedIds.length || working} onClick={() => void unstakeTokenIds(selectedAscendedIds)}>
+                Unstake Selected ({selectedAscendedIds.length})
+              </Button>
+              <Button variant="ghost" disabled={working || Number(ascension.pendingEnergy) <= 0} onClick={() => void harvestEnergy()}>
+                Harvest Energy
+              </Button>
+              <Button variant="ghost" disabled={!selected.size || working} onClick={() => setSelected(new Set())}>
+                Clear Selection
+              </Button>
+            </div>
+            <Alert className="mt-4" tone={working ? "busy" : /complete|success/i.test(actionStatus) ? "success" : "idle"}>
+              {working ? "Working. Confirm each wallet prompt and wait for confirmation." : actionStatus}
+            </Alert>
+            <div className="mt-4">
+              <ManualStakePanel
+                manualStake={manualStake}
+                setManualStake={setManualStake}
+                working={working}
+                onManualStake={() => void stakeManualDeposits()}
+              />
+            </div>
+          </div>
+
+          {!authenticated ? (
+            <EmptyState title="Wallet Signal Required" copy="Connect with the global Privy wallet button to load unstaked and ascended DYOOR." />
+          ) : (
+            <div className="grid gap-4 xl:grid-cols-2">
+              <NftGrid
+                className="rounded border border-white/10 bg-black/24 p-4"
+                title="Wallet NFTs"
+                mode="wallet"
+                count={ascension.walletUnstakedCount}
+                items={ascension.walletNfts}
+                empty={ascension.walletUnstakedCount ? `${ascension.walletUnstakedCount} unstaked DYOOR detected. Token cards are still resolving; use manual token IDs if needed.` : "No unstaked DYOOR found after discovery completes."}
+                emptyTitle={ascension.walletUnstakedCount ? "Droid Cards Resolving" : "No Droid Signal"}
+                selectedIds={selected}
+                working={working}
+                onToggle={(nft) => toggleSelection("wallet", nft)}
+                onPrimary={(nft) => void stakeTokenIds([nft.tokenId])}
+                scroll
+                gridClassName="grid-cols-2"
+              />
+              <NftGrid
+                className="rounded border border-white/10 bg-black/24 p-4"
+                title="Ascended NFTs"
+                mode="ascended"
+                count={ascension.ascendedCount}
+                items={ascension.ascendedNfts}
+                empty={ascension.ascendedCount ? `${ascension.ascendedCount} ascended DYOOR detected. Token IDs are still loading.` : "No ascended DYOOR found."}
+                emptyTitle={ascension.ascendedCount ? "Droid Cards Resolving" : "No Droid Signal"}
+                selectedIds={selected}
+                working={working}
+                onToggle={(nft) => toggleSelection("ascended", nft)}
+                onPrimary={(nft) => void unstakeTokenIds([nft.tokenId])}
+                scroll
+                gridClassName="grid-cols-2"
+              />
+            </div>
+          )}
+        </div>
+      </section>
+
+      <AscensionHealthDashboard items={healthItems} summary={healthSummary} />
 
       {process.env.NODE_ENV !== "production" && ascension.sources && (
         <section className="terminal-panel mb-8 p-5">
@@ -1398,39 +1327,6 @@ export default function AscensionPage() {
         </section>
       )}
 
-      {!authenticated ? (
-        <EmptyState title="Wallet Signal Required" copy="Connect with the global Privy wallet button to load unstaked and ascended DYOOR." />
-      ) : (
-        <div className="space-y-10">
-          <NftGrid
-            title="Wallet NFTs"
-            mode="wallet"
-            items={ascension.walletNfts}
-            empty={ascension.walletUnstakedCount ? `${ascension.walletUnstakedCount} unstaked DYOOR detected. Token cards are still resolving; use manual token IDs if you need to stake immediately.` : "No unstaked DYOOR found after discovery completes."}
-            selectedIds={selected}
-            working={working}
-            onToggle={(nft) => toggleSelection("wallet", nft)}
-            onPrimary={(nft) => void stakeTokenIds([nft.tokenId])}
-          />
-          <ManualStakePanel
-            manualStake={manualStake}
-            setManualStake={setManualStake}
-            working={working}
-            onManualStake={() => void stakeManualDeposits()}
-          />
-          <NftGrid
-            title="Ascended NFTs"
-            mode="ascended"
-            items={ascension.ascendedNfts}
-            empty={ascension.ascendedCount ? `${ascension.ascendedCount} ascended DYOOR detected. Token IDs are still loading.` : "No ascended DYOOR found."}
-            selectedIds={selected}
-            working={working}
-            onToggle={(nft) => toggleSelection("ascended", nft)}
-            onPrimary={(nft) => void unstakeTokenIds([nft.tokenId])}
-          />
-        </div>
-      )}
-
       <RecoveryPanel
         status={ascension.recovery}
         working={working}
@@ -1439,6 +1335,164 @@ export default function AscensionPage() {
         onRecover={() => void recoverDetectedDeposits()}
         onManualRecover={() => void recoverManualDeposits()}
       />
+
+      <section id="energy-tools" className="mt-12 scroll-mt-24">
+        <div className="mb-5 flex flex-col justify-between gap-3 md:flex-row md:items-end">
+          <div>
+            <p className="text-xs font-black uppercase tracking-[0.22em] text-dyoor-cyan">Energy Tools</p>
+            <h2 className="mt-2 text-3xl font-black uppercase text-white">Recharge and Transfer</h2>
+          </div>
+          <Button variant="ghost" onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}>
+            Back to Ascension
+          </Button>
+        </div>
+
+        <div className="grid gap-5 lg:grid-cols-2">
+          <div className="rounded border border-dyoor-purple/30 bg-gradient-to-br from-dyoor-cyan/[0.10] via-dyoor-purple/[0.10] to-fuchsia-500/[0.08] p-5 shadow-[0_0_42px_rgba(131,110,249,.12)] md:p-6">
+            <p className="text-xs font-black uppercase tracking-[0.2em] text-dyoor-cyan">Energy Bank</p>
+            <h2 className="mt-2 text-3xl font-black uppercase text-white">Recharge Energy</h2>
+            <p className="mt-2 text-sm font-semibold leading-6 text-white/66">
+              Power up your Ascension bank with MON.
+            </p>
+            <p className="mt-4 inline-flex rounded border border-dyoor-cyan/35 bg-black/30 px-3 py-2 text-sm font-black uppercase text-dyoor-cyan">
+              1 MON = 50 Energy
+            </p>
+            <div className="rounded border border-dyoor-purple/24 bg-black/35 p-4 shadow-[inset_0_1px_0_rgba(255,255,255,.05)]">
+              <label className="text-xs font-black uppercase tracking-[0.16em] text-white/45" htmlFor="recharge-mon">
+                MON Amount
+              </label>
+              <input
+                id="recharge-mon"
+                className="field-control mt-2 text-lg font-black"
+                inputMode="decimal"
+                placeholder="10"
+                value={rechargeMon}
+                onChange={(event) => setRechargeMon(event.target.value)}
+                disabled={recharging}
+              />
+              <div className="mt-3 rounded border border-white/10 bg-white/[0.035] p-3 text-sm font-bold text-white/68">
+                Preview: {rechargeMon || "0"} MON = <span className="text-dyoor-cyan">{rechargeEnergyPreview} Energy</span>
+              </div>
+              <Button
+                className="mt-3 w-full"
+                variant="primary"
+                disabled={!authenticated || !rechargeMonRaw || !treasuryWallet || !rechargeCreditReady || recharging}
+                onClick={() => void rechargeEnergy()}
+              >
+                {recharging ? "Recharging..." : "Recharge Energy"}
+              </Button>
+              <div className="mt-3 rounded border border-white/10 bg-black/30 p-3 text-sm font-bold leading-6 text-white/68">
+                {rechargeStatus}
+                {rechargeTxHash && (
+                  <p className="mt-2">
+                    Payment:{" "}
+                    <a className="text-dyoor-cyan underline" href={`${MONAD_EXPLORER_URL}/tx/${rechargeTxHash}`} target="_blank" rel="noreferrer">
+                      {rechargeTxHash.slice(0, 10)}...{rechargeTxHash.slice(-6)}
+                    </a>
+                  </p>
+                )}
+                {rechargeCreditTxHash && (
+                  <p>
+                    Credit:{" "}
+                    <a className="text-dyoor-cyan underline" href={`${MONAD_EXPLORER_URL}/tx/${rechargeCreditTxHash}`} target="_blank" rel="noreferrer">
+                      {rechargeCreditTxHash.slice(0, 10)}...{rechargeCreditTxHash.slice(-6)}
+                    </a>
+                  </p>
+                )}
+              </div>
+              <div className="mt-3 rounded border border-white/10 bg-black/25 p-3">
+                <label className="text-xs font-black uppercase tracking-[0.16em] text-white/45" htmlFor="recharge-recovery">
+                  Recover Recharge
+                </label>
+                <div className="mt-2 flex flex-col gap-2 md:flex-row">
+                  <input
+                    id="recharge-recovery"
+                    className="min-w-0 flex-1 rounded border border-white/15 bg-black/45 px-3 py-2 text-xs font-bold text-white outline-none focus:border-dyoor-cyan"
+                    placeholder="Paste payment tx hash"
+                    value={rechargeRecoveryTx}
+                    onChange={(event) => setRechargeRecoveryTx(event.target.value)}
+                    disabled={recharging}
+                  />
+                  <Button
+                    className="px-3 py-2 text-xs"
+                    variant="ghost"
+                    disabled={recharging || !rechargeCreditReady || !rechargeRecoveryTx.trim()}
+                    onClick={() => void recoverRechargePayment()}
+                  >
+                    Credit Tx
+                  </Button>
+                </div>
+                <p className="mt-2 text-xs leading-5 text-white/48">
+                  Use this only if MON was sent but Energy did not appear.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div className="rounded border border-dyoor-purple/30 bg-[radial-gradient(560px_260px_at_80%_0%,rgba(57,255,226,.14),transparent_60%),linear-gradient(135deg,rgba(8,8,24,.88),rgba(24,13,54,.72))] p-5 shadow-[0_0_42px_rgba(57,255,226,.10)] md:p-6">
+            <p className="text-xs font-black uppercase tracking-[0.2em] text-dyoor-cyan">Energy Utility</p>
+            <h2 className="mt-2 text-3xl font-black uppercase text-white">Lend to a Fren</h2>
+            <p className="mt-2 text-sm font-semibold leading-6 text-white/66">
+              Transfer spendable Energy from your Energy Bank to another wallet after server verification.
+            </p>
+            <div className="mt-5 rounded border border-dyoor-purple/24 bg-black/35 p-4 shadow-[inset_0_1px_0_rgba(255,255,255,.05)]">
+              <label className="text-xs font-black uppercase tracking-[0.16em] text-white/45" htmlFor="lend-recipient">
+                Recipient Wallet
+              </label>
+              <input
+                id="lend-recipient"
+                className="field-control mt-2 text-sm font-black"
+                placeholder="0x..."
+                value={lendRecipient}
+                onChange={(event) => setLendRecipient(event.target.value)}
+                disabled={lending}
+              />
+              <label className="mt-4 block text-xs font-black uppercase tracking-[0.16em] text-white/45" htmlFor="lend-energy">
+                Energy Amount
+              </label>
+              <input
+                id="lend-energy"
+                className="field-control mt-2 text-lg font-black"
+                inputMode="decimal"
+                placeholder="250"
+                value={lendEnergy}
+                onChange={(event) => setLendEnergy(event.target.value)}
+                disabled={lending}
+              />
+              <div className="mt-3 grid gap-2 text-sm font-bold text-white/68 md:grid-cols-2">
+                <div className="rounded border border-white/10 bg-white/[0.035] p-3">
+                  Current: <span className="text-dyoor-cyan">{formatCompactEnergy(ascension.spendableEnergy)} spendable Energy</span>
+                </div>
+                <div className="rounded border border-white/10 bg-white/[0.035] p-3">
+                  Remaining: <span className="text-dyoor-cyan">{formatCompactEnergy(lendEnergyRaw ? formatEnergyAmount(lendRemainingRaw) : ascension.spendableEnergy)}</span>
+                </div>
+                <div className="rounded border border-white/10 bg-white/[0.035] p-3 md:col-span-2">
+                  Recipient: <span className="break-all text-dyoor-cyan">{isAddress(lendRecipient) ? getAddress(lendRecipient) : "Not set"}</span>
+                </div>
+              </div>
+              <Button
+                className="mt-3 w-full"
+                variant="primary"
+                disabled={!authenticated || !lendEnergyRaw || !isAddress(lendRecipient) || lending}
+                onClick={() => void lendEnergyToFren()}
+              >
+                {lending ? "Sending Energy..." : "Lend Energy"}
+              </Button>
+              <div className="mt-3 rounded border border-white/10 bg-black/30 p-3 text-sm font-bold leading-6 text-white/68">
+                {lendStatus}
+                {lendTxHash && (
+                  <p className="mt-2">
+                    Tx:{" "}
+                    <a className="text-dyoor-cyan underline" href={`${MONAD_EXPLORER_URL}/tx/${lendTxHash}`} target="_blank" rel="noreferrer">
+                      {lendTxHash.slice(0, 10)}...{lendTxHash.slice(-6)}
+                    </a>
+                  </p>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
     </PageShell>
   );
 }
