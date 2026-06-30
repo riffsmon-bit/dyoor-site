@@ -125,6 +125,13 @@ function formatWalletError(error: unknown, fallback: string) {
   return message;
 }
 
+function statusTone(message: string, working: boolean): "idle" | "success" | "danger" | "busy" {
+  if (working) return "busy";
+  if (/complete|success|credited|confirmed|refreshed/i.test(message)) return "success";
+  if (/fail|failed|error|rejected|reverted|invalid|timed out|unavailable|insufficient/i.test(message)) return "danger";
+  return "idle";
+}
+
 async function waitReceipt(provider: Eip1193Provider, hash: string) {
   const started = Date.now();
   while (Date.now() - started < 120_000) {
@@ -198,7 +205,7 @@ function ActionNftCard({
     return () => {
       active = false;
     };
-  }, [nft]);
+  }, [nft.metadataStatus, nft.source, nft.tokenId]);
 
   function loadNextImageFallback() {
     if (!imageUrl) return;
@@ -206,8 +213,8 @@ function ActionNftCard({
   }
 
   return (
-    <article className={`group relative overflow-hidden rounded border bg-white/[0.04] transition duration-200 hover:-translate-y-0.5 hover:shadow-[0_18px_42px_rgba(57,255,226,.10)] ${selected ? "border-dyoor-cyan shadow-[0_0_22px_rgba(57,255,226,.14)]" : "border-dyoor-purple/20 hover:border-dyoor-cyan/45"}`}>
-      <button className="block w-full text-left" type="button" onClick={() => onToggle(nft)}>
+    <article className={`group overflow-hidden rounded border bg-white/[0.04] transition duration-200 hover:-translate-y-0.5 hover:shadow-[0_18px_42px_rgba(57,255,226,.10)] ${selected ? "border-dyoor-cyan shadow-[0_0_22px_rgba(57,255,226,.14)]" : "border-dyoor-purple/20 hover:border-dyoor-cyan/45"}`}>
+      <button className="block w-full text-left" type="button" aria-pressed={selected} onClick={() => onToggle(nft)}>
         <div className="aspect-square bg-black/45">
           {imageUrl ? (
             // eslint-disable-next-line @next/next/no-img-element
@@ -226,9 +233,9 @@ function ActionNftCard({
           <p className="mt-1 text-xs uppercase tracking-[0.14em] text-white/50">#{nft.tokenId}</p>
         </div>
       </button>
-      <div className="absolute inset-x-3 bottom-3 translate-y-3 opacity-0 transition group-hover:translate-y-0 group-hover:opacity-100">
+      <div className="border-t border-white/8 p-3 pt-0">
         <button
-          className="w-full rounded border border-dyoor-cyan bg-black/85 px-3 py-2 text-xs font-black uppercase text-dyoor-cyan backdrop-blur disabled:opacity-50"
+          className="mt-3 w-full rounded border border-dyoor-cyan/65 bg-dyoor-cyan/10 px-3 py-2 text-xs font-black uppercase text-dyoor-cyan transition hover:bg-dyoor-cyan hover:text-black disabled:cursor-not-allowed disabled:opacity-50"
           type="button"
           disabled={working}
           onClick={() => onPrimary(nft)}
@@ -1224,7 +1231,7 @@ export default function AscensionPage() {
         </div>
 
         <div className="mt-5 grid gap-4 xl:grid-cols-[0.86fr_1.4fr] xl:items-start">
-          <div className="rounded border border-white/10 bg-black/28 p-4">
+          <div className="rounded border border-white/10 bg-black/28 p-4 xl:sticky xl:top-24">
             <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-1">
               <Button variant="primary" disabled={!selectedWalletIds.length || working} onClick={() => void stakeTokenIds(selectedWalletIds)}>
                 Stake Selected ({selectedWalletIds.length})
@@ -1242,7 +1249,7 @@ export default function AscensionPage() {
                 Clear Selection
               </Button>
             </div>
-            <Alert className="mt-4" tone={working ? "busy" : /complete|success/i.test(actionStatus) ? "success" : "idle"}>
+            <Alert className="mt-4" tone={statusTone(actionStatus, working)}>
               {working ? "Working. Confirm each wallet prompt and wait for confirmation." : actionStatus}
             </Alert>
             <div className="mt-4">

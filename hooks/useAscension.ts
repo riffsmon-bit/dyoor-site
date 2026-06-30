@@ -185,7 +185,19 @@ function fallbackNft(tokenId: string, source: AscensionNft["source"]): Ascension
   };
 }
 
+const tokenMetadataCache = new Map<string, Promise<AscensionNft>>();
+
 export async function fetchTokenMetadata(tokenId: string, source: AscensionNft["source"]): Promise<AscensionNft> {
+  const key = `${source}:${tokenId}`;
+  const cached = tokenMetadataCache.get(key);
+  if (cached) return cached;
+
+  const request = fetchTokenMetadataUncached(tokenId, source);
+  tokenMetadataCache.set(key, request);
+  return request;
+}
+
+async function fetchTokenMetadataUncached(tokenId: string, source: AscensionNft["source"]): Promise<AscensionNft> {
   try {
     let uri = await readContractWithFailover({
       address: dyoorS1Contract,
@@ -693,15 +705,11 @@ async function loadAscensionState(walletAddress: string): Promise<AscensionState
   const wallet = getAddress(walletAddress);
   const warnings: string[] = [];
 
-  const [walletDiscovery, stakedDiscovery, recovery] = await Promise.all([
+  const [walletDiscovery, stakedDiscovery] = await Promise.all([
     discoverWalletTokenIds(wallet),
     discoverStakedTokenIds(wallet),
-    withTimeout(
-      detectRecoverableDeposits(wallet),
-      RECOVERY_SCAN_TIMEOUT_MS,
-      limitedRecoveryState("Automatic recovery scan timed out on the current RPC. If support provided a token ID, use manual recovery below; it verifies the token on-chain before submitting."),
-    ),
   ]);
+  const recovery = clearRecoveryState;
 
   if (walletDiscovery.walletBalance !== null && walletDiscovery.tokenIds.length !== walletDiscovery.walletBalance) {
     warnings.push(`Wallet balance check returned ${walletDiscovery.walletBalance}. Verified token IDs loaded ${walletDiscovery.tokenIds.length}; count is displayed while token cards are deferred.`);
@@ -807,6 +815,19 @@ export function useAscension() {
     placeholderData: (previousData) => previousData,
   });
 
+  const recoveryQuery = useQuery({
+    queryKey: ["ascension-recovery", address],
+    enabled: Boolean(address && query.data?.walletAddress && sameAddress(query.data.walletAddress, address)),
+    queryFn: () => withTimeout(
+      detectRecoverableDeposits(getAddress(address as Address)),
+      RECOVERY_SCAN_TIMEOUT_MS,
+      limitedRecoveryState("Automatic recovery scan timed out on the current RPC. If support provided a token ID, use manual recovery below; it verifies the token on-chain before submitting."),
+    ),
+    staleTime: 60_000,
+    gcTime: 5 * 60_000,
+    retry: 0,
+  });
+
   const stateData = query.data?.walletAddress && address && sameAddress(query.data.walletAddress, address) ? query.data : undefined;
   const energyData = energyQuery.data?.walletAddress && address && sameAddress(energyQuery.data.walletAddress, address) ? energyQuery.data : undefined;
 
@@ -830,12 +851,14 @@ export function useAscension() {
     hasLoaded: Boolean(stateData),
     error: query.error,
     isPartial: stateData?.isPartial || false,
-    recovery: stateData?.recovery || clearRecoveryState,
+    recovery: recoveryQuery.data || stateData?.recovery || clearRecoveryState,
     warnings: stateData?.warnings || [],
     sources: stateData?.sources,
     refresh: async (options: EnergyRefreshOptions = {}) => {
       await queryClient.cancelQueries({ queryKey: ["ascension", address] });
       await queryClient.cancelQueries({ queryKey: ["ascension-energy", address] });
+      await queryClient.cancelQueries({ queryKey: ["ascension-recovery", address] });
+      void queryClient.invalidateQueries({ queryKey: ["ascension-recovery", address] });
       if (options.scanLogs || options.scanGrants) {
         const [energy] = await Promise.all([
           loadAscensionEnergy(address, options),
