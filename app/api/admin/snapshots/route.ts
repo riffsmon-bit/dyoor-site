@@ -108,6 +108,14 @@ function readEnv(...names: string[]) {
   return "";
 }
 
+function snapshotRpcUrl() {
+  return readEnv("ALCHEMY_MONAD_RPC_URL", "NEXT_PUBLIC_MONAD_RPC_URL", "MONAD_RPC_URL", "RPC_URL") || DEFAULT_RPC;
+}
+
+function isAlchemyRpc(value: string) {
+  return /alchemy\.com/i.test(value);
+}
+
 function readWholeNumberEnv(names: string[], fallback: number, allowZero = false) {
   for (const name of names) {
     const value = readEnv(name);
@@ -522,13 +530,24 @@ async function scanTransferEvidence(
   stakingAddress: string,
   nftAddress: string,
   tokenFilter?: Set<string>,
+  rpcUrl = snapshotRpcUrl(),
+  latestBlockOverride = 0,
 ) {
   const depositsByToken = new Map<string, TransferEvidence>();
   const warnings: string[] = [];
+
+  if (isAlchemyRpc(rpcUrl)) {
+    try {
+      return await scanAlchemyTransferEvidence(rpcUrl, stakingAddress, nftAddress, tokenFilter, latestBlockOverride);
+    } catch (error: any) {
+      warnings.push(`Alchemy transfer fallback failed: ${error?.message || "unknown error"}. Falling back to RPC logs.`);
+    }
+  }
+
   const iface = new ethers.Interface(erc721Abi);
   const transferTopic = ethers.id("Transfer(address,address,uint256)");
   const stakingTopic = ethers.zeroPadValue(stakingAddress, 32);
-  const latest = await safeContract(async () => await provider.getBlockNumber(), 0);
+  const latest = latestBlockOverride || await safeContract(async () => await provider.getBlockNumber(), 0);
   if (!latest) {
     return { depositsByToken, logsScanned: 0, warnings: ["Transfer fallback could not read the latest block."] };
   }
@@ -579,6 +598,85 @@ async function scanTransferEvidence(
   }
 
   return { depositsByToken, logsScanned, warnings };
+}
+
+async function scanAlchemyTransferEvidence(
+  rpcUrl: string,
+  stakingAddress: string,
+  nftAddress: string,
+  tokenFilter?: Set<string>,
+  latestBlockOverride = 0,
+) {
+  const depositsByToken = new Map<string, TransferEvidence>();
+  const warnings: string[] = [];
+  const start = readWholeNumberEnv(["ASCENSION_START_BLOCK", "NEXT_PUBLIC_DYOOR_S1_START_BLOCK"], DEFAULT_ASCENSION_START_BLOCK, true);
+  const latestBlock = latestBlockOverride || 0;
+  let pageKey = "";
+  let requestCount = 0;
+  let transferCount = 0;
+
+  do {
+    const params: Record<string, unknown> = {
+      fromBlock: ethers.toQuantity(start),
+      toBlock: latestBlock ? ethers.toQuantity(latestBlock) : "latest",
+      toAddress: stakingAddress,
+      contractAddresses: [nftAddress],
+      category: ["erc721"],
+      withMetadata: false,
+      excludeZeroValue: false,
+      maxCount: "0x3e8",
+      order: "asc",
+    };
+    if (pageKey) params.pageKey = pageKey;
+
+    const response = await withTimeout(fetch(rpcUrl, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        jsonrpc: "2.0",
+        id: 1,
+        method: "alchemy_getAssetTransfers",
+        params: [params],
+      }),
+    }), readWholeNumberEnv(["ASCENSION_SNAPSHOT_RPC_TIMEOUT_MS"], DEFAULT_RPC_TIMEOUT_MS));
+    const text = await response.text();
+    let json: any;
+    try {
+      json = JSON.parse(text);
+    } catch {
+      throw new Error("alchemy_getAssetTransfers returned invalid JSON.");
+    }
+    if (!response.ok || json?.error) {
+      throw new Error(json?.error?.message || `alchemy_getAssetTransfers failed (${response.status}).`);
+    }
+    if (!json?.result || !Array.isArray(json.result.transfers)) {
+      throw new Error("alchemy_getAssetTransfers returned no transfer result.");
+    }
+
+    requestCount += 1;
+    const transfers = json.result.transfers;
+    transferCount += transfers.length;
+
+    for (const transfer of transfers) {
+      const tokenHex = transfer?.tokenId || transfer?.erc721TokenId;
+      if (!tokenHex) continue;
+      const tokenId = BigInt(tokenHex).toString();
+      if (tokenFilter && !tokenFilter.has(tokenId)) continue;
+      const fallbackWallet = normalizeAddress(transfer?.from);
+      if (!fallbackWallet) continue;
+      depositsByToken.set(tokenId, {
+        tokenId,
+        fallbackWallet,
+        depositTxHash: String(transfer?.hash || "").toLowerCase(),
+        depositBlock: transfer?.blockNum ? Number(BigInt(transfer.blockNum)) : 0,
+      });
+    }
+
+    pageKey = String(json?.result?.pageKey || "");
+  } while (pageKey);
+
+  warnings.push(`Alchemy transfer fallback scanned ${transferCount} transfer(s) in ${requestCount} request(s).`);
+  return { depositsByToken, logsScanned: transferCount, warnings };
 }
 
 function goldskyEventBlock(event: GoldskyStakeEvent) {
@@ -687,12 +785,14 @@ async function discoverGoldskySnapshotPage(endpoint: string) {
 }
 
 async function discoverOwnerOfSnapshotPage(body: Record<string, unknown>) {
-  const provider = new ethers.JsonRpcProvider(readEnv("MONAD_RPC_URL", "NEXT_PUBLIC_MONAD_RPC_URL") || DEFAULT_RPC, CHAIN_ID);
+  const provider = new ethers.JsonRpcProvider(snapshotRpcUrl(), CHAIN_ID);
   const stakingAddress = ethers.getAddress(readEnv("ASCENSION_STAKING_ADDRESS", "ASCENSION_STAKING_CONTRACT", "NEXT_PUBLIC_ASCENSION_STAKING_CONTRACT") || DEFAULT_ASCENSION_STAKING);
   const nftAddress = ethers.getAddress(readEnv("DYOOR_S1_CONTRACT", "NEXT_PUBLIC_DYOOR_S1_CONTRACT") || DEFAULT_DYOOR_S1);
   const nft = new ethers.Contract(nftAddress, erc721Abi, provider);
-  const stakingContractBalance = Number(await safeContract(async () => await nft.balanceOf(stakingAddress), 0n));
   const cursor = body.cursor && typeof body.cursor === "object" ? body.cursor as Record<string, unknown> : {};
+  const cursorLatestBlock = typeof cursor.latestBlock === "number" && Number.isSafeInteger(cursor.latestBlock) && cursor.latestBlock > 0 ? cursor.latestBlock : 0;
+  const latestBlock = cursorLatestBlock || await withTimeout(provider.getBlockNumber(), readWholeNumberEnv(["ASCENSION_SNAPSHOT_RPC_TIMEOUT_MS"], DEFAULT_RPC_TIMEOUT_MS));
+  const stakingContractBalance = Number(await safeContract(async () => await nft.balanceOf(stakingAddress, { blockTag: latestBlock }), 0n));
   const maxTokenId = readWholeNumberEnv(["DYOOR_S1_MAX_SUPPLY", "NEXT_PUBLIC_DYOOR_S1_MAX_SUPPLY"], DEFAULT_S1_MAX_SUPPLY);
   const configuredBatchTokens = readWholeNumberEnv(["ASCENSION_SNAPSHOT_TOKEN_BATCH_SIZE"], DEFAULT_OWNER_SCAN_BATCH_SIZE);
   const requestedBatchTokens = Number(cursor.batchTokens || 0);
@@ -715,6 +815,7 @@ async function discoverOwnerOfSnapshotPage(body: Record<string, unknown>) {
       cursor: null,
       discovery: {
         scanMode: "ownerOf",
+        latestBlock,
         startTokenId: 1,
         lastScannedTokenId: maxTokenId,
         maxTokenId,
@@ -734,7 +835,7 @@ async function discoverOwnerOfSnapshotPage(body: Record<string, unknown>) {
   const tokenIdsToRead = Array.from({ length: toTokenId - fromTokenId + 1 }, (_, index) => fromTokenId + index);
   const reads = await mapLimit(tokenIdsToRead, concurrency, async (tokenId) => {
     try {
-      const owner = normalizeAddress(await withTimeout(nft.ownerOf(BigInt(tokenId)), timeoutMs));
+      const owner = normalizeAddress(await withTimeout(nft.ownerOf(BigInt(tokenId), { blockTag: latestBlock }), timeoutMs));
       return {
         tokenId: String(tokenId),
         staked: owner === stakingAddress.toLowerCase(),
@@ -772,9 +873,10 @@ async function discoverOwnerOfSnapshotPage(body: Record<string, unknown>) {
     complete,
     wallets: [],
     tokenIds: stakedTokenIds,
-    cursor: complete ? null : { scanMode: "ownerOf", nextTokenId, maxTokenId, batchTokens: nextBatchTokens },
+    cursor: complete ? null : { scanMode: "ownerOf", nextTokenId, maxTokenId, batchTokens: nextBatchTokens, latestBlock },
     discovery: {
       scanMode: "ownerOf",
+      latestBlock,
       startTokenId: 1,
       lastScannedTokenId: rangeNeedsRetry ? Math.max(0, fromTokenId - 1) : toTokenId,
       maxTokenId,
@@ -792,12 +894,14 @@ async function discoverOwnerOfSnapshotPage(body: Record<string, unknown>) {
 }
 
 async function discoverOwnerEnumerableSnapshotPage(body: Record<string, unknown>) {
-  const provider = new ethers.JsonRpcProvider(readEnv("MONAD_RPC_URL", "NEXT_PUBLIC_MONAD_RPC_URL") || DEFAULT_RPC, CHAIN_ID);
+  const provider = new ethers.JsonRpcProvider(snapshotRpcUrl(), CHAIN_ID);
   const stakingAddress = ethers.getAddress(readEnv("ASCENSION_STAKING_ADDRESS", "ASCENSION_STAKING_CONTRACT", "NEXT_PUBLIC_ASCENSION_STAKING_CONTRACT") || DEFAULT_ASCENSION_STAKING);
   const nftAddress = ethers.getAddress(readEnv("DYOOR_S1_CONTRACT", "NEXT_PUBLIC_DYOOR_S1_CONTRACT") || DEFAULT_DYOOR_S1);
   const nft = new ethers.Contract(nftAddress, erc721Abi, provider);
-  const stakingContractBalance = Number(await safeContract(async () => await nft.balanceOf(stakingAddress), 0n));
   const cursor = body.cursor && typeof body.cursor === "object" ? body.cursor as Record<string, unknown> : {};
+  const cursorLatestBlock = typeof cursor.latestBlock === "number" && Number.isSafeInteger(cursor.latestBlock) && cursor.latestBlock > 0 ? cursor.latestBlock : 0;
+  const latestBlock = cursorLatestBlock || await withTimeout(provider.getBlockNumber(), readWholeNumberEnv(["ASCENSION_SNAPSHOT_RPC_TIMEOUT_MS"], DEFAULT_RPC_TIMEOUT_MS));
+  const stakingContractBalance = Number(await safeContract(async () => await nft.balanceOf(stakingAddress, { blockTag: latestBlock }), 0n));
   const maxIndex = Math.max(0, stakingContractBalance - 1);
   const configuredBatchIndexes = readWholeNumberEnv(["ASCENSION_SNAPSHOT_TOKEN_BATCH_SIZE"], DEFAULT_OWNER_SCAN_BATCH_SIZE);
   const requestedBatchIndexes = Number(cursor.batchTokens || 0);
@@ -820,6 +924,7 @@ async function discoverOwnerEnumerableSnapshotPage(body: Record<string, unknown>
       cursor: null,
       discovery: {
         scanMode: "owner-enumerable",
+        latestBlock,
         startIndex: 0,
         lastScannedIndex: maxIndex,
         maxIndex,
@@ -839,7 +944,7 @@ async function discoverOwnerEnumerableSnapshotPage(body: Record<string, unknown>
   const indexesToRead = Array.from({ length: toIndex - fromIndex + 1 }, (_, index) => fromIndex + index);
   const reads = await mapLimit(indexesToRead, concurrency, async (index) => {
     try {
-      const tokenId = await withTimeout(nft.tokenOfOwnerByIndex(stakingAddress, BigInt(index)), timeoutMs);
+      const tokenId = await withTimeout(nft.tokenOfOwnerByIndex(stakingAddress, BigInt(index), { blockTag: latestBlock }), timeoutMs);
       return {
         index,
         tokenId: String(tokenId),
@@ -875,9 +980,10 @@ async function discoverOwnerEnumerableSnapshotPage(body: Record<string, unknown>
     complete,
     wallets: [],
     tokenIds,
-    cursor: complete ? null : { scanMode: "owner-enumerable", nextIndex, maxIndex, batchTokens: nextBatchTokens },
+    cursor: complete ? null : { scanMode: "owner-enumerable", nextIndex, maxIndex, batchTokens: nextBatchTokens, latestBlock },
     discovery: {
       scanMode: "owner-enumerable",
+      latestBlock,
       startIndex: 0,
       lastScannedIndex: rangeNeedsRetry ? Math.max(0, fromIndex - 1) : toIndex,
       maxIndex,
@@ -899,7 +1005,7 @@ async function discoverSnapshotPage(body: Record<string, unknown>) {
   const requestedMode = typeof cursor.scanMode === "string" ? cursor.scanMode : "";
   const configuredMode = readEnv("ASCENSION_SNAPSHOT_DISCOVERY_MODE").toLowerCase();
   const goldskyEndpoint = readEnv("GOLDSKY_SUBGRAPH_URL", "NEXT_PUBLIC_GOLDSKY_SUBGRAPH_URL");
-  if (goldskyEndpoint && (requestedMode === "goldsky-events" || (!requestedMode && configuredMode === "goldsky-events"))) {
+  if (goldskyEndpoint && requestedMode === "goldsky-events") {
     return discoverGoldskySnapshotPage(goldskyEndpoint);
   }
   if (requestedMode === "owner-enumerable" || configuredMode === "owner-enumerable") {
@@ -912,7 +1018,7 @@ async function discoverSnapshotPage(body: Record<string, unknown>) {
 }
 
 async function discoverTransferLogSnapshotPage(body: Record<string, unknown>) {
-  const provider = new ethers.JsonRpcProvider(readEnv("MONAD_RPC_URL", "NEXT_PUBLIC_MONAD_RPC_URL") || DEFAULT_RPC, CHAIN_ID);
+  const provider = new ethers.JsonRpcProvider(snapshotRpcUrl(), CHAIN_ID);
   const stakingAddress = ethers.getAddress(readEnv("ASCENSION_STAKING_ADDRESS", "ASCENSION_STAKING_CONTRACT", "NEXT_PUBLIC_ASCENSION_STAKING_CONTRACT") || DEFAULT_ASCENSION_STAKING);
   const nftAddress = ethers.getAddress(readEnv("DYOOR_S1_CONTRACT", "NEXT_PUBLIC_DYOOR_S1_CONTRACT") || DEFAULT_DYOOR_S1);
   const cursor = body.cursor && typeof body.cursor === "object" ? body.cursor as Record<string, unknown> : {};
@@ -998,8 +1104,9 @@ async function tokenStakeMeta(
   staking: ethers.Contract,
   tokenId: string,
   indexedOwner = "",
+  blockTag?: number,
 ): Promise<StakeTokenMeta> {
-  const info = await safeContract(async () => await staking.stakeInfo(BigInt(tokenId)), null);
+  const info = await safeContract(async () => await staking.stakeInfo(BigInt(tokenId), blockTag ? { blockTag } : {}), null);
   const stakeInfoOwner = normalizeAddress(info?.owner ?? info?.[0]);
   const stakedAt = formatStakeTimestamp(info?.stakedAt ?? info?.[1]);
   const fallbackOwner = normalizeAddress(indexedOwner);
@@ -1159,7 +1266,8 @@ async function generateSnapshots(input?: {
   warnings: string[];
 }) {
   const timestamp = new Date().toISOString();
-  const provider = new ethers.JsonRpcProvider(readEnv("MONAD_RPC_URL", "NEXT_PUBLIC_MONAD_RPC_URL") || DEFAULT_RPC, CHAIN_ID);
+  const rpcUrl = snapshotRpcUrl();
+  const provider = new ethers.JsonRpcProvider(rpcUrl, CHAIN_ID);
   const stakingAddress = ethers.getAddress(readEnv("ASCENSION_STAKING_ADDRESS", "ASCENSION_STAKING_CONTRACT", "NEXT_PUBLIC_ASCENSION_STAKING_CONTRACT") || DEFAULT_ASCENSION_STAKING);
   const nftAddress = ethers.getAddress(readEnv("DYOOR_S1_CONTRACT", "NEXT_PUBLIC_DYOOR_S1_CONTRACT") || DEFAULT_DYOOR_S1);
   const energyBankAddress = ethers.getAddress(readEnv("ENERGY_BANK_ADDRESS", "NEXT_PUBLIC_ENERGY_BANK_ADDRESS") || DEFAULT_ENERGY_BANK);
@@ -1172,8 +1280,11 @@ async function generateSnapshots(input?: {
   const blueprint = blueprintSnapshot.rows;
   const discovered = input || await discoverStakingWallets(provider, stakingAddress, nftAddress);
   const warnings = [...discovered.warnings, ...blueprintSnapshot.warnings];
-  const discoveryRecord = discovered.discovery as { scanMode?: string };
+  const discoveryRecord = discovered.discovery as { scanMode?: string; latestBlock?: number };
   const discoveryMode = String(discoveryRecord.scanMode || "");
+  const snapshotBlock = typeof discoveryRecord.latestBlock === "number" && Number.isSafeInteger(discoveryRecord.latestBlock) && discoveryRecord.latestBlock > 0
+    ? discoveryRecord.latestBlock
+    : await safeContract(async () => await provider.getBlockNumber(), 0);
   const indexedTokenSource = discoveryMode === "ownerOf"
     ? "ownerOf-staking-contract"
     : discoveryMode === "goldsky-events"
@@ -1186,7 +1297,7 @@ async function generateSnapshots(input?: {
   const finalizeConcurrency = hasIndexedOwners
     ? readWholeNumberEnv(["ASCENSION_SNAPSHOT_INDEXED_FINALIZE_CONCURRENCY", "ASCENSION_SNAPSHOT_FINALIZE_CONCURRENCY"], DEFAULT_INDEXED_FINALIZE_CONCURRENCY)
     : readWholeNumberEnv(["ASCENSION_SNAPSHOT_FINALIZE_CONCURRENCY"], DEFAULT_FINALIZE_CONCURRENCY);
-  const stakingContractBalance = Number(await safeContract(async () => await nft.balanceOf(stakingAddress), 0n));
+  const stakingContractBalance = Number(await safeContract(async () => await nft.balanceOf(stakingAddress, snapshotBlock ? { blockTag: snapshotBlock } : {}), 0n));
   const candidateTokenIds = normalizeTokenIdList([
     ...Array.from(discovered.tokenIds),
     ...Array.from(input?.tokenOwners?.keys() || []),
@@ -1194,17 +1305,17 @@ async function generateSnapshots(input?: {
 
   const activeTokenRows = await mapLimit(candidateTokenIds, finalizeConcurrency, async (tokenId) => {
     if (discoveryMode !== "owner-enumerable") {
-      const currentOwner = normalizeAddress(await safeContract(async () => await nft.ownerOf(BigInt(tokenId)), ""));
+      const currentOwner = normalizeAddress(await safeContract(async () => await nft.ownerOf(BigInt(tokenId), snapshotBlock ? { blockTag: snapshotBlock } : {}), ""));
       if (currentOwner !== stakingAddress.toLowerCase()) return null;
     }
     const indexedOwner = input?.tokenOwners?.get(tokenId) || "";
-    const meta = await tokenStakeMeta(staking, tokenId, indexedOwner);
+    const meta = await tokenStakeMeta(staking, tokenId, indexedOwner, snapshotBlock || undefined);
     return meta;
   });
 
   const missingOwnerRows = activeTokenRows.filter((row): row is StakeTokenMeta => Boolean(row && !row.wallet));
   if (missingOwnerRows.length) {
-    const fallback = await scanTransferEvidence(provider, stakingAddress, nftAddress, new Set(missingOwnerRows.map((row) => row.tokenId)));
+    const fallback = await scanTransferEvidence(provider, stakingAddress, nftAddress, new Set(missingOwnerRows.map((row) => row.tokenId)), rpcUrl, snapshotBlock);
     warnings.push(...fallback.warnings);
     let resolved = 0;
     for (const row of missingOwnerRows) {
@@ -1212,10 +1323,10 @@ async function generateSnapshots(input?: {
       if (!evidence?.fallbackWallet) continue;
       row.wallet = evidence.fallbackWallet;
       row.source = "transfer-log-fallback";
-      row.validationStatus = "verified";
+      row.validationStatus = "warning";
       row.depositTxHash = evidence.depositTxHash;
       row.depositBlock = evidence.depositBlock;
-      row.validationNotes = "stakeInfo did not return a wallet; latest Transfer into staking contract was used.";
+      row.validationNotes = "Deposited into the staking contract but stakeInfo did not return a registered staker; latest Transfer into staking contract was used for depositor address.";
       resolved += 1;
     }
     warnings.push(`Transfer fallback resolved ${resolved} of ${missingOwnerRows.length} token owner${missingOwnerRows.length === 1 ? "" : "s"} missing from stakeInfo.`);
@@ -1287,7 +1398,7 @@ async function generateSnapshots(input?: {
   for (const row of stakingRows) {
     for (const tokenId of row.tokenIds || []) {
       const tokenIdString = String(tokenId);
-      addAscendedS1Row(tokenIdString, row.wallet, ascendedTokenOwners.has(tokenIdString) ? indexedTokenSource : "staking-wallet-read");
+      addAscendedS1Row(tokenIdString, row.wallet, tokenMetaById.get(tokenIdString)?.source || (ascendedTokenOwners.has(tokenIdString) ? indexedTokenSource : "staking-wallet-read"));
     }
   }
   for (const [tokenId, wallet] of ascendedTokenOwners.entries()) {
@@ -1297,14 +1408,17 @@ async function generateSnapshots(input?: {
   const ascendedS1 = Array.from(ascendedS1ByToken.values())
     .sort((a, b) => compareNumericStrings(String(a.tokenId || "0"), String(b.tokenId || "0")));
   const unregisteredDeposits = ascendedS1
-    .filter((row) => String(row.wallet || "") === "unregistered" || String(row.tokenIdSource || "").includes("unregistered"))
+    .filter((row) => String(row.wallet || "") === "unregistered" || String(row.tokenIdSource || "").includes("unregistered") || String(row.tokenIdSource || "") === "transfer-log-fallback")
     .map((row) => ({
       tokenId: row.tokenId,
-      wallet: "unregistered",
+      wallet: row.wallet,
+      depositorWallet: row.wallet === "unregistered" ? "" : row.wallet,
       currentOwner: stakingAddress.toLowerCase(),
       needsRegistration: "yes",
       recoveryFunction: "stakeDeposited(uint256[])",
       tokenIdSource: row.tokenIdSource,
+      depositTxHash: row.depositTxHash || "",
+      depositBlock: row.depositBlock || "",
       nftContract: nftAddress.toLowerCase(),
       stakingContract: stakingAddress.toLowerCase(),
       dataSourceUsed: "S1 ownerOf(tokenId)+Ascension stakeInfo(tokenId)",

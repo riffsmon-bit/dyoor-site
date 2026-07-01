@@ -190,7 +190,7 @@ async function scanTransferEvidence(provider, nftAddress, stakingAddress, startB
   return { depositsByToken, logsScanned };
 }
 
-async function scanAlchemyTransferEvidence(rpcUrl, nftAddress, stakingAddress, startBlock) {
+async function scanAlchemyTransferEvidence(rpcUrl, nftAddress, stakingAddress, startBlock, latestBlock) {
   const depositsByToken = new Map();
   let pageKey = "";
   let requestCount = 0;
@@ -199,7 +199,7 @@ async function scanAlchemyTransferEvidence(rpcUrl, nftAddress, stakingAddress, s
   do {
     const params = {
       fromBlock: ethers.toQuantity(startBlock),
-      toBlock: "latest",
+      toBlock: ethers.toQuantity(latestBlock),
       toAddress: stakingAddress,
       contractAddresses: [nftAddress],
       category: ["erc721"],
@@ -314,7 +314,8 @@ async function main() {
   const nft = new ethers.Contract(nftAddress, ERC721_ABI, provider);
   const staking = new ethers.Contract(stakingAddress, STAKING_ABI, provider);
   const latestBlock = await retry("latest block", () => provider.getBlockNumber(), 4);
-  const stakingContractBalance = Number(await retry("S1 balanceOf staking contract", () => nft.balanceOf(stakingAddress), 4));
+  const blockTag = latestBlock;
+  const stakingContractBalance = Number(await retry("S1 balanceOf staking contract", () => nft.balanceOf(stakingAddress, { blockTag }), 4));
 
   console.log("DYOOR Ascended S1 snapshot");
   console.log("RPC:", rpcUrl.replace(/\/v2\/.+$/, "/v2/***"));
@@ -331,7 +332,7 @@ async function main() {
 
   await mapWithConcurrency(tokenIds, concurrency, async (tokenId, index) => {
     try {
-      const owner = normalizeAddress(await retry(`ownerOf #${tokenId}`, () => nft.ownerOf(BigInt(tokenId)), 4));
+      const owner = normalizeAddress(await retry(`ownerOf #${tokenId}`, () => nft.ownerOf(BigInt(tokenId), { blockTag }), 4));
       if (owner === normalizeAddress(stakingAddress)) stakedTokenIds.push(tokenId);
     } catch (error) {
       ownerFailures.push({ tokenId, error: errorText(error) });
@@ -367,7 +368,7 @@ async function main() {
     let validationNotes = "";
 
     try {
-      const info = await retry(`stakeInfo #${tokenId}`, () => staking.stakeInfo(BigInt(tokenId)), 4);
+      const info = await retry(`stakeInfo #${tokenId}`, () => staking.stakeInfo(BigInt(tokenId), { blockTag }), 4);
       wallet = normalizeAddress(info?.owner ?? info?.[0]);
       stakedAtRaw = String(info?.stakedAt ?? info?.[1] ?? "");
       if (stakedAtRaw && stakedAtRaw !== "0") stakedAt = new Date(Number(stakedAtRaw) * 1000).toISOString();
@@ -413,7 +414,7 @@ async function main() {
   if (useTransferFallback && unresolvedBeforeFallback.length && !depositsByToken.size && isAlchemyRpc(rpcUrl)) {
     console.log("");
     console.log(`Resolving ${unresolvedBeforeFallback.length} token(s) with Alchemy indexed transfer fallback...`);
-    const evidence = await scanAlchemyTransferEvidence(rpcUrl, nftAddress, stakingAddress, startBlock).catch((error) => {
+    const evidence = await scanAlchemyTransferEvidence(rpcUrl, nftAddress, stakingAddress, startBlock, latestBlock).catch((error) => {
       warnings.push(`Alchemy transfer fallback failed: ${errorText(error)}`);
       return null;
     });
@@ -423,7 +424,7 @@ async function main() {
     }
   }
 
-  if (useRawLogFallback && unresolvedBeforeFallback.length && !depositsByToken.size) {
+  if (unresolvedBeforeFallback.length && !depositsByToken.size) {
     console.log("");
     console.log(`Scanning Transfer logs once to resolve ${unresolvedBeforeFallback.length} token(s) missing stakeInfo wallets...`);
     const evidence = await scanTransferEvidence(provider, nftAddress, stakingAddress, startBlock, latestBlock, logChunkSize);
@@ -438,8 +439,8 @@ async function main() {
       if (transferEvidence?.fallbackWallet) {
         row.wallet = transferEvidence.fallbackWallet;
         row.source = "transfer-log-fallback";
-        row.validationStatus = "verified";
-        row.validationNotes = "stakeInfo did not return a wallet; latest Transfer into staking contract was used.";
+        row.validationStatus = "warning";
+        row.validationNotes = "Deposited into the staking contract but stakeInfo did not return a registered staker; latest Transfer into staking contract was used for depositor address.";
         row.depositTxHash = transferEvidence.depositTxHash;
         row.depositBlock = transferEvidence.depositBlock;
         resolved += 1;
@@ -450,6 +451,21 @@ async function main() {
 
   const walletRows = groupTokens(tokenRows);
   const unresolvedAfterFallback = tokenRows.filter((row) => !row.wallet);
+  const pendingRegistrationRows = tokenRows
+    .filter((row) => row.source === "transfer-log-fallback" || row.source === "unresolved")
+    .sort((a, b) => compareTokenIds(a.tokenId, b.tokenId))
+    .map((row) => ({
+      tokenId: row.tokenId,
+      depositorWallet: row.wallet || "",
+      currentOwner: stakingAddress.toLowerCase(),
+      needsRegistration: "yes",
+      recoveryFunction: "stakeDeposited(uint256[])",
+      dataSource: row.source,
+      depositTxHash: row.depositTxHash || "",
+      depositBlock: row.depositBlock || "",
+      validationStatus: row.validationStatus,
+      validationNotes: row.validationNotes,
+    }));
   if (ownerFailures.length) warnings.push(`${ownerFailures.length} ownerOf read(s) failed.`);
   if (stakeInfoFailures.length && unresolvedAfterFallback.length) warnings.push(`${stakeInfoFailures.length} stakeInfo read(s) failed.`);
   if (stakedTokenIds.length !== stakingContractBalance) {
@@ -462,6 +478,7 @@ async function main() {
   const stamp = timestampForFile(new Date(generatedAt));
   const walletCsvPath = path.join(outDir, `ascended-s1-wallets-${stamp}.csv`);
   const tokenCsvPath = path.join(outDir, `ascended-s1-tokens-${stamp}.csv`);
+  const pendingCsvPath = path.join(outDir, `ascended-s1-pending-registration-${stamp}.csv`);
   const jsonPath = path.join(outDir, `ascended-s1-snapshot-${stamp}.json`);
 
   fs.mkdirSync(outDir, { recursive: true });
@@ -487,8 +504,22 @@ async function main() {
     { key: "validationNotes", label: "validation_notes" },
   ]);
 
+  const pendingCsv = toCsv(pendingRegistrationRows, [
+    { key: "tokenId", label: "token_id" },
+    { key: "depositorWallet", label: "depositor_wallet" },
+    { key: "currentOwner", label: "current_owner" },
+    { key: "needsRegistration", label: "needs_registration" },
+    { key: "recoveryFunction", label: "recovery_function" },
+    { key: "dataSource", label: "data_source" },
+    { key: "depositTxHash", label: "deposit_tx_hash" },
+    { key: "depositBlock", label: "deposit_block" },
+    { key: "validationStatus", label: "validation_status" },
+    { key: "validationNotes", label: "validation_notes" },
+  ]);
+
   fs.writeFileSync(walletCsvPath, walletCsv, "utf8");
   fs.writeFileSync(tokenCsvPath, tokenCsv, "utf8");
+  fs.writeFileSync(pendingCsvPath, pendingCsv, "utf8");
   fs.writeFileSync(jsonPath, JSON.stringify({
     generatedAt,
     verified,
@@ -505,6 +536,7 @@ async function main() {
     warnings,
     ownerFailures,
     stakeInfoFailures,
+    pendingRegistration: pendingRegistrationRows,
     wallets: walletRows,
     tokens: tokenRows.sort((a, b) => compareTokenIds(a.tokenId, b.tokenId)),
   }, null, 2) + "\n", "utf8");
@@ -515,12 +547,14 @@ async function main() {
   console.log("Wallets:", walletRows.length);
   console.log("Staked tokens:", stakedTokenIds.length);
   console.log("S1 balanceOf(staking):", stakingContractBalance);
+  console.log("Pending registration:", pendingRegistrationRows.length);
   if (warnings.length) {
     console.log("Warnings:");
     for (const warning of warnings) console.log(`- ${warning}`);
   }
   console.log("Wallet CSV:", walletCsvPath);
   console.log("Token CSV:", tokenCsvPath);
+  console.log("Pending registration CSV:", pendingCsvPath);
   console.log("JSON:", jsonPath);
 
   if (!verified && !hasFlag("allow-unverified")) {
