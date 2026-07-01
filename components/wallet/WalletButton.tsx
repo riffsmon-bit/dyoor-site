@@ -71,7 +71,6 @@ export function WalletButton() {
   return (
     <div className="relative shrink-0" ref={menuRef}>
       <button
-        id="globalWalletBtn"
         aria-expanded={connected && !wrongNetwork ? menuOpen : undefined}
         aria-haspopup={connected && !wrongNetwork ? "menu" : undefined}
         className={`max-w-[9.5rem] shrink-0 rounded border px-3 py-3 text-xs font-black uppercase transition sm:max-w-[12rem] sm:px-4 md:max-w-none ${

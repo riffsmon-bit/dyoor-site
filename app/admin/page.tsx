@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { formatUnits, parseUnits } from "viem";
 import { Alert, Button, Card, EmptyState, LoadingSkeleton, PageShell, SectionHeader, StatCard } from "@/components/ui/DyoorUi";
+import { WalletButton } from "@/components/wallet/WalletButton";
 import { adminMessage } from "@/lib/adminMessage";
 import { MONAD_CHAIN_HEX } from "@/lib/monad";
 import { useWalletService } from "@/providers/WalletServiceProvider";
@@ -64,6 +65,7 @@ type Snapshot = {
     totalStaked: number;
     totalAscendedS1?: number;
     ascendedS1Wallets?: number;
+    unregisteredDeposits?: number;
     totalBlueprintsSaved: number;
     totalBlueprintSourceRecords?: number;
     walletsWithBoth?: number;
@@ -73,6 +75,7 @@ type Snapshot = {
   };
   staking: Array<Record<string, any>>;
   ascendedS1?: Array<Record<string, any>>;
+  unregisteredDeposits?: Array<Record<string, any>>;
   blueprints: Array<Record<string, any>>;
   blueprintVersions?: Array<Record<string, any>>;
   combined: Array<Record<string, any>>;
@@ -256,6 +259,12 @@ function snapshotFileStamp(value?: string) {
   const hh = String(safeDate.getUTCHours()).padStart(2, "0");
   const min = String(safeDate.getUTCMinutes()).padStart(2, "0");
   return `${yyyy}-${mm}-${dd}-${hh}${min}`;
+}
+
+function compactMessages(messages?: string[], max = 4) {
+  const unique = Array.from(new Set((messages || []).filter(Boolean)));
+  if (unique.length <= max) return unique.join(" ");
+  return `${unique.slice(0, max).join(" ")} ${unique.length - max} more warning(s) hidden in the JSON export.`;
 }
 
 function parseWalletList(value: string) {
@@ -480,6 +489,7 @@ export default function AdminPage() {
   const getWalletProviderForStatus = walletService.getProvider;
   const authenticated = walletService.connected;
   const walletAddress = normalizeAddress(walletService.address);
+  const wrongNetwork = walletService.status === "wrong-network";
   const [authorized, setAuthorized] = useState(false);
   const [authStatus, setAuthStatus] = useState("Connect owner wallet.");
   const [loading, setLoading] = useState(false);
@@ -549,8 +559,16 @@ export default function AdminPage() {
       combinedJson: snapshot?.fileNames?.combinedJson || `combined-ascension-snapshot-${fallbackStamp}.json`,
       ascendedCsv: `${filenameBase}-ascended-s1.csv`,
       ascendedJson: `${filenameBase}-ascended-s1.json`,
+      unregisteredCsv: `${filenameBase}-pending-unregistered-deposits.csv`,
+      unregisteredJson: `${filenameBase}-pending-unregistered-deposits.json`,
     };
   }, [filenameBase, snapshot?.fileNames, snapshot?.generatedAt]);
+  const unregisteredDepositRows = useMemo(() => {
+    if (snapshot?.unregisteredDeposits?.length) return snapshot.unregisteredDeposits;
+    return (snapshot?.ascendedS1 || []).filter((row) => (
+      String(row.wallet || "") === "unregistered" || String(row.tokenIdSource || "").includes("unregistered")
+    ));
+  }, [snapshot]);
   const parsedAirdropRecipients = useMemo(() => parseWalletList(airdropRecipientsInput), [airdropRecipientsInput]);
   const airdropRecipients = parsedAirdropRecipients.valid;
   const airdropAmountRaw = useMemo(() => parseEnergyAmount(airdropAmount), [airdropAmount]);
@@ -700,11 +718,22 @@ export default function AdminPage() {
   async function connectOwnerWallet() {
     setError("");
     setSnapshotProgress("");
-    setAuthStatus(walletAddress && !authorized ? "Switch to the configured owner wallet." : "Opening wallet connection.");
+    setAuthStatus(walletAddress && !authorized ? "Switch to the configured owner wallet." : wrongNetwork ? "Switching wallet to Monad." : "Opening wallet connection.");
     try {
+      if (wrongNetwork) {
+        await walletService.switchChain();
+        setAuthStatus("Wallet network switched. Verifying owner access.");
+        return;
+      }
+
       if (walletAddress && !authorized) {
+        const provider = await walletService.getProvider().catch(() => null) as Eip1193Provider | null;
+        if (provider) {
+          await provider.request({ method: "wallet_requestPermissions", params: [{ eth_accounts: {} }] }).catch(() => undefined);
+          await provider.request({ method: "eth_requestAccounts" }).catch(() => undefined);
+        }
         await walletService.disconnect().catch(() => {});
-        await sleep(100);
+        await sleep(150);
       }
       await walletService.connect();
     } catch (err) {
@@ -721,6 +750,8 @@ export default function AdminPage() {
 
   const snapshotPrimaryLabel = !authenticated
     ? "Connect Owner Wallet"
+    : wrongNetwork
+      ? "Switch to Monad"
     : !authorized
       ? "Switch Owner Wallet"
     : loading
@@ -872,7 +903,12 @@ export default function AdminPage() {
           eyebrow="Owner Command"
           title="DYOOR Admin Command Center"
           copy="Owner-only command surface for protected snapshots and internal Energy operations. Every action requires the configured owner wallet, a fresh signature, timestamp, and nonce."
-          actions={<Button variant="primary" onClick={runSnapshotPrimaryAction} disabled={loading}>{loading ? "Working..." : snapshotPrimaryLabel}</Button>}
+          actions={(
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+              <WalletButton />
+              <Button variant="primary" onClick={runSnapshotPrimaryAction} disabled={loading}>{loading ? "Working..." : snapshotPrimaryLabel}</Button>
+            </div>
+          )}
         />
         <Alert tone={!walletAddress ? "warning" : authorized ? "success" : "danger"}>{authStatus}</Alert>
       </Card>
@@ -923,7 +959,7 @@ export default function AdminPage() {
       ) : null}
       {snapshot?.warnings?.length ? (
         <Alert className="mb-6" tone="warning">
-          {snapshot.warnings.join(" ")}
+          {compactMessages(snapshot.warnings)}
         </Alert>
       ) : null}
       {loading && <Card className="mb-6 p-5"><LoadingSkeleton lines={5} /></Card>}
@@ -955,6 +991,12 @@ export default function AdminPage() {
             <p className="text-[0.66rem] font-black uppercase tracking-[0.14em] text-white/40">Wallet State</p>
             <p className="mt-2 text-sm font-black uppercase text-white">{walletService.status}</p>
           </div>
+          <div className="rounded border border-dyoor-purple/25 bg-black/30 p-3">
+            <p className="text-[0.66rem] font-black uppercase tracking-[0.14em] text-white/40">Wallet Control</p>
+            <div className="mt-2">
+              <WalletButton />
+            </div>
+          </div>
           <div className={`rounded border p-3 ${currentChainId && currentChainId.toLowerCase() !== MONAD_CHAIN_HEX ? "border-yellow-300/25 bg-yellow-300/10" : "border-dyoor-purple/25 bg-black/30"}`}>
             <p className="text-[0.66rem] font-black uppercase tracking-[0.14em] text-white/40">Current Network</p>
             <p className="mt-2 text-sm font-black uppercase text-white">{currentChainId ? currentChainId.toLowerCase() === MONAD_CHAIN_HEX ? "Monad" : currentChainId : "-"}</p>
@@ -978,6 +1020,7 @@ export default function AdminPage() {
         <StatCard label="Total Wallets Found" value={snapshot?.totals.walletsFound ?? "-"} />
         <StatCard label="Total Staked" value={snapshot?.totals.totalStaked ?? "-"} />
         <StatCard label="Ascended S1 NFTs" value={snapshot?.totals.totalAscendedS1 ?? "-"} />
+        <StatCard label="Pending Deposits" value={snapshot ? snapshot.totals.unregisteredDeposits ?? unregisteredDepositRows.length : "-"} />
         <StatCard label="Blueprints Saved" value={snapshot?.totals.totalBlueprintsSaved ?? "-"} />
         <StatCard label="Both Staked + Blueprint" value={snapshot?.totals.walletsWithBoth ?? "-"} />
         <StatCard label="Staked No Blueprint" value={snapshot?.totals.walletsStakedNoBlueprint ?? "-"} />
@@ -1076,6 +1119,16 @@ export default function AdminPage() {
           jsonPayload={snapshot ? { generatedAt: snapshot.generatedAt, totals: snapshot.totals, validation: snapshot.validation, dataSources: snapshot.dataSources, rows: snapshot.ascendedS1 || [] } : undefined}
           validationStatus={snapshot?.validation?.status}
           dataSource={snapshot?.dataSources?.stakingAuthority}
+        />
+        <SnapshotSection
+          title="Pending / Unregistered Deposits"
+          description="S1 NFTs currently held by the Ascension staking contract where stakeInfo does not return a registered staker. These are the old recovery-scan results."
+          rows={unregisteredDepositRows}
+          csvFilename={snapshotFiles.unregisteredCsv}
+          jsonFilename={snapshotFiles.unregisteredJson}
+          jsonPayload={snapshot ? { generatedAt: snapshot.generatedAt, totals: snapshot.totals, validation: snapshot.validation, dataSources: snapshot.dataSources, rows: unregisteredDepositRows } : undefined}
+          validationStatus={unregisteredDepositRows.length ? "warning" : snapshot?.validation?.status}
+          dataSource="S1 ownerOf(tokenId) + Ascension stakeInfo(tokenId)"
         />
         <SnapshotSection
           title="Blueprint Snapshot"

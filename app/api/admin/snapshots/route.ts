@@ -27,6 +27,7 @@ const DEFAULT_RPC_TIMEOUT_MS = 15_000;
 const DEFAULT_ENERGY_RPC_TIMEOUT_MS = 1_500;
 const DEFAULT_FINALIZE_CONCURRENCY = 4;
 const DEFAULT_INDEXED_FINALIZE_CONCURRENCY = 16;
+const DEFAULT_TRANSFER_FALLBACK_BUDGET_MS = 25_000;
 
 const TRAIT_EXPORT_ORDER = [
   ["background", "Background"],
@@ -87,6 +88,16 @@ type StakeTokenMeta = {
   stakedAt: string;
   source: string;
   validationStatus: "verified" | "warning";
+  depositTxHash?: string;
+  depositBlock?: number;
+  validationNotes?: string;
+};
+
+type TransferEvidence = {
+  tokenId: string;
+  fallbackWallet: string;
+  depositTxHash: string;
+  depositBlock: number;
 };
 
 function readEnv(...names: string[]) {
@@ -504,6 +515,70 @@ async function discoverStakingWalletBatch(
       limited,
     },
   };
+}
+
+async function scanTransferEvidence(
+  provider: ethers.JsonRpcProvider,
+  stakingAddress: string,
+  nftAddress: string,
+  tokenFilter?: Set<string>,
+) {
+  const depositsByToken = new Map<string, TransferEvidence>();
+  const warnings: string[] = [];
+  const iface = new ethers.Interface(erc721Abi);
+  const transferTopic = ethers.id("Transfer(address,address,uint256)");
+  const stakingTopic = ethers.zeroPadValue(stakingAddress, 32);
+  const latest = await safeContract(async () => await provider.getBlockNumber(), 0);
+  if (!latest) {
+    return { depositsByToken, logsScanned: 0, warnings: ["Transfer fallback could not read the latest block."] };
+  }
+
+  const start = Math.min(latest, readWholeNumberEnv(["ASCENSION_START_BLOCK", "NEXT_PUBLIC_DYOOR_S1_START_BLOCK"], DEFAULT_ASCENSION_START_BLOCK, true));
+  const chunk = readWholeNumberEnv(["ASCENSION_LOG_CHUNK_SIZE"], DEFAULT_ASCENSION_LOG_CHUNK_SIZE);
+  const budgetMs = readWholeNumberEnv(["ASCENSION_SNAPSHOT_TRANSFER_FALLBACK_BUDGET_MS"], DEFAULT_TRANSFER_FALLBACK_BUDGET_MS);
+  const deadline = Date.now() + budgetMs;
+  let logsScanned = 0;
+  let lastScannedBlock = start > 0 ? start - 1 : 0;
+  const stats = { failedRanges: 0, timedOut: false };
+
+  for (let fromBlock = start; fromBlock <= latest; fromBlock += chunk) {
+    if (Date.now() >= deadline) {
+      stats.timedOut = true;
+      break;
+    }
+    const toBlock = Math.min(fromBlock + chunk - 1, latest);
+    const logs = await getLogsWithSplit(provider, {
+      address: nftAddress,
+      topics: [transferTopic, null, stakingTopic],
+    }, fromBlock, toBlock, deadline, stats);
+    lastScannedBlock = toBlock;
+
+    for (const log of logs) {
+      try {
+        const parsed = iface.parseLog(log);
+        const tokenId = parsed?.args?.tokenId?.toString();
+        if (!tokenId || (tokenFilter && !tokenFilter.has(tokenId))) continue;
+        const fallbackWallet = normalizeAddress(parsed?.args?.from);
+        if (!fallbackWallet) continue;
+        depositsByToken.set(tokenId, {
+          tokenId,
+          fallbackWallet,
+          depositTxHash: String(log.transactionHash || "").toLowerCase(),
+          depositBlock: Number(log.blockNumber || 0),
+        });
+        logsScanned += 1;
+      } catch {}
+    }
+  }
+
+  if (stats.failedRanges > 0) {
+    warnings.push(`${stats.failedRanges} transfer fallback range${stats.failedRanges === 1 ? "" : "s"} could not be read from the RPC.`);
+  }
+  if (stats.timedOut) {
+    warnings.push(`Transfer fallback stopped at block ${lastScannedBlock.toLocaleString()} of ${latest.toLocaleString()}. Increase ASCENSION_SNAPSHOT_TRANSFER_FALLBACK_BUDGET_MS if unresolved token owners remain.`);
+  }
+
+  return { depositsByToken, logsScanned, warnings };
 }
 
 function goldskyEventBlock(event: GoldskyStakeEvent) {
@@ -1127,6 +1202,26 @@ async function generateSnapshots(input?: {
     return meta;
   });
 
+  const missingOwnerRows = activeTokenRows.filter((row): row is StakeTokenMeta => Boolean(row && !row.wallet));
+  if (missingOwnerRows.length) {
+    const fallback = await scanTransferEvidence(provider, stakingAddress, nftAddress, new Set(missingOwnerRows.map((row) => row.tokenId)));
+    warnings.push(...fallback.warnings);
+    let resolved = 0;
+    for (const row of missingOwnerRows) {
+      const evidence = fallback.depositsByToken.get(row.tokenId);
+      if (!evidence?.fallbackWallet) continue;
+      row.wallet = evidence.fallbackWallet;
+      row.source = "transfer-log-fallback";
+      row.validationStatus = "verified";
+      row.depositTxHash = evidence.depositTxHash;
+      row.depositBlock = evidence.depositBlock;
+      row.validationNotes = "stakeInfo did not return a wallet; latest Transfer into staking contract was used.";
+      resolved += 1;
+    }
+    warnings.push(`Transfer fallback resolved ${resolved} of ${missingOwnerRows.length} token owner${missingOwnerRows.length === 1 ? "" : "s"} missing from stakeInfo.`);
+  }
+
+  const unregisteredTokenIds: string[] = [];
   for (const row of activeTokenRows) {
     if (!row) continue;
     tokenMetaById.set(row.tokenId, row);
@@ -1134,8 +1229,13 @@ async function generateSnapshots(input?: {
     if (row.wallet) {
       walletSet.add(row.wallet);
     } else {
-      warnings.push(`Token #${row.tokenId} is held by the Ascension contract but stakeInfo did not return a staker.`);
+      unregisteredTokenIds.push(row.tokenId);
     }
+  }
+  if (unregisteredTokenIds.length) {
+    const preview = unregisteredTokenIds.slice(0, 20).map((tokenId) => `#${tokenId}`).join(", ");
+    const hiddenCount = unregisteredTokenIds.length > 20 ? `, plus ${unregisteredTokenIds.length - 20} more` : "";
+    warnings.push(`${unregisteredTokenIds.length} currently deposited S1 token(s) are not registered in stakeInfo and are exported under Pending / Unregistered Deposits: ${preview}${hiddenCount}.`);
   }
 
   const indexedTokenIdsByWallet = new Map<string, string[]>();
@@ -1164,6 +1264,8 @@ async function generateSnapshots(input?: {
       tokenIdSource: source,
       stakedAt: tokenMetaById.get(tokenId)?.stakedAt || "",
       stakedAtRaw: tokenMetaById.get(tokenId)?.stakedAtRaw || "",
+      depositTxHash: tokenMetaById.get(tokenId)?.depositTxHash || "",
+      depositBlock: tokenMetaById.get(tokenId)?.depositBlock || "",
       stakedCountForWallet: stake?.stakedCount || "",
       pendingEnergy: stake?.pendingEnergy || "0",
       pendingEnergyRaw: stake?.pendingEnergyRaw || "0",
@@ -1177,6 +1279,7 @@ async function generateSnapshots(input?: {
       stakingContract: stakingAddress.toLowerCase(),
       dataSourceUsed: source,
       validationStatus: wallet ? tokenMetaById.get(tokenId)?.validationStatus || "verified" : "warning",
+      validationNotes: tokenMetaById.get(tokenId)?.validationNotes || "",
       snapshotTimestamp: timestamp,
     });
   }
@@ -1193,6 +1296,21 @@ async function generateSnapshots(input?: {
 
   const ascendedS1 = Array.from(ascendedS1ByToken.values())
     .sort((a, b) => compareNumericStrings(String(a.tokenId || "0"), String(b.tokenId || "0")));
+  const unregisteredDeposits = ascendedS1
+    .filter((row) => String(row.wallet || "") === "unregistered" || String(row.tokenIdSource || "").includes("unregistered"))
+    .map((row) => ({
+      tokenId: row.tokenId,
+      wallet: "unregistered",
+      currentOwner: stakingAddress.toLowerCase(),
+      needsRegistration: "yes",
+      recoveryFunction: "stakeDeposited(uint256[])",
+      tokenIdSource: row.tokenIdSource,
+      nftContract: nftAddress.toLowerCase(),
+      stakingContract: stakingAddress.toLowerCase(),
+      dataSourceUsed: "S1 ownerOf(tokenId)+Ascension stakeInfo(tokenId)",
+      validationStatus: "warning",
+      snapshotTimestamp: timestamp,
+    }));
   const blueprintByWallet = new Map(blueprint.map((row) => [String(row.wallet), row]));
   const combined = Array.from(new Set([...stakingByWallet.keys(), ...blueprintByWallet.keys()])).sort().map((wallet) => {
     const stake = stakingByWallet.get(wallet);
@@ -1285,7 +1403,9 @@ async function generateSnapshots(input?: {
       scope: "staking",
       label: "All active tokens have registered stakers",
       status: "warning",
-      detail: "One or more currently staked token IDs required indexed-owner fallback or remain unregistered.",
+      detail: unregisteredDeposits.length
+        ? `${unregisteredDeposits.length} currently deposited token ID(s) are missing stakeInfo registration and are exported separately.`
+        : "One or more currently staked token IDs required indexed-owner fallback.",
     });
   }
   const validation = validationSummary(validationChecks);
@@ -1294,6 +1414,7 @@ async function generateSnapshots(input?: {
     totalStaked: Math.max(stakingRows.reduce((sum, row) => sum + Number(row.stakedCount || 0), 0), ascendedS1.length),
     totalAscendedS1: ascendedS1.length,
     ascendedS1Wallets: new Set(ascendedS1.map((row) => String(row.wallet)).filter((wallet) => wallet.startsWith("0x"))).size,
+    unregisteredDeposits: unregisteredDeposits.length,
     totalBlueprintsSaved: blueprint.length,
     totalBlueprintSourceRecords: blueprintSnapshot.rawCount,
     walletsWithBoth: combined.filter((row) => row.staked === "yes" && row.savedBlueprint === "yes").length,
@@ -1326,6 +1447,7 @@ async function generateSnapshots(input?: {
     totals,
     staking: stakingRows,
     ascendedS1,
+    unregisteredDeposits,
     blueprints: blueprint,
     blueprintVersions: blueprintSnapshot.versions,
     combined,
