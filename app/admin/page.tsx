@@ -14,6 +14,30 @@ type Eip1193Provider = {
 type Snapshot = {
   ok?: boolean;
   generatedAt: string;
+  verified?: boolean;
+  validation?: {
+    verified?: boolean;
+    status?: "verified" | "warning" | "failed";
+    checks?: Array<{ scope: string; label: string; status: string; detail: string }>;
+    warnings?: string[];
+    errors?: string[];
+  };
+  contracts?: {
+    chainId?: number;
+    s1?: string;
+    ascensionStaking?: string;
+    energyBank?: string;
+  };
+  dataSources?: Record<string, string>;
+  fileNames?: {
+    stakingCsv?: string;
+    stakingJson?: string;
+    blueprintCsv?: string;
+    blueprintJson?: string;
+    combinedCsv?: string;
+    combinedJson?: string;
+  };
+  exportHistory?: Array<Record<string, any>>;
   discovery?: {
     scanMode?: string;
     startBlock?: number;
@@ -31,6 +55,9 @@ type Snapshot = {
     batchTokens?: number;
     failedTokenReads?: number;
     stakingContractBalance?: number;
+    startIndex?: number;
+    lastScannedIndex?: number;
+    maxIndex?: number;
   };
   totals: {
     walletsFound: number;
@@ -38,10 +65,16 @@ type Snapshot = {
     totalAscendedS1?: number;
     ascendedS1Wallets?: number;
     totalBlueprintsSaved: number;
+    totalBlueprintSourceRecords?: number;
+    walletsWithBoth?: number;
+    walletsStakedNoBlueprint?: number;
+    walletsBlueprintNoStake?: number;
+    stakingContractBalance?: number;
   };
   staking: Array<Record<string, any>>;
   ascendedS1?: Array<Record<string, any>>;
   blueprints: Array<Record<string, any>>;
+  blueprintVersions?: Array<Record<string, any>>;
   combined: Array<Record<string, any>>;
   warnings?: string[];
 };
@@ -53,6 +86,8 @@ type SnapshotCursor = {
   scanMode?: string;
   nextTokenId?: number;
   maxTokenId?: number;
+  nextIndex?: number;
+  maxIndex?: number;
   batchTokens?: number;
 } | null;
 
@@ -69,9 +104,6 @@ type SnapshotDiscoverResponse = {
 };
 
 type SnapshotSession = {
-  timestamp: string;
-  nonce: string;
-  signature: unknown;
   cursor?: SnapshotCursor;
   discoveredWallets: string[];
   discoveredTokenIds: string[];
@@ -79,6 +111,18 @@ type SnapshotSession = {
   discovery?: Snapshot["discovery"];
   warnings: string[];
   complete: boolean;
+};
+
+type AdminBackendStatus = {
+  backendStatus?: string;
+  snapshotSystemStatus?: string;
+  chainId?: number;
+  contracts?: {
+    s1?: string;
+    ascensionStaking?: string;
+    energyBank?: string;
+  };
+  dataSources?: Record<string, string>;
 };
 
 type AirdropResult = {
@@ -184,7 +228,7 @@ function toCsv(rows: Array<Record<string, any>>) {
     Object.keys(row).forEach((key) => set.add(key));
     return set;
   }, new Set<string>()));
-  const esc = (value: unknown) => `"${String(Array.isArray(value) ? value.join(" ") : value ?? "").replaceAll("\"", "\"\"")}"`;
+  const esc = (value: unknown) => `"${String(Array.isArray(value) ? value.join(", ") : value ?? "").replaceAll("\"", "\"\"")}"`;
   return [headers.join(","), ...rows.map((row) => headers.map((header) => esc(row[header])).join(","))].join("\n");
 }
 
@@ -201,6 +245,17 @@ function downloadFile(filename: string, contents: string, type: string) {
 
 function stamp(value?: string) {
   return (value || new Date().toISOString()).replace(/[:.]/g, "-");
+}
+
+function snapshotFileStamp(value?: string) {
+  const date = value ? new Date(value) : new Date();
+  const safeDate = Number.isNaN(date.getTime()) ? new Date() : date;
+  const yyyy = safeDate.getUTCFullYear();
+  const mm = String(safeDate.getUTCMonth() + 1).padStart(2, "0");
+  const dd = String(safeDate.getUTCDate()).padStart(2, "0");
+  const hh = String(safeDate.getUTCHours()).padStart(2, "0");
+  const min = String(safeDate.getUTCMinutes()).padStart(2, "0");
+  return `${yyyy}-${mm}-${dd}-${hh}${min}`;
 }
 
 function parseWalletList(value: string) {
@@ -311,6 +366,9 @@ function mergeSnapshotSession(session: SnapshotSession, data: SnapshotDiscoverRe
     batchTokens: page.batchTokens ?? session.discovery?.batchTokens,
     failedTokenReads: (session.discovery?.failedTokenReads || 0) + (page.failedTokenReads || 0),
     stakingContractBalance: page.stakingContractBalance ?? session.discovery?.stakingContractBalance,
+    startIndex: page.startIndex ?? session.discovery?.startIndex,
+    lastScannedIndex: page.lastScannedIndex ?? session.discovery?.lastScannedIndex,
+    maxIndex: page.maxIndex ?? session.discovery?.maxIndex,
   };
 
   return {
@@ -328,6 +386,16 @@ function mergeSnapshotSession(session: SnapshotSession, data: SnapshotDiscoverRe
 function snapshotSessionLabel(session: SnapshotSession) {
   const discovery = session.discovery;
   if (!discovery) return "Snapshot scan signed. Scan the first range.";
+  if (discovery.scanMode === "owner-enumerable") {
+    const scannedCount = typeof discovery.lastScannedIndex === "number" ? discovery.lastScannedIndex + 1 : 0;
+    const totalIndexes = discovery.stakingContractBalance || (typeof discovery.maxIndex === "number" ? discovery.maxIndex + 1 : 0);
+    const stakedLabel = totalIndexes
+      ? `${session.discoveredTokenIds.length} / ${totalIndexes.toLocaleString()} staked token${totalIndexes === 1 ? "" : "s"}`
+      : `${session.discoveredTokenIds.length} staked token${session.discoveredTokenIds.length === 1 ? "" : "s"}`;
+    return session.complete
+      ? `Exact staking-contract token index scan complete: ${scannedCount.toLocaleString()} / ${totalIndexes.toLocaleString()}. Found ${stakedLabel}.`
+      : `Exact staking-contract token index scan: ${scannedCount.toLocaleString()} / ${totalIndexes.toLocaleString()}. Found ${stakedLabel}.`;
+  }
   if (discovery.scanMode === "ownerOf") {
     const tokenLabel = discovery.maxTokenId
       ? `${(discovery.lastScannedTokenId || 0).toLocaleString()} / ${discovery.maxTokenId.toLocaleString()}`
@@ -358,12 +426,20 @@ function SnapshotSection({
   rows,
   title,
   description,
-  filename,
+  csvFilename,
+  jsonFilename,
+  jsonPayload,
+  validationStatus,
+  dataSource,
 }: {
   rows: Array<Record<string, any>>;
   title: string;
   description: string;
-  filename: string;
+  csvFilename: string;
+  jsonFilename: string;
+  jsonPayload?: unknown;
+  validationStatus?: string;
+  dataSource?: string;
 }) {
   const [query, setQuery] = useState("");
   const filteredRows = useMemo(() => {
@@ -381,9 +457,13 @@ function SnapshotSection({
           <p className="mt-2 max-w-2xl text-sm font-semibold leading-6 text-white/60">{description}</p>
         </div>
         <div className="flex flex-wrap gap-2">
-          <Button variant="secondary" disabled={!filteredRows.length} onClick={() => downloadFile(`${filename}.csv`, toCsv(filteredRows), "text/csv")}>Download CSV</Button>
-          <Button variant="ghost" disabled={!filteredRows.length} onClick={() => downloadFile(`${filename}.json`, JSON.stringify(filteredRows, null, 2), "application/json")}>Download JSON</Button>
+          <Button variant="secondary" disabled={!filteredRows.length} onClick={() => downloadFile(csvFilename, toCsv(filteredRows), "text/csv")}>Download CSV</Button>
+          <Button variant="ghost" disabled={!filteredRows.length} onClick={() => downloadFile(jsonFilename, JSON.stringify(jsonPayload ?? filteredRows, null, 2), "application/json")}>Download JSON</Button>
         </div>
+      </div>
+      <div className="mt-4 grid gap-2 text-xs font-black uppercase tracking-[0.12em] text-white/45 md:grid-cols-2">
+        <span>Validation: <span className={validationStatus === "verified" ? "text-dyoor-cyan" : validationStatus === "failed" ? "text-red-200" : "text-yellow-100"}>{validationStatus || "pending"}</span></span>
+        <span>Data source: <span className="text-white/70">{dataSource || "pending"}</span></span>
       </div>
       <input
         className="field-control mt-5"
@@ -447,6 +527,7 @@ export default function AdminPage() {
   const [lastVerifiedAt, setLastVerifiedAt] = useState("");
   const [lastSignatureAt, setLastSignatureAt] = useState("");
   const [currentChainId, setCurrentChainId] = useState("");
+  const [adminBackend, setAdminBackend] = useState<AdminBackendStatus | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -459,6 +540,7 @@ export default function AdminPage() {
         setAuthorized(false);
         setAuthStatus("Connect owner wallet.");
         setCurrentChainId("");
+        setAdminBackend(null);
         return;
       }
       const response = await fetch(`/api/admin/snapshots?wallet=${encodeURIComponent(walletAddress)}`, { cache: "no-store" });
@@ -467,6 +549,7 @@ export default function AdminPage() {
       const chainId = provider ? await provider.request({ method: "eth_chainId" }).catch(() => "") : "";
       if (!active) return;
       setAuthorized(Boolean(data.authorized));
+      setAdminBackend(data as AdminBackendStatus);
       setAuthStatus(data.authorized ? "Owner wallet connected. Sign to unlock snapshots." : "Not authorized.");
       setCurrentChainId(String(chainId || ""));
       setLastVerifiedAt(new Date().toISOString());
@@ -478,6 +561,19 @@ export default function AdminPage() {
   }, [walletAddress, walletService]);
 
   const filenameBase = useMemo(() => `dyoor-admin-${stamp(snapshot?.generatedAt)}`, [snapshot?.generatedAt]);
+  const snapshotFiles = useMemo(() => {
+    const fallbackStamp = snapshotFileStamp(snapshot?.generatedAt);
+    return {
+      stakingCsv: snapshot?.fileNames?.stakingCsv || `ascension-staking-snapshot-${fallbackStamp}.csv`,
+      stakingJson: snapshot?.fileNames?.stakingJson || `ascension-staking-snapshot-${fallbackStamp}.json`,
+      blueprintCsv: snapshot?.fileNames?.blueprintCsv || `ascension-blueprint-snapshot-${fallbackStamp}.csv`,
+      blueprintJson: snapshot?.fileNames?.blueprintJson || `ascension-blueprint-snapshot-${fallbackStamp}.json`,
+      combinedCsv: snapshot?.fileNames?.combinedCsv || `combined-ascension-snapshot-${fallbackStamp}.csv`,
+      combinedJson: snapshot?.fileNames?.combinedJson || `combined-ascension-snapshot-${fallbackStamp}.json`,
+      ascendedCsv: `${filenameBase}-ascended-s1.csv`,
+      ascendedJson: `${filenameBase}-ascended-s1.json`,
+    };
+  }, [filenameBase, snapshot?.fileNames, snapshot?.generatedAt]);
   const parsedAirdropRecipients = useMemo(() => parseWalletList(airdropRecipientsInput), [airdropRecipientsInput]);
   const airdropRecipients = parsedAirdropRecipients.valid;
   const airdropAmountRaw = useMemo(() => parseEnergyAmount(airdropAmount), [airdropAmount]);
@@ -543,46 +639,34 @@ export default function AdminPage() {
     return { timestamp, nonce, signature };
   }
 
+  async function postSignedSnapshotRequest(payload: Record<string, unknown>) {
+    setSnapshotProgress("Sign fresh owner authorization for this snapshot action.");
+    const signature = await signAdminAction("snapshot");
+    return postSnapshotRequest({
+      ...payload,
+      ...signature,
+      wallet: walletAddress,
+    }, 1);
+  }
+
   async function createSnapshotSession() {
     if (!walletAddress) {
       await walletService.connect().catch(() => {});
       return null;
     }
     if (!authorized) return null;
-    setSnapshotProgress("Sign owner authorization for snapshot exports.");
-    const timestamp = String(Date.now());
-    const nonce = crypto.randomUUID();
-    const message = adminMessage(walletAddress, timestamp, nonce, "snapshot");
-    const provider = await getProvider();
-    const signature = await provider.request({ method: "personal_sign", params: [message, walletAddress] });
     const session: SnapshotSession = {
-      timestamp,
-      nonce,
-      signature,
       discoveredWallets: [],
       discoveredTokenIds: [],
       tokenOwners: {},
       warnings: [],
       complete: false,
     };
-    setLastSignatureAt(new Date().toISOString());
     setSnapshotSession(session);
     setSnapshot(null);
-    setAuthStatus("Snapshot signed. Scan the first range.");
-    setSnapshotProgress("Snapshot signed. Scan the first range.");
+    setAuthStatus("Snapshot session ready. Scan the first range.");
+    setSnapshotProgress("Snapshot session ready. Scan the first range.");
     return session;
-  }
-
-  async function startSnapshotSession() {
-    setLoading(true);
-    setError("");
-    try {
-      await createSnapshotSession();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Admin snapshot failed.");
-    } finally {
-      setLoading(false);
-    }
   }
 
   async function scanSnapshotRange() {
@@ -592,12 +676,8 @@ export default function AdminPage() {
       const session = snapshotSession || await createSnapshotSession();
       if (!session) return;
       setSnapshotProgress("Scanning next Ascension log range.");
-      const data = await postSnapshotRequest({
+      const data = await postSignedSnapshotRequest({
         mode: "discover",
-        wallet: walletAddress,
-        timestamp: session.timestamp,
-        nonce: session.nonce,
-        signature: session.signature,
         cursor: session.cursor,
         discoveredTokenIds: session.discoveredTokenIds,
       }) as SnapshotDiscoverResponse;
@@ -623,18 +703,14 @@ export default function AdminPage() {
     setSnapshotProgress("Building snapshot export tables.");
     setAuthStatus("Building snapshot export tables.");
     try {
-      const data = await postSnapshotRequest({
+      const data = await postSignedSnapshotRequest({
         mode: "finalize",
-        wallet: walletAddress,
-        timestamp: snapshotSession.timestamp,
-        nonce: snapshotSession.nonce,
-        signature: snapshotSession.signature,
         discoveredWallets: snapshotSession.discoveredWallets,
         discoveredTokenIds: snapshotSession.discoveredTokenIds,
         tokenOwners: snapshotSession.tokenOwners,
         discovery: snapshotSession.discovery,
         warnings: snapshotSession.warnings,
-      }, 3) as Snapshot;
+      }) as Snapshot;
       if (data?.ok === false) throw new Error("Admin snapshot failed.");
       setSnapshot(data);
       setAuthStatus("Snapshot generated.");
@@ -656,7 +732,7 @@ export default function AdminPage() {
 
   function runSnapshotPrimaryAction() {
     if (!authenticated) return void walletService.connect();
-    if (!snapshotSession) return void startSnapshotSession();
+    if (!snapshotSession) return void scanSnapshotRange();
     if (!snapshotSession.complete) return void scanSnapshotRange();
     if (!snapshot) return void finalizeSnapshotSession();
     resetSnapshotSession();
@@ -665,7 +741,7 @@ export default function AdminPage() {
   const snapshotPrimaryLabel = !authenticated
     ? "Connect Owner Wallet"
     : !snapshotSession
-      ? "Start Snapshot"
+      ? "Generate Snapshot"
       : !snapshotSession.complete
         ? "Scan Next Range"
         : !snapshot
@@ -840,17 +916,21 @@ export default function AdminPage() {
             <div className="rounded border border-dyoor-purple/25 bg-black/30 p-3">
               <p className="text-[0.66rem] font-black uppercase tracking-[0.14em] text-white/40">Last Scanned</p>
               <p className="mt-2 text-sm font-black text-white">
-                {snapshotSession.discovery?.scanMode === "ownerOf"
+                {snapshotSession.discovery?.scanMode === "owner-enumerable"
+                  ? typeof snapshotSession.discovery?.lastScannedIndex === "number" ? (snapshotSession.discovery.lastScannedIndex + 1).toLocaleString() : "-"
+                  : snapshotSession.discovery?.scanMode === "ownerOf"
                   ? snapshotSession.discovery?.lastScannedTokenId?.toLocaleString() || "-"
                   : snapshotSession.discovery?.lastScannedBlock?.toLocaleString() || "-"}
               </p>
             </div>
             <div className="rounded border border-dyoor-purple/25 bg-black/30 p-3">
               <p className="text-[0.66rem] font-black uppercase tracking-[0.14em] text-white/40">
-                {snapshotSession.discovery?.scanMode === "ownerOf" ? "Max Token" : "Latest Block"}
+                {snapshotSession.discovery?.scanMode === "owner-enumerable" ? "Staked Total" : snapshotSession.discovery?.scanMode === "ownerOf" ? "Max Token" : "Latest Block"}
               </p>
               <p className="mt-2 text-sm font-black text-white">
-                {snapshotSession.discovery?.scanMode === "ownerOf"
+                {snapshotSession.discovery?.scanMode === "owner-enumerable"
+                  ? snapshotSession.discovery?.stakingContractBalance?.toLocaleString() || "-"
+                  : snapshotSession.discovery?.scanMode === "ownerOf"
                   ? snapshotSession.discovery?.maxTokenId?.toLocaleString() || "-"
                   : snapshotSession.discovery?.latestBlock?.toLocaleString() || "-"}
               </p>
@@ -858,7 +938,9 @@ export default function AdminPage() {
             <div className="rounded border border-dyoor-purple/25 bg-black/30 p-3">
               <p className="text-[0.66rem] font-black uppercase tracking-[0.14em] text-white/40">Next Batch</p>
               <p className="mt-2 text-sm font-black text-white">
-                {snapshotSession.discovery?.scanMode === "ownerOf"
+                {snapshotSession.discovery?.scanMode === "owner-enumerable"
+                  ? snapshotSession.cursor?.batchTokens?.toLocaleString() || snapshotSession.discovery?.batchTokens?.toLocaleString() || "-"
+                  : snapshotSession.discovery?.scanMode === "ownerOf"
                   ? snapshotSession.cursor?.batchTokens?.toLocaleString() || snapshotSession.discovery?.batchTokens?.toLocaleString() || "-"
                   : snapshotSession.cursor?.batchBlocks?.toLocaleString() || snapshotSession.discovery?.chunkSize?.toLocaleString() || "-"}
               </p>
@@ -900,7 +982,7 @@ export default function AdminPage() {
             {authorized ? "Owner verified" : walletAddress ? "Wallet rejected" : "Wallet required"}
           </p>
         </div>
-        <div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-6">
+        <div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
           <div className="rounded border border-dyoor-purple/25 bg-black/30 p-3">
             <p className="text-[0.66rem] font-black uppercase tracking-[0.14em] text-white/40">Connected Wallet</p>
             <p className="mt-2 break-all text-sm font-black text-white">{walletAddress ? shortAddress(walletAddress) : "Connect owner wallet"}</p>
@@ -925,6 +1007,14 @@ export default function AdminPage() {
             <p className="text-[0.66rem] font-black uppercase tracking-[0.14em] text-white/40">Last Verified</p>
             <p className="mt-2 text-sm font-black text-white">{lastSignatureAt ? new Date(lastSignatureAt).toLocaleTimeString() : lastVerifiedAt ? new Date(lastVerifiedAt).toLocaleTimeString() : "-"}</p>
           </div>
+          <div className={`rounded border p-3 ${adminBackend?.backendStatus === "ok" ? "border-dyoor-cyan/35 bg-dyoor-cyan/10" : "border-yellow-300/25 bg-yellow-300/10"}`}>
+            <p className="text-[0.66rem] font-black uppercase tracking-[0.14em] text-white/40">Backend/API Status</p>
+            <p className={`mt-2 text-sm font-black uppercase ${adminBackend?.backendStatus === "ok" ? "text-dyoor-cyan" : "text-yellow-100"}`}>{adminBackend?.backendStatus || "-"}</p>
+          </div>
+          <div className={`rounded border p-3 ${adminBackend?.snapshotSystemStatus === "ready" ? "border-dyoor-cyan/35 bg-dyoor-cyan/10" : "border-yellow-300/25 bg-yellow-300/10"}`}>
+            <p className="text-[0.66rem] font-black uppercase tracking-[0.14em] text-white/40">Snapshot System</p>
+            <p className={`mt-2 text-sm font-black uppercase ${adminBackend?.snapshotSystemStatus === "ready" ? "text-dyoor-cyan" : "text-yellow-100"}`}>{adminBackend?.snapshotSystemStatus || "-"}</p>
+          </div>
         </div>
       </Card>
 
@@ -933,7 +1023,70 @@ export default function AdminPage() {
         <StatCard label="Total Staked" value={snapshot?.totals.totalStaked ?? "-"} />
         <StatCard label="Ascended S1 NFTs" value={snapshot?.totals.totalAscendedS1 ?? "-"} />
         <StatCard label="Blueprints Saved" value={snapshot?.totals.totalBlueprintsSaved ?? "-"} />
+        <StatCard label="Both Staked + Blueprint" value={snapshot?.totals.walletsWithBoth ?? "-"} />
+        <StatCard label="Staked No Blueprint" value={snapshot?.totals.walletsStakedNoBlueprint ?? "-"} />
+        <StatCard label="Blueprint No Stake" value={snapshot?.totals.walletsBlueprintNoStake ?? "-"} />
+        <StatCard label="Validation" value={snapshot?.validation?.status ?? "-"} />
       </div>
+
+      {snapshot ? (
+        <Card className="mb-6 p-5 md:p-6">
+          <div className="flex flex-col justify-between gap-3 md:flex-row md:items-start">
+            <div>
+              <p className="eyebrow">Validation Summary</p>
+              <h2 className="mt-2 text-xl font-black uppercase text-white">
+                {snapshot.validation?.status === "verified" ? "Snapshot Verified" : snapshot.validation?.status === "failed" ? "Snapshot Not Verified" : "Snapshot Has Warnings"}
+              </h2>
+              <p className="mt-2 text-sm font-semibold leading-6 text-white/58">
+                Downloads are generated from normalized lowercase wallets. Failed validation means the snapshot should be treated as a debugging export, not a trusted eligibility list.
+              </p>
+            </div>
+            <span className={`rounded border px-3 py-2 text-xs font-black uppercase ${snapshot.validation?.status === "verified" ? "border-dyoor-cyan/40 text-dyoor-cyan" : snapshot.validation?.status === "failed" ? "border-red-300/40 text-red-100" : "border-yellow-300/40 text-yellow-100"}`}>
+              {snapshot.validation?.status || "pending"}
+            </span>
+          </div>
+          <div className="mt-5 grid gap-3 lg:grid-cols-[1fr_0.8fr]">
+            <div className="rounded border border-white/10 bg-black/30 p-3">
+              <p className="text-xs font-black uppercase tracking-[0.14em] text-white/45">Checks</p>
+              <div className="mt-3 grid gap-2">
+                {(snapshot.validation?.checks || []).map((check, index) => (
+                  <div className="rounded border border-white/10 bg-white/[0.035] p-3 text-sm font-bold text-white/68" key={`${check.scope}-${check.label}-${index}`}>
+                    <div className="flex flex-col gap-1 md:flex-row md:items-center md:justify-between">
+                      <span className="uppercase tracking-[0.08em] text-white">{check.label}</span>
+                      <span className={check.status === "pass" ? "text-dyoor-cyan" : check.status === "fail" ? "text-red-200" : "text-yellow-100"}>{check.status}</span>
+                    </div>
+                    <p className="mt-1 text-xs leading-5 text-white/52">{check.detail}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+            <div className="rounded border border-white/10 bg-black/30 p-3">
+              <p className="text-xs font-black uppercase tracking-[0.14em] text-white/45">Data Sources</p>
+              <div className="mt-3 grid gap-2 text-xs font-bold leading-5 text-white/58">
+                {Object.entries(snapshot.dataSources || {}).map(([key, value]) => (
+                  <p className="rounded border border-white/10 bg-white/[0.035] p-3" key={key}>
+                    <span className="font-black uppercase tracking-[0.1em] text-dyoor-cyan">{key}</span>
+                    <span className="mt-1 block break-words">{String(value)}</span>
+                  </p>
+                ))}
+              </div>
+            </div>
+          </div>
+          {snapshot.exportHistory?.length ? (
+            <div className="mt-5 rounded border border-white/10 bg-white/[0.03] p-3">
+              <p className="text-xs font-black uppercase tracking-[0.14em] text-white/45">Export History</p>
+              <div className="mt-3 grid gap-2 text-xs font-bold text-white/58 md:grid-cols-2 xl:grid-cols-3">
+                {snapshot.exportHistory.slice(0, 6).map((entry, index) => (
+                  <div className="rounded border border-white/10 bg-black/25 p-3" key={`${entry.generatedAt || index}`}>
+                    <p className="text-white">{entry.generatedAt ? new Date(String(entry.generatedAt)).toLocaleString() : "-"}</p>
+                    <p className="mt-1 uppercase text-dyoor-cyan">{String(entry.validationStatus || "-")}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : null}
+        </Card>
+      ) : null}
 
       <div className="mb-6 flex flex-wrap items-center justify-between gap-3 rounded border border-dyoor-purple/25 bg-white/[0.035] p-4 text-sm font-bold text-white/62">
         <div className="grid gap-1">
@@ -952,25 +1105,41 @@ export default function AdminPage() {
           title="Ascension Staking Snapshot"
           description="Wallets, staked S1 counts, token IDs when available, pending Energy, lifetime Energy, ascended flag, and snapshot timestamp."
           rows={snapshot?.staking || []}
-          filename={`${filenameBase}-staking`}
+          csvFilename={snapshotFiles.stakingCsv}
+          jsonFilename={snapshotFiles.stakingJson}
+          jsonPayload={snapshot ? { generatedAt: snapshot.generatedAt, totals: snapshot.totals, validation: snapshot.validation, dataSources: snapshot.dataSources, rows: snapshot.staking } : undefined}
+          validationStatus={snapshot?.validation?.status}
+          dataSource={snapshot?.dataSources?.staking}
         />
         <SnapshotSection
           title="Ascended S1 NFT Snapshot"
           description="One row per ascended Season 1 NFT, including token ID, owner wallet, source, Energy values, and snapshot timestamp."
           rows={snapshot?.ascendedS1 || []}
-          filename={`${filenameBase}-ascended-s1`}
+          csvFilename={snapshotFiles.ascendedCsv}
+          jsonFilename={snapshotFiles.ascendedJson}
+          jsonPayload={snapshot ? { generatedAt: snapshot.generatedAt, totals: snapshot.totals, validation: snapshot.validation, dataSources: snapshot.dataSources, rows: snapshot.ascendedS1 || [] } : undefined}
+          validationStatus={snapshot?.validation?.status}
+          dataSource={snapshot?.dataSources?.stakingAuthority}
         />
         <SnapshotSection
           title="Blueprint Snapshot"
           description="Saved Blueprint records with wallet, timestamp, blueprint ID, image URL, ordered traits, and eligibility/status flag."
           rows={snapshot?.blueprints || []}
-          filename={`${filenameBase}-blueprints`}
+          csvFilename={snapshotFiles.blueprintCsv}
+          jsonFilename={snapshotFiles.blueprintJson}
+          jsonPayload={snapshot ? { generatedAt: snapshot.generatedAt, totals: snapshot.totals, validation: snapshot.validation, dataSources: snapshot.dataSources, latestRows: snapshot.blueprints, allVersions: snapshot.blueprintVersions || [] } : undefined}
+          validationStatus={snapshot?.validation?.status}
+          dataSource={snapshot?.dataSources?.blueprint}
         />
         <SnapshotSection
           title="Combined Ascension Snapshot"
           description="Matched staking and saved Blueprint data by wallet for partner review and campaign analysis."
           rows={snapshot?.combined || []}
-          filename={`${filenameBase}-combined`}
+          csvFilename={snapshotFiles.combinedCsv}
+          jsonFilename={snapshotFiles.combinedJson}
+          jsonPayload={snapshot ? { generatedAt: snapshot.generatedAt, totals: snapshot.totals, validation: snapshot.validation, dataSources: snapshot.dataSources, rows: snapshot.combined } : undefined}
+          validationStatus={snapshot?.validation?.status}
+          dataSource="staking + blueprint"
         />
 
         <Card className="p-5 md:p-6">

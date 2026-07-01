@@ -19,11 +19,11 @@ const DEFAULT_S1_MAX_SUPPLY = 1111;
 const DEFAULT_ASCENSION_START_BLOCK = 54_985_442;
 const DEFAULT_ASCENSION_LOG_CHUNK_SIZE = 50_000;
 const DEFAULT_DISCOVERY_BATCH_BLOCKS = 100_000;
-const DEFAULT_OWNER_SCAN_BATCH_SIZE = 100;
-const DEFAULT_OWNER_SCAN_CONCURRENCY = 6;
+const DEFAULT_OWNER_SCAN_BATCH_SIZE = 50;
+const DEFAULT_OWNER_SCAN_CONCURRENCY = 2;
 const GOLDSKY_PAGE_SIZE = 1000;
 const DEFAULT_DISCOVERY_BUDGET_MS = 8_000;
-const DEFAULT_RPC_TIMEOUT_MS = 7_000;
+const DEFAULT_RPC_TIMEOUT_MS = 15_000;
 const DEFAULT_ENERGY_RPC_TIMEOUT_MS = 1_500;
 const DEFAULT_FINALIZE_CONCURRENCY = 4;
 const DEFAULT_INDEXED_FINALIZE_CONCURRENCY = 16;
@@ -39,6 +39,8 @@ const TRAIT_EXPORT_ORDER = [
   ["accessories", "Accessories"],
 ] as const;
 
+const NONE_VALUE = "None";
+
 const stakingAbi = [
   "function tokensOfStaker(address user) view returns (uint256[])",
   "function getStakedTokens(address user) view returns (uint256[])",
@@ -52,6 +54,7 @@ const erc721Abi = [
   "event Transfer(address indexed from,address indexed to,uint256 indexed tokenId)",
   "function balanceOf(address owner) view returns (uint256)",
   "function ownerOf(uint256 tokenId) view returns (address)",
+  "function tokenOfOwnerByIndex(address owner,uint256 index) view returns (uint256)",
 ];
 
 const energyBankAbi = [
@@ -66,6 +69,24 @@ type GoldskyStakeEvent = {
   transactionHash_?: string;
   user?: string;
   tokenId?: string;
+};
+
+type SnapshotCheckStatus = "pass" | "warning" | "fail";
+
+type SnapshotValidationCheck = {
+  scope: "staking" | "blueprint" | "combined";
+  label: string;
+  status: SnapshotCheckStatus;
+  detail: string;
+};
+
+type StakeTokenMeta = {
+  tokenId: string;
+  wallet: string;
+  stakedAtRaw: string;
+  stakedAt: string;
+  source: string;
+  validationStatus: "verified" | "warning";
 };
 
 function readEnv(...names: string[]) {
@@ -150,6 +171,9 @@ function readDiscoveryInput(value: unknown) {
     batchTokens: numberValue("batchTokens"),
     failedTokenReads: numberValue("failedTokenReads") || 0,
     stakingContractBalance: numberValue("stakingContractBalance"),
+    startIndex: numberValue("startIndex"),
+    lastScannedIndex: numberValue("lastScannedIndex"),
+    maxIndex: numberValue("maxIndex"),
   };
 }
 
@@ -164,6 +188,71 @@ function formatUnits(raw: bigint) {
   const whole = raw / 10n ** 18n;
   const frac = (raw % 10n ** 18n).toString().padStart(18, "0").slice(0, 4).replace(/0+$/, "");
   return frac ? `${whole.toString()}.${frac}` : whole.toString();
+}
+
+function snapshotFileStamp(timestamp: string) {
+  const date = new Date(timestamp);
+  if (Number.isNaN(date.getTime())) return new Date().toISOString().slice(0, 16).replace("T", "-").replace(":", "");
+  const yyyy = date.getUTCFullYear();
+  const mm = String(date.getUTCMonth() + 1).padStart(2, "0");
+  const dd = String(date.getUTCDate()).padStart(2, "0");
+  const hh = String(date.getUTCHours()).padStart(2, "0");
+  const min = String(date.getUTCMinutes()).padStart(2, "0");
+  return `${yyyy}-${mm}-${dd}-${hh}${min}`;
+}
+
+function snapshotFilenames(timestamp: string) {
+  const stamp = snapshotFileStamp(timestamp);
+  return {
+    stakingCsv: `ascension-staking-snapshot-${stamp}.csv`,
+    stakingJson: `ascension-staking-snapshot-${stamp}.json`,
+    blueprintCsv: `ascension-blueprint-snapshot-${stamp}.csv`,
+    blueprintJson: `ascension-blueprint-snapshot-${stamp}.json`,
+    combinedCsv: `combined-ascension-snapshot-${stamp}.csv`,
+    combinedJson: `combined-ascension-snapshot-${stamp}.json`,
+  };
+}
+
+function traitValue(traits: Record<string, unknown>, key: string) {
+  const value = String(traits?.[key] || "").trim();
+  if (value) return value;
+  if (key === "accessories") {
+    const legacy = String(traits?.["accessories 2"] || traits?.accessories2 || "").trim();
+    if (legacy) return legacy;
+  }
+  return NONE_VALUE;
+}
+
+function rowStatus(statuses: Array<"verified" | "warning" | "failed">) {
+  if (statuses.includes("failed")) return "failed";
+  if (statuses.includes("warning")) return "warning";
+  return "verified";
+}
+
+function formatStakeTimestamp(raw: unknown) {
+  try {
+    const value = BigInt(String(raw || "0"));
+    if (value <= 0n) return { raw: "0", iso: "" };
+    const seconds = Number(value);
+    if (!Number.isSafeInteger(seconds) || seconds < 1_000_000_000 || seconds > 4_102_444_800) {
+      return { raw: value.toString(), iso: "" };
+    }
+    return { raw: value.toString(), iso: new Date(seconds * 1000).toISOString() };
+  } catch {
+    return { raw: "0", iso: "" };
+  }
+}
+
+function validationSummary(checks: SnapshotValidationCheck[]) {
+  const errors = checks.filter((check) => check.status === "fail").map((check) => check.detail);
+  const warnings = checks.filter((check) => check.status === "warning").map((check) => check.detail);
+  return {
+    verified: errors.length === 0 && warnings.length === 0,
+    status: errors.length ? "failed" : warnings.length ? "warning" : "verified",
+    checks,
+    warnings,
+    errors,
+  };
 }
 
 function serialize(value: unknown): unknown {
@@ -201,6 +290,41 @@ async function readHarvestLedger() {
     return value && typeof value === "object" ? value as Record<string, { harvestedRaw?: string }> : {};
   } catch {
     return {};
+  }
+}
+
+async function readHarvestRecord(wallet: string, localLedger: Record<string, { harvestedRaw?: string }>) {
+  const normalized = wallet.toLowerCase();
+  try {
+    const store = getStore("ascension-energy-ledger");
+    const record = await store.get(`${normalized}.json`, { type: "json", consistency: "strong" });
+    if (record && typeof record === "object") {
+      return {
+        record: record as { harvestedRaw?: string },
+        source: "ascension-energy-ledger-blob",
+      };
+    }
+  } catch {}
+  return {
+    record: localLedger[normalized] || null,
+    source: localLedger[normalized] ? "local-harvest-ledger" : "none",
+  };
+}
+
+function snapshotHistoryStore() {
+  return getStore({ name: "admin-snapshots", consistency: "strong" });
+}
+
+async function appendSnapshotHistory(entry: Record<string, unknown>) {
+  try {
+    const store = snapshotHistoryStore();
+    const current = await store.get("snapshot-history.json", { type: "json", consistency: "strong" }).catch(() => []);
+    const history = Array.isArray(current) ? current : [];
+    const next = [entry, ...history].slice(0, 25);
+    await store.setJSON("snapshot-history.json", next);
+    return next;
+  } catch {
+    return [];
   }
 }
 
@@ -551,7 +675,7 @@ async function discoverOwnerOfSnapshotPage(body: Record<string, unknown>) {
   });
   const previousDiscoveredTokenIds = normalizeTokenIdList(body.discoveredTokenIds);
   const failedReads = reads.filter((row) => row.failed);
-  const stakedTokenIds = reads.filter((row) => row.staked).map((row) => row.tokenId);
+  const stakedTokenIds = failedReads.length ? [] : reads.filter((row) => row.staked).map((row) => row.tokenId);
   const discoveredCount = new Set([...previousDiscoveredTokenIds, ...stakedTokenIds]).size;
   if (failedReads.length > 0 && batchTokens <= 1) {
     throw Object.assign(new Error(`ownerOf failed for token #${failedReads[0].tokenId}. Retry the scan range.`), { status: 502 });
@@ -592,6 +716,109 @@ async function discoverOwnerOfSnapshotPage(body: Record<string, unknown>) {
   };
 }
 
+async function discoverOwnerEnumerableSnapshotPage(body: Record<string, unknown>) {
+  const provider = new ethers.JsonRpcProvider(readEnv("MONAD_RPC_URL", "NEXT_PUBLIC_MONAD_RPC_URL") || DEFAULT_RPC, CHAIN_ID);
+  const stakingAddress = ethers.getAddress(readEnv("ASCENSION_STAKING_ADDRESS", "ASCENSION_STAKING_CONTRACT", "NEXT_PUBLIC_ASCENSION_STAKING_CONTRACT") || DEFAULT_ASCENSION_STAKING);
+  const nftAddress = ethers.getAddress(readEnv("DYOOR_S1_CONTRACT", "NEXT_PUBLIC_DYOOR_S1_CONTRACT") || DEFAULT_DYOOR_S1);
+  const nft = new ethers.Contract(nftAddress, erc721Abi, provider);
+  const stakingContractBalance = Number(await safeContract(async () => await nft.balanceOf(stakingAddress), 0n));
+  const cursor = body.cursor && typeof body.cursor === "object" ? body.cursor as Record<string, unknown> : {};
+  const maxIndex = Math.max(0, stakingContractBalance - 1);
+  const configuredBatchIndexes = readWholeNumberEnv(["ASCENSION_SNAPSHOT_TOKEN_BATCH_SIZE"], DEFAULT_OWNER_SCAN_BATCH_SIZE);
+  const requestedBatchIndexes = Number(cursor.batchTokens || 0);
+  const batchTokens = Number.isSafeInteger(requestedBatchIndexes) && requestedBatchIndexes > 0
+    ? Math.min(configuredBatchIndexes, Math.max(1, requestedBatchIndexes))
+    : configuredBatchIndexes;
+  const requestedNextIndex = Number(cursor.nextIndex || 0);
+  const fromIndex = Math.max(0, Number.isSafeInteger(requestedNextIndex) ? requestedNextIndex : 0);
+  const toIndex = stakingContractBalance <= 0 ? -1 : Math.min(maxIndex, fromIndex + batchTokens - 1);
+  const timeoutMs = readWholeNumberEnv(["ASCENSION_SNAPSHOT_RPC_TIMEOUT_MS"], DEFAULT_RPC_TIMEOUT_MS);
+  const concurrency = readWholeNumberEnv(["ASCENSION_SNAPSHOT_OWNER_SCAN_CONCURRENCY"], DEFAULT_OWNER_SCAN_CONCURRENCY);
+
+  if (stakingContractBalance <= 0 || fromIndex > maxIndex) {
+    return {
+      ok: true,
+      phase: "discover",
+      complete: true,
+      wallets: [],
+      tokenIds: [],
+      cursor: null,
+      discovery: {
+        scanMode: "owner-enumerable",
+        startIndex: 0,
+        lastScannedIndex: maxIndex,
+        maxIndex,
+        batchTokens,
+        chunksScanned: 0,
+        failedChunks: 0,
+        failedTokenReads: 0,
+        stakingContractBalance,
+        limited: false,
+        discoveredWallets: 0,
+        discoveredTokenIds: 0,
+      },
+      warnings: stakingContractBalance <= 0 ? ["S1 balanceOf(staking contract) returned zero."] : [],
+    };
+  }
+
+  const indexesToRead = Array.from({ length: toIndex - fromIndex + 1 }, (_, index) => fromIndex + index);
+  const reads = await mapLimit(indexesToRead, concurrency, async (index) => {
+    try {
+      const tokenId = await withTimeout(nft.tokenOfOwnerByIndex(stakingAddress, BigInt(index)), timeoutMs);
+      return {
+        index,
+        tokenId: String(tokenId),
+        failed: false,
+      };
+    } catch {
+      return {
+        index,
+        tokenId: "",
+        failed: true,
+      };
+    }
+  });
+  const failedReads = reads.filter((row) => row.failed);
+  if (failedReads.length > 0 && batchTokens <= 1) {
+    throw Object.assign(new Error(`tokenOfOwnerByIndex failed for staking-contract index #${failedReads[0].index}. Retry the scan range.`), { status: 502 });
+  }
+
+  const rangeNeedsRetry = failedReads.length > 0;
+  const tokenIds = rangeNeedsRetry ? [] : normalizeTokenIdList(reads.map((row) => row.tokenId).filter(Boolean));
+  const previousDiscoveredTokenIds = normalizeTokenIdList(body.discoveredTokenIds);
+  const discoveredCount = new Set([...previousDiscoveredTokenIds, ...tokenIds]).size;
+  const nextBatchTokens = rangeNeedsRetry ? Math.max(1, Math.floor(batchTokens / 2)) : configuredBatchIndexes;
+  const nextIndex = rangeNeedsRetry ? fromIndex : toIndex + 1;
+  const complete = !rangeNeedsRetry && discoveredCount >= stakingContractBalance;
+  const warnings = failedReads.length
+    ? [`${failedReads.length} tokenOfOwnerByIndex read${failedReads.length === 1 ? "" : "s"} failed inside staking-contract index range ${fromIndex}-${toIndex}. Retrying this range with ${nextBatchTokens}-index batches.`]
+    : [];
+
+  return {
+    ok: true,
+    phase: "discover",
+    complete,
+    wallets: [],
+    tokenIds,
+    cursor: complete ? null : { scanMode: "owner-enumerable", nextIndex, maxIndex, batchTokens: nextBatchTokens },
+    discovery: {
+      scanMode: "owner-enumerable",
+      startIndex: 0,
+      lastScannedIndex: rangeNeedsRetry ? Math.max(0, fromIndex - 1) : toIndex,
+      maxIndex,
+      batchTokens,
+      chunksScanned: 1,
+      failedChunks: 0,
+      failedTokenReads: failedReads.length,
+      stakingContractBalance,
+      limited: rangeNeedsRetry,
+      discoveredWallets: 0,
+      discoveredTokenIds: tokenIds.length,
+    },
+    warnings,
+  };
+}
+
 async function discoverSnapshotPage(body: Record<string, unknown>) {
   const cursor = body.cursor && typeof body.cursor === "object" ? body.cursor as Record<string, unknown> : {};
   const requestedMode = typeof cursor.scanMode === "string" ? cursor.scanMode : "";
@@ -599,6 +826,12 @@ async function discoverSnapshotPage(body: Record<string, unknown>) {
   const goldskyEndpoint = readEnv("GOLDSKY_SUBGRAPH_URL", "NEXT_PUBLIC_GOLDSKY_SUBGRAPH_URL");
   if (goldskyEndpoint && (requestedMode === "goldsky-events" || (!requestedMode && configuredMode === "goldsky-events"))) {
     return discoverGoldskySnapshotPage(goldskyEndpoint);
+  }
+  if (requestedMode === "owner-enumerable" || configuredMode === "owner-enumerable") {
+    return discoverOwnerEnumerableSnapshotPage(body);
+  }
+  if (requestedMode === "ownerOf" || configuredMode === "ownerof") {
+    return discoverOwnerOfSnapshotPage(body);
   }
   return discoverOwnerOfSnapshotPage(body);
 }
@@ -686,9 +919,24 @@ async function discoverTransferLogSnapshotPage(body: Record<string, unknown>) {
   };
 }
 
-async function tokenOwnerFromStakeInfo(staking: ethers.Contract, tokenId: string) {
+async function tokenStakeMeta(
+  staking: ethers.Contract,
+  tokenId: string,
+  indexedOwner = "",
+): Promise<StakeTokenMeta> {
   const info = await safeContract(async () => await staking.stakeInfo(BigInt(tokenId)), null);
-  return normalizeAddress(info?.owner ?? info?.[0]);
+  const stakeInfoOwner = normalizeAddress(info?.owner ?? info?.[0]);
+  const stakedAt = formatStakeTimestamp(info?.stakedAt ?? info?.[1]);
+  const fallbackOwner = normalizeAddress(indexedOwner);
+  const wallet = stakeInfoOwner || fallbackOwner;
+  return {
+    tokenId,
+    wallet,
+    stakedAtRaw: stakedAt.raw,
+    stakedAt: stakedAt.iso,
+    source: stakeInfoOwner ? "stakeInfo" : fallbackOwner ? "indexed-owner-fallback" : "unregistered",
+    validationStatus: stakeInfoOwner ? "verified" : "warning",
+  };
 }
 
 async function stakingRow(
@@ -698,6 +946,7 @@ async function stakingRow(
   harvestLedger: Record<string, { harvestedRaw?: string }>,
   timestamp: string,
   supplementalTokenIds: string[] = [],
+  tokenMetaById: Map<string, StakeTokenMeta> = new Map(),
 ) {
   let tokenIds = normalizeTokenIdList(supplementalTokenIds);
   let fallbackCount = 0n;
@@ -710,42 +959,121 @@ async function stakingRow(
       || await safeContract(async () => await staking.balanceOf(wallet), 0n);
   }
   const energyTimeoutMs = readWholeNumberEnv(["ASCENSION_SNAPSHOT_ENERGY_RPC_TIMEOUT_MS"], DEFAULT_ENERGY_RPC_TIMEOUT_MS);
-  const [pendingRaw, lifetimeRaw] = await Promise.all([
+  const [pendingRaw, lifetimeRaw, bankRaw, harvestRecord] = await Promise.all([
     safeContractWithTimeout(async () => await staking.pendingPoints(wallet), 0n, energyTimeoutMs),
     safeContractWithTimeout(async () => await energyBank.lifetimeEnergy(wallet), 0n, energyTimeoutMs),
+    safeContractWithTimeout(async () => await energyBank.spendableEnergy(wallet), 0n, energyTimeoutMs),
+    readHarvestRecord(wallet, harvestLedger),
   ]);
-  const harvestedRaw = BigInt(String(harvestLedger[wallet.toLowerCase()]?.harvestedRaw || "0"));
+  const harvestedRaw = BigInt(String(harvestRecord.record?.harvestedRaw || "0"));
+  const tokenMetas = tokenIds.map((tokenId) => tokenMetaById.get(String(tokenId))).filter(Boolean) as StakeTokenMeta[];
+  const stakeTimes = tokenMetas
+    .map((meta) => meta.stakedAt)
+    .filter(Boolean)
+    .sort();
+  const stakedCount = Math.max(tokenIds.length, Number(fallbackCount || 0n));
+  const validationNotes: string[] = [];
+  if (!tokenIds.length && stakedCount > 0) validationNotes.push("Staked count is from staking contract balance fallback; token IDs were not verified by ownerOf.");
+  if (tokenMetas.some((meta) => meta.validationStatus !== "verified")) validationNotes.push("One or more token owners came from an indexed fallback because stakeInfo did not return a staker.");
 
   return {
     wallet,
-    stakedCount: Math.max(tokenIds.length, Number(fallbackCount || 0n)),
+    staked: stakedCount > 0 ? "yes" : "no",
+    stakedCount,
     tokenIds,
+    stakedTokenIds: tokenIds.join(", "),
+    ascendedStatus: stakedCount > 0 ? "yes" : "no",
+    firstAscendedAt: stakeTimes[0] || "",
+    firstAscendedBlock: "",
+    lastStakeAt: stakeTimes[stakeTimes.length - 1] || "",
+    lastStakeBlock: "",
     pendingEnergy: formatUnits(pendingRaw),
     pendingEnergyRaw: pendingRaw.toString(),
     harvestedEnergy: formatUnits(harvestedRaw),
     harvestedEnergyRaw: harvestedRaw.toString(),
     lifetimeEnergy: formatUnits(lifetimeRaw),
     lifetimeEnergyRaw: lifetimeRaw.toString(),
-    ascended: tokenIds.length > 0 || Number(fallbackCount || 0n) > 0,
+    energyBank: formatUnits(bankRaw),
+    energyBankRaw: bankRaw.toString(),
+    ascended: stakedCount > 0,
     snapshotTimestamp: timestamp,
+    dataSourceUsed: tokenIds.length ? "s1-ownerOf+ascension-stakeInfo+energy-bank-contract" : "staking-contract-fallback+energy-bank-contract",
+    energyDataSource: `energy-bank-contract+${harvestRecord.source}`,
+    validationStatus: rowStatus([
+      tokenIds.length === stakedCount ? "verified" : "warning",
+      tokenMetas.some((meta) => meta.validationStatus !== "verified") ? "warning" : "verified",
+    ]),
+    validationNotes: validationNotes.join(" "),
   };
 }
 
+function blueprintTimestamp(entry: Record<string, any>) {
+  const value = Date.parse(String(entry.updatedAt || entry.createdAt || entry.savedAt || ""));
+  return Number.isFinite(value) ? value : Number(entry.rank || 0);
+}
+
 function blueprintRows(blueprints: Array<Record<string, any>>, timestamp: string) {
-  return blueprints.map((entry) => {
+  const warnings: string[] = [];
+  const versions = blueprints.map((entry, index) => {
+    const wallet = normalizeAddress(entry.wallet);
     const traits = entry.traits && typeof entry.traits === "object" ? entry.traits : {};
     const row: Record<string, unknown> = {
-      wallet: normalizeAddress(entry.wallet),
+      wallet,
       savedBlueprint: Boolean(entry.ascensionBlueprint || entry.blueprintId || entry.createdAt),
-      savedBlueprintTimestamp: String(entry.createdAt || ""),
+      savedBlueprintStatus: Boolean(entry.ascensionBlueprint || entry.blueprintId || entry.createdAt) ? "yes" : "no",
+      savedBlueprintTimestamp: String(entry.createdAt || entry.savedAt || ""),
+      lastUpdatedTimestamp: String(entry.updatedAt || entry.createdAt || entry.savedAt || ""),
       blueprintId: String(entry.blueprintId || entry.hash || ""),
+      blueprintHash: String(entry.hash || entry.blueprintHash || ""),
       imageUrl: String(entry.imageUrl || entry.image || entry.png || ""),
       eligibilityStatus: entry.ascensionBlueprint ? "eligible" : "",
+      dataSourceUsed: "ascension-blueprints-store",
       snapshotTimestamp: timestamp,
+      sourceIndex: index,
     };
-    for (const [key, label] of TRAIT_EXPORT_ORDER) row[label] = String(traits[key] || "");
+    for (const [key, label] of TRAIT_EXPORT_ORDER) row[label] = traitValue(traits, key);
+    const rowWarnings: string[] = [];
+    if (!wallet) rowWarnings.push("invalid wallet");
+    if (!row.blueprintId && !row.blueprintHash) rowWarnings.push("missing blueprint ID/hash");
+    if (!row.imageUrl) rowWarnings.push("missing blueprint image");
+    row.validationStatus = rowWarnings.length ? "warning" : "verified";
+    row.validationNotes = rowWarnings.join("; ");
     return row;
-  }).filter((row) => row.wallet);
+  });
+
+  const validVersions = versions.filter((row) => row.wallet);
+  const byWallet = new Map<string, Array<Record<string, unknown>>>();
+  for (const row of validVersions) {
+    const wallet = String(row.wallet);
+    const bucket = byWallet.get(wallet) || [];
+    bucket.push(row);
+    byWallet.set(wallet, bucket);
+  }
+
+  const rows = Array.from(byWallet.entries()).map(([wallet, bucket]) => {
+    bucket.sort((a, b) => blueprintTimestamp(a as Record<string, any>) - blueprintTimestamp(b as Record<string, any>));
+    const latest = { ...bucket[bucket.length - 1] };
+    latest.versionCount = bucket.length;
+    latest.allBlueprintIds = bucket.map((row) => String(row.blueprintId || row.blueprintHash || "")).filter(Boolean).join(", ");
+    if (bucket.length > 1) {
+      latest.validationStatus = rowStatus([latest.validationStatus as "verified" | "warning" | "failed", "warning"]);
+      latest.validationNotes = [latest.validationNotes, `duplicate wallet records found; latest selected from ${bucket.length} versions`].filter(Boolean).join("; ");
+      warnings.push(`${wallet} has ${bucket.length} stored Blueprint records; latest timestamp selected for CSV.`);
+    }
+    return latest;
+  }).sort((a, b) => String(a.wallet).localeCompare(String(b.wallet)));
+
+  const invalidCount = versions.length - validVersions.length;
+  if (invalidCount > 0) warnings.push(`${invalidCount} Blueprint record${invalidCount === 1 ? "" : "s"} had invalid or missing wallets and were excluded from latest-wallet exports.`);
+
+  return {
+    rows,
+    versions,
+    warnings,
+    rawCount: blueprints.length,
+    invalidCount,
+    duplicateWalletCount: rows.filter((row) => Number(row.versionCount || 0) > 1).length,
+  };
 }
 
 async function generateSnapshots(input?: {
@@ -765,9 +1093,10 @@ async function generateSnapshots(input?: {
   const energyBank = new ethers.Contract(energyBankAddress, energyBankAbi, provider);
   const blueprints = await readBlueprints() as Array<Record<string, any>>;
   const harvestLedger = await readHarvestLedger();
-  const blueprint = blueprintRows(blueprints, timestamp);
+  const blueprintSnapshot = blueprintRows(blueprints, timestamp);
+  const blueprint = blueprintSnapshot.rows;
   const discovered = input || await discoverStakingWallets(provider, stakingAddress, nftAddress);
-  const warnings = [...discovered.warnings];
+  const warnings = [...discovered.warnings, ...blueprintSnapshot.warnings];
   const discoveryRecord = discovered.discovery as { scanMode?: string };
   const discoveryMode = String(discoveryRecord.scanMode || "");
   const indexedTokenSource = discoveryMode === "ownerOf"
@@ -776,35 +1105,38 @@ async function generateSnapshots(input?: {
       ? "goldsky-events"
       : "transfer-log-ownerOf";
   const ascendedTokenOwners = new Map<string, string>();
+  const tokenMetaById = new Map<string, StakeTokenMeta>();
   const walletSet = new Set<string>(blueprint.map((row) => String(row.wallet)));
   const hasIndexedOwners = Boolean(input?.tokenOwners?.size);
   const finalizeConcurrency = hasIndexedOwners
     ? readWholeNumberEnv(["ASCENSION_SNAPSHOT_INDEXED_FINALIZE_CONCURRENCY", "ASCENSION_SNAPSHOT_FINALIZE_CONCURRENCY"], DEFAULT_INDEXED_FINALIZE_CONCURRENCY)
     : readWholeNumberEnv(["ASCENSION_SNAPSHOT_FINALIZE_CONCURRENCY"], DEFAULT_FINALIZE_CONCURRENCY);
+  const stakingContractBalance = Number(await safeContract(async () => await nft.balanceOf(stakingAddress), 0n));
+  const candidateTokenIds = normalizeTokenIdList([
+    ...Array.from(discovered.tokenIds),
+    ...Array.from(input?.tokenOwners?.keys() || []),
+  ]);
 
-  for (const [tokenId, wallet] of input?.tokenOwners || []) {
-    if (!/^\d+$/.test(tokenId) || !wallet) continue;
-    ascendedTokenOwners.set(tokenId, wallet);
-    walletSet.add(wallet);
-  }
-
-  const unresolvedTokenIds = Array.from(discovered.tokenIds).filter((tokenId) => !ascendedTokenOwners.has(tokenId));
-  const ascendedOwnerRows = await mapLimit(unresolvedTokenIds, finalizeConcurrency, async (tokenId) => {
-    const currentOwner = normalizeAddress(await safeContract(async () => await nft.ownerOf(BigInt(tokenId)), ""));
-    if (currentOwner !== stakingAddress.toLowerCase()) return null;
-    const staker = await tokenOwnerFromStakeInfo(staking, tokenId);
-    return { tokenId, staker, registered: Boolean(staker) };
+  const activeTokenRows = await mapLimit(candidateTokenIds, finalizeConcurrency, async (tokenId) => {
+    if (discoveryMode !== "owner-enumerable") {
+      const currentOwner = normalizeAddress(await safeContract(async () => await nft.ownerOf(BigInt(tokenId)), ""));
+      if (currentOwner !== stakingAddress.toLowerCase()) return null;
+    }
+    const indexedOwner = input?.tokenOwners?.get(tokenId) || "";
+    const meta = await tokenStakeMeta(staking, tokenId, indexedOwner);
+    return meta;
   });
-  for (const row of ascendedOwnerRows) {
+
+  for (const row of activeTokenRows) {
     if (!row) continue;
-    if (row.staker) {
-      ascendedTokenOwners.set(row.tokenId, row.staker);
-      walletSet.add(row.staker);
+    tokenMetaById.set(row.tokenId, row);
+    ascendedTokenOwners.set(row.tokenId, row.wallet);
+    if (row.wallet) {
+      walletSet.add(row.wallet);
     } else {
-      ascendedTokenOwners.set(row.tokenId, "");
+      warnings.push(`Token #${row.tokenId} is held by the Ascension contract but stakeInfo did not return a staker.`);
     }
   }
-  for (const wallet of discovered.wallets) walletSet.add(wallet);
 
   const indexedTokenIdsByWallet = new Map<string, string[]>();
   for (const [tokenId, wallet] of ascendedTokenOwners.entries()) {
@@ -816,7 +1148,7 @@ async function generateSnapshots(input?: {
 
   const blueprintWallets = new Set(blueprint.map((item) => String(item.wallet)));
   const stakingRows = (await mapLimit(Array.from(walletSet), finalizeConcurrency, (wallet) => (
-    stakingRow(wallet, staking, energyBank, harvestLedger, timestamp, indexedTokenIdsByWallet.get(wallet) || [])
+    stakingRow(wallet, staking, energyBank, harvestLedger, timestamp, indexedTokenIdsByWallet.get(wallet) || [], tokenMetaById)
   )))
     .filter((row) => row.stakedCount > 0 || blueprintWallets.has(row.wallet));
   const stakingByWallet = new Map(stakingRows.map((row) => [row.wallet, row]));
@@ -830,6 +1162,8 @@ async function generateSnapshots(input?: {
       wallet: wallet || "unregistered",
       ascended: "yes",
       tokenIdSource: source,
+      stakedAt: tokenMetaById.get(tokenId)?.stakedAt || "",
+      stakedAtRaw: tokenMetaById.get(tokenId)?.stakedAtRaw || "",
       stakedCountForWallet: stake?.stakedCount || "",
       pendingEnergy: stake?.pendingEnergy || "0",
       pendingEnergyRaw: stake?.pendingEnergyRaw || "0",
@@ -837,8 +1171,12 @@ async function generateSnapshots(input?: {
       harvestedEnergyRaw: stake?.harvestedEnergyRaw || "0",
       lifetimeEnergy: stake?.lifetimeEnergy || "0",
       lifetimeEnergyRaw: stake?.lifetimeEnergyRaw || "0",
+      energyBank: stake?.energyBank || "0",
+      energyBankRaw: stake?.energyBankRaw || "0",
       nftContract: nftAddress.toLowerCase(),
       stakingContract: stakingAddress.toLowerCase(),
+      dataSourceUsed: source,
+      validationStatus: wallet ? tokenMetaById.get(tokenId)?.validationStatus || "verified" : "warning",
       snapshotTimestamp: timestamp,
     });
   }
@@ -863,7 +1201,12 @@ async function generateSnapshots(input?: {
       wallet,
       stakedCount: stake?.stakedCount || 0,
       ascended: stake?.ascended ? "yes" : "no",
+      staked: stake?.ascended ? "yes" : "no",
       savedBlueprint: bp ? "yes" : "no",
+      stakedTokenIds: stake?.stakedTokenIds || "",
+      blueprintId: bp?.blueprintId || "",
+      blueprintHash: bp?.blueprintHash || "",
+      blueprintImage: bp?.imageUrl || "",
       Background: bp?.Background || "",
       Droid: bp?.Droid || "",
       Eyes: bp?.Eyes || "",
@@ -875,26 +1218,128 @@ async function generateSnapshots(input?: {
       pendingEnergy: stake?.pendingEnergy || "0",
       harvestedEnergy: stake?.harvestedEnergy || "",
       lifetimeEnergy: stake?.lifetimeEnergy || "0",
+      energyBank: stake?.energyBank || "0",
+      eligibilityStatus: bp?.eligibilityStatus || "",
       snapshotTimestamp: timestamp,
+      validationStatus: rowStatus([
+        stake?.validationStatus === "warning" ? "warning" : "verified",
+        bp?.validationStatus === "warning" ? "warning" : "verified",
+      ]),
     };
   });
+  const stakedWallets = stakingRows.filter((row) => row.stakedCount > 0);
+  const stakedWalletSet = new Set(stakedWallets.map((row) => row.wallet));
+  const blueprintWalletSet = new Set(blueprint.map((row) => String(row.wallet)));
+  const combinedWalletSet = new Set(combined.map((row) => String(row.wallet)));
+  const duplicateTokenCount = candidateTokenIds.length - new Set(candidateTokenIds).size;
+  const validationChecks: SnapshotValidationCheck[] = [
+    {
+      scope: "staking",
+      label: "Owner scan matches staking contract balance",
+      status: ascendedS1.length === stakingContractBalance ? "pass" : "fail",
+      detail: `ownerOf verified ${ascendedS1.length} staked token ID(s); S1 balanceOf(staking contract) reports ${stakingContractBalance}.`,
+    },
+    {
+      scope: "staking",
+      label: "No duplicate token IDs",
+      status: duplicateTokenCount === 0 ? "pass" : "fail",
+      detail: duplicateTokenCount === 0 ? "No duplicate token IDs found." : `${duplicateTokenCount} duplicate token ID(s) were present before normalization.`,
+    },
+    {
+      scope: "staking",
+      label: "No staked wallet has zero tokens",
+      status: stakedWallets.every((row) => row.stakedCount > 0 && row.tokenIds.length > 0) ? "pass" : "warning",
+      detail: stakedWallets.every((row) => row.stakedCount > 0 && row.tokenIds.length > 0)
+        ? "Every staked wallet row has at least one verified token ID."
+        : "At least one staking row used a balance fallback without verified token IDs.",
+    },
+    {
+      scope: "blueprint",
+      label: "Latest blueprint rows are wallet-unique",
+      status: blueprint.length === blueprintWalletSet.size ? "pass" : "fail",
+      detail: `${blueprint.length} latest Blueprint row(s), ${blueprintWalletSet.size} unique wallet(s).`,
+    },
+    {
+      scope: "blueprint",
+      label: "Blueprint source records parsed",
+      status: blueprintSnapshot.invalidCount === 0 ? "pass" : "warning",
+      detail: `${blueprintSnapshot.rawCount} source Blueprint record(s), ${blueprintSnapshot.invalidCount} invalid wallet record(s).`,
+    },
+    {
+      scope: "combined",
+      label: "Combined snapshot includes both source sets",
+      status: combinedWalletSet.size === new Set([...stakedWalletSet, ...blueprintWalletSet]).size ? "pass" : "fail",
+      detail: `${combinedWalletSet.size} combined wallet row(s) from staking and Blueprint sources.`,
+    },
+  ];
+  if (blueprint.some((row) => row.validationStatus !== "verified")) {
+    validationChecks.push({
+      scope: "blueprint",
+      label: "Blueprint records have complete metadata",
+      status: "warning",
+      detail: "One or more Blueprint records are missing image or ID/hash metadata; wallet and traits are still exported.",
+    });
+  }
+  if (activeTokenRows.some((row) => row && row.validationStatus !== "verified")) {
+    validationChecks.push({
+      scope: "staking",
+      label: "All active tokens have registered stakers",
+      status: "warning",
+      detail: "One or more currently staked token IDs required indexed-owner fallback or remain unregistered.",
+    });
+  }
+  const validation = validationSummary(validationChecks);
+  const totals = {
+    walletsFound: combined.length,
+    totalStaked: Math.max(stakingRows.reduce((sum, row) => sum + Number(row.stakedCount || 0), 0), ascendedS1.length),
+    totalAscendedS1: ascendedS1.length,
+    ascendedS1Wallets: new Set(ascendedS1.map((row) => String(row.wallet)).filter((wallet) => wallet.startsWith("0x"))).size,
+    totalBlueprintsSaved: blueprint.length,
+    totalBlueprintSourceRecords: blueprintSnapshot.rawCount,
+    walletsWithBoth: combined.filter((row) => row.staked === "yes" && row.savedBlueprint === "yes").length,
+    walletsStakedNoBlueprint: combined.filter((row) => row.staked === "yes" && row.savedBlueprint !== "yes").length,
+    walletsBlueprintNoStake: combined.filter((row) => row.staked !== "yes" && row.savedBlueprint === "yes").length,
+    stakingContractBalance,
+  };
+  const dataSources = {
+    staking: indexedTokenSource,
+    stakingAuthority: "S1 ownerOf(tokenId) equals Ascension staking contract",
+    stakerAssignment: "Ascension stakeInfo(tokenId)",
+    blueprint: "Netlify Blob ascension-blueprints/ascension-blueprints.json with local file fallback",
+    energy: "Energy Bank contract reads plus harvest ledger blob/local fallback",
+  };
+  const fileNames = snapshotFilenames(timestamp);
+  const historyEntry = {
+    generatedAt: timestamp,
+    validationStatus: validation.status,
+    totals,
+    dataSources,
+    fileNames,
+  };
+  const exportHistory = await appendSnapshotHistory(historyEntry);
 
   return {
     ok: true,
     generatedAt: timestamp,
-    totals: {
-      walletsFound: combined.length,
-      totalStaked: Math.max(stakingRows.reduce((sum, row) => sum + Number(row.stakedCount || 0), 0), ascendedS1.length),
-      totalAscendedS1: ascendedS1.length,
-      ascendedS1Wallets: new Set(ascendedS1.map((row) => String(row.wallet)).filter((wallet) => wallet.startsWith("0x"))).size,
-      totalBlueprintsSaved: blueprint.length,
-    },
+    verified: validation.verified,
+    validation,
+    totals,
     staking: stakingRows,
     ascendedS1,
     blueprints: blueprint,
+    blueprintVersions: blueprintSnapshot.versions,
     combined,
     discovery: discovered.discovery,
-    warnings,
+    contracts: {
+      chainId: CHAIN_ID,
+      s1: nftAddress.toLowerCase(),
+      ascensionStaking: stakingAddress.toLowerCase(),
+      energyBank: energyBankAddress.toLowerCase(),
+    },
+    dataSources,
+    fileNames,
+    exportHistory,
+    warnings: Array.from(new Set([...warnings, ...validation.warnings])),
   };
 }
 
@@ -912,13 +1357,22 @@ async function finalizeSnapshotFromBody(body: Record<string, unknown>) {
       throw Object.assign(new Error("Exact S1 owner scan is not complete. Scan the remaining token ranges before building exports."), { status: 409 });
     }
   }
+  if (incomingDiscovery.scanMode === "owner-enumerable" && incomingDiscovery.stakingContractBalance) {
+    const discoveredCount = new Set([...discoveredTokenIds, ...tokenOwners.keys()]).size;
+    const lastScannedIndex = incomingDiscovery.lastScannedIndex ?? -1;
+    const maxIndex = incomingDiscovery.maxIndex ?? incomingDiscovery.stakingContractBalance - 1;
+    const scanReachedKnownBalance = discoveredCount >= incomingDiscovery.stakingContractBalance;
+    if (!scanReachedKnownBalance && lastScannedIndex < maxIndex) {
+      throw Object.assign(new Error("Exact staking-contract token index scan is not complete. Scan the remaining indexes before building exports."), { status: 409 });
+    }
+  }
   for (const [tokenId, wallet] of tokenOwners.entries()) {
     discoveredTokenIds.push(tokenId);
     discoveredWallets.push(wallet);
   }
   const finalTokenIds = normalizeTokenIdList(discoveredTokenIds);
   const finalWallets = normalizeAddressList(discoveredWallets);
-  if (incomingDiscovery.scanMode === "ownerOf" && incomingDiscovery.stakingContractBalance && finalTokenIds.length !== incomingDiscovery.stakingContractBalance) {
+  if ((incomingDiscovery.scanMode === "ownerOf" || incomingDiscovery.scanMode === "owner-enumerable") && incomingDiscovery.stakingContractBalance && finalTokenIds.length !== incomingDiscovery.stakingContractBalance) {
     throw Object.assign(new Error(`Exact S1 owner scan found ${finalTokenIds.length} token ID${finalTokenIds.length === 1 ? "" : "s"}, but the S1 contract reports ${incomingDiscovery.stakingContractBalance} NFTs at the staking contract. Reset and rescan before exporting.`), { status: 409 });
   }
   return generateSnapshots({
@@ -939,13 +1393,33 @@ export async function GET(request: Request) {
   const wallet = normalizeAddress(url.searchParams.get("wallet"));
   const owner = normalizeAddress(adminOwnerWallet());
   if (!owner) return json(500, { ok: false, error: "Admin owner wallet is not configured." });
-  return json(200, { ok: true, connected: Boolean(wallet), authorized: Boolean(wallet && wallet === owner) });
+  const stakingAddress = normalizeAddress(readEnv("ASCENSION_STAKING_ADDRESS", "ASCENSION_STAKING_CONTRACT", "NEXT_PUBLIC_ASCENSION_STAKING_CONTRACT") || DEFAULT_ASCENSION_STAKING);
+  const nftAddress = normalizeAddress(readEnv("DYOOR_S1_CONTRACT", "NEXT_PUBLIC_DYOOR_S1_CONTRACT") || DEFAULT_DYOOR_S1);
+  const energyBankAddress = normalizeAddress(readEnv("ENERGY_BANK_ADDRESS", "NEXT_PUBLIC_ENERGY_BANK_ADDRESS") || DEFAULT_ENERGY_BANK);
+  return json(200, {
+    ok: true,
+    connected: Boolean(wallet),
+    authorized: Boolean(wallet && wallet === owner),
+    backendStatus: "ok",
+    snapshotSystemStatus: stakingAddress && nftAddress ? "ready" : "contract-config-missing",
+    chainId: CHAIN_ID,
+    contracts: {
+      s1: nftAddress,
+      ascensionStaking: stakingAddress,
+      energyBank: energyBankAddress,
+    },
+    dataSources: {
+      staking: "paged S1 ownerOf scan",
+      blueprint: "ascension-blueprints store",
+      energy: "Energy Bank contract + harvest ledger",
+    },
+  });
 }
 
 export async function POST(request: Request) {
   try {
     const body = await request.json().catch(() => ({}));
-    await verifyAdmin(body, "snapshot", { consumeNonce: false, windowMs: 15 * 60 * 1000 });
+    await verifyAdmin(body, "snapshot", { windowMs: 15 * 60 * 1000 });
     const mode = String(body.mode || "full");
     if (mode === "discover") {
       return json(200, serialize(await discoverSnapshotPage(body)) as Record<string, unknown>);
@@ -953,7 +1427,10 @@ export async function POST(request: Request) {
     if (mode === "finalize") {
       return json(200, serialize(await finalizeSnapshotFromBody(body)) as Record<string, unknown>);
     }
-    return json(200, serialize(await generateSnapshots()) as Record<string, unknown>);
+    return json(400, {
+      ok: false,
+      error: "Use the paged ownerOf discovery and finalize flow for verified snapshots.",
+    });
   } catch (error: any) {
     return json(Number(error?.status || 500), { ok: false, error: error?.message || "Admin snapshot failed." });
   }
