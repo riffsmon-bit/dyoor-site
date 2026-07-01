@@ -383,43 +383,19 @@ function mergeSnapshotSession(session: SnapshotSession, data: SnapshotDiscoverRe
   };
 }
 
-function snapshotSessionLabel(session: SnapshotSession) {
+function snapshotGatherLabel(session: SnapshotSession) {
   const discovery = session.discovery;
-  if (!discovery) return "Snapshot scan signed. Scan the first range.";
-  if (discovery.scanMode === "owner-enumerable") {
-    const scannedCount = typeof discovery.lastScannedIndex === "number" ? discovery.lastScannedIndex + 1 : 0;
-    const totalIndexes = discovery.stakingContractBalance || (typeof discovery.maxIndex === "number" ? discovery.maxIndex + 1 : 0);
-    const stakedLabel = totalIndexes
-      ? `${session.discoveredTokenIds.length} / ${totalIndexes.toLocaleString()} staked token${totalIndexes === 1 ? "" : "s"}`
-      : `${session.discoveredTokenIds.length} staked token${session.discoveredTokenIds.length === 1 ? "" : "s"}`;
+  const contractBalance = discovery?.stakingContractBalance || 0;
+  const gathered = session.discoveredTokenIds.length;
+  if (!discovery) return "Preparing snapshot collection.";
+  if (contractBalance) {
     return session.complete
-      ? `Exact staking-contract token index scan complete: ${scannedCount.toLocaleString()} / ${totalIndexes.toLocaleString()}. Found ${stakedLabel}.`
-      : `Exact staking-contract token index scan: ${scannedCount.toLocaleString()} / ${totalIndexes.toLocaleString()}. Found ${stakedLabel}.`;
+      ? `Collection complete. Found ${gathered.toLocaleString()} of ${contractBalance.toLocaleString()} staked S1 token IDs.`
+      : `Gathering staked S1 token IDs. Found ${gathered.toLocaleString()} of ${contractBalance.toLocaleString()} so far.`;
   }
-  if (discovery.scanMode === "ownerOf") {
-    const tokenLabel = discovery.maxTokenId
-      ? `${(discovery.lastScannedTokenId || 0).toLocaleString()} / ${discovery.maxTokenId.toLocaleString()}`
-      : `${discovery.lastScannedTokenId || 0}`;
-    const contractBalance = discovery.stakingContractBalance || 0;
-    const stakedLabel = contractBalance
-      ? `${session.discoveredTokenIds.length} / ${contractBalance.toLocaleString()} staked token${contractBalance === 1 ? "" : "s"}`
-      : `${session.discoveredTokenIds.length} staked token${session.discoveredTokenIds.length === 1 ? "" : "s"}`;
-    return session.complete
-      ? `Exact S1 owner scan complete: ${tokenLabel}. Found ${stakedLabel}.`
-      : `Exact S1 owner scan: ${tokenLabel}. Found ${stakedLabel}.`;
-  }
-  if (discovery.scanMode === "goldsky-events") {
-    const blockLabel = discovery.latestBlock ? discovery.latestBlock.toLocaleString() : "latest indexed block";
-    const stakedLabel = `${session.discoveredTokenIds.length} active staked token${session.discoveredTokenIds.length === 1 ? "" : "s"}`;
-    return `Goldsky Ascension index complete at block ${blockLabel}. Found ${stakedLabel}.`;
-  }
-  const blockLabel = discovery.latestBlock
-    ? `${(discovery.lastScannedBlock || 0).toLocaleString()} / ${discovery.latestBlock.toLocaleString()}`
-    : `${discovery.lastScannedBlock || 0}`;
-  const tokenLabel = `${session.discoveredTokenIds.length} token ID${session.discoveredTokenIds.length === 1 ? "" : "s"}`;
   return session.complete
-    ? `Discovery complete at block ${blockLabel}. Found ${tokenLabel}.`
-    : `Scanned Ascension logs: ${blockLabel}. Found ${tokenLabel}.`;
+    ? `Collection complete. Found ${gathered.toLocaleString()} staked S1 token IDs.`
+    : `Gathering staked S1 token IDs. Found ${gathered.toLocaleString()} so far.`;
 }
 
 function SnapshotSection({
@@ -639,82 +615,72 @@ export default function AdminPage() {
     return { timestamp, nonce, signature };
   }
 
-  async function postSignedSnapshotRequest(payload: Record<string, unknown>) {
-    setSnapshotProgress("Sign fresh owner authorization for this snapshot action.");
-    const signature = await signAdminAction("snapshot");
-    return postSnapshotRequest({
-      ...payload,
-      ...signature,
-      wallet: walletAddress,
-    }, 1);
-  }
-
-  async function createSnapshotSession() {
-    if (!walletAddress) {
-      await walletService.connect().catch(() => {});
-      return null;
-    }
-    if (!authorized) return null;
-    const session: SnapshotSession = {
+  function emptySnapshotSession(): SnapshotSession {
+    return {
       discoveredWallets: [],
       discoveredTokenIds: [],
       tokenOwners: {},
       warnings: [],
       complete: false,
     };
-    setSnapshotSession(session);
-    setSnapshot(null);
-    setAuthStatus("Snapshot session ready. Scan the first range.");
-    setSnapshotProgress("Snapshot session ready. Scan the first range.");
-    return session;
   }
 
-  async function scanSnapshotRange() {
-    setLoading(true);
-    setError("");
-    try {
-      const session = snapshotSession || await createSnapshotSession();
-      if (!session) return;
-      setSnapshotProgress("Scanning next Ascension log range.");
-      const data = await postSignedSnapshotRequest({
-        mode: "discover",
-        cursor: session.cursor,
-        discoveredTokenIds: session.discoveredTokenIds,
-      }) as SnapshotDiscoverResponse;
-      const nextSession = mergeSnapshotSession(session, data);
-      const label = snapshotSessionLabel(nextSession);
-      setSnapshotSession(nextSession);
-      setSnapshotProgress(label);
-      setAuthStatus(label);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Admin snapshot failed.");
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  async function finalizeSnapshotSession() {
-    if (!snapshotSession) {
-      setError("Start a snapshot scan first.");
+  async function generateSnapshot() {
+    if (!walletAddress) {
+      await walletService.connect().catch(() => {});
       return;
     }
+    if (!authorized) return;
     setLoading(true);
     setError("");
-    setSnapshotProgress("Building snapshot export tables.");
-    setAuthStatus("Building snapshot export tables.");
+    setSnapshot(null);
+    let session = emptySnapshotSession();
+    setSnapshotSession(session);
+    setSnapshotProgress("Sign once to gather staking and blueprint data.");
+    setAuthStatus("Sign once to gather staking and blueprint data.");
     try {
-      const data = await postSignedSnapshotRequest({
+      const signature = await signAdminAction("snapshot");
+      const signedPayload = {
+        ...signature,
+        wallet: walletAddress,
+      };
+
+      for (let step = 0; step < 80; step += 1) {
+        setSnapshotProgress(step === 0 ? "Gathering current staked S1 token IDs." : snapshotGatherLabel(session));
+        const data = await postSnapshotRequest({
+          ...signedPayload,
+          mode: "discover",
+          cursor: session.cursor,
+          discoveredTokenIds: session.discoveredTokenIds,
+        }, 3) as SnapshotDiscoverResponse;
+        session = mergeSnapshotSession(session, data);
+        const label = snapshotGatherLabel(session);
+        setSnapshotSession(session);
+        setSnapshotProgress(label);
+        setAuthStatus(label);
+        if (session.complete) break;
+        await sleep(150);
+      }
+
+      if (!session.complete) {
+        throw new Error("Snapshot collection did not finish before the safety limit. Try again.");
+      }
+
+      setSnapshotProgress("Generating snapshot tables and CSV downloads.");
+      setAuthStatus("Generating snapshot tables and CSV downloads.");
+      const data = await postSnapshotRequest({
+        ...signedPayload,
         mode: "finalize",
-        discoveredWallets: snapshotSession.discoveredWallets,
-        discoveredTokenIds: snapshotSession.discoveredTokenIds,
-        tokenOwners: snapshotSession.tokenOwners,
-        discovery: snapshotSession.discovery,
-        warnings: snapshotSession.warnings,
+        discoveredWallets: session.discoveredWallets,
+        discoveredTokenIds: session.discoveredTokenIds,
+        tokenOwners: session.tokenOwners,
+        discovery: session.discovery,
+        warnings: session.warnings,
       }) as Snapshot;
       if (data?.ok === false) throw new Error("Admin snapshot failed.");
       setSnapshot(data);
       setAuthStatus("Snapshot generated.");
-      setSnapshotProgress("Snapshot export tables built.");
+      setSnapshotProgress("Snapshot generated. CSV and JSON downloads are ready.");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Admin snapshot failed.");
     } finally {
@@ -732,21 +698,16 @@ export default function AdminPage() {
 
   function runSnapshotPrimaryAction() {
     if (!authenticated) return void walletService.connect();
-    if (!snapshotSession) return void scanSnapshotRange();
-    if (!snapshotSession.complete) return void scanSnapshotRange();
-    if (!snapshot) return void finalizeSnapshotSession();
-    resetSnapshotSession();
+    return void generateSnapshot();
   }
 
   const snapshotPrimaryLabel = !authenticated
     ? "Connect Owner Wallet"
-    : !snapshotSession
-      ? "Generate Snapshot"
-      : !snapshotSession.complete
-        ? "Scan Next Range"
-        : !snapshot
-          ? "Build Exports"
-          : "New Snapshot";
+    : loading
+      ? "Generating Snapshot"
+      : snapshot
+        ? "Regenerate Snapshot"
+        : "Generate Snapshot CSV";
 
   async function loadCsvFile(file?: File | null) {
     if (!file) return;
@@ -902,56 +863,31 @@ export default function AdminPage() {
         <Card className="mb-6 p-5 md:p-6">
           <div className="flex flex-col justify-between gap-4 lg:flex-row lg:items-end">
             <div>
-              <p className="eyebrow">Snapshot Session</p>
-              <h2 className="mt-2 text-xl font-black uppercase text-white">{snapshotSession.complete ? "Discovery Complete" : "Discovery In Progress"}</h2>
-              <p className="mt-2 text-sm font-semibold leading-6 text-white/62">{snapshotSessionLabel(snapshotSession)}</p>
+              <p className="eyebrow">Snapshot Builder</p>
+              <h2 className="mt-2 text-xl font-black uppercase text-white">{snapshot ? "Exports Ready" : snapshotSession.complete ? "Generating Exports" : "Gathering Data"}</h2>
+              <p className="mt-2 text-sm font-semibold leading-6 text-white/62">{snapshotGatherLabel(snapshotSession)}</p>
             </div>
             <div className="flex flex-wrap gap-2">
-              <Button variant="secondary" disabled={loading || snapshotSession.complete} onClick={() => void scanSnapshotRange()}>Scan Next Range</Button>
-              <Button variant="primary" disabled={loading || !snapshotSession.complete} onClick={() => void finalizeSnapshotSession()}>Build Exports</Button>
-              <Button variant="ghost" disabled={loading} onClick={resetSnapshotSession}>Reset</Button>
+              <Button variant="secondary" disabled={loading} onClick={runSnapshotPrimaryAction}>{snapshot ? "Regenerate" : "Generate"}</Button>
+              <Button variant="ghost" disabled={loading} onClick={resetSnapshotSession}>Clear</Button>
             </div>
           </div>
-          <div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-6">
+          <div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-5">
             <div className="rounded border border-dyoor-purple/25 bg-black/30 p-3">
-              <p className="text-[0.66rem] font-black uppercase tracking-[0.14em] text-white/40">Last Scanned</p>
-              <p className="mt-2 text-sm font-black text-white">
-                {snapshotSession.discovery?.scanMode === "owner-enumerable"
-                  ? typeof snapshotSession.discovery?.lastScannedIndex === "number" ? (snapshotSession.discovery.lastScannedIndex + 1).toLocaleString() : "-"
-                  : snapshotSession.discovery?.scanMode === "ownerOf"
-                  ? snapshotSession.discovery?.lastScannedTokenId?.toLocaleString() || "-"
-                  : snapshotSession.discovery?.lastScannedBlock?.toLocaleString() || "-"}
-              </p>
+              <p className="text-[0.66rem] font-black uppercase tracking-[0.14em] text-white/40">Status</p>
+              <p className="mt-2 text-sm font-black text-white">{snapshot ? "Ready" : snapshotSession.complete ? "Finalizing" : "Gathering"}</p>
             </div>
             <div className="rounded border border-dyoor-purple/25 bg-black/30 p-3">
-              <p className="text-[0.66rem] font-black uppercase tracking-[0.14em] text-white/40">
-                {snapshotSession.discovery?.scanMode === "owner-enumerable" ? "Staked Total" : snapshotSession.discovery?.scanMode === "ownerOf" ? "Max Token" : "Latest Block"}
-              </p>
-              <p className="mt-2 text-sm font-black text-white">
-                {snapshotSession.discovery?.scanMode === "owner-enumerable"
-                  ? snapshotSession.discovery?.stakingContractBalance?.toLocaleString() || "-"
-                  : snapshotSession.discovery?.scanMode === "ownerOf"
-                  ? snapshotSession.discovery?.maxTokenId?.toLocaleString() || "-"
-                  : snapshotSession.discovery?.latestBlock?.toLocaleString() || "-"}
-              </p>
-            </div>
-            <div className="rounded border border-dyoor-purple/25 bg-black/30 p-3">
-              <p className="text-[0.66rem] font-black uppercase tracking-[0.14em] text-white/40">Next Batch</p>
-              <p className="mt-2 text-sm font-black text-white">
-                {snapshotSession.discovery?.scanMode === "owner-enumerable"
-                  ? snapshotSession.cursor?.batchTokens?.toLocaleString() || snapshotSession.discovery?.batchTokens?.toLocaleString() || "-"
-                  : snapshotSession.discovery?.scanMode === "ownerOf"
-                  ? snapshotSession.cursor?.batchTokens?.toLocaleString() || snapshotSession.discovery?.batchTokens?.toLocaleString() || "-"
-                  : snapshotSession.cursor?.batchBlocks?.toLocaleString() || snapshotSession.discovery?.chunkSize?.toLocaleString() || "-"}
-              </p>
-            </div>
-            <div className="rounded border border-dyoor-purple/25 bg-black/30 p-3">
-              <p className="text-[0.66rem] font-black uppercase tracking-[0.14em] text-white/40">Staked IDs</p>
-              <p className="mt-2 text-sm font-black text-dyoor-cyan">{snapshotSession.discoveredTokenIds.length}</p>
+              <p className="text-[0.66rem] font-black uppercase tracking-[0.14em] text-white/40">Staked IDs Found</p>
+              <p className="mt-2 text-sm font-black text-dyoor-cyan">{snapshotSession.discoveredTokenIds.length.toLocaleString()}</p>
             </div>
             <div className="rounded border border-dyoor-purple/25 bg-black/30 p-3">
               <p className="text-[0.66rem] font-black uppercase tracking-[0.14em] text-white/40">Contract Balance</p>
               <p className="mt-2 text-sm font-black text-white">{snapshotSession.discovery?.stakingContractBalance?.toLocaleString() || "-"}</p>
+            </div>
+            <div className="rounded border border-dyoor-purple/25 bg-black/30 p-3">
+              <p className="text-[0.66rem] font-black uppercase tracking-[0.14em] text-white/40">Wallets Found</p>
+              <p className="mt-2 text-sm font-black text-white">{snapshotSession.discoveredWallets.length.toLocaleString()}</p>
             </div>
             <div className="rounded border border-dyoor-purple/25 bg-black/30 p-3">
               <p className="text-[0.66rem] font-black uppercase tracking-[0.14em] text-white/40">Warnings</p>
@@ -1093,7 +1029,7 @@ export default function AdminPage() {
         <span>Last generated: {snapshot?.generatedAt ? new Date(snapshot.generatedAt).toLocaleString() : "Not generated yet"}</span>
           {snapshot?.discovery ? (
             <span className="text-xs text-white/45">
-              Log scan: {snapshot.discovery.lastScannedBlock?.toLocaleString() || "-"} / {snapshot.discovery.latestBlock?.toLocaleString() || "-"} blocks, {snapshot.discovery.chunksScanned || 0} chunks
+              Collection: {(snapshot.totals.totalAscendedS1 || snapshot.totals.totalStaked || 0).toLocaleString()} staked S1 token IDs, {snapshot.totals.walletsFound.toLocaleString()} wallet rows
             </span>
           ) : null}
         </div>

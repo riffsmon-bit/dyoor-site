@@ -431,10 +431,10 @@ async function discoverStakingWallets(provider: ethers.JsonRpcProvider, stakingA
 
   const warnings: string[] = [];
   if (limited) {
-    warnings.push(`Transfer-log discovery stopped at block ${lastScannedBlock} of ${latest} to keep the hosted snapshot request responsive.`);
+    warnings.push(`Transfer-log collection paused at block ${lastScannedBlock} of ${latest} to keep the hosted snapshot request responsive.`);
   }
   if (failedChunks > 0) {
-    warnings.push(`${failedChunks} transfer-log range${failedChunks === 1 ? "" : "s"} could not be read from the RPC and were skipped.`);
+    warnings.push(`${failedChunks} transfer-log batch${failedChunks === 1 ? "" : "es"} could not be read from the RPC and were skipped.`);
   }
 
   return {
@@ -490,7 +490,7 @@ async function discoverStakingWalletBatch(
   if (stats.failedRanges > 0) {
     failedChunks = 1;
     limited = stats.timedOut;
-    warnings.push(`${stats.failedRanges} transfer-log sub-range${stats.failedRanges === 1 ? "" : "s"} inside ${fromBlock}-${toBlock} could not be read from the RPC.`);
+    warnings.push(`${stats.failedRanges} transfer-log batch${stats.failedRanges === 1 ? "" : "es"} inside ${fromBlock}-${toBlock} could not be read from the RPC.`);
   }
 
   return {
@@ -678,14 +678,14 @@ async function discoverOwnerOfSnapshotPage(body: Record<string, unknown>) {
   const stakedTokenIds = failedReads.length ? [] : reads.filter((row) => row.staked).map((row) => row.tokenId);
   const discoveredCount = new Set([...previousDiscoveredTokenIds, ...stakedTokenIds]).size;
   if (failedReads.length > 0 && batchTokens <= 1) {
-    throw Object.assign(new Error(`ownerOf failed for token #${failedReads[0].tokenId}. Retry the scan range.`), { status: 502 });
+    throw Object.assign(new Error(`ownerOf failed for token #${failedReads[0].tokenId}. Retry snapshot generation.`), { status: 502 });
   }
   const rangeNeedsRetry = failedReads.length > 0;
   const nextBatchTokens = rangeNeedsRetry ? Math.max(1, Math.floor(batchTokens / 2)) : configuredBatchTokens;
   const nextTokenId = rangeNeedsRetry ? fromTokenId : toTokenId + 1;
   const complete = !rangeNeedsRetry && (toTokenId >= maxTokenId || (stakingContractBalance > 0 && discoveredCount >= stakingContractBalance));
   const warnings = failedReads.length
-    ? [`${failedReads.length} ownerOf read${failedReads.length === 1 ? "" : "s"} failed inside token range ${fromTokenId}-${toTokenId}. Retrying this range with ${nextBatchTokens}-token batches.`]
+    ? [`${failedReads.length} ownerOf read${failedReads.length === 1 ? "" : "s"} failed inside the current token batch. Retrying with ${nextBatchTokens}-token batches.`]
     : [];
   if (complete && stakingContractBalance > 0 && discoveredCount !== stakingContractBalance) {
     warnings.push(`Owner scan found ${discoveredCount} staked token ID${discoveredCount === 1 ? "" : "s"}, but the S1 contract reports ${stakingContractBalance} NFTs at the staking contract.`);
@@ -780,7 +780,7 @@ async function discoverOwnerEnumerableSnapshotPage(body: Record<string, unknown>
   });
   const failedReads = reads.filter((row) => row.failed);
   if (failedReads.length > 0 && batchTokens <= 1) {
-    throw Object.assign(new Error(`tokenOfOwnerByIndex failed for staking-contract index #${failedReads[0].index}. Retry the scan range.`), { status: 502 });
+    throw Object.assign(new Error(`tokenOfOwnerByIndex failed for staking-contract index #${failedReads[0].index}. Retry snapshot generation.`), { status: 502 });
   }
 
   const rangeNeedsRetry = failedReads.length > 0;
@@ -791,7 +791,7 @@ async function discoverOwnerEnumerableSnapshotPage(body: Record<string, unknown>
   const nextIndex = rangeNeedsRetry ? fromIndex : toIndex + 1;
   const complete = !rangeNeedsRetry && discoveredCount >= stakingContractBalance;
   const warnings = failedReads.length
-    ? [`${failedReads.length} tokenOfOwnerByIndex read${failedReads.length === 1 ? "" : "s"} failed inside staking-contract index range ${fromIndex}-${toIndex}. Retrying this range with ${nextBatchTokens}-index batches.`]
+    ? [`${failedReads.length} tokenOfOwnerByIndex read${failedReads.length === 1 ? "" : "s"} failed inside the current staking-contract index batch. Retrying with ${nextBatchTokens}-index batches.`]
     : [];
 
   return {
@@ -894,7 +894,7 @@ async function discoverTransferLogSnapshotPage(body: Record<string, unknown>) {
   }
   if (rangeNeedsRetry) {
     complete = false;
-    warnings.push(`Retrying block range ${fromBlock}-${toBlock} with ${nextBatchBlocks.toLocaleString()}-block batches.`);
+    warnings.push(`Retrying snapshot collection with ${nextBatchBlocks.toLocaleString()}-block batches.`);
   }
 
   return {
@@ -1354,7 +1354,7 @@ async function finalizeSnapshotFromBody(body: Record<string, unknown>) {
     const contractBalance = incomingDiscovery.stakingContractBalance || 0;
     const scanReachedKnownBalance = contractBalance > 0 && discoveredCount >= contractBalance;
     if (!scanReachedKnownBalance) {
-      throw Object.assign(new Error("Exact S1 owner scan is not complete. Scan the remaining token ranges before building exports."), { status: 409 });
+      throw Object.assign(new Error("Snapshot collection is not complete. Regenerate the snapshot before exporting."), { status: 409 });
     }
   }
   if (incomingDiscovery.scanMode === "owner-enumerable" && incomingDiscovery.stakingContractBalance) {
@@ -1363,7 +1363,7 @@ async function finalizeSnapshotFromBody(body: Record<string, unknown>) {
     const maxIndex = incomingDiscovery.maxIndex ?? incomingDiscovery.stakingContractBalance - 1;
     const scanReachedKnownBalance = discoveredCount >= incomingDiscovery.stakingContractBalance;
     if (!scanReachedKnownBalance && lastScannedIndex < maxIndex) {
-      throw Object.assign(new Error("Exact staking-contract token index scan is not complete. Scan the remaining indexes before building exports."), { status: 409 });
+      throw Object.assign(new Error("Snapshot collection is not complete. Regenerate the snapshot before exporting."), { status: 409 });
     }
   }
   for (const [tokenId, wallet] of tokenOwners.entries()) {
@@ -1409,7 +1409,7 @@ export async function GET(request: Request) {
       energyBank: energyBankAddress,
     },
     dataSources: {
-      staking: "paged S1 ownerOf scan",
+      staking: "exact S1 ownership + Ascension staking metadata",
       blueprint: "ascension-blueprints store",
       energy: "Energy Bank contract + harvest ledger",
     },
@@ -1419,8 +1419,11 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   try {
     const body = await request.json().catch(() => ({}));
-    await verifyAdmin(body, "snapshot", { windowMs: 15 * 60 * 1000 });
     const mode = String(body.mode || "full");
+    await verifyAdmin(body, "snapshot", {
+      windowMs: 15 * 60 * 1000,
+      consumeNonce: mode !== "discover",
+    });
     if (mode === "discover") {
       return json(200, serialize(await discoverSnapshotPage(body)) as Record<string, unknown>);
     }
