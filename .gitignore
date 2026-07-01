@@ -14,5 +14,6 @@ dyoor-builder/layers/_disabled/
 deno.lock
 artifacts/
 cache/
+data/snapshots/
 .env
 tsconfig.tsbuildinfo
