@@ -477,6 +477,7 @@ function SnapshotSection({
 
 export default function AdminPage() {
   const walletService = useWalletService();
+  const getWalletProviderForStatus = walletService.getProvider;
   const authenticated = walletService.connected;
   const walletAddress = normalizeAddress(walletService.address);
   const [authorized, setAuthorized] = useState(false);
@@ -521,7 +522,7 @@ export default function AdminPage() {
       }
       const response = await fetch(`/api/admin/snapshots?wallet=${encodeURIComponent(walletAddress)}`, { cache: "no-store" });
       const data = await response.json().catch(() => ({}));
-      const provider = await walletService.getProvider().catch(() => null) as Eip1193Provider | null;
+      const provider = await getWalletProviderForStatus().catch(() => null) as Eip1193Provider | null;
       const chainId = provider ? await provider.request({ method: "eth_chainId" }).catch(() => "") : "";
       if (!active) return;
       setAuthorized(Boolean(data.authorized));
@@ -534,7 +535,7 @@ export default function AdminPage() {
     return () => {
       active = false;
     };
-  }, [walletAddress, walletService]);
+  }, [getWalletProviderForStatus, walletAddress]);
 
   const filenameBase = useMemo(() => `dyoor-admin-${stamp(snapshot?.generatedAt)}`, [snapshot?.generatedAt]);
   const snapshotFiles = useMemo(() => {
@@ -627,7 +628,7 @@ export default function AdminPage() {
 
   async function generateSnapshot() {
     if (!walletAddress) {
-      await walletService.connect().catch(() => {});
+      await connectOwnerWallet();
       return;
     }
     if (!authorized) return;
@@ -696,13 +697,32 @@ export default function AdminPage() {
     setAuthStatus(authorized ? "Owner wallet connected. Sign to unlock snapshots." : "Connect owner wallet.");
   }
 
+  async function connectOwnerWallet() {
+    setError("");
+    setSnapshotProgress("");
+    setAuthStatus(walletAddress && !authorized ? "Switch to the configured owner wallet." : "Opening wallet connection.");
+    try {
+      if (walletAddress && !authorized) {
+        await walletService.disconnect().catch(() => {});
+        await sleep(100);
+      }
+      await walletService.connect();
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Wallet connection failed.";
+      setError(message);
+      setAuthStatus("Wallet connection failed.");
+    }
+  }
+
   function runSnapshotPrimaryAction() {
-    if (!authenticated) return void walletService.connect();
+    if (!authenticated || !authorized) return void connectOwnerWallet();
     return void generateSnapshot();
   }
 
   const snapshotPrimaryLabel = !authenticated
     ? "Connect Owner Wallet"
+    : !authorized
+      ? "Switch Owner Wallet"
     : loading
       ? "Generating Snapshot"
       : snapshot
@@ -852,7 +872,7 @@ export default function AdminPage() {
           eyebrow="Owner Command"
           title="DYOOR Admin Command Center"
           copy="Owner-only command surface for protected snapshots and internal Energy operations. Every action requires the configured owner wallet, a fresh signature, timestamp, and nonce."
-          actions={<Button variant="primary" onClick={runSnapshotPrimaryAction} disabled={loading || (authenticated && !authorized)}>{loading ? "Working..." : snapshotPrimaryLabel}</Button>}
+          actions={<Button variant="primary" onClick={runSnapshotPrimaryAction} disabled={loading}>{loading ? "Working..." : snapshotPrimaryLabel}</Button>}
         />
         <Alert tone={!walletAddress ? "warning" : authorized ? "success" : "danger"}>{authStatus}</Alert>
       </Card>
@@ -1033,7 +1053,7 @@ export default function AdminPage() {
             </span>
           ) : null}
         </div>
-        <Button variant="secondary" onClick={runSnapshotPrimaryAction} disabled={!authorized || loading}>{snapshotPrimaryLabel}</Button>
+        <Button variant="secondary" onClick={runSnapshotPrimaryAction} disabled={loading}>{snapshotPrimaryLabel}</Button>
       </div>
 
       <div className="grid gap-6">
