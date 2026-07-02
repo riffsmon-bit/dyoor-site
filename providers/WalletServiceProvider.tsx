@@ -120,6 +120,7 @@ function useInjectedWallet() {
   const [error, setError] = useState("");
   const [connecting, setConnecting] = useState(false);
   const [wrongNetwork, setWrongNetwork] = useState(false);
+  const [suppressedAddress, setSuppressedAddress] = useState("");
 
   const provider = useMemo(() => injectedProvider(), []);
   const providerName = shortProviderName(provider);
@@ -134,13 +135,22 @@ function useInjectedWallet() {
     try {
       const active = await getProvider();
       const accounts = await active.request({ method: "eth_accounts" }) as string[];
-      setAddress(normalizeAddress(accounts?.[0]));
+      const nextAddress = normalizeAddress(accounts?.[0]);
+      if (nextAddress && nextAddress === suppressedAddress) {
+        setAddress("");
+        setWrongNetwork(false);
+        return;
+      }
+      if (nextAddress && suppressedAddress && nextAddress !== suppressedAddress) {
+        setSuppressedAddress("");
+      }
+      setAddress(nextAddress);
       const chainId = await active.request({ method: "eth_chainId" }).catch(() => "");
       setWrongNetwork(String(chainId || "").toLowerCase() !== MONAD_CHAIN_HEX);
     } catch {
       setAddress("");
     }
-  }, [getProvider]);
+  }, [getProvider, suppressedAddress]);
 
   useEffect(() => {
     const timer = window.setTimeout(() => void refreshAccounts(), 0);
@@ -180,6 +190,7 @@ function useInjectedWallet() {
 
   const connect = useCallback(async () => {
     setError("");
+    setSuppressedAddress("");
     setConnecting(true);
     try {
       const active = await getProvider();
@@ -197,6 +208,23 @@ function useInjectedWallet() {
     }
   }, [getProvider, switchChain]);
 
+  const disconnect = useCallback(async () => {
+    setError("");
+    setWrongNetwork(false);
+    let nextSuppressedAddress = address;
+    try {
+      const active = await getProvider();
+      const accounts = await active.request({ method: "eth_accounts" }).catch(() => []) as string[];
+      nextSuppressedAddress = normalizeAddress(nextSuppressedAddress || accounts?.[0]);
+      await active.request({
+        method: "wallet_revokePermissions",
+        params: [{ eth_accounts: {} }],
+      }).catch(() => undefined);
+    } catch {}
+    if (nextSuppressedAddress) setSuppressedAddress(nextSuppressedAddress);
+    setAddress("");
+  }, [address, getProvider]);
+
   const service = useMemo<WalletService>(() => ({
     address,
     connected: Boolean(address),
@@ -206,16 +234,13 @@ function useInjectedWallet() {
     source: address ? "browser" : "none",
     status: connecting ? "connecting" : error ? "error" : address ? wrongNetwork ? "wrong-network" : "connected" : "idle",
     connect,
-    disconnect: async () => {
-      setAddress("");
-      setError("");
-    },
+    disconnect,
     getAddress: async () => {
       if (address) return address;
       const active = await getProvider();
       const accounts = await active.request({ method: "eth_accounts" }) as string[];
       const nextAddress = normalizeAddress(accounts?.[0]);
-      if (!nextAddress) throw new Error("Wallet is not connected.");
+      if (!nextAddress || nextAddress === suppressedAddress) throw new Error("Wallet is not connected.");
       return nextAddress;
     },
     getProvider,
@@ -234,11 +259,11 @@ function useInjectedWallet() {
         const accounts = await active.request({ method: "eth_accounts" }) as string[];
         activeAddress = normalizeAddress(accounts?.[0]);
       }
-      if (!activeAddress) throw new Error("Wallet is not connected.");
+      if (!activeAddress || activeAddress === suppressedAddress) throw new Error("Wallet is not connected.");
       return await active.request({ method: "personal_sign", params: [message, activeAddress] }) as string;
     },
     switchChain,
-  }), [address, connect, connecting, error, getProvider, providerName, switchChain, wrongNetwork]);
+  }), [address, connect, connecting, disconnect, error, getProvider, providerName, suppressedAddress, switchChain, wrongNetwork]);
 
   return service;
 }
@@ -256,7 +281,9 @@ function PrivyFirstWalletServiceProvider({ children }: { children: ReactNode }) 
   const [error, setError] = useState("");
   const [readyTimedOut, setReadyTimedOut] = useState(false);
   const [wrongNetwork, setWrongNetwork] = useState(false);
-  const privyAddress = normalizeAddress(wallet?.address);
+  const [suppressedPrivyAddress, setSuppressedPrivyAddress] = useState("");
+  const rawPrivyAddress = normalizeAddress(wallet?.address);
+  const privyAddress = rawPrivyAddress && rawPrivyAddress !== suppressedPrivyAddress ? rawPrivyAddress : "";
   const address = privyAddress || injected.address;
   const source: WalletSource = privyAddress ? "privy" : injected.source;
   const uiReady = authReady || readyTimedOut || injected.ready;
@@ -315,6 +342,7 @@ function PrivyFirstWalletServiceProvider({ children }: { children: ReactNode }) 
 
   const connect = useCallback(async () => {
     setError("");
+    setSuppressedPrivyAddress("");
     setConnecting(true);
     try {
       if (authReady && !readyTimedOut) {
@@ -341,9 +369,11 @@ function PrivyFirstWalletServiceProvider({ children }: { children: ReactNode }) 
 
   const disconnect = useCallback(async () => {
     setError("");
-    if (authenticated) await Promise.resolve(logout());
+    setWrongNetwork(false);
+    if (rawPrivyAddress) setSuppressedPrivyAddress(rawPrivyAddress);
+    if (authenticated) await Promise.resolve(logout()).catch(() => undefined);
     await injected.disconnect();
-  }, [authenticated, injected, logout]);
+  }, [authenticated, injected, logout, rawPrivyAddress]);
 
   const service = useMemo<WalletService>(() => ({
     address,

@@ -169,6 +169,33 @@ Ascension now includes:
 
 Recovery detection uses S1 start block `54985442` and runs with a bounded timeout so the main dashboard remains fast.
 
+## Owner Snapshot Tools
+
+Location: `/admin` and `/admin-command-center`.
+
+Snapshot tools now generate distinct exports for:
+
+- Ascension Staking Snapshot
+- Ascension Blueprint Snapshot
+- Combined Ascension Snapshot
+
+Security model:
+
+- Owner wallet comes from environment.
+- Every snapshot scan/finalize request uses a fresh signed admin message, timestamp, and nonce.
+- Server-side APIs consume nonces and reject replay.
+
+Accuracy model:
+
+- Current staking state is verified by S1 `ownerOf(tokenId) === Ascension staking contract`.
+- Staked token count is cross-checked against S1 `balanceOf(stakingContract)`.
+- Staker wallet assignment uses Ascension `stakeInfo(tokenId)`.
+- Blueprint rows come from the `ascension-blueprints` store with local fallback.
+- Duplicate Blueprint wallet records are flagged and the latest version is selected for CSV.
+- Validation status, data source indicators, warnings, and export history are shown in the admin UI.
+
+See `SNAPSHOT_AUDIT.md` for source-of-truth rules and safe-use conditions.
+
 ## Future Expansion Notes
 
 - WalletConnect can be added as another WalletService source without changing page code.

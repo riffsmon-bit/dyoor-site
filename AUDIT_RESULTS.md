@@ -144,6 +144,15 @@ Latest direct count check returned 14 / 8 / 22 in 488 ms.
 
 ## Known Issues
 
+### 2026-06-30 Snapshot Accuracy Update
+
+- Admin snapshot POST requests now require fresh owner signatures and consume nonces; the previous multi-step snapshot flow reused the same nonce for scan/finalize requests.
+- Verified staking exports now use current S1 `ownerOf(tokenId) === Ascension staking contract` state as the authority and cross-check against S1 `balanceOf(stakingContract)`.
+- `stakeInfo(tokenId)` is used only for wallet/timestamp assignment after current ownerOf verification.
+- Blueprint exports normalize wallets, export missing traits as `None`, flag malformed records, and select the latest record if duplicate wallet rows exist in storage.
+- Snapshot exports now include validation checks, data source indicators, exact required filenames, combined summary totals, and Netlify Blob export history when available.
+- Added `SNAPSHOT_AUDIT.md`.
+
 - NPM audit still reports 65 vulnerabilities. I did not run `npm audit fix` or `npm audit fix --force` because that can create broad dependency churn and needs owner approval.
 - Netlify Dev page proxying to Next hung locally. Direct Next and Cloudflare-to-Next verification passed; Netlify page deployment needs owner approval for a Next runtime/plugin configuration decision.
 - Legacy Netlify functions still emit CommonJS-in-ESM warnings under `"type": "module"`. Tested functions have returned 200, but cleanup should be scheduled.

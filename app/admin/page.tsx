@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { formatUnits, parseUnits } from "viem";
 import { Alert, Button, Card, EmptyState, LoadingSkeleton, PageShell, SectionHeader, StatCard } from "@/components/ui/DyoorUi";
+import { WalletButton } from "@/components/wallet/WalletButton";
 import { adminMessage } from "@/lib/adminMessage";
 import { MONAD_CHAIN_HEX } from "@/lib/monad";
 import { useWalletService } from "@/providers/WalletServiceProvider";
@@ -14,6 +15,30 @@ type Eip1193Provider = {
 type Snapshot = {
   ok?: boolean;
   generatedAt: string;
+  verified?: boolean;
+  validation?: {
+    verified?: boolean;
+    status?: "verified" | "warning" | "failed";
+    checks?: Array<{ scope: string; label: string; status: string; detail: string }>;
+    warnings?: string[];
+    errors?: string[];
+  };
+  contracts?: {
+    chainId?: number;
+    s1?: string;
+    ascensionStaking?: string;
+    energyBank?: string;
+  };
+  dataSources?: Record<string, string>;
+  fileNames?: {
+    stakingCsv?: string;
+    stakingJson?: string;
+    blueprintCsv?: string;
+    blueprintJson?: string;
+    combinedCsv?: string;
+    combinedJson?: string;
+  };
+  exportHistory?: Array<Record<string, any>>;
   discovery?: {
     scanMode?: string;
     startBlock?: number;
@@ -31,17 +56,28 @@ type Snapshot = {
     batchTokens?: number;
     failedTokenReads?: number;
     stakingContractBalance?: number;
+    startIndex?: number;
+    lastScannedIndex?: number;
+    maxIndex?: number;
   };
   totals: {
     walletsFound: number;
     totalStaked: number;
     totalAscendedS1?: number;
     ascendedS1Wallets?: number;
+    unregisteredDeposits?: number;
     totalBlueprintsSaved: number;
+    totalBlueprintSourceRecords?: number;
+    walletsWithBoth?: number;
+    walletsStakedNoBlueprint?: number;
+    walletsBlueprintNoStake?: number;
+    stakingContractBalance?: number;
   };
   staking: Array<Record<string, any>>;
   ascendedS1?: Array<Record<string, any>>;
+  unregisteredDeposits?: Array<Record<string, any>>;
   blueprints: Array<Record<string, any>>;
+  blueprintVersions?: Array<Record<string, any>>;
   combined: Array<Record<string, any>>;
   warnings?: string[];
 };
@@ -53,6 +89,8 @@ type SnapshotCursor = {
   scanMode?: string;
   nextTokenId?: number;
   maxTokenId?: number;
+  nextIndex?: number;
+  maxIndex?: number;
   batchTokens?: number;
 } | null;
 
@@ -69,9 +107,6 @@ type SnapshotDiscoverResponse = {
 };
 
 type SnapshotSession = {
-  timestamp: string;
-  nonce: string;
-  signature: unknown;
   cursor?: SnapshotCursor;
   discoveredWallets: string[];
   discoveredTokenIds: string[];
@@ -79,6 +114,20 @@ type SnapshotSession = {
   discovery?: Snapshot["discovery"];
   warnings: string[];
   complete: boolean;
+};
+
+const MAX_SNAPSHOT_DISCOVERY_STEPS = 1300;
+
+type AdminBackendStatus = {
+  backendStatus?: string;
+  snapshotSystemStatus?: string;
+  chainId?: number;
+  contracts?: {
+    s1?: string;
+    ascensionStaking?: string;
+    energyBank?: string;
+  };
+  dataSources?: Record<string, string>;
 };
 
 type AirdropResult = {
@@ -184,7 +233,7 @@ function toCsv(rows: Array<Record<string, any>>) {
     Object.keys(row).forEach((key) => set.add(key));
     return set;
   }, new Set<string>()));
-  const esc = (value: unknown) => `"${String(Array.isArray(value) ? value.join(" ") : value ?? "").replaceAll("\"", "\"\"")}"`;
+  const esc = (value: unknown) => `"${String(Array.isArray(value) ? value.join(", ") : value ?? "").replaceAll("\"", "\"\"")}"`;
   return [headers.join(","), ...rows.map((row) => headers.map((header) => esc(row[header])).join(","))].join("\n");
 }
 
@@ -201,6 +250,23 @@ function downloadFile(filename: string, contents: string, type: string) {
 
 function stamp(value?: string) {
   return (value || new Date().toISOString()).replace(/[:.]/g, "-");
+}
+
+function snapshotFileStamp(value?: string) {
+  const date = value ? new Date(value) : new Date();
+  const safeDate = Number.isNaN(date.getTime()) ? new Date() : date;
+  const yyyy = safeDate.getUTCFullYear();
+  const mm = String(safeDate.getUTCMonth() + 1).padStart(2, "0");
+  const dd = String(safeDate.getUTCDate()).padStart(2, "0");
+  const hh = String(safeDate.getUTCHours()).padStart(2, "0");
+  const min = String(safeDate.getUTCMinutes()).padStart(2, "0");
+  return `${yyyy}-${mm}-${dd}-${hh}${min}`;
+}
+
+function compactMessages(messages?: string[], max = 4) {
+  const unique = Array.from(new Set((messages || []).filter(Boolean)));
+  if (unique.length <= max) return unique.join(" ");
+  return `${unique.slice(0, max).join(" ")} ${unique.length - max} more warning(s) hidden in the JSON export.`;
 }
 
 function parseWalletList(value: string) {
@@ -311,6 +377,9 @@ function mergeSnapshotSession(session: SnapshotSession, data: SnapshotDiscoverRe
     batchTokens: page.batchTokens ?? session.discovery?.batchTokens,
     failedTokenReads: (session.discovery?.failedTokenReads || 0) + (page.failedTokenReads || 0),
     stakingContractBalance: page.stakingContractBalance ?? session.discovery?.stakingContractBalance,
+    startIndex: page.startIndex ?? session.discovery?.startIndex,
+    lastScannedIndex: page.lastScannedIndex ?? session.discovery?.lastScannedIndex,
+    maxIndex: page.maxIndex ?? session.discovery?.maxIndex,
   };
 
   return {
@@ -325,45 +394,59 @@ function mergeSnapshotSession(session: SnapshotSession, data: SnapshotDiscoverRe
   };
 }
 
-function snapshotSessionLabel(session: SnapshotSession) {
+function snapshotGatherLabel(session: SnapshotSession) {
   const discovery = session.discovery;
-  if (!discovery) return "Snapshot scan signed. Scan the first range.";
-  if (discovery.scanMode === "ownerOf") {
-    const tokenLabel = discovery.maxTokenId
-      ? `${(discovery.lastScannedTokenId || 0).toLocaleString()} / ${discovery.maxTokenId.toLocaleString()}`
-      : `${discovery.lastScannedTokenId || 0}`;
-    const contractBalance = discovery.stakingContractBalance || 0;
-    const stakedLabel = contractBalance
-      ? `${session.discoveredTokenIds.length} / ${contractBalance.toLocaleString()} staked token${contractBalance === 1 ? "" : "s"}`
-      : `${session.discoveredTokenIds.length} staked token${session.discoveredTokenIds.length === 1 ? "" : "s"}`;
+  const contractBalance = discovery?.stakingContractBalance || 0;
+  const gathered = session.discoveredTokenIds.length;
+  if (!discovery) return "Preparing snapshot collection.";
+  if (contractBalance) {
+    const blockLabel = discovery.latestBlock ? ` at block ${discovery.latestBlock.toLocaleString()}` : "";
     return session.complete
-      ? `Exact S1 owner scan complete: ${tokenLabel}. Found ${stakedLabel}.`
-      : `Exact S1 owner scan: ${tokenLabel}. Found ${stakedLabel}.`;
+      ? `Collection complete. Found ${gathered.toLocaleString()} of ${contractBalance.toLocaleString()} S1 token IDs held by the staking contract${blockLabel}.`
+      : `Gathering S1 token IDs held by the staking contract${blockLabel}. Found ${gathered.toLocaleString()} of ${contractBalance.toLocaleString()} so far.`;
   }
-  if (discovery.scanMode === "goldsky-events") {
-    const blockLabel = discovery.latestBlock ? discovery.latestBlock.toLocaleString() : "latest indexed block";
-    const stakedLabel = `${session.discoveredTokenIds.length} active staked token${session.discoveredTokenIds.length === 1 ? "" : "s"}`;
-    return `Goldsky Ascension index complete at block ${blockLabel}. Found ${stakedLabel}.`;
-  }
-  const blockLabel = discovery.latestBlock
-    ? `${(discovery.lastScannedBlock || 0).toLocaleString()} / ${discovery.latestBlock.toLocaleString()}`
-    : `${discovery.lastScannedBlock || 0}`;
-  const tokenLabel = `${session.discoveredTokenIds.length} token ID${session.discoveredTokenIds.length === 1 ? "" : "s"}`;
   return session.complete
-    ? `Discovery complete at block ${blockLabel}. Found ${tokenLabel}.`
-    : `Scanned Ascension logs: ${blockLabel}. Found ${tokenLabel}.`;
+    ? `Collection complete. Found ${gathered.toLocaleString()} staked S1 token IDs.`
+    : `Gathering staked S1 token IDs. Found ${gathered.toLocaleString()} so far.`;
+}
+
+function snapshotProgressKey(session: SnapshotSession) {
+  return [
+    session.discoveredTokenIds.length,
+    session.discovery?.lastScannedTokenId ?? "",
+    session.discovery?.lastScannedIndex ?? "",
+    session.discovery?.stakingContractBalance ?? "",
+    JSON.stringify(session.cursor || null),
+  ].join(":");
+}
+
+function scopedValidationStatus(snapshot: Snapshot | null, scope: "staking" | "blueprint" | "combined") {
+  if (!snapshot) return undefined;
+  const checks = (snapshot.validation?.checks || []).filter((check) => check.scope === scope);
+  if (!checks.length) return snapshot.validation?.status;
+  if (checks.some((check) => check.status === "fail")) return "failed";
+  if (checks.some((check) => check.status === "warning")) return "warning";
+  return "verified";
 }
 
 function SnapshotSection({
   rows,
   title,
   description,
-  filename,
+  csvFilename,
+  jsonFilename,
+  jsonPayload,
+  validationStatus,
+  dataSource,
 }: {
   rows: Array<Record<string, any>>;
   title: string;
   description: string;
-  filename: string;
+  csvFilename: string;
+  jsonFilename: string;
+  jsonPayload?: unknown;
+  validationStatus?: string;
+  dataSource?: string;
 }) {
   const [query, setQuery] = useState("");
   const filteredRows = useMemo(() => {
@@ -381,9 +464,13 @@ function SnapshotSection({
           <p className="mt-2 max-w-2xl text-sm font-semibold leading-6 text-white/60">{description}</p>
         </div>
         <div className="flex flex-wrap gap-2">
-          <Button variant="secondary" disabled={!filteredRows.length} onClick={() => downloadFile(`${filename}.csv`, toCsv(filteredRows), "text/csv")}>Download CSV</Button>
-          <Button variant="ghost" disabled={!filteredRows.length} onClick={() => downloadFile(`${filename}.json`, JSON.stringify(filteredRows, null, 2), "application/json")}>Download JSON</Button>
+          <Button variant="secondary" disabled={!filteredRows.length} onClick={() => downloadFile(csvFilename, toCsv(filteredRows), "text/csv")}>Download CSV</Button>
+          <Button variant="ghost" disabled={!filteredRows.length} onClick={() => downloadFile(jsonFilename, JSON.stringify(jsonPayload ?? filteredRows, null, 2), "application/json")}>Download JSON</Button>
         </div>
+      </div>
+      <div className="mt-4 grid gap-2 text-xs font-black uppercase tracking-[0.12em] text-white/45 md:grid-cols-2">
+        <span>Validation: <span className={validationStatus === "verified" ? "text-dyoor-cyan" : validationStatus === "failed" ? "text-red-200" : "text-yellow-100"}>{validationStatus || "pending"}</span></span>
+        <span>Data source: <span className="text-white/70">{dataSource || "pending"}</span></span>
       </div>
       <input
         className="field-control mt-5"
@@ -421,8 +508,10 @@ function SnapshotSection({
 
 export default function AdminPage() {
   const walletService = useWalletService();
+  const getWalletProviderForStatus = walletService.getProvider;
   const authenticated = walletService.connected;
   const walletAddress = normalizeAddress(walletService.address);
+  const wrongNetwork = walletService.status === "wrong-network";
   const [authorized, setAuthorized] = useState(false);
   const [authStatus, setAuthStatus] = useState("Connect owner wallet.");
   const [loading, setLoading] = useState(false);
@@ -447,6 +536,7 @@ export default function AdminPage() {
   const [lastVerifiedAt, setLastVerifiedAt] = useState("");
   const [lastSignatureAt, setLastSignatureAt] = useState("");
   const [currentChainId, setCurrentChainId] = useState("");
+  const [adminBackend, setAdminBackend] = useState<AdminBackendStatus | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -459,14 +549,16 @@ export default function AdminPage() {
         setAuthorized(false);
         setAuthStatus("Connect owner wallet.");
         setCurrentChainId("");
+        setAdminBackend(null);
         return;
       }
       const response = await fetch(`/api/admin/snapshots?wallet=${encodeURIComponent(walletAddress)}`, { cache: "no-store" });
       const data = await response.json().catch(() => ({}));
-      const provider = await walletService.getProvider().catch(() => null) as Eip1193Provider | null;
+      const provider = await getWalletProviderForStatus().catch(() => null) as Eip1193Provider | null;
       const chainId = provider ? await provider.request({ method: "eth_chainId" }).catch(() => "") : "";
       if (!active) return;
       setAuthorized(Boolean(data.authorized));
+      setAdminBackend(data as AdminBackendStatus);
       setAuthStatus(data.authorized ? "Owner wallet connected. Sign to unlock snapshots." : "Not authorized.");
       setCurrentChainId(String(chainId || ""));
       setLastVerifiedAt(new Date().toISOString());
@@ -475,10 +567,34 @@ export default function AdminPage() {
     return () => {
       active = false;
     };
-  }, [walletAddress, walletService]);
+  }, [getWalletProviderForStatus, walletAddress]);
 
   const filenameBase = useMemo(() => `dyoor-admin-${stamp(snapshot?.generatedAt)}`, [snapshot?.generatedAt]);
+  const snapshotFiles = useMemo(() => {
+    const fallbackStamp = snapshotFileStamp(snapshot?.generatedAt);
+    return {
+      stakingCsv: snapshot?.fileNames?.stakingCsv || `ascension-staking-snapshot-${fallbackStamp}.csv`,
+      stakingJson: snapshot?.fileNames?.stakingJson || `ascension-staking-snapshot-${fallbackStamp}.json`,
+      blueprintCsv: snapshot?.fileNames?.blueprintCsv || `ascension-blueprint-snapshot-${fallbackStamp}.csv`,
+      blueprintJson: snapshot?.fileNames?.blueprintJson || `ascension-blueprint-snapshot-${fallbackStamp}.json`,
+      combinedCsv: snapshot?.fileNames?.combinedCsv || `combined-ascension-snapshot-${fallbackStamp}.csv`,
+      combinedJson: snapshot?.fileNames?.combinedJson || `combined-ascension-snapshot-${fallbackStamp}.json`,
+      ascendedCsv: `${filenameBase}-ascended-s1.csv`,
+      ascendedJson: `${filenameBase}-ascended-s1.json`,
+      unregisteredCsv: `${filenameBase}-pending-unregistered-deposits.csv`,
+      unregisteredJson: `${filenameBase}-pending-unregistered-deposits.json`,
+    };
+  }, [filenameBase, snapshot?.fileNames, snapshot?.generatedAt]);
+  const unregisteredDepositRows = useMemo(() => {
+    if (snapshot?.unregisteredDeposits?.length) return snapshot.unregisteredDeposits;
+    return (snapshot?.ascendedS1 || []).filter((row) => (
+      String(row.wallet || "") === "unregistered" || String(row.tokenIdSource || "").includes("unregistered")
+    ));
+  }, [snapshot]);
   const parsedAirdropRecipients = useMemo(() => parseWalletList(airdropRecipientsInput), [airdropRecipientsInput]);
+  const stakingValidationStatus = scopedValidationStatus(snapshot, "staking");
+  const blueprintValidationStatus = scopedValidationStatus(snapshot, "blueprint");
+  const combinedValidationStatus = scopedValidationStatus(snapshot, "combined");
   const airdropRecipients = parsedAirdropRecipients.valid;
   const airdropAmountRaw = useMemo(() => parseEnergyAmount(airdropAmount), [airdropAmount]);
   const airdropTotalRaw = useMemo(() => airdropAmountRaw ? airdropAmountRaw * BigInt(airdropRecipients.length) : 0n, [airdropAmountRaw, airdropRecipients.length]);
@@ -543,102 +659,84 @@ export default function AdminPage() {
     return { timestamp, nonce, signature };
   }
 
-  async function createSnapshotSession() {
-    if (!walletAddress) {
-      await walletService.connect().catch(() => {});
-      return null;
-    }
-    if (!authorized) return null;
-    setSnapshotProgress("Sign owner authorization for snapshot exports.");
-    const timestamp = String(Date.now());
-    const nonce = crypto.randomUUID();
-    const message = adminMessage(walletAddress, timestamp, nonce, "snapshot");
-    const provider = await getProvider();
-    const signature = await provider.request({ method: "personal_sign", params: [message, walletAddress] });
-    const session: SnapshotSession = {
-      timestamp,
-      nonce,
-      signature,
+  function emptySnapshotSession(): SnapshotSession {
+    return {
       discoveredWallets: [],
       discoveredTokenIds: [],
       tokenOwners: {},
       warnings: [],
       complete: false,
     };
-    setLastSignatureAt(new Date().toISOString());
-    setSnapshotSession(session);
-    setSnapshot(null);
-    setAuthStatus("Snapshot signed. Scan the first range.");
-    setSnapshotProgress("Snapshot signed. Scan the first range.");
-    return session;
   }
 
-  async function startSnapshotSession() {
-    setLoading(true);
-    setError("");
-    try {
-      await createSnapshotSession();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Admin snapshot failed.");
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  async function scanSnapshotRange() {
-    setLoading(true);
-    setError("");
-    try {
-      const session = snapshotSession || await createSnapshotSession();
-      if (!session) return;
-      setSnapshotProgress("Scanning next Ascension log range.");
-      const data = await postSnapshotRequest({
-        mode: "discover",
-        wallet: walletAddress,
-        timestamp: session.timestamp,
-        nonce: session.nonce,
-        signature: session.signature,
-        cursor: session.cursor,
-        discoveredTokenIds: session.discoveredTokenIds,
-      }) as SnapshotDiscoverResponse;
-      const nextSession = mergeSnapshotSession(session, data);
-      const label = snapshotSessionLabel(nextSession);
-      setSnapshotSession(nextSession);
-      setSnapshotProgress(label);
-      setAuthStatus(label);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Admin snapshot failed.");
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  async function finalizeSnapshotSession() {
-    if (!snapshotSession) {
-      setError("Start a snapshot scan first.");
+  async function generateSnapshot() {
+    if (!walletAddress) {
+      await connectOwnerWallet();
       return;
     }
+    if (!authorized) return;
     setLoading(true);
     setError("");
-    setSnapshotProgress("Building snapshot export tables.");
-    setAuthStatus("Building snapshot export tables.");
+    setSnapshot(null);
+    let session = emptySnapshotSession();
+    setSnapshotSession(session);
+    setSnapshotProgress("Sign once to gather staking and blueprint data.");
+    setAuthStatus("Sign once to gather staking and blueprint data.");
     try {
-      const data = await postSnapshotRequest({
-        mode: "finalize",
+      const signature = await signAdminAction("snapshot");
+      const signedPayload = {
+        ...signature,
         wallet: walletAddress,
-        timestamp: snapshotSession.timestamp,
-        nonce: snapshotSession.nonce,
-        signature: snapshotSession.signature,
-        discoveredWallets: snapshotSession.discoveredWallets,
-        discoveredTokenIds: snapshotSession.discoveredTokenIds,
-        tokenOwners: snapshotSession.tokenOwners,
-        discovery: snapshotSession.discovery,
-        warnings: snapshotSession.warnings,
-      }, 3) as Snapshot;
+      };
+
+      let lastProgressKey = "";
+      let stalledSteps = 0;
+      for (let step = 0; step < MAX_SNAPSHOT_DISCOVERY_STEPS; step += 1) {
+        setSnapshotProgress(step === 0 ? "Gathering current staked S1 token IDs." : snapshotGatherLabel(session));
+        const data = await postSnapshotRequest({
+          ...signedPayload,
+          mode: "discover",
+          cursor: session.cursor,
+          discoveredTokenIds: session.discoveredTokenIds,
+        }, 3) as SnapshotDiscoverResponse;
+        session = mergeSnapshotSession(session, data);
+        const label = snapshotGatherLabel(session);
+        setSnapshotSession(session);
+        setSnapshotProgress(label);
+        setAuthStatus(label);
+        if (session.complete) break;
+        const progressKey = snapshotProgressKey(session);
+        if (progressKey === lastProgressKey) {
+          stalledSteps += 1;
+        } else {
+          stalledSteps = 0;
+          lastProgressKey = progressKey;
+        }
+        if (stalledSteps >= 10) {
+          throw new Error("Snapshot collection stalled before matching the live staking contract balance. Retry generation; no export was produced.");
+        }
+        await sleep(150);
+      }
+
+      if (!session.complete) {
+        throw new Error("Snapshot collection could not finish after repeated RPC retries. Retry generation; no export was produced.");
+      }
+
+      setSnapshotProgress("Generating snapshot tables and CSV downloads.");
+      setAuthStatus("Generating snapshot tables and CSV downloads.");
+      const data = await postSnapshotRequest({
+        ...signedPayload,
+        mode: "finalize",
+        discoveredWallets: session.discoveredWallets,
+        discoveredTokenIds: session.discoveredTokenIds,
+        tokenOwners: session.tokenOwners,
+        discovery: session.discovery,
+        warnings: session.warnings,
+      }) as Snapshot;
       if (data?.ok === false) throw new Error("Admin snapshot failed.");
       setSnapshot(data);
       setAuthStatus("Snapshot generated.");
-      setSnapshotProgress("Snapshot export tables built.");
+      setSnapshotProgress("Snapshot generated. CSV and JSON downloads are ready.");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Admin snapshot failed.");
     } finally {
@@ -654,23 +752,50 @@ export default function AdminPage() {
     setAuthStatus(authorized ? "Owner wallet connected. Sign to unlock snapshots." : "Connect owner wallet.");
   }
 
+  async function connectOwnerWallet() {
+    setError("");
+    setSnapshotProgress("");
+    setAuthStatus(walletAddress && !authorized ? "Switch to the configured owner wallet." : wrongNetwork ? "Switching wallet to Monad." : "Opening wallet connection.");
+    try {
+      if (wrongNetwork) {
+        await walletService.switchChain();
+        setAuthStatus("Wallet network switched. Verifying owner access.");
+        return;
+      }
+
+      if (walletAddress && !authorized) {
+        const provider = await walletService.getProvider().catch(() => null) as Eip1193Provider | null;
+        if (provider) {
+          await provider.request({ method: "wallet_requestPermissions", params: [{ eth_accounts: {} }] }).catch(() => undefined);
+          await provider.request({ method: "eth_requestAccounts" }).catch(() => undefined);
+        }
+        await walletService.disconnect().catch(() => {});
+        await sleep(150);
+      }
+      await walletService.connect();
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Wallet connection failed.";
+      setError(message);
+      setAuthStatus("Wallet connection failed.");
+    }
+  }
+
   function runSnapshotPrimaryAction() {
-    if (!authenticated) return void walletService.connect();
-    if (!snapshotSession) return void startSnapshotSession();
-    if (!snapshotSession.complete) return void scanSnapshotRange();
-    if (!snapshot) return void finalizeSnapshotSession();
-    resetSnapshotSession();
+    if (!authenticated || !authorized) return void connectOwnerWallet();
+    return void generateSnapshot();
   }
 
   const snapshotPrimaryLabel = !authenticated
     ? "Connect Owner Wallet"
-    : !snapshotSession
-      ? "Start Snapshot"
-      : !snapshotSession.complete
-        ? "Scan Next Range"
-        : !snapshot
-          ? "Build Exports"
-          : "New Snapshot";
+    : wrongNetwork
+      ? "Switch to Monad"
+    : !authorized
+      ? "Switch Owner Wallet"
+    : loading
+      ? "Generating Snapshot"
+      : snapshot
+        ? "Regenerate Snapshot"
+        : "Generate Snapshot CSV";
 
   async function loadCsvFile(file?: File | null) {
     if (!file) return;
@@ -815,7 +940,12 @@ export default function AdminPage() {
           eyebrow="Owner Command"
           title="DYOOR Admin Command Center"
           copy="Owner-only command surface for protected snapshots and internal Energy operations. Every action requires the configured owner wallet, a fresh signature, timestamp, and nonce."
-          actions={<Button variant="primary" onClick={runSnapshotPrimaryAction} disabled={loading || (authenticated && !authorized)}>{loading ? "Working..." : snapshotPrimaryLabel}</Button>}
+          actions={(
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+              <WalletButton />
+              <Button variant="primary" onClick={runSnapshotPrimaryAction} disabled={loading}>{loading ? "Working..." : snapshotPrimaryLabel}</Button>
+            </div>
+          )}
         />
         <Alert tone={!walletAddress ? "warning" : authorized ? "success" : "danger"}>{authStatus}</Alert>
       </Card>
@@ -826,66 +956,48 @@ export default function AdminPage() {
         <Card className="mb-6 p-5 md:p-6">
           <div className="flex flex-col justify-between gap-4 lg:flex-row lg:items-end">
             <div>
-              <p className="eyebrow">Snapshot Session</p>
-              <h2 className="mt-2 text-xl font-black uppercase text-white">{snapshotSession.complete ? "Discovery Complete" : "Discovery In Progress"}</h2>
-              <p className="mt-2 text-sm font-semibold leading-6 text-white/62">{snapshotSessionLabel(snapshotSession)}</p>
+              <p className="eyebrow">Snapshot Builder</p>
+              <h2 className="mt-2 text-xl font-black uppercase text-white">{snapshot ? "Exports Ready" : snapshotSession.complete ? "Generating Exports" : "Gathering Data"}</h2>
+              <p className="mt-2 text-sm font-semibold leading-6 text-white/62">{snapshotGatherLabel(snapshotSession)}</p>
             </div>
             <div className="flex flex-wrap gap-2">
-              <Button variant="secondary" disabled={loading || snapshotSession.complete} onClick={() => void scanSnapshotRange()}>Scan Next Range</Button>
-              <Button variant="primary" disabled={loading || !snapshotSession.complete} onClick={() => void finalizeSnapshotSession()}>Build Exports</Button>
-              <Button variant="ghost" disabled={loading} onClick={resetSnapshotSession}>Reset</Button>
+              <Button variant="secondary" disabled={loading} onClick={runSnapshotPrimaryAction}>{snapshot ? "Regenerate" : "Generate"}</Button>
+              <Button variant="ghost" disabled={loading} onClick={resetSnapshotSession}>Clear</Button>
             </div>
           </div>
-          <div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-6">
+          <div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-5">
             <div className="rounded border border-dyoor-purple/25 bg-black/30 p-3">
-              <p className="text-[0.66rem] font-black uppercase tracking-[0.14em] text-white/40">Last Scanned</p>
-              <p className="mt-2 text-sm font-black text-white">
-                {snapshotSession.discovery?.scanMode === "ownerOf"
-                  ? snapshotSession.discovery?.lastScannedTokenId?.toLocaleString() || "-"
-                  : snapshotSession.discovery?.lastScannedBlock?.toLocaleString() || "-"}
-              </p>
+              <p className="text-[0.66rem] font-black uppercase tracking-[0.14em] text-white/40">Status</p>
+              <p className="mt-2 text-sm font-black text-white">{snapshot ? "Ready" : snapshotSession.complete ? "Finalizing" : "Gathering"}</p>
             </div>
             <div className="rounded border border-dyoor-purple/25 bg-black/30 p-3">
-              <p className="text-[0.66rem] font-black uppercase tracking-[0.14em] text-white/40">
-                {snapshotSession.discovery?.scanMode === "ownerOf" ? "Max Token" : "Latest Block"}
-              </p>
-              <p className="mt-2 text-sm font-black text-white">
-                {snapshotSession.discovery?.scanMode === "ownerOf"
-                  ? snapshotSession.discovery?.maxTokenId?.toLocaleString() || "-"
-                  : snapshotSession.discovery?.latestBlock?.toLocaleString() || "-"}
-              </p>
-            </div>
-            <div className="rounded border border-dyoor-purple/25 bg-black/30 p-3">
-              <p className="text-[0.66rem] font-black uppercase tracking-[0.14em] text-white/40">Next Batch</p>
-              <p className="mt-2 text-sm font-black text-white">
-                {snapshotSession.discovery?.scanMode === "ownerOf"
-                  ? snapshotSession.cursor?.batchTokens?.toLocaleString() || snapshotSession.discovery?.batchTokens?.toLocaleString() || "-"
-                  : snapshotSession.cursor?.batchBlocks?.toLocaleString() || snapshotSession.discovery?.chunkSize?.toLocaleString() || "-"}
-              </p>
-            </div>
-            <div className="rounded border border-dyoor-purple/25 bg-black/30 p-3">
-              <p className="text-[0.66rem] font-black uppercase tracking-[0.14em] text-white/40">Staked IDs</p>
-              <p className="mt-2 text-sm font-black text-dyoor-cyan">{snapshotSession.discoveredTokenIds.length}</p>
+              <p className="text-[0.66rem] font-black uppercase tracking-[0.14em] text-white/40">Staked IDs Found</p>
+              <p className="mt-2 text-sm font-black text-dyoor-cyan">{snapshotSession.discoveredTokenIds.length.toLocaleString()}</p>
             </div>
             <div className="rounded border border-dyoor-purple/25 bg-black/30 p-3">
               <p className="text-[0.66rem] font-black uppercase tracking-[0.14em] text-white/40">Contract Balance</p>
               <p className="mt-2 text-sm font-black text-white">{snapshotSession.discovery?.stakingContractBalance?.toLocaleString() || "-"}</p>
+              <p className="mt-1 text-[0.64rem] font-bold uppercase tracking-[0.1em] text-white/35">S1 balanceOf staking</p>
             </div>
             <div className="rounded border border-dyoor-purple/25 bg-black/30 p-3">
-              <p className="text-[0.66rem] font-black uppercase tracking-[0.14em] text-white/40">Warnings</p>
-              <p className="mt-2 text-sm font-black text-white">{snapshotSession.warnings.length}</p>
+              <p className="text-[0.66rem] font-black uppercase tracking-[0.14em] text-white/40">Wallets Found</p>
+              <p className="mt-2 text-sm font-black text-white">{(snapshot?.totals.walletsFound ?? snapshotSession.discoveredWallets.length).toLocaleString()}</p>
+            </div>
+            <div className="rounded border border-dyoor-purple/25 bg-black/30 p-3">
+              <p className="text-[0.66rem] font-black uppercase tracking-[0.14em] text-white/40">Snapshot Block</p>
+              <p className="mt-2 text-sm font-black text-white">{snapshotSession.discovery?.latestBlock?.toLocaleString() || "-"}</p>
             </div>
           </div>
         </Card>
       ) : null}
-      {snapshotSession?.warnings.length ? (
+      {!snapshot && snapshotSession?.warnings.length ? (
         <Alert className="mb-6" tone="warning">
           {snapshotSession.warnings.slice(-3).join(" ")}
         </Alert>
       ) : null}
       {snapshot?.warnings?.length ? (
         <Alert className="mb-6" tone="warning">
-          {snapshot.warnings.join(" ")}
+          {compactMessages(snapshot.warnings)}
         </Alert>
       ) : null}
       {loading && <Card className="mb-6 p-5"><LoadingSkeleton lines={5} /></Card>}
@@ -900,7 +1012,7 @@ export default function AdminPage() {
             {authorized ? "Owner verified" : walletAddress ? "Wallet rejected" : "Wallet required"}
           </p>
         </div>
-        <div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-6">
+        <div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
           <div className="rounded border border-dyoor-purple/25 bg-black/30 p-3">
             <p className="text-[0.66rem] font-black uppercase tracking-[0.14em] text-white/40">Connected Wallet</p>
             <p className="mt-2 break-all text-sm font-black text-white">{walletAddress ? shortAddress(walletAddress) : "Connect owner wallet"}</p>
@@ -917,6 +1029,12 @@ export default function AdminPage() {
             <p className="text-[0.66rem] font-black uppercase tracking-[0.14em] text-white/40">Wallet State</p>
             <p className="mt-2 text-sm font-black uppercase text-white">{walletService.status}</p>
           </div>
+          <div className="rounded border border-dyoor-purple/25 bg-black/30 p-3">
+            <p className="text-[0.66rem] font-black uppercase tracking-[0.14em] text-white/40">Wallet Control</p>
+            <div className="mt-2">
+              <WalletButton />
+            </div>
+          </div>
           <div className={`rounded border p-3 ${currentChainId && currentChainId.toLowerCase() !== MONAD_CHAIN_HEX ? "border-yellow-300/25 bg-yellow-300/10" : "border-dyoor-purple/25 bg-black/30"}`}>
             <p className="text-[0.66rem] font-black uppercase tracking-[0.14em] text-white/40">Current Network</p>
             <p className="mt-2 text-sm font-black uppercase text-white">{currentChainId ? currentChainId.toLowerCase() === MONAD_CHAIN_HEX ? "Monad" : currentChainId : "-"}</p>
@@ -925,6 +1043,14 @@ export default function AdminPage() {
             <p className="text-[0.66rem] font-black uppercase tracking-[0.14em] text-white/40">Last Verified</p>
             <p className="mt-2 text-sm font-black text-white">{lastSignatureAt ? new Date(lastSignatureAt).toLocaleTimeString() : lastVerifiedAt ? new Date(lastVerifiedAt).toLocaleTimeString() : "-"}</p>
           </div>
+          <div className={`rounded border p-3 ${adminBackend?.backendStatus === "ok" ? "border-dyoor-cyan/35 bg-dyoor-cyan/10" : "border-yellow-300/25 bg-yellow-300/10"}`}>
+            <p className="text-[0.66rem] font-black uppercase tracking-[0.14em] text-white/40">Backend/API Status</p>
+            <p className={`mt-2 text-sm font-black uppercase ${adminBackend?.backendStatus === "ok" ? "text-dyoor-cyan" : "text-yellow-100"}`}>{adminBackend?.backendStatus || "-"}</p>
+          </div>
+          <div className={`rounded border p-3 ${adminBackend?.snapshotSystemStatus === "ready" ? "border-dyoor-cyan/35 bg-dyoor-cyan/10" : "border-yellow-300/25 bg-yellow-300/10"}`}>
+            <p className="text-[0.66rem] font-black uppercase tracking-[0.14em] text-white/40">Snapshot System</p>
+            <p className={`mt-2 text-sm font-black uppercase ${adminBackend?.snapshotSystemStatus === "ready" ? "text-dyoor-cyan" : "text-yellow-100"}`}>{adminBackend?.snapshotSystemStatus || "-"}</p>
+          </div>
         </div>
       </Card>
 
@@ -932,45 +1058,135 @@ export default function AdminPage() {
         <StatCard label="Total Wallets Found" value={snapshot?.totals.walletsFound ?? "-"} />
         <StatCard label="Total Staked" value={snapshot?.totals.totalStaked ?? "-"} />
         <StatCard label="Ascended S1 NFTs" value={snapshot?.totals.totalAscendedS1 ?? "-"} />
+        <StatCard label="Pending Deposits" value={snapshot ? snapshot.totals.unregisteredDeposits ?? unregisteredDepositRows.length : "-"} />
         <StatCard label="Blueprints Saved" value={snapshot?.totals.totalBlueprintsSaved ?? "-"} />
+        <StatCard label="Both Staked + Blueprint" value={snapshot?.totals.walletsWithBoth ?? "-"} />
+        <StatCard label="Staked No Blueprint" value={snapshot?.totals.walletsStakedNoBlueprint ?? "-"} />
+        <StatCard label="Blueprint No Stake" value={snapshot?.totals.walletsBlueprintNoStake ?? "-"} />
+        <StatCard label="Validation" value={snapshot?.validation?.status ?? "-"} />
       </div>
+
+      {snapshot ? (
+        <Card className="mb-6 p-5 md:p-6">
+          <div className="flex flex-col justify-between gap-3 md:flex-row md:items-start">
+            <div>
+              <p className="eyebrow">Validation Summary</p>
+              <h2 className="mt-2 text-xl font-black uppercase text-white">
+                {snapshot.validation?.status === "verified" ? "Snapshot Verified" : snapshot.validation?.status === "failed" ? "Snapshot Not Verified" : "Snapshot Has Warnings"}
+              </h2>
+              <p className="mt-2 text-sm font-semibold leading-6 text-white/58">
+                Downloads are generated from normalized lowercase wallets. Failed validation means the snapshot should be treated as a debugging export, not a trusted eligibility list.
+              </p>
+            </div>
+            <span className={`rounded border px-3 py-2 text-xs font-black uppercase ${snapshot.validation?.status === "verified" ? "border-dyoor-cyan/40 text-dyoor-cyan" : snapshot.validation?.status === "failed" ? "border-red-300/40 text-red-100" : "border-yellow-300/40 text-yellow-100"}`}>
+              {snapshot.validation?.status || "pending"}
+            </span>
+          </div>
+          <div className="mt-5 grid gap-3 lg:grid-cols-[1fr_0.8fr]">
+            <div className="rounded border border-white/10 bg-black/30 p-3">
+              <p className="text-xs font-black uppercase tracking-[0.14em] text-white/45">Checks</p>
+              <div className="mt-3 grid gap-2">
+                {(snapshot.validation?.checks || []).map((check, index) => (
+                  <div className="rounded border border-white/10 bg-white/[0.035] p-3 text-sm font-bold text-white/68" key={`${check.scope}-${check.label}-${index}`}>
+                    <div className="flex flex-col gap-1 md:flex-row md:items-center md:justify-between">
+                      <span className="uppercase tracking-[0.08em] text-white">{check.label}</span>
+                      <span className={check.status === "pass" ? "text-dyoor-cyan" : check.status === "fail" ? "text-red-200" : "text-yellow-100"}>{check.status}</span>
+                    </div>
+                    <p className="mt-1 text-xs leading-5 text-white/52">{check.detail}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+            <div className="rounded border border-white/10 bg-black/30 p-3">
+              <p className="text-xs font-black uppercase tracking-[0.14em] text-white/45">Data Sources</p>
+              <div className="mt-3 grid gap-2 text-xs font-bold leading-5 text-white/58">
+                {Object.entries(snapshot.dataSources || {}).map(([key, value]) => (
+                  <p className="rounded border border-white/10 bg-white/[0.035] p-3" key={key}>
+                    <span className="font-black uppercase tracking-[0.1em] text-dyoor-cyan">{key}</span>
+                    <span className="mt-1 block break-words">{String(value)}</span>
+                  </p>
+                ))}
+              </div>
+            </div>
+          </div>
+          {snapshot.exportHistory?.length ? (
+            <div className="mt-5 rounded border border-white/10 bg-white/[0.03] p-3">
+              <p className="text-xs font-black uppercase tracking-[0.14em] text-white/45">Export History</p>
+              <div className="mt-3 grid gap-2 text-xs font-bold text-white/58 md:grid-cols-2 xl:grid-cols-3">
+                {snapshot.exportHistory.slice(0, 6).map((entry, index) => (
+                  <div className="rounded border border-white/10 bg-black/25 p-3" key={`${entry.generatedAt || index}`}>
+                    <p className="text-white">{entry.generatedAt ? new Date(String(entry.generatedAt)).toLocaleString() : "-"}</p>
+                    <p className="mt-1 uppercase text-dyoor-cyan">{String(entry.validationStatus || "-")}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : null}
+        </Card>
+      ) : null}
 
       <div className="mb-6 flex flex-wrap items-center justify-between gap-3 rounded border border-dyoor-purple/25 bg-white/[0.035] p-4 text-sm font-bold text-white/62">
         <div className="grid gap-1">
         <span>Last generated: {snapshot?.generatedAt ? new Date(snapshot.generatedAt).toLocaleString() : "Not generated yet"}</span>
           {snapshot?.discovery ? (
             <span className="text-xs text-white/45">
-              Log scan: {snapshot.discovery.lastScannedBlock?.toLocaleString() || "-"} / {snapshot.discovery.latestBlock?.toLocaleString() || "-"} blocks, {snapshot.discovery.chunksScanned || 0} chunks
+              Collection: {(snapshot.totals.totalAscendedS1 || snapshot.totals.totalStaked || 0).toLocaleString()} staked S1 token IDs, {snapshot.totals.walletsFound.toLocaleString()} wallet rows
             </span>
           ) : null}
         </div>
-        <Button variant="secondary" onClick={runSnapshotPrimaryAction} disabled={!authorized || loading}>{snapshotPrimaryLabel}</Button>
+        <Button variant="secondary" onClick={runSnapshotPrimaryAction} disabled={loading}>{snapshotPrimaryLabel}</Button>
       </div>
 
       <div className="grid gap-6">
         <SnapshotSection
           title="Ascension Staking Snapshot"
-          description="Wallets, staked S1 counts, token IDs when available, pending Energy, lifetime Energy, ascended flag, and snapshot timestamp."
+          description="One row per staking wallet: wallet address, staked S1 count, token IDs, first/latest stake time, source, and validation status."
           rows={snapshot?.staking || []}
-          filename={`${filenameBase}-staking`}
+          csvFilename={snapshotFiles.stakingCsv}
+          jsonFilename={snapshotFiles.stakingJson}
+          jsonPayload={snapshot ? { generatedAt: snapshot.generatedAt, totals: snapshot.totals, validation: snapshot.validation, dataSources: snapshot.dataSources, rows: snapshot.staking } : undefined}
+          validationStatus={stakingValidationStatus}
+          dataSource={snapshot?.dataSources?.staking}
         />
         <SnapshotSection
           title="Ascended S1 NFT Snapshot"
           description="One row per ascended Season 1 NFT, including token ID, owner wallet, source, Energy values, and snapshot timestamp."
           rows={snapshot?.ascendedS1 || []}
-          filename={`${filenameBase}-ascended-s1`}
+          csvFilename={snapshotFiles.ascendedCsv}
+          jsonFilename={snapshotFiles.ascendedJson}
+          jsonPayload={snapshot ? { generatedAt: snapshot.generatedAt, totals: snapshot.totals, validation: snapshot.validation, dataSources: snapshot.dataSources, rows: snapshot.ascendedS1 || [] } : undefined}
+          validationStatus={stakingValidationStatus}
+          dataSource={snapshot?.dataSources?.stakingAuthority}
+        />
+        <SnapshotSection
+          title="Pending / Unregistered Deposits"
+          description="S1 NFTs currently held by the Ascension staking contract where stakeInfo does not return a registered staker. These are the old recovery-scan results."
+          rows={unregisteredDepositRows}
+          csvFilename={snapshotFiles.unregisteredCsv}
+          jsonFilename={snapshotFiles.unregisteredJson}
+          jsonPayload={snapshot ? { generatedAt: snapshot.generatedAt, totals: snapshot.totals, validation: snapshot.validation, dataSources: snapshot.dataSources, rows: unregisteredDepositRows } : undefined}
+          validationStatus={unregisteredDepositRows.length ? "warning" : stakingValidationStatus}
+          dataSource="S1 ownerOf(tokenId) + Ascension stakeInfo(tokenId)"
         />
         <SnapshotSection
           title="Blueprint Snapshot"
           description="Saved Blueprint records with wallet, timestamp, blueprint ID, image URL, ordered traits, and eligibility/status flag."
           rows={snapshot?.blueprints || []}
-          filename={`${filenameBase}-blueprints`}
+          csvFilename={snapshotFiles.blueprintCsv}
+          jsonFilename={snapshotFiles.blueprintJson}
+          jsonPayload={snapshot ? { generatedAt: snapshot.generatedAt, totals: snapshot.totals, validation: snapshot.validation, dataSources: snapshot.dataSources, latestRows: snapshot.blueprints, allVersions: snapshot.blueprintVersions || [] } : undefined}
+          validationStatus={blueprintValidationStatus}
+          dataSource={snapshot?.dataSources?.blueprint}
         />
         <SnapshotSection
           title="Combined Ascension Snapshot"
           description="Matched staking and saved Blueprint data by wallet for partner review and campaign analysis."
           rows={snapshot?.combined || []}
-          filename={`${filenameBase}-combined`}
+          csvFilename={snapshotFiles.combinedCsv}
+          jsonFilename={snapshotFiles.combinedJson}
+          jsonPayload={snapshot ? { generatedAt: snapshot.generatedAt, totals: snapshot.totals, validation: snapshot.validation, dataSources: snapshot.dataSources, rows: snapshot.combined } : undefined}
+          validationStatus={combinedValidationStatus}
+          dataSource="staking + blueprint"
         />
 
         <Card className="p-5 md:p-6">
