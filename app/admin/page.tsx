@@ -398,9 +398,10 @@ function snapshotGatherLabel(session: SnapshotSession) {
   const gathered = session.discoveredTokenIds.length;
   if (!discovery) return "Preparing snapshot collection.";
   if (contractBalance) {
+    const blockLabel = discovery.latestBlock ? ` at block ${discovery.latestBlock.toLocaleString()}` : "";
     return session.complete
-      ? `Collection complete. Found ${gathered.toLocaleString()} of ${contractBalance.toLocaleString()} staked S1 token IDs.`
-      : `Gathering staked S1 token IDs. Found ${gathered.toLocaleString()} of ${contractBalance.toLocaleString()} so far.`;
+      ? `Collection complete. Found ${gathered.toLocaleString()} of ${contractBalance.toLocaleString()} S1 token IDs held by the staking contract${blockLabel}.`
+      : `Gathering S1 token IDs held by the staking contract${blockLabel}. Found ${gathered.toLocaleString()} of ${contractBalance.toLocaleString()} so far.`;
   }
   return session.complete
     ? `Collection complete. Found ${gathered.toLocaleString()} staked S1 token IDs.`
@@ -940,14 +941,15 @@ export default function AdminPage() {
             <div className="rounded border border-dyoor-purple/25 bg-black/30 p-3">
               <p className="text-[0.66rem] font-black uppercase tracking-[0.14em] text-white/40">Contract Balance</p>
               <p className="mt-2 text-sm font-black text-white">{snapshotSession.discovery?.stakingContractBalance?.toLocaleString() || "-"}</p>
+              <p className="mt-1 text-[0.64rem] font-bold uppercase tracking-[0.1em] text-white/35">S1 balanceOf staking</p>
             </div>
             <div className="rounded border border-dyoor-purple/25 bg-black/30 p-3">
               <p className="text-[0.66rem] font-black uppercase tracking-[0.14em] text-white/40">Wallets Found</p>
               <p className="mt-2 text-sm font-black text-white">{(snapshot?.totals.walletsFound ?? snapshotSession.discoveredWallets.length).toLocaleString()}</p>
             </div>
             <div className="rounded border border-dyoor-purple/25 bg-black/30 p-3">
-              <p className="text-[0.66rem] font-black uppercase tracking-[0.14em] text-white/40">Warnings</p>
-              <p className="mt-2 text-sm font-black text-white">{snapshot ? (snapshot.warnings || []).length : snapshotSession.warnings.length}</p>
+              <p className="text-[0.66rem] font-black uppercase tracking-[0.14em] text-white/40">Snapshot Block</p>
+              <p className="mt-2 text-sm font-black text-white">{snapshotSession.discovery?.latestBlock?.toLocaleString() || "-"}</p>
             </div>
           </div>
         </Card>
