@@ -383,6 +383,24 @@ async function withTimeout<T>(promise: Promise<T>, timeoutMs: number) {
   }
 }
 
+function sleep(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+async function retrySnapshotRpc<T>(task: () => Promise<T>, attempts = 4, timeoutMs = readWholeNumberEnv(["ASCENSION_SNAPSHOT_RPC_TIMEOUT_MS"], DEFAULT_RPC_TIMEOUT_MS)) {
+  let lastError: unknown;
+  for (let attempt = 1; attempt <= attempts; attempt += 1) {
+    try {
+      return await withTimeout(task(), timeoutMs);
+    } catch (error) {
+      lastError = error;
+      if (attempt === attempts) break;
+      await sleep(180 * attempt);
+    }
+  }
+  throw lastError;
+}
+
 async function mapLimit<T, R>(items: T[], limit: number, mapper: (item: T, index: number) => Promise<R>) {
   const results = new Array<R>(items.length);
   let index = 0;
@@ -1113,7 +1131,12 @@ async function tokenStakeMeta(
   indexedOwner = "",
   blockTag?: number,
 ): Promise<StakeTokenMeta> {
-  const info = await safeContract(async () => await staking.stakeInfo(BigInt(tokenId), blockTag ? { blockTag } : {}), null);
+  const timeoutMs = readWholeNumberEnv(["ASCENSION_SNAPSHOT_STAKEINFO_TIMEOUT_MS", "ASCENSION_SNAPSHOT_RPC_TIMEOUT_MS"], DEFAULT_RPC_TIMEOUT_MS);
+  const info = await retrySnapshotRpc(
+    async () => await staking.stakeInfo(BigInt(tokenId), blockTag ? { blockTag } : {}),
+    readWholeNumberEnv(["ASCENSION_SNAPSHOT_STAKEINFO_ATTEMPTS"], 4),
+    timeoutMs,
+  ).catch(() => null);
   const stakeInfoOwner = normalizeAddress(info?.owner ?? info?.[0]);
   const stakedAt = formatStakeTimestamp(info?.stakedAt ?? info?.[1]);
   const fallbackOwner = normalizeAddress(indexedOwner);
@@ -1469,6 +1492,17 @@ async function generateSnapshots(input?: {
     };
   });
   const stakedWallets = stakingRows.filter((row) => row.stakedCount > 0);
+  const simpleStakingRows = stakedWallets
+    .map((row) => ({
+      wallet: row.wallet,
+      stakedCount: row.stakedCount,
+      tokenIds: normalizeTokenIdList(row.tokenIds || []).join(" "),
+      firstStakedAt: row.firstAscendedAt || "",
+      latestStakedAt: row.lastStakeAt || "",
+      dataSource: row.dataSourceUsed || "",
+      validationStatus: row.validationStatus || "",
+    }))
+    .sort((a, b) => Number(b.stakedCount || 0) - Number(a.stakedCount || 0) || String(a.wallet).localeCompare(String(b.wallet)));
   const stakedWalletSet = new Set(stakedWallets.map((row) => row.wallet));
   const blueprintWalletSet = new Set(blueprint.map((row) => String(row.wallet)));
   const combinedWalletSet = new Set(combined.map((row) => String(row.wallet)));
@@ -1571,7 +1605,7 @@ async function generateSnapshots(input?: {
     verified: validation.verified,
     validation,
     totals,
-    staking: stakingRows,
+    staking: simpleStakingRows,
     ascendedS1,
     unregisteredDeposits,
     blueprints: blueprint,

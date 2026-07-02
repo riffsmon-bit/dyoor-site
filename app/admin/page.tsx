@@ -1140,7 +1140,7 @@ export default function AdminPage() {
       <div className="grid gap-6">
         <SnapshotSection
           title="Ascension Staking Snapshot"
-          description="Wallets, staked S1 counts, token IDs when available, pending Energy, lifetime Energy, ascended flag, and snapshot timestamp."
+          description="One row per staking wallet: wallet address, staked S1 count, token IDs, first/latest stake time, source, and validation status."
           rows={snapshot?.staking || []}
           csvFilename={snapshotFiles.stakingCsv}
           jsonFilename={snapshotFiles.stakingJson}
