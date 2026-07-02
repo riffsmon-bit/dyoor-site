@@ -274,6 +274,12 @@ function validationSummary(checks: SnapshotValidationCheck[]) {
   };
 }
 
+function isTransientSnapshotWarning(message: string) {
+  return /ownerOf read.*failed inside the current token batch.*Retrying/i.test(message)
+    || /tokenOfOwnerByIndex read.*failed inside the current staking-contract index batch.*Retrying/i.test(message)
+    || /Retrying snapshot collection with/i.test(message);
+}
+
 function serialize(value: unknown): unknown {
   if (typeof value === "bigint") return value.toString();
   if (Array.isArray(value)) return value.map(serialize);
@@ -675,7 +681,6 @@ async function scanAlchemyTransferEvidence(
     pageKey = String(json?.result?.pageKey || "");
   } while (pageKey);
 
-  warnings.push(`Alchemy transfer fallback scanned ${transferCount} transfer(s) in ${requestCount} request(s).`);
   return { depositsByToken, logsScanned: transferCount, warnings };
 }
 
@@ -1329,7 +1334,9 @@ async function generateSnapshots(input?: {
       row.validationNotes = "Deposited into the staking contract but stakeInfo did not return a registered staker; latest Transfer into staking contract was used for depositor address.";
       resolved += 1;
     }
-    warnings.push(`Transfer fallback resolved ${resolved} of ${missingOwnerRows.length} token owner${missingOwnerRows.length === 1 ? "" : "s"} missing from stakeInfo.`);
+    if (resolved < missingOwnerRows.length) {
+      warnings.push(`Transfer fallback resolved ${resolved} of ${missingOwnerRows.length} token owner${missingOwnerRows.length === 1 ? "" : "s"} missing from stakeInfo.`);
+    }
   }
 
   const unregisteredTokenIds: string[] = [];
@@ -1553,6 +1560,9 @@ async function generateSnapshots(input?: {
   };
   const exportHistory = await appendSnapshotHistory(historyEntry);
 
+  const allWarnings = Array.from(new Set([...warnings, ...validation.warnings]))
+    .filter((warning) => !(ascendedS1.length === stakingContractBalance && isTransientSnapshotWarning(warning)));
+
   return {
     ok: true,
     generatedAt: timestamp,
@@ -1575,7 +1585,7 @@ async function generateSnapshots(input?: {
     dataSources,
     fileNames,
     exportHistory,
-    warnings: Array.from(new Set([...warnings, ...validation.warnings])),
+    warnings: allWarnings,
   };
 }
 

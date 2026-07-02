@@ -943,16 +943,16 @@ export default function AdminPage() {
             </div>
             <div className="rounded border border-dyoor-purple/25 bg-black/30 p-3">
               <p className="text-[0.66rem] font-black uppercase tracking-[0.14em] text-white/40">Wallets Found</p>
-              <p className="mt-2 text-sm font-black text-white">{snapshotSession.discoveredWallets.length.toLocaleString()}</p>
+              <p className="mt-2 text-sm font-black text-white">{(snapshot?.totals.walletsFound ?? snapshotSession.discoveredWallets.length).toLocaleString()}</p>
             </div>
             <div className="rounded border border-dyoor-purple/25 bg-black/30 p-3">
               <p className="text-[0.66rem] font-black uppercase tracking-[0.14em] text-white/40">Warnings</p>
-              <p className="mt-2 text-sm font-black text-white">{snapshotSession.warnings.length}</p>
+              <p className="mt-2 text-sm font-black text-white">{snapshot ? (snapshot.warnings || []).length : snapshotSession.warnings.length}</p>
             </div>
           </div>
         </Card>
       ) : null}
-      {snapshotSession?.warnings.length ? (
+      {!snapshot && snapshotSession?.warnings.length ? (
         <Alert className="mb-6" tone="warning">
           {snapshotSession.warnings.slice(-3).join(" ")}
         </Alert>
