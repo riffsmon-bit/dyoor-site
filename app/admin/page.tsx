@@ -116,6 +116,8 @@ type SnapshotSession = {
   complete: boolean;
 };
 
+const MAX_SNAPSHOT_DISCOVERY_STEPS = 1300;
+
 type AdminBackendStatus = {
   backendStatus?: string;
   snapshotSystemStatus?: string;
@@ -408,6 +410,25 @@ function snapshotGatherLabel(session: SnapshotSession) {
     : `Gathering staked S1 token IDs. Found ${gathered.toLocaleString()} so far.`;
 }
 
+function snapshotProgressKey(session: SnapshotSession) {
+  return [
+    session.discoveredTokenIds.length,
+    session.discovery?.lastScannedTokenId ?? "",
+    session.discovery?.lastScannedIndex ?? "",
+    session.discovery?.stakingContractBalance ?? "",
+    JSON.stringify(session.cursor || null),
+  ].join(":");
+}
+
+function scopedValidationStatus(snapshot: Snapshot | null, scope: "staking" | "blueprint" | "combined") {
+  if (!snapshot) return undefined;
+  const checks = (snapshot.validation?.checks || []).filter((check) => check.scope === scope);
+  if (!checks.length) return snapshot.validation?.status;
+  if (checks.some((check) => check.status === "fail")) return "failed";
+  if (checks.some((check) => check.status === "warning")) return "warning";
+  return "verified";
+}
+
 function SnapshotSection({
   rows,
   title,
@@ -571,6 +592,9 @@ export default function AdminPage() {
     ));
   }, [snapshot]);
   const parsedAirdropRecipients = useMemo(() => parseWalletList(airdropRecipientsInput), [airdropRecipientsInput]);
+  const stakingValidationStatus = scopedValidationStatus(snapshot, "staking");
+  const blueprintValidationStatus = scopedValidationStatus(snapshot, "blueprint");
+  const combinedValidationStatus = scopedValidationStatus(snapshot, "combined");
   const airdropRecipients = parsedAirdropRecipients.valid;
   const airdropAmountRaw = useMemo(() => parseEnergyAmount(airdropAmount), [airdropAmount]);
   const airdropTotalRaw = useMemo(() => airdropAmountRaw ? airdropAmountRaw * BigInt(airdropRecipients.length) : 0n, [airdropAmountRaw, airdropRecipients.length]);
@@ -665,7 +689,9 @@ export default function AdminPage() {
         wallet: walletAddress,
       };
 
-      for (let step = 0; step < 80; step += 1) {
+      let lastProgressKey = "";
+      let stalledSteps = 0;
+      for (let step = 0; step < MAX_SNAPSHOT_DISCOVERY_STEPS; step += 1) {
         setSnapshotProgress(step === 0 ? "Gathering current staked S1 token IDs." : snapshotGatherLabel(session));
         const data = await postSnapshotRequest({
           ...signedPayload,
@@ -679,11 +705,21 @@ export default function AdminPage() {
         setSnapshotProgress(label);
         setAuthStatus(label);
         if (session.complete) break;
+        const progressKey = snapshotProgressKey(session);
+        if (progressKey === lastProgressKey) {
+          stalledSteps += 1;
+        } else {
+          stalledSteps = 0;
+          lastProgressKey = progressKey;
+        }
+        if (stalledSteps >= 10) {
+          throw new Error("Snapshot collection stalled before matching the live staking contract balance. Retry generation; no export was produced.");
+        }
         await sleep(150);
       }
 
       if (!session.complete) {
-        throw new Error("Snapshot collection did not finish before the safety limit. Try again.");
+        throw new Error("Snapshot collection could not finish after repeated RPC retries. Retry generation; no export was produced.");
       }
 
       setSnapshotProgress("Generating snapshot tables and CSV downloads.");
@@ -1109,7 +1145,7 @@ export default function AdminPage() {
           csvFilename={snapshotFiles.stakingCsv}
           jsonFilename={snapshotFiles.stakingJson}
           jsonPayload={snapshot ? { generatedAt: snapshot.generatedAt, totals: snapshot.totals, validation: snapshot.validation, dataSources: snapshot.dataSources, rows: snapshot.staking } : undefined}
-          validationStatus={snapshot?.validation?.status}
+          validationStatus={stakingValidationStatus}
           dataSource={snapshot?.dataSources?.staking}
         />
         <SnapshotSection
@@ -1119,7 +1155,7 @@ export default function AdminPage() {
           csvFilename={snapshotFiles.ascendedCsv}
           jsonFilename={snapshotFiles.ascendedJson}
           jsonPayload={snapshot ? { generatedAt: snapshot.generatedAt, totals: snapshot.totals, validation: snapshot.validation, dataSources: snapshot.dataSources, rows: snapshot.ascendedS1 || [] } : undefined}
-          validationStatus={snapshot?.validation?.status}
+          validationStatus={stakingValidationStatus}
           dataSource={snapshot?.dataSources?.stakingAuthority}
         />
         <SnapshotSection
@@ -1129,7 +1165,7 @@ export default function AdminPage() {
           csvFilename={snapshotFiles.unregisteredCsv}
           jsonFilename={snapshotFiles.unregisteredJson}
           jsonPayload={snapshot ? { generatedAt: snapshot.generatedAt, totals: snapshot.totals, validation: snapshot.validation, dataSources: snapshot.dataSources, rows: unregisteredDepositRows } : undefined}
-          validationStatus={unregisteredDepositRows.length ? "warning" : snapshot?.validation?.status}
+          validationStatus={unregisteredDepositRows.length ? "warning" : stakingValidationStatus}
           dataSource="S1 ownerOf(tokenId) + Ascension stakeInfo(tokenId)"
         />
         <SnapshotSection
@@ -1139,7 +1175,7 @@ export default function AdminPage() {
           csvFilename={snapshotFiles.blueprintCsv}
           jsonFilename={snapshotFiles.blueprintJson}
           jsonPayload={snapshot ? { generatedAt: snapshot.generatedAt, totals: snapshot.totals, validation: snapshot.validation, dataSources: snapshot.dataSources, latestRows: snapshot.blueprints, allVersions: snapshot.blueprintVersions || [] } : undefined}
-          validationStatus={snapshot?.validation?.status}
+          validationStatus={blueprintValidationStatus}
           dataSource={snapshot?.dataSources?.blueprint}
         />
         <SnapshotSection
@@ -1149,7 +1185,7 @@ export default function AdminPage() {
           csvFilename={snapshotFiles.combinedCsv}
           jsonFilename={snapshotFiles.combinedJson}
           jsonPayload={snapshot ? { generatedAt: snapshot.generatedAt, totals: snapshot.totals, validation: snapshot.validation, dataSources: snapshot.dataSources, rows: snapshot.combined } : undefined}
-          validationStatus={snapshot?.validation?.status}
+          validationStatus={combinedValidationStatus}
           dataSource="staking + blueprint"
         />
 

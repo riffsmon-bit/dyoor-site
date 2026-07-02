@@ -856,18 +856,20 @@ async function discoverOwnerOfSnapshotPage(body: Record<string, unknown>) {
   });
   const previousDiscoveredTokenIds = normalizeTokenIdList(body.discoveredTokenIds);
   const failedReads = reads.filter((row) => row.failed);
-  const stakedTokenIds = failedReads.length ? [] : reads.filter((row) => row.staked).map((row) => row.tokenId);
+  const stakedTokenIds = reads.filter((row) => !row.failed && row.staked).map((row) => row.tokenId);
   const discoveredCount = new Set([...previousDiscoveredTokenIds, ...stakedTokenIds]).size;
-  if (failedReads.length > 0 && batchTokens <= 1) {
-    throw Object.assign(new Error(`ownerOf failed for token #${failedReads[0].tokenId}. Retry snapshot generation.`), { status: 502 });
-  }
-  const rangeNeedsRetry = failedReads.length > 0;
+  const unresolvedSingleRead = failedReads.length > 0 && batchTokens <= 1;
+  const rangeNeedsRetry = failedReads.length > 0 && !unresolvedSingleRead;
   const nextBatchTokens = rangeNeedsRetry ? Math.max(1, Math.floor(batchTokens / 2)) : configuredBatchTokens;
-  const nextTokenId = rangeNeedsRetry ? fromTokenId : toTokenId + 1;
+  const firstFailedTokenId = Number(failedReads[0]?.tokenId || fromTokenId);
+  const nextTokenId = rangeNeedsRetry ? firstFailedTokenId : toTokenId + 1;
   const complete = !rangeNeedsRetry && (toTokenId >= maxTokenId || (stakingContractBalance > 0 && discoveredCount >= stakingContractBalance));
   const warnings = failedReads.length
     ? [`${failedReads.length} ownerOf read${failedReads.length === 1 ? "" : "s"} failed inside the current token batch. Retrying with ${nextBatchTokens}-token batches.`]
     : [];
+  if (unresolvedSingleRead) {
+    warnings[0] = `ownerOf failed for token #${failedReads[0].tokenId}. Continuing collection; final export will only verify if the live staking balance is still matched.`;
+  }
   if (complete && stakingContractBalance > 0 && discoveredCount !== stakingContractBalance) {
     warnings.push(`Owner scan found ${discoveredCount} staked token ID${discoveredCount === 1 ? "" : "s"}, but the S1 contract reports ${stakingContractBalance} NFTs at the staking contract.`);
   }
@@ -883,7 +885,7 @@ async function discoverOwnerOfSnapshotPage(body: Record<string, unknown>) {
       scanMode: "ownerOf",
       latestBlock,
       startTokenId: 1,
-      lastScannedTokenId: rangeNeedsRetry ? Math.max(0, fromTokenId - 1) : toTokenId,
+      lastScannedTokenId: rangeNeedsRetry ? Math.max(0, firstFailedTokenId - 1) : toTokenId,
       maxTokenId,
       batchTokens,
       chunksScanned: 1,
