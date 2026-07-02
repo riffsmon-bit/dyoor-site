@@ -1134,6 +1134,12 @@ export default function AscensionPage() {
     });
   }
 
+  function selectAll(mode: CardMode) {
+    const items = mode === "wallet" ? ascension.walletNfts : ascension.ascendedNfts;
+    setSelected(new Set(items.map((nft) => tokenKey(mode, nft.tokenId))));
+    setActionStatus(`Selected ${items.length} NFT${items.length === 1 ? "" : "s"} to ${mode === "wallet" ? "stake" : "unstake"}.`);
+  }
+
   function scrollToEnergyTools() {
     document.getElementById("energy-tools")?.scrollIntoView({ behavior: "smooth", block: "start" });
   }
@@ -1217,11 +1223,13 @@ export default function AscensionPage() {
           <div className="grid grid-cols-3 gap-2 text-center text-xs font-black uppercase text-white/70 sm:min-w-[24rem]">
             <div className="rounded border border-dyoor-cyan/30 bg-dyoor-cyan/[0.07] p-3">
               <span className="block text-lg text-dyoor-cyan">{selectedWalletIds.length}</span>
-              Stake
+              To Stake
+              <span className="mt-1 block text-[0.62rem] text-white/38">{ascension.walletNfts.length} available</span>
             </div>
             <div className="rounded border border-dyoor-purple/30 bg-white/[0.04] p-3">
               <span className="block text-lg text-white">{selectedAscendedIds.length}</span>
-              Unstake
+              To Unstake
+              <span className="mt-1 block text-[0.62rem] text-white/38">{ascension.ascendedNfts.length || ascension.ascendedCount} available</span>
             </div>
             <div className="rounded border border-white/12 bg-black/25 p-3">
               <span className="block text-lg text-white">{selected.size}</span>
@@ -1234,13 +1242,16 @@ export default function AscensionPage() {
           <div className="rounded border border-white/10 bg-black/28 p-4 xl:sticky xl:top-24">
             <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-1">
               <Button variant="primary" disabled={!selectedWalletIds.length || working} onClick={() => void stakeTokenIds(selectedWalletIds)}>
-                Stake Selected ({selectedWalletIds.length})
+                Stake Selected Wallet NFTs ({selectedWalletIds.length})
               </Button>
               <Button variant="secondary" disabled={!ascension.walletNfts.length || working} onClick={() => void stakeTokenIds(ascension.walletNfts.map((nft) => nft.tokenId))}>
-                Stake All ({ascension.walletNfts.length})
+                Stake All Wallet NFTs ({ascension.walletNfts.length})
+              </Button>
+              <Button variant="secondary" disabled={!ascension.ascendedNfts.length || working} onClick={() => selectAll("ascended")}>
+                Select All Ascended ({ascension.ascendedNfts.length || ascension.ascendedCount})
               </Button>
               <Button variant="ghost" disabled={!selectedAscendedIds.length || working} onClick={() => void unstakeTokenIds(selectedAscendedIds)}>
-                Unstake Selected ({selectedAscendedIds.length})
+                Unstake Selected Ascended NFTs ({selectedAscendedIds.length})
               </Button>
               <Button variant="ghost" disabled={working || Number(ascension.pendingEnergy) <= 0} onClick={() => void harvestEnergy()}>
                 Harvest Energy
