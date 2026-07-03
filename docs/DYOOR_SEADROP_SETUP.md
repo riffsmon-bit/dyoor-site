@@ -195,7 +195,7 @@ NEXT_PUBLIC_DYOOR_S2_CHAIN_NAME="Monad Testnet"
 NEXT_PUBLIC_DYOOR_S2_RPC_URL=https://testnet-rpc.monad.xyz
 NEXT_PUBLIC_DYOOR_S2_EXPLORER_URL=https://testnet.monadscan.com
 NEXT_PUBLIC_DYOOR_S2_START_BLOCK=<deployment-block>
-NEXT_PUBLIC_DYOOR_S2_LOG_CHUNK_SIZE=2500
+NEXT_PUBLIC_DYOOR_S2_LOG_CHUNK_SIZE=100
 ```
 
 Current Monad testnet deployment:
@@ -210,6 +210,9 @@ Explorer: https://testnet.monadscan.com/address/0xce586aa467f6351bf819dbf134bc69
 
 Use `42188639` for `NEXT_PUBLIC_DYOOR_S2_START_BLOCK` on the hidden mint
 test page for this deployment.
+
+Use `100` for `NEXT_PUBLIC_DYOOR_S2_LOG_CHUNK_SIZE` with Monad testnet's
+public RPC. Larger `eth_getLogs` block ranges may be rejected by the RPC.
 
 Keep `NEXT_PUBLIC_ENABLE_S2_MINT_TEST=false` unless the internal `/s2-mint-test` route is intentionally being used. The route is not linked from navigation. The page tests the direct dyoor.xyz mint functions. OpenSea Primary Drops must still be tested through OpenSea/SeaDrop.
 
