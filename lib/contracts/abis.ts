@@ -234,6 +234,13 @@ export const dyoorSeason2SeaDropAbi = [
   },
   {
     type: "function",
+    name: "ownerOf",
+    stateMutability: "view",
+    inputs: [{ name: "tokenId", type: "uint256" }],
+    outputs: [{ type: "address" }],
+  },
+  {
+    type: "function",
     name: "phaseConfig",
     stateMutability: "view",
     inputs: [{ name: "phase", type: "uint8" }],

@@ -56,6 +56,8 @@ const S2_RPC_URL = process.env.NEXT_PUBLIC_DYOOR_S2_RPC_URL || process.env.NEXT_
 const S2_EXPLORER_URL = (process.env.NEXT_PUBLIC_DYOOR_S2_EXPLORER_URL || "https://testnet.monadscan.com").replace(/\/$/, "");
 const S2_START_BLOCK = BigInt(Math.max(0, Number(process.env.NEXT_PUBLIC_DYOOR_S2_START_BLOCK || "0") || 0));
 const S2_LOG_CHUNK_SIZE = BigInt(Math.min(100, Math.max(1, Number(process.env.NEXT_PUBLIC_DYOOR_S2_LOG_CHUNK_SIZE || "100") || 100)));
+const NFT_OWNER_SCAN_LIMIT = 250n;
+const NFT_OWNER_REQUEST_DELAY_MS = 45;
 const NFT_LOG_REQUEST_DELAY_MS = 60;
 const TRANSFER_EVENT = parseAbiItem("event Transfer(address indexed from, address indexed to, uint256 indexed tokenId)");
 
@@ -363,53 +365,79 @@ export function S2MintTestClient() {
         return;
       }
 
-      const latest = await publicClient.getBlockNumber();
-      const changes: Array<{ tokenId: bigint; owns: boolean; blockNumber: bigint; logIndex: number }> = [];
-
-      for (let fromBlock = S2_START_BLOCK; fromBlock <= latest;) {
-        const toBlock = fromBlock + S2_LOG_CHUNK_SIZE - 1n > latest ? latest : fromBlock + S2_LOG_CHUNK_SIZE - 1n;
-        const incoming = await publicClient.getLogs({
-          address: contractAddress as Address,
-          event: TRANSFER_EVENT,
-          args: { to: normalizedWallet as Address },
-          fromBlock,
-          toBlock,
-        });
-        await delay(NFT_LOG_REQUEST_DELAY_MS);
-        if (requestId !== nftRequest.current) return;
-
-        const outgoing = await publicClient.getLogs({
-          address: contractAddress as Address,
-          event: TRANSFER_EVENT,
-          args: { from: normalizedWallet as Address },
-          fromBlock,
-          toBlock,
-        });
-        await delay(NFT_LOG_REQUEST_DELAY_MS);
-        if (requestId !== nftRequest.current) return;
-
-        for (const log of incoming) {
-          if (log.args.tokenId !== undefined) {
-            changes.push({ tokenId: log.args.tokenId, owns: true, blockNumber: log.blockNumber || 0n, logIndex: log.logIndex || 0 });
-          }
-        }
-        for (const log of outgoing) {
-          if (log.args.tokenId !== undefined) {
-            changes.push({ tokenId: log.args.tokenId, owns: false, blockNumber: log.blockNumber || 0n, logIndex: log.logIndex || 0 });
-          }
-        }
-        fromBlock = toBlock + 1n;
-      }
-
-      changes.sort((a, b) => {
-        if (a.blockNumber === b.blockNumber) return a.logIndex - b.logIndex;
-        return a.blockNumber < b.blockNumber ? -1 : 1;
-      });
-
       const tokenIds = new Set<bigint>();
-      for (const change of changes) {
-        if (change.owns) tokenIds.add(change.tokenId);
-        else tokenIds.delete(change.tokenId);
+
+      const nextTotalSupply = await publicClient.readContract({
+        address: contractAddress as Address,
+        abi: dyoorSeason2SeaDropAbi,
+        functionName: "totalSupply",
+      });
+      if (requestId !== nftRequest.current) return;
+
+      if (BigInt(nextTotalSupply) <= NFT_OWNER_SCAN_LIMIT) {
+        const targetCount = Math.min(Number(nextWalletBalance), 24);
+        for (let tokenId = 1n; tokenId <= BigInt(nextTotalSupply); tokenId += 1n) {
+          const owner = await publicClient.readContract({
+            address: contractAddress as Address,
+            abi: dyoorSeason2SeaDropAbi,
+            functionName: "ownerOf",
+            args: [tokenId],
+          });
+          if (String(owner).toLowerCase() === normalizedWallet.toLowerCase()) {
+            tokenIds.add(tokenId);
+            if (tokenIds.size >= targetCount) break;
+          }
+          await delay(NFT_OWNER_REQUEST_DELAY_MS);
+          if (requestId !== nftRequest.current) return;
+        }
+      } else {
+        const latest = await publicClient.getBlockNumber();
+        const changes: Array<{ tokenId: bigint; owns: boolean; blockNumber: bigint; logIndex: number }> = [];
+
+        for (let fromBlock = S2_START_BLOCK; fromBlock <= latest;) {
+          const toBlock = fromBlock + S2_LOG_CHUNK_SIZE - 1n > latest ? latest : fromBlock + S2_LOG_CHUNK_SIZE - 1n;
+          const incoming = await publicClient.getLogs({
+            address: contractAddress as Address,
+            event: TRANSFER_EVENT,
+            args: { to: normalizedWallet as Address },
+            fromBlock,
+            toBlock,
+          });
+          await delay(NFT_LOG_REQUEST_DELAY_MS);
+          if (requestId !== nftRequest.current) return;
+
+          const outgoing = await publicClient.getLogs({
+            address: contractAddress as Address,
+            event: TRANSFER_EVENT,
+            args: { from: normalizedWallet as Address },
+            fromBlock,
+            toBlock,
+          });
+          await delay(NFT_LOG_REQUEST_DELAY_MS);
+          if (requestId !== nftRequest.current) return;
+
+          for (const log of incoming) {
+            if (log.args.tokenId !== undefined) {
+              changes.push({ tokenId: log.args.tokenId, owns: true, blockNumber: log.blockNumber || 0n, logIndex: log.logIndex || 0 });
+            }
+          }
+          for (const log of outgoing) {
+            if (log.args.tokenId !== undefined) {
+              changes.push({ tokenId: log.args.tokenId, owns: false, blockNumber: log.blockNumber || 0n, logIndex: log.logIndex || 0 });
+            }
+          }
+          fromBlock = toBlock + 1n;
+        }
+
+        changes.sort((a, b) => {
+          if (a.blockNumber === b.blockNumber) return a.logIndex - b.logIndex;
+          return a.blockNumber < b.blockNumber ? -1 : 1;
+        });
+
+        for (const change of changes) {
+          if (change.owns) tokenIds.add(change.tokenId);
+          else tokenIds.delete(change.tokenId);
+        }
       }
 
       const previewIds = Array.from(tokenIds).sort((a, b) => a < b ? -1 : 1).slice(0, 24);
