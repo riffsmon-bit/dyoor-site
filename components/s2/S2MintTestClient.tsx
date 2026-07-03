@@ -56,6 +56,7 @@ const S2_RPC_URL = process.env.NEXT_PUBLIC_DYOOR_S2_RPC_URL || process.env.NEXT_
 const S2_EXPLORER_URL = (process.env.NEXT_PUBLIC_DYOOR_S2_EXPLORER_URL || "https://testnet.monadscan.com").replace(/\/$/, "");
 const S2_START_BLOCK = BigInt(Math.max(0, Number(process.env.NEXT_PUBLIC_DYOOR_S2_START_BLOCK || "0") || 0));
 const S2_LOG_CHUNK_SIZE = BigInt(Math.min(100, Math.max(1, Number(process.env.NEXT_PUBLIC_DYOOR_S2_LOG_CHUNK_SIZE || "100") || 100)));
+const NFT_LOG_REQUEST_DELAY_MS = 60;
 const TRANSFER_EVENT = parseAbiItem("event Transfer(address indexed from, address indexed to, uint256 indexed tokenId)");
 
 const s2Chain = defineChain({
@@ -126,6 +127,7 @@ function normalizePhaseConfig(raw: unknown): PhaseConfig {
 function normalizeError(error: unknown) {
   const message = error instanceof Error ? error.message : String(error || "");
   if (/user rejected|user denied|rejected request|denied transaction/i.test(message)) return "Transaction rejected in wallet.";
+  if (/requests limited|rate limit|too many requests/i.test(message)) return "Monad testnet RPC rate limit hit. Wait a moment and refresh NFTs.";
   if (/insufficient funds/i.test(message)) return "Insufficient MON for mint price or gas.";
   if (/allowlist|proof|Merkle/i.test(message)) return "Allowlist proof rejected for this wallet.";
   if (/walletlimit|wallet limit/i.test(message)) return "Wallet mint limit reached.";
@@ -170,6 +172,10 @@ async function fetchMetadata(uri: string): Promise<Omit<OwnedToken, "tokenId" | 
     attributes: Array.isArray(json.attributes) ? json.attributes : [],
     metadataStatus: "loaded",
   };
+}
+
+function delay(ms: number) {
+  return new Promise((resolve) => window.setTimeout(resolve, ms));
 }
 
 export function S2MintTestClient() {
@@ -326,27 +332,43 @@ export function S2MintTestClient() {
 
     setNftState("loading");
     try {
+      const nextWalletBalance = await publicClient.readContract({
+        address: contractAddress as Address,
+        abi: dyoorSeason2SeaDropAbi,
+        functionName: "balanceOf",
+        args: [normalizedWallet as Address],
+      });
+      if (requestId !== nftRequest.current) return;
+      if (BigInt(nextWalletBalance) === 0n) {
+        setOwnedTokens([]);
+        setNftState("success");
+        return;
+      }
+
       const latest = await publicClient.getBlockNumber();
       const changes: Array<{ tokenId: bigint; owns: boolean; blockNumber: bigint; logIndex: number }> = [];
 
       for (let fromBlock = S2_START_BLOCK; fromBlock <= latest;) {
         const toBlock = fromBlock + S2_LOG_CHUNK_SIZE - 1n > latest ? latest : fromBlock + S2_LOG_CHUNK_SIZE - 1n;
-        const [incoming, outgoing] = await Promise.all([
-          publicClient.getLogs({
-            address: contractAddress as Address,
-            event: TRANSFER_EVENT,
-            args: { to: normalizedWallet as Address },
-            fromBlock,
-            toBlock,
-          }),
-          publicClient.getLogs({
-            address: contractAddress as Address,
-            event: TRANSFER_EVENT,
-            args: { from: normalizedWallet as Address },
-            fromBlock,
-            toBlock,
-          }),
-        ]);
+        const incoming = await publicClient.getLogs({
+          address: contractAddress as Address,
+          event: TRANSFER_EVENT,
+          args: { to: normalizedWallet as Address },
+          fromBlock,
+          toBlock,
+        });
+        await delay(NFT_LOG_REQUEST_DELAY_MS);
+        if (requestId !== nftRequest.current) return;
+
+        const outgoing = await publicClient.getLogs({
+          address: contractAddress as Address,
+          event: TRANSFER_EVENT,
+          args: { from: normalizedWallet as Address },
+          fromBlock,
+          toBlock,
+        });
+        await delay(NFT_LOG_REQUEST_DELAY_MS);
+        if (requestId !== nftRequest.current) return;
 
         for (const log of incoming) {
           if (log.args.tokenId !== undefined) {
