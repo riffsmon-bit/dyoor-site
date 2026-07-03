@@ -157,7 +157,10 @@ function mintFunctionForMode(mode: MintMode) {
 async function fetchMetadata(uri: string): Promise<Omit<OwnedToken, "tokenId" | "tokenURI">> {
   const url = normalizeUri(uri);
   if (!url) throw new Error("Missing token URI.");
-  const response = await fetch(url, { cache: "no-cache" });
+  let response = await fetch(url, { cache: "no-cache" });
+  if (!response.ok && !/\.[a-z0-9]+$/i.test(url)) {
+    response = await fetch(`${url}.json`, { cache: "no-cache" });
+  }
   if (!response.ok) throw new Error(`Metadata HTTP ${response.status}`);
   const json = await response.json() as {
     name?: string;
