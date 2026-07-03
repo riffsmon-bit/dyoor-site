@@ -55,7 +55,7 @@ const S2_CHAIN_NAME = process.env.NEXT_PUBLIC_DYOOR_S2_CHAIN_NAME || "Monad Test
 const S2_RPC_URL = process.env.NEXT_PUBLIC_DYOOR_S2_RPC_URL || process.env.NEXT_PUBLIC_MONAD_TESTNET_RPC_URL || "https://testnet-rpc.monad.xyz";
 const S2_EXPLORER_URL = (process.env.NEXT_PUBLIC_DYOOR_S2_EXPLORER_URL || "https://testnet.monadscan.com").replace(/\/$/, "");
 const S2_START_BLOCK = BigInt(Math.max(0, Number(process.env.NEXT_PUBLIC_DYOOR_S2_START_BLOCK || "0") || 0));
-const S2_LOG_CHUNK_SIZE = BigInt(Math.max(1, Number(process.env.NEXT_PUBLIC_DYOOR_S2_LOG_CHUNK_SIZE || "100") || 100));
+const S2_LOG_CHUNK_SIZE = BigInt(Math.min(100, Math.max(1, Number(process.env.NEXT_PUBLIC_DYOOR_S2_LOG_CHUNK_SIZE || "100") || 100)));
 const TRANSFER_EVENT = parseAbiItem("event Transfer(address indexed from, address indexed to, uint256 indexed tokenId)");
 
 const s2Chain = defineChain({
