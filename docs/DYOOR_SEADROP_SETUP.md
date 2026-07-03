@@ -125,6 +125,17 @@ keccak256(abi.encodePacked(wallet))
 
 Generate roots from normalized wallet addresses. Onchain address comparison is binary; lowercase is recommended for tooling consistency.
 
+For a small multi-wallet test allowlist, put tester wallets in a local text file
+and generate the direct-mint Merkle root and proofs:
+
+```bash
+npm run generate:s2-allowlist -- /path/to/test-wallets.txt > /path/to/s2-team-allowlist.json
+```
+
+Use the JSON `root` value as the Team phase `merkleRoot` in `setPhaseConfig`.
+Give each tester their wallet-specific `proof` array from the JSON to paste into
+the hidden mint test page. The proof must match the wallet they connect with.
+
 Important: direct mint wallet limits use ERC721A `_numberMinted(wallet)`, so SeaDrop mints and direct mints count together. This prevents minting through OpenSea and then bypassing limits on dyoor.xyz.
 
 ## SeaDrop Configuration
