@@ -220,7 +220,22 @@ export function S2MintTestClient() {
   const mintValue = (selectedConfig?.price || 0n) * BigInt(quantity);
   const remainingSupply = maxSupply > totalMinted ? maxSupply - totalMinted : 0n;
   const wrongNetwork = Boolean(wallet.connected && currentChainId && currentChainId.toLowerCase() !== S2_CHAIN_HEX);
-  const canMint = Boolean(contractAddress && wallet.connected && !wrongNetwork && selectedPhase > 0 && quantity > 0 && remainingSupply >= BigInt(quantity) && mintState !== "loading");
+  const mintButtonDisabled = Boolean(
+    !contractAddress
+      || selectedPhase === 0
+      || quantity <= 0
+      || remainingSupply < BigInt(quantity)
+      || mintState === "loading",
+  );
+  const mintButtonLabel = mintState === "loading"
+    ? "Minting"
+    : !wallet.connected
+      ? "Connect Wallet"
+      : wrongNetwork
+        ? "Switch Network"
+        : selectedPhase === 0
+          ? "Mint Inactive"
+          : "Mint Test NFT";
   const txUrl = txHash ? `${S2_EXPLORER_URL}/tx/${txHash}` : "";
   const leaf = normalizedWallet ? walletLeaf(normalizedWallet) : "";
 
@@ -631,8 +646,8 @@ export function S2MintTestClient() {
               <p>Wallet balance in contract: <span className="text-white">{wallet.connected ? walletBalance.toString() : "-"}</span></p>
             </div>
 
-            <Button variant="primary" onClick={() => void submitMint()} disabled={!canMint}>
-              {mintState === "loading" ? "Minting" : wallet.connected ? "Mint Test NFT" : "Connect Wallet"}
+            <Button variant="primary" onClick={() => void submitMint()} disabled={mintButtonDisabled}>
+              {mintButtonLabel}
             </Button>
           </div>
         </div>
