@@ -198,6 +198,19 @@ NEXT_PUBLIC_DYOOR_S2_START_BLOCK=<deployment-block>
 NEXT_PUBLIC_DYOOR_S2_LOG_CHUNK_SIZE=2500
 ```
 
+Current Monad testnet deployment:
+
+```text
+Contract: 0xce586aa467f6351bf819dbf134bc69947125cd92
+Transaction: 0xdf99dbd4aca6376d1be2d1cf7e1aee12d1f01d01d94f7aeb42f61bda3c10da09
+Chain ID: 10143
+Deployment block: 42188639
+Explorer: https://testnet.monadscan.com/address/0xce586aa467f6351bf819dbf134bc69947125cd92
+```
+
+Use `42188639` for `NEXT_PUBLIC_DYOOR_S2_START_BLOCK` on the hidden mint
+test page for this deployment.
+
 Keep `NEXT_PUBLIC_ENABLE_S2_MINT_TEST=false` unless the internal `/s2-mint-test` route is intentionally being used. The route is not linked from navigation. The page tests the direct dyoor.xyz mint functions. OpenSea Primary Drops must still be tested through OpenSea/SeaDrop.
 
 Never commit private keys or secret RPC credentials.
