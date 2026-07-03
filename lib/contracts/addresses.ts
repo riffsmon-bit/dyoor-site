@@ -9,6 +9,14 @@ export function contractAddress(value: string | undefined, fallback: string): Ad
   return getAddress(value || fallback);
 }
 
+export function optionalContractAddress(value: string | undefined): Address | "" {
+  try {
+    return value ? getAddress(value) : "";
+  } catch {
+    return "";
+  }
+}
+
 export const dyoorS1Contract = contractAddress(
   process.env.DYOOR_S1_CONTRACT || process.env.NEXT_PUBLIC_DYOOR_S1_CONTRACT,
   DEFAULT_DYOOR_S1_CONTRACT,
@@ -22,4 +30,8 @@ export const ascensionStakingContract = contractAddress(
 export const energyBankContract = contractAddress(
   process.env.ENERGY_BANK_ADDRESS || process.env.NEXT_PUBLIC_ENERGY_BANK_ADDRESS,
   DEFAULT_ENERGY_BANK_CONTRACT,
+);
+
+export const dyoorS2Contract = optionalContractAddress(
+  process.env.NEXT_PUBLIC_DYOOR_S2_CONTRACT_ADDRESS,
 );

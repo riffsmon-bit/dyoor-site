@@ -14,8 +14,18 @@ function normalizePrivateKey(value) {
 export default defineConfig({
   plugins: [hardhatEthers],
   solidity: {
-    profiles: {
-      default: {
+    preferWasm: true,
+    compilers: [
+      {
+        version: "0.8.17",
+        settings: {
+          optimizer: {
+            enabled: true,
+            runs: 1,
+          },
+        },
+      },
+      {
         version: "0.8.28",
         settings: {
           optimizer: {
@@ -24,7 +34,10 @@ export default defineConfig({
           },
         },
       },
-    },
+    ],
+  },
+  paths: {
+    tests: "hardhat-tests",
   },
   networks: {
     monad: {

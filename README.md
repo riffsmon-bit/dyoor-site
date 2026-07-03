@@ -5,6 +5,29 @@
 - Discord verification lives on `/verify.html`
 - Stake page uses a real wallet chooser instead of the old prompt-based selector
 
+## D.Y.O.O.R Season 2 SeaDrop Contract
+
+The Season 2 NFT contract lives in `contracts/DYOORSeason2SeaDrop.sol` and is built with Foundry on top of OpenSea's `ERC721SeaDrop`.
+
+Useful commands:
+
+```bash
+npm run build:seadrop
+npm run test:seadrop
+npm run gas:seadrop
+```
+
+Monad testnet deployment and OpenSea/SeaDrop configuration notes are in `docs/DYOOR_SEADROP_SETUP.md`.
+
+The hidden internal mint console lives at `/s2-mint-test` and is gated by:
+
+```bash
+NEXT_PUBLIC_ENABLE_S2_MINT_TEST=true
+NEXT_PUBLIC_DYOOR_S2_CONTRACT_ADDRESS=<deployed Season 2 contract>
+```
+
+Do not link this route in public navigation.
+
 ## Deploy
 Upload the folder contents to Netlify as a static site.
 
