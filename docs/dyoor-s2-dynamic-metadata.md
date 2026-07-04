@@ -92,7 +92,12 @@ The API responds with:
 
 ```text
 Cache-Control: s-maxage=60, stale-while-revalidate=300
+CDN-Cache-Control: s-maxage=60, stale-while-revalidate=300
+Netlify-CDN-Cache-Control: s-maxage=60, stale-while-revalidate=300
 ```
+
+The standard header covers regular Next.js responses. The CDN-specific headers
+let Netlify apply the same short-lived dynamic cache policy at the edge.
 
 OpenSea and other marketplaces may cache metadata separately. After rerolls or
 trait updates, use marketplace metadata refresh tools when needed.

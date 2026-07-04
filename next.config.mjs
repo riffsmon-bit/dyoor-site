@@ -28,6 +28,14 @@ const nextConfig = {
             key: "Cache-Control",
             value: "s-maxage=60, stale-while-revalidate=300",
           },
+          {
+            key: "CDN-Cache-Control",
+            value: "s-maxage=60, stale-while-revalidate=300",
+          },
+          {
+            key: "Netlify-CDN-Cache-Control",
+            value: "s-maxage=60, stale-while-revalidate=300",
+          },
         ],
       },
       {

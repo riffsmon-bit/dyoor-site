@@ -28,10 +28,16 @@ export async function GET(_request: Request, context: MetadataRouteContext) {
   const { metadata } = buildTokenMetadata(parsed.tokenId, config);
 
   return jsonResponse(metadata, {
-    headers: {
-      "Cache-Control": METADATA_CACHE_CONTROL,
-    },
+    headers: metadataCacheHeaders(),
   });
+}
+
+function metadataCacheHeaders() {
+  return {
+    "Cache-Control": METADATA_CACHE_CONTROL,
+    "CDN-Cache-Control": METADATA_CACHE_CONTROL,
+    "Netlify-CDN-Cache-Control": METADATA_CACHE_CONTROL,
+  };
 }
 
 function jsonResponse(body: unknown, init: ResponseInit = {}) {
