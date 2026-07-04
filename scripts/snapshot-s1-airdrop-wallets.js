@@ -16,6 +16,7 @@ const DEFAULT_MAX_TOKEN_ID = 1111;
 const DEFAULT_OUTPUT_CSV = "exports/dyoor-s1-airdrop-wallets-staked-count.csv";
 const DEFAULT_OUT_DIR = "data/snapshots";
 const DEFAULT_OVERRIDE_PATH = "data/ascension-depositor-overrides.json";
+const DEFAULT_TRANSFER_EVIDENCE_PATH = "data/ascension-transfer-evidence-to-staking.json";
 const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
 const GOLDSKY_PAGE_SIZE = 1000;
 
@@ -467,29 +468,36 @@ async function scanRawTransferLogs({
   headers,
   onlyTokenIds,
   maxChunks,
+  delayMs,
+  initialByToken = new Map(),
+  cachePath = "",
+  cacheMetadata = {},
 }) {
   const transferTopic = ethers.id("Transfer(address,address,uint256)");
   const stakingTopic = ethers.zeroPadValue(ethers.getAddress(stakingAddress), 32);
-  const byToken = new Map();
+  const byToken = new Map(initialByToken);
   let chunksScanned = 0;
   let logsScanned = 0;
+  const foundWantedCount = () => onlyTokenIds?.size
+    ? Array.from(onlyTokenIds).filter((tokenId) => byToken.has(tokenId)).length
+    : byToken.size;
 
   for (let from = fromBlock; from <= toBlock; from += chunkSize) {
     const to = Math.min(toBlock, from + chunkSize - 1);
     chunksScanned += 1;
     if (maxChunks && chunksScanned > maxChunks) break;
 
-    const logs = await rawRpcGetLogs({
-      rpcUrl,
-      filter: {
-        address: nftAddress,
-        fromBlock: ethers.toQuantity(from),
-        toBlock: ethers.toQuantity(to),
-        topics: [transferTopic, null, stakingTopic],
-      },
-      timeoutMs,
-      headers,
-    });
+    const filter = {
+      address: nftAddress,
+      fromBlock: ethers.toQuantity(from),
+      toBlock: ethers.toQuantity(to),
+      topics: [transferTopic, null, stakingTopic],
+    };
+    const logs = await retry(
+      `transfer logs ${from}-${to}`,
+      () => rawRpcGetLogs({ rpcUrl, filter, timeoutMs, headers }),
+      6
+    );
     logsScanned += logs.length;
     for (const log of logs) {
       const tokenId = BigInt(log.topics[3]).toString();
@@ -502,10 +510,15 @@ async function scanRawTransferLogs({
         txHash: String(log.transactionHash || "").toLowerCase(),
         logIndex: Number(BigInt(log.logIndex || "0x0")),
       });
+      if (cachePath) writeTransferEvidenceCache(cachePath, byToken, cacheMetadata);
+      if (onlyTokenIds?.size && foundWantedCount() >= onlyTokenIds.size) break;
     }
     if (logs.length || chunksScanned % 500 === 0) {
-      console.log(`transfer logs ${from}-${to}: ${logs.length}; scanned ${chunksScanned}`);
+      const found = onlyTokenIds?.size ? `; found ${foundWantedCount()}/${onlyTokenIds.size}` : "";
+      console.log(`transfer logs ${from}-${to}: ${logs.length}; scanned ${chunksScanned}${found}`);
     }
+    if (onlyTokenIds?.size && foundWantedCount() >= onlyTokenIds.size) break;
+    if (delayMs > 0) await sleep(delayMs);
   }
 
   return { byToken, logsScanned, chunksScanned };
@@ -535,6 +548,58 @@ function readOverrides(filePath) {
   } catch {
     return new Map();
   }
+}
+
+function readTransferEvidenceCache(filePath) {
+  try {
+    const value = JSON.parse(fs.readFileSync(filePath, "utf8"));
+    const rows = Array.isArray(value?.transfers) ? value.transfers : [];
+    return new Map(rows
+      .map((row) => ({
+        ...row,
+        tokenId: String(row.tokenId || row.token || ""),
+        wallet: normalizeAddress(row.wallet),
+      }))
+      .filter((row) => /^\d+$/.test(row.tokenId) && row.wallet)
+      .map((row) => [row.tokenId, row]));
+  } catch {
+    return new Map();
+  }
+}
+
+function readTransferEvidenceFile(filePath) {
+  try {
+    const value = JSON.parse(fs.readFileSync(filePath, "utf8"));
+    const rows = Array.isArray(value?.transfers) ? value.transfers : Array.isArray(value) ? value : [];
+    return new Map(rows
+      .map((row) => {
+        const tokenId = String(row.tokenId || row.token || "");
+        const blockNumber = Number(row.blockNumber || row.block || 0);
+        return {
+          tokenId,
+          wallet: normalizeAddress(row.wallet || row.from),
+          source: String(row.source || "verified-erc721-transfer-to-staking"),
+          blockNumber: Number.isFinite(blockNumber) ? blockNumber : 0,
+          txHash: String(row.txHash || row.tx || row.transactionHash || "").toLowerCase(),
+          logIndex: Number(row.logIndex ?? row.index ?? 0),
+        };
+      })
+      .filter((row) => /^\d+$/.test(row.tokenId) && row.wallet)
+      .map((row) => [row.tokenId, row]));
+  } catch {
+    return new Map();
+  }
+}
+
+function writeTransferEvidenceCache(filePath, byToken, metadata = {}) {
+  fs.mkdirSync(path.dirname(filePath), { recursive: true });
+  const transfers = Array.from(byToken.values())
+    .sort((a, b) => compareTokenIds(a.tokenId, b.tokenId));
+  fs.writeFileSync(filePath, JSON.stringify({
+    generatedAt: new Date().toISOString(),
+    ...metadata,
+    transfers,
+  }, null, 2) + "\n", "utf8");
 }
 
 async function scanCurrentStakedTokens({ provider, nft, stakingAddress, minTokenId, maxTokenId, blockTag, concurrency }) {
@@ -611,7 +676,10 @@ async function main() {
   const concurrency = readPositiveNumber(argValue("concurrency", readEnv("ASCENSION_SNAPSHOT_OWNER_SCAN_CONCURRENCY")), 4);
   const rawTimeoutMs = readPositiveNumber(readEnv("ASCENSION_LOG_TIMEOUT_MS", "ASCENSION_SNAPSHOT_RPC_TIMEOUT_MS"), 12_000);
   const rawChunkSize = readPositiveNumber(argValue("transfer-log-chunk-size", readEnv("ASCENSION_TRANSFER_LOG_CHUNK_SIZE")), transferChunkSize(transferRpcUrl));
+  const rawDelayMs = readNumber(argValue("transfer-log-delay-ms", readEnv("ASCENSION_TRANSFER_LOG_DELAY_MS")), /thirdweb/i.test(transferRpcUrl) ? 250 : 0);
   const maxTransferChunks = readNumber(argValue("max-transfer-chunks", readEnv("ASCENSION_TRANSFER_LOG_MAX_CHUNKS")), 0);
+  const transferCachePath = argValue("transfer-cache", readEnv("ASCENSION_TRANSFER_CACHE") || path.join(outDir, "s1-transfer-evidence-cache.json"));
+  const transferEvidencePath = argValue("transfer-evidence-file", readEnv("ASCENSION_TRANSFER_EVIDENCE_FILE") || DEFAULT_TRANSFER_EVIDENCE_PATH);
   const snapshotBlockInput = argValue("snapshot-block", readEnv("SNAPSHOT_BLOCK"));
 
   const provider = new ethers.JsonRpcProvider(rpcUrl, Number(CHAIN_ID), { staticNetwork: true, batchMaxCount: 1 });
@@ -674,7 +742,14 @@ async function main() {
   console.log("Current ownerOf staked tokens:", stakedTokenIds.length);
   console.log("Current staked tokens missing event wallet:", missingFromEvents.length);
 
-  let transferEvidence = new Map();
+  let transferEvidence = readTransferEvidenceFile(transferEvidencePath);
+  if (transferEvidence.size) console.log("Loaded tracked transfer evidence:", transferEvidence.size, "from", transferEvidencePath);
+  const cachedTransferEvidence = readTransferEvidenceCache(transferCachePath);
+  if (cachedTransferEvidence.size) {
+    transferEvidence = new Map([...transferEvidence, ...cachedTransferEvidence]);
+    console.log("Loaded cached transfer evidence:", cachedTransferEvidence.size, "from", transferCachePath);
+  }
+  if (transferEvidence.size) console.log("Transfer evidence available:", transferEvidence.size);
   if (missingFromEvents.length && !hasFlag("skip-transfer-index")) {
     if (/alchemy\.com/i.test(rpcUrl)) {
       console.log("Trying Alchemy indexed transfer fallback...");
@@ -685,7 +760,8 @@ async function main() {
       if (result) transferEvidence = result.byToken;
     }
 
-    if (missingFromEvents.some((tokenId) => !transferEvidence.has(tokenId)) && !hasFlag("skip-raw-transfer-logs")) {
+    const missingAfterIndexedTransfers = missingFromEvents.filter((tokenId) => !transferEvidence.has(tokenId));
+    if (missingAfterIndexedTransfers.length && !hasFlag("skip-raw-transfer-logs")) {
       console.log("Scanning raw ERC721 Transfer logs into staking contract...");
       const result = await scanRawTransferLogs({
         rpcUrl: transferRpcUrl,
@@ -696,8 +772,19 @@ async function main() {
         chunkSize: rawChunkSize,
         timeoutMs: rawTimeoutMs,
         headers: thirdwebHeaders(transferRpcUrl),
-        onlyTokenIds: new Set(missingFromEvents),
+        onlyTokenIds: new Set(missingAfterIndexedTransfers),
         maxChunks: maxTransferChunks,
+        delayMs: rawDelayMs,
+        initialByToken: transferEvidence,
+        cachePath: transferCachePath,
+        cacheMetadata: {
+          chainId: Number(CHAIN_ID),
+          nftAddress,
+          stakingAddress,
+          transferRpcUrl,
+          fromBlock: startBlock,
+          toBlock: snapshotBlock,
+        },
       }).catch((error) => {
         console.log("Raw transfer log fallback failed:", errorText(error));
         return null;
