@@ -511,7 +511,7 @@ function ManualUnstakePanel({
       <div className="mt-4 flex flex-col gap-3 md:flex-row">
         <input
           className="min-w-0 flex-1 rounded border border-white/14 bg-black/35 px-4 py-3 text-sm font-bold text-white outline-none focus:border-dyoor-cyan"
-          placeholder="Token ID, e.g. 577"
+          placeholder="Token ID, e.g. 595"
           inputMode="numeric"
           value={manualUnstake}
           onChange={(event) => setManualUnstake(event.target.value)}
