@@ -6,6 +6,7 @@ import { formatUnits, parseUnits } from "viem";
 import { Alert, Button, Card, EmptyState, LoadingSkeleton, PageShell, SectionHeader, StatCard } from "@/components/ui/DyoorUi";
 import { WalletButton } from "@/components/wallet/WalletButton";
 import { adminMessage } from "@/lib/adminMessage";
+import type { AdminAction } from "@/lib/adminMessage";
 import { MONAD_CHAIN_HEX } from "@/lib/monad";
 import { useWalletService } from "@/providers/WalletServiceProvider";
 
@@ -220,6 +221,54 @@ type ReconciliationRepairResult = {
   error?: string;
 };
 
+type LedgerEnergyResponse = {
+  ok?: boolean;
+  wallet?: string;
+  pendingEnergy?: string;
+  harvestedEnergy?: string;
+  airdroppedEnergy?: string;
+  spentEnergy?: string;
+  spendableEnergy?: string;
+  bankedEnergy?: string;
+  lifetimeEnergy?: string;
+  pendingRaw?: string;
+  harvestedRaw?: string;
+  airdroppedRaw?: string;
+  spentRaw?: string;
+  spendableRaw?: string;
+  lifetimeRaw?: string;
+  indexed?: number;
+  deduped?: number;
+  lastUpdatedAt?: string;
+  dataSource?: string;
+  error?: string;
+};
+
+type EnergyIndexResult = {
+  ok?: boolean;
+  indexed?: number;
+  deduped?: number;
+  walletsTouched?: number;
+  fromBlock?: number;
+  toBlock?: number;
+  latestBlock?: number;
+  complete?: boolean;
+  nextBlock?: number;
+  chunksScanned?: number;
+  checkpoint?: Record<string, unknown>;
+  error?: string;
+};
+
+type LedgerDiagnosticReport = {
+  ok?: boolean;
+  generatedAt?: string;
+  walletCount?: number;
+  affectedCount?: number;
+  rows?: Array<Record<string, any>>;
+  note?: string;
+  error?: string;
+};
+
 function normalizeAddress(address?: string) {
   return /^0x[a-fA-F0-9]{40}$/.test(address || "") ? String(address).toLowerCase() : "";
 }
@@ -307,6 +356,14 @@ function parseEnergyAmount(value: string) {
     return raw > 0n ? raw : null;
   } catch {
     return null;
+  }
+}
+
+function formatRawEnergy(raw?: string) {
+  try {
+    return formatUnits(BigInt(raw || "0"), 18);
+  } catch {
+    return "-";
   }
 }
 
@@ -538,6 +595,12 @@ export default function AdminPage() {
   const [lastSignatureAt, setLastSignatureAt] = useState("");
   const [currentChainId, setCurrentChainId] = useState("");
   const [adminBackend, setAdminBackend] = useState<AdminBackendStatus | null>(null);
+  const [energyWalletInput, setEnergyWalletInput] = useState("");
+  const [ledgerEnergy, setLedgerEnergy] = useState<LedgerEnergyResponse | null>(null);
+  const [energyLedgerStatus, setEnergyLedgerStatus] = useState("Search a wallet or run the event indexer to update ledger-derived spendable Energy.");
+  const [energyLedgerLoading, setEnergyLedgerLoading] = useState(false);
+  const [energyIndexResult, setEnergyIndexResult] = useState<EnergyIndexResult | null>(null);
+  const [ledgerDiagnostic, setLedgerDiagnostic] = useState<LedgerDiagnosticReport | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -650,7 +713,7 @@ export default function AdminPage() {
     return await walletService.getProvider() as Eip1193Provider;
   }
 
-  async function signAdminAction(action: "snapshot" | "energy-airdrop" | "energy-reconciliation") {
+  async function signAdminAction(action: AdminAction) {
     const timestamp = String(Date.now());
     const nonce = crypto.randomUUID();
     const message = adminMessage(walletAddress, timestamp, nonce, action);
@@ -658,6 +721,91 @@ export default function AdminPage() {
     const signature = await provider.request({ method: "personal_sign", params: [message, walletAddress] });
     setLastSignatureAt(new Date().toISOString());
     return { timestamp, nonce, signature };
+  }
+
+  async function loadLedgerWallet(scan = false) {
+    const wallet = normalizeAddress(energyWalletInput || walletAddress);
+    if (!wallet) {
+      setEnergyLedgerStatus("Enter a valid wallet address.");
+      return;
+    }
+    setEnergyLedgerLoading(true);
+    setLedgerEnergy(null);
+    setEnergyLedgerStatus(scan ? "Indexing recent harvest events for wallet." : "Loading ledger-derived Energy balance.");
+    try {
+      const response = scan
+        ? await fetch("/api/energy/sync-wallet", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ wallet }),
+        })
+        : await fetch(`/api/energy/${encodeURIComponent(wallet)}`, { cache: "no-store" });
+      const data = await response.json().catch(() => ({})) as LedgerEnergyResponse;
+      setLedgerEnergy(data);
+      if (!response.ok || data.ok === false) throw new Error(data.error || "Energy ledger lookup failed.");
+      setEnergyLedgerStatus(scan
+        ? `Wallet sync complete. Indexed ${data.indexed || 0} event(s), skipped ${data.deduped || 0} duplicate(s).`
+        : "Ledger balance loaded.");
+    } catch (err) {
+      setEnergyLedgerStatus(err instanceof Error ? err.message : "Energy ledger lookup failed.");
+    } finally {
+      setEnergyLedgerLoading(false);
+    }
+  }
+
+  async function runEnergyEventReindex() {
+    if (!walletAddress || !authorized) return;
+    setEnergyLedgerLoading(true);
+    setEnergyIndexResult(null);
+    setEnergyLedgerStatus("Sign owner authorization to run the global harvest event indexer.");
+    try {
+      const signature = await signAdminAction("energy-index");
+      setEnergyLedgerStatus("Indexing new PointsClaimed events into the Energy ledger.");
+      const response = await fetch("/api/admin/energy/reindex", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          ...signature,
+          wallet: walletAddress,
+          maxChunks: 8,
+        }),
+      });
+      const data = await response.json().catch(() => ({})) as EnergyIndexResult;
+      setEnergyIndexResult(data);
+      if (!response.ok || data.ok === false) throw new Error(data.error || "Energy event reindex failed.");
+      setEnergyLedgerStatus(`Reindex complete through block ${data.toBlock?.toLocaleString?.() || data.toBlock || "-"}. Indexed ${data.indexed || 0}, deduped ${data.deduped || 0}.`);
+    } catch (err) {
+      setEnergyLedgerStatus(err instanceof Error ? err.message : "Energy event reindex failed.");
+    } finally {
+      setEnergyLedgerLoading(false);
+    }
+  }
+
+  async function loadLedgerDiagnostic() {
+    if (!walletAddress || !authorized) return;
+    setEnergyLedgerLoading(true);
+    setLedgerDiagnostic(null);
+    setEnergyLedgerStatus("Sign owner authorization for diagnostic ledger reconciliation.");
+    try {
+      const signature = await signAdminAction("energy-reconciliation");
+      const response = await fetch("/api/admin/energy/reconcile", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          ...signature,
+          wallet: walletAddress,
+          dryRun: true,
+        }),
+      });
+      const data = await response.json().catch(() => ({})) as LedgerDiagnosticReport;
+      setLedgerDiagnostic(data);
+      if (!response.ok || data.ok === false) throw new Error(data.error || "Ledger diagnostic failed.");
+      setEnergyLedgerStatus(`Diagnostic complete. ${data.affectedCount || 0} affected wallet(s) out of ${data.walletCount || 0}.`);
+    } catch (err) {
+      setEnergyLedgerStatus(err instanceof Error ? err.message : "Ledger diagnostic failed.");
+    } finally {
+      setEnergyLedgerLoading(false);
+    }
   }
 
   function emptySnapshotSession(): SnapshotSession {
@@ -838,8 +986,8 @@ export default function AdminPage() {
       const provider = await getProvider();
       const signature = await provider.request({ method: "personal_sign", params: [message, walletAddress] });
       setLastSignatureAt(new Date().toISOString());
-      setAirdropStatus("Submitting airdrop transaction...");
-      const response = await fetch("/api/admin/energy-airdrop", {
+      setAirdropStatus("Writing ledger airdrop credits...");
+      const response = await fetch("/api/admin/energy/airdrop", {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({
@@ -1056,6 +1204,174 @@ export default function AdminPage() {
         </div>
       </Card>
 
+      <Card className="mb-6 p-5 md:p-6">
+        <div className="flex flex-col justify-between gap-4 lg:flex-row lg:items-start">
+          <div>
+            <p className="eyebrow">Energy Dashboard</p>
+            <h2 className="mt-2 text-2xl font-black uppercase text-white">Ledger Spendability</h2>
+            <p className="mt-2 max-w-3xl text-sm font-semibold leading-6 text-white/60">
+              Harvested Energy is indexed from Ascension `PointsClaimed` events and becomes spendable from ledger math. Reconciliation is diagnostic, not part of the normal user flow.
+            </p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <Button variant="secondary" disabled={!authorized || energyLedgerLoading} onClick={() => void runEnergyEventReindex()}>
+              {energyLedgerLoading ? "Working..." : "Run Event Reindex"}
+            </Button>
+            <Button variant="ghost" disabled={!authorized || energyLedgerLoading} onClick={() => void loadLedgerDiagnostic()}>
+              Diagnostic Reconcile
+            </Button>
+          </div>
+        </div>
+
+        <Alert className="mt-5" tone={energyLedgerLoading ? "busy" : energyIndexResult?.error || ledgerDiagnostic?.error || ledgerEnergy?.error ? "danger" : energyIndexResult || ledgerDiagnostic || ledgerEnergy ? "success" : "idle"}>
+          {energyLedgerStatus}
+        </Alert>
+
+        <div className="mt-5 grid gap-4 lg:grid-cols-[0.9fr_1.1fr]">
+          <div className="rounded border border-dyoor-purple/25 bg-black/35 p-4">
+            <p className="text-xs font-black uppercase tracking-[0.16em] text-white/45">Wallet Search</p>
+            <input
+              className="field-control mt-3"
+              placeholder={walletAddress || "0x..."}
+              value={energyWalletInput}
+              onChange={(event) => setEnergyWalletInput(event.target.value)}
+            />
+            <div className="mt-3 flex flex-wrap gap-2">
+              <Button variant="secondary" disabled={energyLedgerLoading} onClick={() => void loadLedgerWallet(false)}>Load Wallet</Button>
+              <Button variant="ghost" disabled={energyLedgerLoading} onClick={() => void loadLedgerWallet(true)}>Refresh Energy</Button>
+            </div>
+            <div className="mt-4 grid gap-3 text-sm font-bold text-white/66 sm:grid-cols-2">
+              <div className="rounded border border-white/10 bg-white/[0.035] p-3">
+                Pending: <span className="text-dyoor-cyan">{ledgerEnergy?.pendingEnergy ?? "-"}</span>
+              </div>
+              <div className="rounded border border-white/10 bg-white/[0.035] p-3">
+                Harvested: <span className="text-dyoor-cyan">{ledgerEnergy?.harvestedEnergy ?? "-"}</span>
+              </div>
+              <div className="rounded border border-white/10 bg-white/[0.035] p-3">
+                Airdropped: <span className="text-dyoor-cyan">{ledgerEnergy?.airdroppedEnergy ?? "-"}</span>
+              </div>
+              <div className="rounded border border-white/10 bg-white/[0.035] p-3">
+                Spent: <span className="text-dyoor-cyan">{ledgerEnergy?.spentEnergy ?? "-"}</span>
+              </div>
+              <div className="rounded border border-dyoor-cyan/25 bg-dyoor-cyan/10 p-3">
+                Spendable: <span className="text-dyoor-cyan">{ledgerEnergy?.spendableEnergy ?? "-"}</span>
+              </div>
+              <div className="rounded border border-white/10 bg-white/[0.035] p-3">
+                Lifetime: <span className="text-dyoor-cyan">{ledgerEnergy?.lifetimeEnergy ?? "-"}</span>
+              </div>
+            </div>
+            <p className="mt-3 break-all text-xs font-semibold text-white/45">
+              Last updated: {ledgerEnergy?.lastUpdatedAt ? new Date(ledgerEnergy.lastUpdatedAt).toLocaleString() : "-"} | Source: {ledgerEnergy?.dataSource || "ledger+staking-pending"}
+            </p>
+          </div>
+
+          <div className="grid gap-4">
+            <div className="rounded border border-dyoor-purple/25 bg-black/35 p-4">
+              <p className="text-xs font-black uppercase tracking-[0.16em] text-white/45">Indexer Status</p>
+              <div className="mt-3 grid gap-3 text-sm font-bold text-white/66 sm:grid-cols-3">
+                <div className="rounded border border-white/10 bg-white/[0.035] p-3">Indexed: <span className="text-dyoor-cyan">{energyIndexResult?.indexed ?? "-"}</span></div>
+                <div className="rounded border border-white/10 bg-white/[0.035] p-3">Deduped: <span className="text-dyoor-cyan">{energyIndexResult?.deduped ?? "-"}</span></div>
+                <div className="rounded border border-white/10 bg-white/[0.035] p-3">Wallets: <span className="text-dyoor-cyan">{energyIndexResult?.walletsTouched ?? "-"}</span></div>
+                <div className="rounded border border-white/10 bg-white/[0.035] p-3">From: <span className="text-white">{energyIndexResult?.fromBlock?.toLocaleString?.() ?? "-"}</span></div>
+                <div className="rounded border border-white/10 bg-white/[0.035] p-3">To: <span className="text-white">{energyIndexResult?.toBlock?.toLocaleString?.() ?? "-"}</span></div>
+                <div className="rounded border border-white/10 bg-white/[0.035] p-3">Complete: <span className={energyIndexResult?.complete ? "text-dyoor-cyan" : "text-yellow-100"}>{energyIndexResult ? String(Boolean(energyIndexResult.complete)) : "-"}</span></div>
+              </div>
+            </div>
+
+            <div className="rounded border border-dyoor-purple/25 bg-black/35 p-4">
+              <div className="flex flex-col justify-between gap-3 md:flex-row md:items-center">
+                <div>
+                  <p className="text-xs font-black uppercase tracking-[0.16em] text-white/45">Diagnostic Repair View</p>
+                  <p className="mt-1 text-sm font-semibold text-white/55">Compares ledger entries against computed balances. It does not push owner-wallet credits.</p>
+                </div>
+                <Button
+                  variant="ghost"
+                  disabled={!ledgerDiagnostic?.rows?.length}
+                  onClick={() => downloadFile(`energy-ledger-diagnostic-${new Date().toISOString().slice(0, 10)}.json`, JSON.stringify(ledgerDiagnostic, null, 2), "application/json")}
+                >
+                  Export JSON
+                </Button>
+              </div>
+              <div className="mt-3 grid gap-3 text-sm font-bold text-white/66 sm:grid-cols-3">
+                <div className="rounded border border-white/10 bg-white/[0.035] p-3">Wallets: <span className="text-dyoor-cyan">{ledgerDiagnostic?.walletCount ?? "-"}</span></div>
+                <div className="rounded border border-white/10 bg-white/[0.035] p-3">Affected: <span className="text-dyoor-cyan">{ledgerDiagnostic?.affectedCount ?? "-"}</span></div>
+                <div className="rounded border border-white/10 bg-white/[0.035] p-3">Mode: <span className="text-dyoor-cyan">Dry Run</span></div>
+              </div>
+              {ledgerDiagnostic?.rows?.length ? (
+                <div className="mt-4 max-h-56 overflow-auto rounded border border-white/10 bg-black/30">
+                  <table className="min-w-full text-left text-xs">
+                    <thead className="bg-white/[0.04] uppercase tracking-[0.12em] text-white/40">
+                      <tr>
+                        <th className="px-3 py-2">Wallet</th>
+                        <th className="px-3 py-2">Harvested</th>
+                        <th className="px-3 py-2">Spendable</th>
+                        <th className="px-3 py-2">Affected</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {(ledgerDiagnostic.rows || []).slice(0, 30).map((row, index) => (
+                        <tr className="border-t border-white/8" key={`${row.wallet || index}-${index}`}>
+                          <td className="px-3 py-2 font-black text-white/75">{shortAddress(String(row.wallet || ""))}</td>
+                          <td className="px-3 py-2 text-white/60">{formatRawEnergy(String(row.harvestedRaw || "0"))}</td>
+                          <td className="px-3 py-2 text-dyoor-cyan">{formatRawEnergy(String(row.spendableRaw || "0"))}</td>
+                          <td className={row.affected === "yes" ? "px-3 py-2 text-yellow-100" : "px-3 py-2 text-white/50"}>{String(row.affected || "no")}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              ) : null}
+            </div>
+          </div>
+        </div>
+      </Card>
+
+      <div className="mb-6 grid gap-4 lg:grid-cols-2">
+        <Card className="p-5 md:p-6">
+          <div className="flex flex-col justify-between gap-4 md:flex-row md:items-start">
+            <div>
+              <p className="eyebrow">Snapshot Rebuild</p>
+              <h2 className="mt-2 text-2xl font-black uppercase text-white">Ascended S1 Snapshot Engine</h2>
+              <p className="mt-2 text-sm font-semibold leading-6 text-white/60">
+                The new deterministic engine is resumable, chunked, checkpointed, and validates S1 ownership plus staking `stakeInfo` where available.
+              </p>
+            </div>
+            <Button variant="secondary" onClick={runSnapshotPrimaryAction} disabled={loading}>{snapshotPrimaryLabel}</Button>
+          </div>
+          <div className="mt-5 grid gap-3 text-sm font-bold text-white/66 sm:grid-cols-2">
+            <div className="rounded border border-white/10 bg-white/[0.035] p-3">CLI full: <span className="text-dyoor-cyan">npm run snapshot:s1:full</span></div>
+            <div className="rounded border border-white/10 bg-white/[0.035] p-3">CLI incremental: <span className="text-dyoor-cyan">npm run snapshot:s1:incremental</span></div>
+            <div className="rounded border border-white/10 bg-white/[0.035] p-3">Validate: <span className="text-dyoor-cyan">npm run snapshot:s1:validate</span></div>
+            <div className="rounded border border-white/10 bg-white/[0.035] p-3">Export: <span className="text-dyoor-cyan">npm run snapshot:s1:export</span></div>
+          </div>
+          <p className="mt-4 text-xs font-semibold leading-5 text-white/45">
+            The button above still runs the existing browser-safe admin snapshot builder. Use the CLI engine for the rebuilt event snapshot until a durable database/worker is connected.
+          </p>
+        </Card>
+
+        <Card className="p-5 md:p-6">
+          <div className="flex flex-col justify-between gap-4 md:flex-row md:items-start">
+            <div>
+              <p className="eyebrow">Dynamic Traits</p>
+              <h2 className="mt-2 text-2xl font-black uppercase text-white">Metadata and Rerolls</h2>
+              <p className="mt-2 text-sm font-semibold leading-6 text-white/60">
+                Trait overrides are served by /api/metadata/tokenId. Rerolls should debit ledger Energy, lock Background and Droid, then write a token override with an incremented metadata version.
+              </p>
+            </div>
+            <Link className="btn-secondary text-center" href="/admin/metadata">Open Metadata Tools</Link>
+          </div>
+          <div className="mt-5 grid gap-3 text-sm font-bold text-white/66 sm:grid-cols-2">
+            <div className="rounded border border-white/10 bg-white/[0.035] p-3">Base URI: <span className="text-dyoor-cyan">/api/metadata/</span></div>
+            <div className="rounded border border-white/10 bg-white/[0.035] p-3">Locked traits: <span className="text-dyoor-cyan">Background, Droid</span></div>
+            <div className="rounded border border-white/10 bg-white/[0.035] p-3">Override store: <span className="text-dyoor-cyan">dyoor-s2-metadata</span></div>
+            <div className="rounded border border-white/10 bg-white/[0.035] p-3">Validation: <span className="text-dyoor-cyan">npm run validate:metadata</span></div>
+          </div>
+          <p className="mt-4 text-xs font-semibold leading-5 text-white/45">
+            The public API updates immediately, but OpenSea may cache token metadata and require refresh after rerolls.
+          </p>
+        </Card>
+      </div>
+
       <div className="mb-6 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         <StatCard label="Total Wallets Found" value={snapshot?.totals.walletsFound ?? "-"} />
         <StatCard label="Total Staked" value={snapshot?.totals.totalStaked ?? "-"} />
@@ -1197,7 +1513,7 @@ export default function AdminPage() {
               <p className="eyebrow">Owner Tool</p>
               <h2 className="mt-2 text-2xl font-black uppercase text-white">Energy Airdrop</h2>
               <p className="mt-2 max-w-2xl text-sm font-semibold leading-6 text-white/60">
-                Credit internal Energy to one wallet or a deduped bulk list. Requires owner signature and an Energy Bank operator with admin permissions.
+                Credit ledger Energy to one wallet or a deduped bulk list. Requires owner signature; no Energy Bank operator transaction is needed for spendable off-chain balance.
               </p>
             </div>
             <div className="flex flex-wrap gap-2">

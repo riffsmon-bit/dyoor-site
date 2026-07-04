@@ -1,17 +1,10 @@
 import { ethers } from "ethers";
 import { MONAD_CHAIN_ID } from "@/lib/monad";
-import { DEFAULT_ENERGY_BANK_CONTRACT, DEFAULT_TREASURY_WALLET } from "@/lib/contracts/addresses";
+import { DEFAULT_TREASURY_WALLET } from "@/lib/contracts/addresses";
+import { addEnergyLedgerEntry } from "@/src/lib/storage/energyStore";
 
 const DEFAULT_RPC = "https://rpc.monad.xyz";
 const ENERGY_PER_MON = 50n;
-const ENERGY_CREDIT_GAS_LIMIT = 160_000n;
-
-const ENERGY_BANK_ABI = [
-  "function creditEnergy(address user,uint256 amount,bytes32 claimTxHash)",
-  "function usedClaimTxHash(bytes32 claimTxHash) view returns (bool)",
-  "function CREDIT_ROLE() view returns (bytes32)",
-  "function hasRole(bytes32 role,address account) view returns (bool)",
-];
 
 type TraceCall = {
   from?: string;
@@ -57,11 +50,6 @@ function requireUint(value: unknown, label: string) {
   const parsed = BigInt(raw);
   if (parsed <= 0n) throw new Error(`${label} must be greater than zero.`);
   return parsed;
-}
-
-function normalizePrivateKey(value: string) {
-  if (!value) return "";
-  return value.startsWith("0x") ? value : `0x${value}`;
 }
 
 function traceValue(value: unknown) {
@@ -125,13 +113,13 @@ async function resolveRechargePayment(
   const directSenderMatches = ethers.getAddress(tx.from) === user;
   const directRecipientMatches = Boolean(tx.to && ethers.getAddress(tx.to) === treasuryWallet);
   if (directSenderMatches && directRecipientMatches && tx.value > 0n) {
-    return { monAmountRaw: tx.value, paymentSource: "direct-transfer" };
+    return { monAmountRaw: tx.value, paymentSource: "direct-transfer", blockNumber: receipt.blockNumber };
   }
 
   const traceProviders = fallbackTraceProvider ? [provider, fallbackTraceProvider] : [provider];
   const tracedValue = await tracePaymentValue(txHash, user, treasuryWallet, traceProviders);
   if (tracedValue > 0n) {
-    return { monAmountRaw: tracedValue, paymentSource: "smart-wallet-trace" };
+    return { monAmountRaw: tracedValue, paymentSource: "smart-wallet-trace", blockNumber: receipt.blockNumber };
   }
 
   if (!directSenderMatches) throw Object.assign(new Error("Recharge sender does not match connected wallet."), { status: 400 });
@@ -156,37 +144,12 @@ function rechargeConfig() {
 
 export async function GET() {
   try {
-    const energyBankAddress = requireAddress(
-      readEnv("ENERGY_BANK_ADDRESS", "NEXT_PUBLIC_ENERGY_BANK_ADDRESS") || DEFAULT_ENERGY_BANK_CONTRACT,
-      "ENERGY_BANK_ADDRESS",
-    );
-    const signerKey = normalizePrivateKey(
-      readEnv("ENERGY_BANK_OPERATOR_PRIVATE_KEY", "DEPLOYER_PRIVATE_KEY"),
-    );
     const body: Record<string, unknown> = {
       ok: true,
       ...rechargeConfig(),
-      energyBankAddress,
-      creditReady: Boolean(signerKey),
+      creditReady: true,
+      executionMode: "ledger",
     };
-
-    if (signerKey) {
-      const provider = new ethers.JsonRpcProvider(readEnv("MONAD_RPC_URL", "NEXT_PUBLIC_MONAD_RPC_URL") || DEFAULT_RPC);
-      const signer = new ethers.Wallet(signerKey, provider);
-      const bank = new ethers.Contract(energyBankAddress, ENERGY_BANK_ABI, signer);
-      body.operatorAddress = signer.address;
-      try {
-        const creditRole = await bank.CREDIT_ROLE();
-        const hasCreditRole = await bank.hasRole(creditRole, signer.address);
-        body.creditReady = hasCreditRole;
-        if (!hasCreditRole) body.creditUnavailableReason = "Energy Bank operator does not have CREDIT_ROLE.";
-      } catch {
-        body.creditReady = true;
-        body.creditUnavailableReason = "Role preflight unavailable; credit transaction will validate on submit.";
-      }
-    } else {
-      body.creditUnavailableReason = "Missing ENERGY_BANK_OPERATOR_PRIVATE_KEY.";
-    }
 
     return json(200, body);
   } catch (error) {
@@ -198,15 +161,6 @@ export async function POST(request: Request) {
   try {
     const { treasuryWallet } = rechargeConfig();
     if (!treasuryWallet) return json(500, { ok: false, error: "Missing VITE_TREASURY_WALLET." });
-
-    const energyBankAddress = requireAddress(
-      readEnv("ENERGY_BANK_ADDRESS", "NEXT_PUBLIC_ENERGY_BANK_ADDRESS") || DEFAULT_ENERGY_BANK_CONTRACT,
-      "ENERGY_BANK_ADDRESS",
-    );
-    const signerKey = normalizePrivateKey(
-      readEnv("ENERGY_BANK_OPERATOR_PRIVATE_KEY", "DEPLOYER_PRIVATE_KEY"),
-    );
-    if (!signerKey) return json(500, { ok: false, error: "Missing ENERGY_BANK_OPERATOR_PRIVATE_KEY." });
 
     const body = await request.json().catch(() => ({}));
     const user = requireAddress(body.user || body.address, "user");
@@ -229,38 +183,29 @@ export async function POST(request: Request) {
     const monAmountRaw = payment.monAmountRaw;
     const expectedEnergyRaw = monAmountRaw * ENERGY_PER_MON;
 
-    const signer = new ethers.Wallet(signerKey, provider);
-    const bank = new ethers.Contract(energyBankAddress, ENERGY_BANK_ABI, signer);
-    const alreadyUsed = await bank.usedClaimTxHash(txHash);
-    if (alreadyUsed) {
-      return json(200, {
-        ok: true,
-        alreadyCredited: true,
-        user,
-        treasuryWallet,
-        energyBankAddress,
-        monAmountRaw: monAmountRaw.toString(),
-        energyAmountRaw: expectedEnergyRaw.toString(),
-        paymentTxHash: txHash,
-        paymentSource: payment.paymentSource,
-      });
-    }
-
-    await bank.creditEnergy.staticCall(user, expectedEnergyRaw, txHash);
-    const creditTx = await bank.creditEnergy(user, expectedEnergyRaw, txHash, { gasLimit: ENERGY_CREDIT_GAS_LIMIT });
-    const creditReceipt = await creditTx.wait();
+    const ledger = await addEnergyLedgerEntry({
+      id: `recharge:${txHash}`,
+      wallet: user,
+      amountRaw: expectedEnergyRaw.toString(),
+      type: "CREDIT_RECHARGE",
+      source: "mon-recharge",
+      txHash,
+      blockNumber: String(payment.blockNumber || ""),
+      notes: `MON recharge from ${payment.paymentSource}.`,
+    });
 
     return json(200, {
       ok: true,
+      alreadyCredited: ledger.deduped,
       user,
       treasuryWallet,
-      energyBankAddress,
       monAmountRaw: monAmountRaw.toString(),
       energyAmountRaw: expectedEnergyRaw.toString(),
       paymentTxHash: txHash,
       paymentSource: payment.paymentSource,
-      creditTxHash: creditTx.hash,
-      creditBlock: creditReceipt?.blockNumber ?? null,
+      creditTxHash: "",
+      creditBlock: payment.blockNumber ?? null,
+      executionMode: "ledger",
     });
   } catch (error) {
     return json(Number((error as any)?.status || 500), { ok: false, error: error instanceof Error ? error.message : "Recharge failed. Please try again." });
