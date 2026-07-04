@@ -39,9 +39,32 @@ DYOOR_S2_METADATA_DIR=/path/to/metadata-extensionless
 SEASON2_METADATA_DIR=/path/to/metadata-extensionless
 ```
 
+## Admin Upload Flow
+
+The owner-only upload UI lives at:
+
+```text
+https://dyoor.xyz/admin/metadata
+```
+
+Use it to:
+
+- save runtime metadata config such as max supply, image CID, collection name,
+  and description
+- select generated metadata JSON files and validate them in-browser
+- upload valid metadata in chunks to Netlify Blobs
+- keep uploaded metadata staged until the explicit publish action
+- edit per-token trait overrides for rerolls or upgrades
+
+Netlify Blobs store the uploaded runtime data under the `dyoor-s2-metadata`
+store. The public API reads uploaded metadata only after it is published, so a
+partial upload does not automatically affect OpenSea or other consumers.
+
 ## Base Metadata
 
-The API looks for base metadata files in common repo locations such as:
+The API looks for published uploaded metadata first. If no published uploaded
+metadata exists for a token, it looks for base metadata files in common repo
+locations such as:
 
 ```text
 metadata-extensionless

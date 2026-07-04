@@ -1,4 +1,4 @@
-export type AdminAction = "snapshot" | "energy-airdrop" | "energy-reconciliation";
+export type AdminAction = "snapshot" | "energy-airdrop" | "energy-reconciliation" | "metadata";
 
 export function adminMessage(wallet: string, timestamp: string, nonce: string, action: AdminAction) {
   return [

@@ -1,7 +1,7 @@
 import {
   METADATA_CACHE_CONTROL,
-  buildTokenMetadata,
-  getMetadataConfig,
+  buildTokenMetadataAsync,
+  getRuntimeMetadataConfig,
   parseTokenId,
 } from "@/lib/dyoor-s2-metadata.js";
 
@@ -13,7 +13,7 @@ type MetadataRouteContext = {
 
 export async function GET(_request: Request, context: MetadataRouteContext) {
   const params = await context.params;
-  const config = getMetadataConfig();
+  const config = await getRuntimeMetadataConfig();
   const parsed = parseTokenId(params.tokenId, config.maxSupply);
 
   if (!parsed.ok) {
@@ -25,7 +25,7 @@ export async function GET(_request: Request, context: MetadataRouteContext) {
     });
   }
 
-  const { metadata } = buildTokenMetadata(parsed.tokenId, config);
+  const { metadata } = await buildTokenMetadataAsync(parsed.tokenId, config);
 
   return jsonResponse(metadata, {
     headers: metadataCacheHeaders(),

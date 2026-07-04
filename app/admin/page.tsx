@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { formatUnits, parseUnits } from "viem";
 import { Alert, Button, Card, EmptyState, LoadingSkeleton, PageShell, SectionHeader, StatCard } from "@/components/ui/DyoorUi";
@@ -942,6 +943,7 @@ export default function AdminPage() {
           copy="Owner-only command surface for protected snapshots and internal Energy operations. Every action requires the configured owner wallet, a fresh signature, timestamp, and nonce."
           actions={(
             <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+              <Link className="btn-secondary text-center" href="/admin/metadata">Metadata Manager</Link>
               <WalletButton />
               <Button variant="primary" onClick={runSnapshotPrimaryAction} disabled={loading}>{loading ? "Working..." : snapshotPrimaryLabel}</Button>
             </div>
