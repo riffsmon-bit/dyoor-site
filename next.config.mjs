@@ -19,6 +19,20 @@ const csp = [
 const nextConfig = {
   reactStrictMode: true,
   poweredByHeader: false,
+  outputFileTracingExcludes: {
+    "/*": [
+      "./artifacts/**/*",
+      "./broadcast/**/*",
+      "./cache/**/*",
+      "./coverage/**/*",
+      "./data/runtime/**/*",
+      "./data/snapshots/**/*",
+      "./lib/seadrop/**/*",
+      "./out/**/*",
+      "./scripts/**/*",
+      "./test/**/*",
+    ],
+  },
   async headers() {
     return [
       {
