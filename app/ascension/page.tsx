@@ -486,6 +486,49 @@ function ManualStakePanel({
   );
 }
 
+function ManualUnstakePanel({
+  manualUnstake,
+  onManualUnstake,
+  setManualUnstake,
+  working,
+}: {
+  manualUnstake: string;
+  onManualUnstake: () => void;
+  setManualUnstake: (value: string) => void;
+  working: boolean;
+}) {
+  return (
+    <section className="mt-4 rounded border border-white/12 bg-white/[0.04] p-5">
+      <div className="flex flex-col justify-between gap-4 md:flex-row md:items-start">
+        <div>
+          <p className="text-xs font-black uppercase tracking-[0.22em] text-dyoor-cyan">Manual Unstake</p>
+          <h2 className="mt-2 text-2xl font-black uppercase text-white">Unstake By Token ID</h2>
+          <p className="mt-2 max-w-3xl text-sm font-semibold leading-6 text-white/64">
+            Use this when an ascended NFT is registered but the card list has not rendered.
+          </p>
+        </div>
+      </div>
+      <div className="mt-4 flex flex-col gap-3 md:flex-row">
+        <input
+          className="min-w-0 flex-1 rounded border border-white/14 bg-black/35 px-4 py-3 text-sm font-bold text-white outline-none focus:border-dyoor-cyan"
+          placeholder="Token ID, e.g. 577"
+          inputMode="numeric"
+          value={manualUnstake}
+          onChange={(event) => setManualUnstake(event.target.value)}
+        />
+        <button
+          className="rounded border border-dyoor-cyan px-4 py-3 text-sm font-black uppercase text-dyoor-cyan disabled:opacity-50"
+          type="button"
+          disabled={working}
+          onClick={onManualUnstake}
+        >
+          Unstake Manually
+        </button>
+      </div>
+    </section>
+  );
+}
+
 export default function AscensionPage() {
   const walletService = useWalletService();
   const authenticated = walletService.connected;
@@ -494,6 +537,7 @@ export default function AscensionPage() {
   const [selected, setSelected] = useState<Set<string>>(() => new Set());
   const [manualRecovery, setManualRecovery] = useState("");
   const [manualStake, setManualStake] = useState("");
+  const [manualUnstake, setManualUnstake] = useState("");
   const [actionStatus, setActionStatus] = useState("Select NFTs to stake or unstake. Hover a card for quick actions.");
   const [treasuryWallet, setTreasuryWallet] = useState("");
   const [rechargeMon, setRechargeMon] = useState("");
@@ -792,6 +836,24 @@ export default function AscensionPage() {
     try {
       const provider = await ensureReady();
       const ids = tokenIds.map((id) => BigInt(id));
+      const connectedWallet = getAddress(ascension.walletAddress);
+      for (const id of ids) {
+        setActionStatus(`Checking Ascension registration for #${id.toString()}...`);
+        const info = await readContractWithFailover({
+          address: ascensionStakingContract,
+          abi: ascensionStakingAbi,
+          functionName: "stakeInfo",
+          args: [id],
+          label: `Ascension stakeInfo before unstake #${id.toString()}`,
+        }) as readonly [string, number | bigint];
+        const staker = info?.[0] && isAddress(info[0]) ? getAddress(info[0]) : ZERO_ADDRESS;
+        if (staker === ZERO_ADDRESS) {
+          throw new Error(`Token #${id.toString()} is inside Ascension but is not registered to a staker. Use recovery first.`);
+        }
+        if (staker !== connectedWallet) {
+          throw new Error(`Token #${id.toString()} is registered to ${shortAddress(staker)}, not your connected wallet.`);
+        }
+      }
       setActionStatus(`Unstaking ${ids.length} NFT${ids.length === 1 ? "" : "s"}...`);
       const data = encodeFunctionData({
         abi: ascensionStakingAbi,
@@ -801,6 +863,7 @@ export default function AscensionPage() {
       await sendContract(provider, ascensionStakingContract, data);
       setActionStatus("Unstake complete. Refreshing NFTs...");
       setSelected(new Set());
+      setManualUnstake("");
       await ascension.refresh();
     } catch (error) {
       setActionStatus(formatWalletError(error, "Unstake failed."));
@@ -933,6 +996,10 @@ export default function AscensionPage() {
 
   async function stakeManualDeposits() {
     await stakeTokenIds(parseTokenIds(manualStake));
+  }
+
+  async function unstakeManualDeposits() {
+    await unstakeTokenIds(parseTokenIds(manualUnstake));
   }
 
   async function recoverDetectedDeposits() {
@@ -1240,6 +1307,12 @@ export default function AscensionPage() {
                 setManualStake={setManualStake}
                 working={working}
                 onManualStake={() => void stakeManualDeposits()}
+              />
+              <ManualUnstakePanel
+                manualUnstake={manualUnstake}
+                setManualUnstake={setManualUnstake}
+                working={working}
+                onManualUnstake={() => void unstakeManualDeposits()}
               />
             </div>
           </div>
