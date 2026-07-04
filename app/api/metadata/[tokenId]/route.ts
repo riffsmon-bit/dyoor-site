@@ -6,7 +6,6 @@ import {
 } from "@/lib/dyoor-s2-metadata.js";
 
 export const runtime = "nodejs";
-export const dynamic = "force-dynamic";
 
 type MetadataRouteContext = {
   params: Promise<{ tokenId: string }> | { tokenId: string };
@@ -18,21 +17,29 @@ export async function GET(_request: Request, context: MetadataRouteContext) {
   const parsed = parseTokenId(params.tokenId, config.maxSupply);
 
   if (!parsed.ok) {
-    return Response.json({ error: parsed.error }, {
+    return jsonResponse({ error: parsed.error }, {
       status: parsed.status,
       headers: {
-        "cache-control": "no-store",
-        "content-type": "application/json",
+        "Cache-Control": "no-store",
       },
     });
   }
 
   const { metadata } = buildTokenMetadata(parsed.tokenId, config);
 
-  return Response.json(metadata, {
+  return jsonResponse(metadata, {
     headers: {
-      "cache-control": METADATA_CACHE_CONTROL,
-      "content-type": "application/json",
+      "Cache-Control": METADATA_CACHE_CONTROL,
     },
+  });
+}
+
+function jsonResponse(body: unknown, init: ResponseInit = {}) {
+  const headers = new Headers(init.headers);
+  headers.set("Content-Type", "application/json");
+
+  return new Response(JSON.stringify(body), {
+    ...init,
+    headers,
   });
 }
