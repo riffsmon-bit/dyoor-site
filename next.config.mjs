@@ -22,6 +22,15 @@ const nextConfig = {
   async headers() {
     return [
       {
+        source: "/api/metadata/:tokenId",
+        headers: [
+          {
+            key: "Cache-Control",
+            value: "s-maxage=60, stale-while-revalidate=300",
+          },
+        ],
+      },
+      {
         source: "/:path*",
         headers: [
           {
