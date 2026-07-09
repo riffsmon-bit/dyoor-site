@@ -1,0 +1,38 @@
+{
+  "name": "D.Y.O.O.R Season 2",
+  "description": "Directive: Yield Opportunity Optimization Robots",
+  "image": "ipfs://bafybeidh5ilyx54iklgazcdzwrzyr3llnj6v7jc3ll2hbrn36mxk2xle7i/1.png",
+  "external_link": "https://dyoor.xyz",
+  "base_uri": "https://dyoor.xyz/api/metadata/",
+  "metadata_api": "https://dyoor.xyz/api/metadata/{tokenId}",
+  "metadata_backup": {
+    "cid": "bafybeictzn54rbfnqd7vdqfhtu2vwy2bp7vnqj4zp2tswsrosge43frapi",
+    "uri": "ipfs://bafybeictzn54rbfnqd7vdqfhtu2vwy2bp7vnqj4zp2tswsrosge43frapi",
+    "gateway": "https://jade-efficient-beaver-697.mypinata.cloud/ipfs/bafybeictzn54rbfnqd7vdqfhtu2vwy2bp7vnqj4zp2tswsrosge43frapi"
+  },
+  "layer_assets": {
+    "cid": "",
+    "uri": "",
+    "gateway": "",
+    "expected_paths": [
+      "layers/Background/Yorange.PNG",
+      "layers/Droid/Red.png",
+      "layers/Mouth/Deep Thought.png"
+    ]
+  },
+  "trait_item_images": {
+    "cid": "bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu",
+    "uri": "ipfs://bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu",
+    "gateway": "https://jade-efficient-beaver-697.mypinata.cloud/ipfs/bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu"
+  },
+  "trait_item_metadata": {
+    "cid": "bafybeidbaema3cr6n7sc3rglryevbtxziqrz3sk2d6equehsssziobcrru",
+    "uri": "ipfs://bafybeidbaema3cr6n7sc3rglryevbtxziqrz3sk2d6equehsssziobcrru",
+    "gateway": "https://jade-efficient-beaver-697.mypinata.cloud/ipfs/bafybeidbaema3cr6n7sc3rglryevbtxziqrz3sk2d6equehsssziobcrru"
+  },
+  "dynamic_metadata": {
+    "blob_store": "dyoor-s2-metadata",
+    "base_metadata_key": "metadata/{tokenId}.json",
+    "overrides_key": "overrides.json"
+  }
+}

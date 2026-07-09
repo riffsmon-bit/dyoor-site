@@ -17,5 +17,6 @@ cache/
 out/
 broadcast/
 data/snapshots/
+data/runtime/
 .env
 tsconfig.tsbuildinfo

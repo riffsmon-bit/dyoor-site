@@ -33,5 +33,5 @@ export const energyBankContract = contractAddress(
 );
 
 export const dyoorS2Contract = optionalContractAddress(
-  process.env.NEXT_PUBLIC_DYOOR_S2_CONTRACT_ADDRESS,
+  process.env.DYOOR_S2_CONTRACT_ADDRESS || process.env.NEXT_PUBLIC_DYOOR_S2_CONTRACT_ADDRESS,
 );

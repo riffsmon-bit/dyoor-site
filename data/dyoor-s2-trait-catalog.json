@@ -1,0 +1,2808 @@
+{
+  "schema": "dyoor-dynamic-v1",
+  "collection": "D.Y.O.O.R",
+  "generatedAt": "2026-07-08T13:44:29.137Z",
+  "attributeOrder": [
+    "Background",
+    "Droid",
+    "Conditions",
+    "Stickers/Body art",
+    "Clothes",
+    "Mouth",
+    "Eyes",
+    "Hat",
+    "Accessories",
+    "Accessories 2",
+    "Special"
+  ],
+  "renderOrder": [
+    "Background",
+    "Droid",
+    "Conditions",
+    "Stickers/Body art",
+    "Clothes",
+    "Mouth",
+    "Eyes",
+    "Hat",
+    "Accessories",
+    "Accessories 2",
+    "Special"
+  ],
+  "lockedLayers": [
+    "Background",
+    "Droid"
+  ],
+  "mutableLayers": [
+    "Conditions",
+    "Stickers/Body art",
+    "Eyes",
+    "Mouth",
+    "Special",
+    "Clothes",
+    "Hat",
+    "Accessories",
+    "Accessories 2"
+  ],
+  "requiredLayers": [
+    "Background",
+    "Droid",
+    "Conditions",
+    "Stickers/Body art",
+    "Eyes",
+    "Mouth"
+  ],
+  "none": {
+    "Conditions": {
+      "enabled": true,
+      "weight": 150
+    },
+    "Stickers/Body art": {
+      "enabled": true,
+      "weight": 120
+    },
+    "Eyes": {
+      "enabled": true,
+      "weight": 0
+    },
+    "Mouth": {
+      "enabled": true,
+      "weight": 0
+    },
+    "Hat": {
+      "enabled": true,
+      "weight": 100
+    },
+    "Accessories": {
+      "enabled": true,
+      "weight": 180,
+      "autoEnableIfOnlyOneTrait": true
+    },
+    "Accessories 2": {
+      "enabled": true,
+      "weight": 220,
+      "autoEnableIfOnlyOneTrait": true
+    },
+    "Clothes": {
+      "enabled": true,
+      "weight": 24
+    },
+    "Special": {
+      "enabled": true,
+      "weight": 900
+    }
+  },
+  "exactTraitCounts": {
+    "Background": {
+      "Cynically Censored-Project M.A.D.": 1,
+      "Don't Look At The Lighthouse-Project M.A.D.": 1,
+      "Eye Sea U-Project M.A.D.": 1,
+      "Fxxk Crabs-Project M.A.D.": 1,
+      "Painfully Here-Project M.A.D.": 1,
+      "Sad Cook-Project M.A.D.": 1,
+      "Simovision-Project M.A.D.": 1,
+      "Soul Catcher-Project M.A.D.": 1,
+      "The Way-Project M.A.D.": 1,
+      "Tisumusem-Project M.A.D.": 1,
+      "Abtrastic": 20,
+      "Flash": 20,
+      "Green Grade": 20,
+      "Kewl": 20,
+      "Pernkple": 20,
+      "Sunset": 20,
+      "Hawhyte": 20
+    },
+    "Droid": {
+      "Dark Chrome": 10,
+      "Gold Chrome": 10,
+      "Green Chrome": 10,
+      "Olive Chrome": 10,
+      "Optimus (T3SLA Bot)": 10,
+      "Rose Chrome": 10,
+      "Whyte Chrome": 10
+    },
+    "Hat": {
+      "BOB Mask": 4,
+      "Sealuminati Mask": 4,
+      "Luffy": 20,
+      "Bartman": 20,
+      "PamPam": 10
+    },
+    "Clothes": {
+      "Luffy": 20,
+      "Bartman Shirt n Cape": 20
+    },
+    "Eyes": {
+      "Abyss Laser": 10,
+      "Lazy Laser": 10,
+      "Radiation Glow (Red)Laser": 10
+    },
+    "Accessories": {
+      "BOB-chain": 18,
+      "Sealuminati chain": 18
+    },
+    "Accessories 2": {
+      "BOB-chain": 18,
+      "Sealuminati chain": 18
+    }
+  },
+  "incompatibilityRules": [
+    {
+      "name": "Black Shystie covers the mouth area",
+      "enabled": true,
+      "if": {
+        "Hat": [
+          "Black Shystie"
+        ]
+      },
+      "cannot": {
+        "Mouth": [
+          "AHHH Tongue",
+          "AHHHH Flames",
+          "AHHHH",
+          "Ayeee",
+          "Ayeyo",
+          "Braces",
+          "Cigar Mouth",
+          "Deep Thought",
+          "Displeased toothpick",
+          "Drool",
+          "Errrh",
+          "Gold Bar",
+          "Gold Grill",
+          "Joint Mouth",
+          "Meh Cigarette",
+          "Muah",
+          "Party Horn Mouth",
+          "Pipe",
+          "Toothless Drool",
+          "Vamp Fangs",
+          "Waaaat"
+        ]
+      }
+    },
+    {
+      "name": "Pink Shystie covers the mouth area",
+      "enabled": true,
+      "if": {
+        "Hat": [
+          "Pink Shystie"
+        ]
+      },
+      "cannot": {
+        "Mouth": [
+          "AHHH Tongue",
+          "AHHHH Flames",
+          "AHHHH",
+          "Ayeee",
+          "Ayeyo",
+          "Braces",
+          "Cigar Mouth",
+          "Deep Thought",
+          "Displeased toothpick",
+          "Drool",
+          "Errrh",
+          "Gold Bar",
+          "Gold Grill",
+          "Joint Mouth",
+          "Meh Cigarette",
+          "Muah",
+          "Party Horn Mouth",
+          "Pipe",
+          "Toothless Drool",
+          "Vamp Fangs",
+          "Waaaat"
+        ]
+      }
+    },
+    {
+      "name": "Cowboy brim blocks tall/wide eye traits",
+      "enabled": true,
+      "if": {
+        "Hat": [
+          "Cowboy"
+        ]
+      },
+      "cannot": {
+        "Eyes": [
+          "Third Eye",
+          "Tri-Specs",
+          "Build Anything Glasses",
+          "Sunglasses",
+          "Monad Specs Black",
+          "Monad Specs Gold",
+          "Neverland Specs",
+          "Point Dexter Glasses Eyes",
+          "VR Headset"
+        ]
+      }
+    },
+    {
+      "name": "Beanies block tall eye traits",
+      "enabled": true,
+      "if": {
+        "Hat": [
+          "Black Beanie",
+          "Beanie Red",
+          "Shramp Beanie"
+        ]
+      },
+      "cannot": {
+        "Eyes": [
+          "Third Eye",
+          "Tri-Specs",
+          "VR Headset"
+        ]
+      }
+    },
+    {
+      "name": "Black Beanie blocks glasses and specs",
+      "enabled": true,
+      "if": {
+        "Hat": [
+          "Black Beanie"
+        ]
+      },
+      "cannot": {
+        "Eyes": [
+          "Build Anything Glasses",
+          "Monad Specs Black",
+          "Monad Specs Gold",
+          "Neverland Specs",
+          "Pit Viper",
+          "Point Dexter Glasses Eyes",
+          "Sunglasses",
+          "Tri-Specs",
+          "VR Headset"
+        ]
+      }
+    },
+    {
+      "name": "Sweatband blocks forehead eye traits",
+      "enabled": true,
+      "if": {
+        "Hat": [
+          "Sweatband"
+        ]
+      },
+      "cannot": {
+        "Eyes": [
+          "Third Eye",
+          "Tri-Specs"
+        ]
+      }
+    },
+    {
+      "name": "BOB Mask blocks covered or high-conflict face traits",
+      "enabled": true,
+      "if": {
+        "Hat": [
+          "BOB Mask",
+          "Bartman",
+          "Salmonad Mask",
+          "Sealuminati Mask"
+        ]
+      },
+      "cannot": {
+        "Eyes": [
+          "Abyss Laser",
+          "Build Anything Glasses",
+          "Eye Patch",
+          "Lazy Laser",
+          "Monad Specs Black",
+          "Monad Specs Gold",
+          "Neverland Specs",
+          "Point Dexter Glasses Eyes",
+          "Radiation Glow (Red)Laser",
+          "Sunglasses",
+          "Third Eye",
+          "Tri-Specs",
+          "VR Headset"
+        ],
+        "Mouth": [
+          "AHHH Tongue",
+          "AHHHH Flames",
+          "AHHHH",
+          "Ayeee",
+          "Ayeyo",
+          "Braces",
+          "Cigar Mouth",
+          "Deep Thought",
+          "Displeased toothpick",
+          "Drool",
+          "Errrh",
+          "Gold Bar",
+          "Gold Grill",
+          "Joint Mouth",
+          "Meh Cigarette",
+          "Muah",
+          "Party Horn Mouth",
+          "Pipe",
+          "Toothless Drool",
+          "Vamp Fangs",
+          "Waaaat"
+        ],
+        "Accessories": [
+          "BOB-chain",
+          "Sealuminati chain",
+          "Bandaid",
+          "Bandana Black",
+          "Bandana Pink",
+          "MESH Bandanna",
+          "Mouch",
+          "OneFourThree Face Tat"
+        ],
+        "Accessories 2": [
+          "BOB-chain",
+          "Sealuminati chain",
+          "Bandaid",
+          "Bandana Black",
+          "Bandana Pink",
+          "MESH Bandanna",
+          "Mouch"
+        ]
+      }
+    },
+    {
+      "name": "Shysties block tall/wide eye traits and face accessories",
+      "enabled": true,
+      "if": {
+        "Hat": [
+          "Black Shystie",
+          "Pink Shystie"
+        ]
+      },
+      "cannot": {
+        "Eyes": [
+          "Abyss Laser",
+          "Build Anything Glasses",
+          "Eye Patch",
+          "Lazy Laser",
+          "Monad Specs Black",
+          "Monad Specs Gold",
+          "Neverland Specs",
+          "Point Dexter Glasses Eyes",
+          "Radiation Glow (Red)Laser",
+          "Sunglasses",
+          "Third Eye",
+          "Tri-Specs",
+          "VR Headset"
+        ],
+        "Accessories": [
+          "BOB-chain",
+          "Sealuminati chain",
+          "Bandaid",
+          "Bandana Black",
+          "Bandana Pink",
+          "MESH Bandanna",
+          "Mouch",
+          "OneFourThree Face Tat"
+        ],
+        "Accessories 2": [
+          "BOB-chain",
+          "Sealuminati chain",
+          "Bandaid",
+          "Bandana Black",
+          "Bandana Pink",
+          "MESH Bandanna",
+          "Mouch"
+        ]
+      }
+    },
+    {
+      "name": "BOB-chain conflicts with protruding mouth traits",
+      "enabled": true,
+      "if": {
+        "Accessories": [
+          "BOB-chain",
+          "Sealuminati chain"
+        ]
+      },
+      "cannot": {
+        "Mouth": [
+          "AHHH Tongue",
+          "AHHHH Flames",
+          "Gold Bar",
+          "Gold Grill",
+          "Drool",
+          "Errrh",
+          "Toothless Drool",
+          "Vamp Fangs",
+          "Party Horn Mouth"
+        ],
+        "Conditions": [
+          "Choker Necklace"
+        ],
+        "Clothes": [
+          "Beige Hoodie",
+          "Black Racer",
+          "Black Hoodie",
+          "Blue Hoodie",
+          "Blue Racer",
+          "Caveman Leotard",
+          "Convict Shirt",
+          "DYOOR Black Hoodie",
+          "DYOOR Black Gold Text Hoodie",
+          "DYOOR Blue Hoodie",
+          "DYOOR Red Gold Text Hoodie",
+          "Dictator Jacket",
+          "Fur Coat Gold",
+          "Grey Hoodie",
+          "Grey Racer",
+          "Hawaiian Shirt 2",
+          "Jailhouse Stripes Shirt",
+          "King's Robe",
+          "King's Robe 2",
+          "Lab Coat",
+          "Lab Coat 2",
+          "Leather Jacket",
+          "Leather Jacket Torn Tee",
+          "Leather Jacket Torn Tee 2",
+          "Leather Jacket White Shirt W:Tie",
+          "Luffy",
+          "McDyoornalds",
+          "Orange Plaid",
+          "Orange Racer",
+          "Orange Racer 2",
+          "Fur Coat Pink",
+          "Pink Plaid",
+          "Fur Coat Purple",
+          "Red Hoodie",
+          "Red Hoodie 2",
+          "Red Plaid",
+          "Tuxedo",
+          "Tuxedo 2",
+          "White Shirt W:Tie"
+        ]
+      }
+    },
+    {
+      "name": "BOB-chain conflicts with protruding mouth traits in second accessories slot",
+      "enabled": true,
+      "if": {
+        "Accessories 2": [
+          "BOB-chain",
+          "Sealuminati chain"
+        ]
+      },
+      "cannot": {
+        "Mouth": [
+          "AHHH Tongue",
+          "AHHHH Flames",
+          "Gold Bar",
+          "Gold Grill",
+          "Drool",
+          "Errrh",
+          "Toothless Drool",
+          "Vamp Fangs",
+          "Party Horn Mouth"
+        ],
+        "Conditions": [
+          "Choker Necklace"
+        ],
+        "Clothes": [
+          "Beige Hoodie",
+          "Black Racer",
+          "Black Hoodie",
+          "Blue Hoodie",
+          "Blue Racer",
+          "Caveman Leotard",
+          "Convict Shirt",
+          "DYOOR Black Hoodie",
+          "DYOOR Black Gold Text Hoodie",
+          "DYOOR Blue Hoodie",
+          "DYOOR Red Gold Text Hoodie",
+          "Dictator Jacket",
+          "Fur Coat Gold",
+          "Grey Hoodie",
+          "Grey Racer",
+          "Hawaiian Shirt 2",
+          "Jailhouse Stripes Shirt",
+          "King's Robe",
+          "King's Robe 2",
+          "Lab Coat",
+          "Lab Coat 2",
+          "Leather Jacket",
+          "Leather Jacket Torn Tee",
+          "Leather Jacket Torn Tee 2",
+          "Leather Jacket White Shirt W:Tie",
+          "Luffy",
+          "McDyoornalds",
+          "Orange Plaid",
+          "Orange Racer",
+          "Orange Racer 2",
+          "Fur Coat Pink",
+          "Pink Plaid",
+          "Fur Coat Purple",
+          "Red Hoodie",
+          "Red Hoodie 2",
+          "Red Plaid",
+          "Tuxedo",
+          "Tuxedo 2",
+          "White Shirt W:Tie"
+        ]
+      }
+    },
+    {
+      "name": "Chains conflict with bandannas in second accessories slot",
+      "enabled": true,
+      "if": {
+        "Accessories": [
+          "BOB-chain",
+          "Sealuminati chain"
+        ]
+      },
+      "cannot": {
+        "Accessories 2": [
+          "Bandana Black",
+          "Bandana Pink",
+          "MESH Bandanna"
+        ]
+      }
+    },
+    {
+      "name": "Second-slot chains conflict with bandannas",
+      "enabled": true,
+      "if": {
+        "Accessories 2": [
+          "BOB-chain",
+          "Sealuminati chain"
+        ]
+      },
+      "cannot": {
+        "Accessories": [
+          "Bandana Black",
+          "Bandana Pink",
+          "MESH Bandanna"
+        ]
+      }
+    },
+    {
+      "name": "Choker needs an open neck",
+      "enabled": true,
+      "if": {
+        "Conditions": [
+          "Choker Necklace"
+        ]
+      },
+      "cannot": {
+        "Mouth": [
+          "AHHH Tongue"
+        ],
+        "Clothes": [
+          "Beige Hoodie",
+          "Black Hoodie",
+          "Blue Hoodie",
+          "DYOOR Black Hoodie",
+          "Fur Coat Gold",
+          "Grey Hoodie",
+          "McDyoornalds",
+          "Fur Coat Pink",
+          "Fur Coat Purple",
+          "Red Hoodie",
+          "Red Hoodie 2"
+        ]
+      }
+    },
+    {
+      "name": "Accessory choker needs an open neck",
+      "enabled": true,
+      "if": {
+        "Accessories": [
+          "Choker Necklace"
+        ]
+      },
+      "cannot": {
+        "Mouth": [
+          "AHHH Tongue"
+        ],
+        "Clothes": [
+          "Beige Hoodie",
+          "Black Hoodie",
+          "Blue Hoodie",
+          "DYOOR Black Hoodie",
+          "Fur Coat Gold",
+          "Grey Hoodie",
+          "McDyoornalds",
+          "Fur Coat Pink",
+          "Fur Coat Purple",
+          "Red Hoodie",
+          "Red Hoodie 2"
+        ]
+      }
+    },
+    {
+      "name": "Second accessory choker needs an open neck",
+      "enabled": true,
+      "if": {
+        "Accessories 2": [
+          "Choker Necklace"
+        ]
+      },
+      "cannot": {
+        "Mouth": [
+          "AHHH Tongue"
+        ],
+        "Clothes": [
+          "Beige Hoodie",
+          "Black Hoodie",
+          "Blue Hoodie",
+          "DYOOR Black Hoodie",
+          "Fur Coat Gold",
+          "Grey Hoodie",
+          "McDyoornalds",
+          "Fur Coat Pink",
+          "Fur Coat Purple",
+          "Red Hoodie",
+          "Red Hoodie 2"
+        ]
+      }
+    },
+    {
+      "name": "Conditions choker conflicts with bandannas",
+      "enabled": true,
+      "if": {
+        "Conditions": [
+          "Choker Necklace"
+        ]
+      },
+      "cannot": {
+        "Accessories": [
+          "Bandana Black",
+          "Bandana Pink",
+          "MESH Bandanna"
+        ],
+        "Accessories 2": [
+          "Bandana Black",
+          "Bandana Pink",
+          "MESH Bandanna"
+        ]
+      }
+    },
+    {
+      "name": "Accessory choker conflicts with second-slot bandannas",
+      "enabled": true,
+      "if": {
+        "Accessories": [
+          "Choker Necklace"
+        ]
+      },
+      "cannot": {
+        "Accessories 2": [
+          "Bandana Black",
+          "Bandana Pink",
+          "MESH Bandanna"
+        ]
+      }
+    },
+    {
+      "name": "Second accessory choker conflicts with first-slot bandannas",
+      "enabled": true,
+      "if": {
+        "Accessories 2": [
+          "Choker Necklace"
+        ]
+      },
+      "cannot": {
+        "Accessories": [
+          "Bandana Black",
+          "Bandana Pink",
+          "MESH Bandanna"
+        ]
+      }
+    },
+    {
+      "name": "Bandaid conflicts with VR headset and Pit Viper",
+      "enabled": true,
+      "if": {
+        "Accessories": [
+          "Bandaid"
+        ]
+      },
+      "cannot": {
+        "Eyes": [
+          "Pit Viper",
+          "VR Headset"
+        ]
+      }
+    },
+    {
+      "name": "Second accessory Bandaid conflicts with VR headset and Pit Viper",
+      "enabled": true,
+      "if": {
+        "Accessories 2": [
+          "Bandaid"
+        ]
+      },
+      "cannot": {
+        "Eyes": [
+          "Pit Viper",
+          "VR Headset"
+        ]
+      }
+    },
+    {
+      "name": "OneFourThree Face Tat conflicts with specs and VR",
+      "enabled": true,
+      "if": {
+        "Accessories": [
+          "OneFourThree Face Tat"
+        ]
+      },
+      "cannot": {
+        "Eyes": [
+          "Build Anything Glasses",
+          "Monad Specs Black",
+          "Monad Specs Gold",
+          "Neverland Specs",
+          "Point Dexter Glasses Eyes",
+          "Sunglasses",
+          "Tri-Specs",
+          "VR Headset"
+        ]
+      }
+    },
+    {
+      "name": "Durag and Emonad hair block tall or wide eye traits",
+      "enabled": true,
+      "if": {
+        "Hat": [
+          "Durag",
+          "Emonad"
+        ]
+      },
+      "cannot": {
+        "Eyes": [
+          "Build Anything Glasses",
+          "Monad Specs Black",
+          "Monad Specs Gold",
+          "Neverland Specs",
+          "Point Dexter Glasses Eyes",
+          "Sunglasses",
+          "Third Eye",
+          "Tri-Specs",
+          "VR Headset"
+        ]
+      }
+    },
+    {
+      "name": "Casino visor blocks wide eye traits",
+      "enabled": true,
+      "if": {
+        "Hat": [
+          "Casino"
+        ]
+      },
+      "cannot": {
+        "Eyes": [
+          "Build Anything Glasses",
+          "Monad Specs Black",
+          "Monad Specs Gold",
+          "Neverland Specs",
+          "Point Dexter Glasses Eyes",
+          "Sunglasses",
+          "Tri-Specs",
+          "VR Headset"
+        ]
+      }
+    },
+    {
+      "name": "Mouch conflicts with protruding mouth traits",
+      "enabled": true,
+      "if": {
+        "Accessories": [
+          "Mouch"
+        ]
+      },
+      "cannot": {
+        "Mouth": [
+          "AHHH Tongue",
+          "AHHHH Flames",
+          "Ayeee",
+          "Ayeyo",
+          "Cigar Mouth",
+          "Displeased toothpick",
+          "Drool",
+          "Errrh",
+          "Gold Bar",
+          "Gold Grill",
+          "Joint Mouth",
+          "Meh Cigarette",
+          "Party Horn Mouth",
+          "Pipe",
+          "Toothless Drool",
+          "Vamp Fangs"
+        ]
+      }
+    },
+    {
+      "name": "Second accessory Mouch conflicts with protruding mouth traits",
+      "enabled": true,
+      "if": {
+        "Accessories 2": [
+          "Mouch"
+        ]
+      },
+      "cannot": {
+        "Mouth": [
+          "AHHH Tongue",
+          "AHHHH Flames",
+          "Ayeee",
+          "Ayeyo",
+          "Cigar Mouth",
+          "Displeased toothpick",
+          "Drool",
+          "Errrh",
+          "Gold Bar",
+          "Gold Grill",
+          "Joint Mouth",
+          "Meh Cigarette",
+          "Party Horn Mouth",
+          "Pipe",
+          "Toothless Drool",
+          "Vamp Fangs"
+        ]
+      }
+    },
+    {
+      "name": "Party Hat strap conflicts with bandanas",
+      "enabled": true,
+      "if": {
+        "Hat": [
+          "Party Hat"
+        ]
+      },
+      "cannot": {
+        "Accessories": [
+          "Bandana Black",
+          "Bandana Pink",
+          "MESH Bandanna"
+        ],
+        "Accessories 2": [
+          "Bandana Black",
+          "Bandana Pink",
+          "MESH Bandanna"
+        ]
+      }
+    }
+  ],
+  "sequenceRules": {
+    "enabled": true,
+    "excludeValues": [
+      "None"
+    ],
+    "noImmediateRepeatLayers": [
+      "Droid",
+      "Eyes",
+      "Clothes",
+      "Mouth",
+      "Hat",
+      "Accessories",
+      "Accessories 2"
+    ],
+    "traitCooldowns": {
+      "Droid": {
+        "Gold Chrome": 20,
+        "Olive Chrome": 20,
+        "Whyte Chrome": 20,
+        "Dark Chrome": 20,
+        "Green Chrome": 20,
+        "Rose Chrome": 20,
+        "Optimus (T3SLA Bot)": 16,
+        "Gold": 10
+      },
+      "Conditions": {
+        "Dirty-Broken": 24,
+        "S1 Skin": 32,
+        "Dirty Broken'er": 24
+      },
+      "Stickers/Body art": {
+        "DYOOR Chest Tat": 4,
+        "143 Chest Sticker": 4,
+        "143 Face Sticker": 4,
+        "Chog Sticker": 4,
+        "LeverUp sticker": 4
+      },
+      "Eyes": {
+        "Abyss Laser": 24,
+        "Lazy Laser": 24,
+        "Radiation Glow (Red)Laser": 24,
+        "Build Anything Glasses": 12,
+        "Monad Specs Black": 14,
+        "Monad Specs Gold": 18,
+        "Neverland Specs": 6,
+        "Tri-Specs": 6,
+        "Sunglasses": 4,
+        "Eye Patch": 8,
+        "Googley Eyes": 10,
+        "Snake Eyes": 10,
+        "VR Headset": 16,
+        "Point Dexter Glasses Eyes": 10,
+        "Scared": 8,
+        "Emo Eyeliner": 10,
+        "Intense": 8
+      },
+      "Clothes": {
+        "King's Robe": 22,
+        "King's Robe 2": 22,
+        "Tuxedo": 12,
+        "Tuxedo 2": 12,
+        "Luffy": 14,
+        "DYOOR Black Hoodie": 16,
+        "Torn Black Tee": 10,
+        "Torn Tee": 10,
+        "Torn Tee 2": 10,
+        "Leather Jacket Torn Tee": 10,
+        "Leather Jacket Torn Tee 2": 10,
+        "Caveman Leotard": 12,
+        "Dictator Jacket": 20,
+        "Fur Coat Gold": 24,
+        "Fur Coat Pink": 24,
+        "Fur Coat Purple": 24,
+        "Orange Plaid": 14,
+        "Black Tee": 10,
+        "Convict Shirt": 12,
+        "Jailhouse Stripes Shirt": 12,
+        "BuildAnything Tee": 10,
+        "Kuru White Tee": 10,
+        "Neverland Tee": 10,
+        "PAMPAM Tee": 12,
+        "MESH Tee": 14,
+        "Overalls": 14,
+        "Emo Tank": 16,
+        "Emo Tee": 16,
+        "Retard Tee": 18,
+        "Bartman Shirt n Cape": 18,
+        "GiftGoats Tee": 10
+      },
+      "Mouth": {
+        "Gold Bar": 18,
+        "Gold Grill": 18,
+        "AHHHH Flames": 14,
+        "AHHHH": 12,
+        "Displeased toothpick": 12,
+        "Vamp Fangs": 16,
+        "Party Horn Mouth": 18,
+        "Pepe Mouth": 10,
+        "Pipe": 12,
+        "Cigar Mouth": 18,
+        "Joint Mouth": 18,
+        "AHHH Scared": 12,
+        "Emo Sheesh": 14,
+        "Emo Whatever": 14,
+        "Errrh": 12
+      },
+      "Hat": {
+        "Wormhole": 30,
+        "BOB Mask": 30,
+        "Salmonad Mask": 30,
+        "Sealuminati Mask": 30,
+        "Crown": 24,
+        "Halo": 20,
+        "Horns": 20,
+        "Black N White Cap": 14,
+        "Beanie Red": 8,
+        "Glowing Antenna": 8,
+        "Luffy": 10,
+        "Dunce Hat": 12,
+        "Pirate Hat": 12,
+        "Party Hat": 14,
+        "Jailhouse Stripes Hat": 12,
+        "Alternative": 14,
+        "Casino": 14,
+        "Durag": 16,
+        "Emonad": 20,
+        "Bartman": 18,
+        "Burning Chog": 24,
+        "Shramp Beanie": 10
+      },
+      "Accessories": {
+        "BOB-chain": 35,
+        "Sealuminati chain": 35,
+        "Bandaid": 8,
+        "10KSquad": 18,
+        "MESH Bandanna": 18,
+        "Mouch": 14,
+        "OneFourThree Face Tat": 18,
+        "Shramp": 14,
+        "The Hive": 16
+      },
+      "Accessories 2": {
+        "BOB-chain": 35,
+        "Sealuminati chain": 35,
+        "Bandaid": 8,
+        "10KSquad": 18,
+        "MESH Bandanna": 18,
+        "Mouch": 14,
+        "Shramp": 14,
+        "The Hive": 16
+      }
+    }
+  },
+  "traits": {
+    "Background": [
+      {
+        "traitId": 100,
+        "name": "Abtrastic",
+        "weight": 1,
+        "selectable": true,
+        "mutable": false
+      },
+      {
+        "traitId": 101,
+        "name": "Cynically Censored-Project M.A.D.",
+        "weight": 1,
+        "selectable": true,
+        "mutable": false
+      },
+      {
+        "traitId": 102,
+        "name": "Don't Look At The Lighthouse-Project M.A.D.",
+        "weight": 1,
+        "selectable": true,
+        "mutable": false
+      },
+      {
+        "traitId": 103,
+        "name": "Eye Sea U-Project M.A.D.",
+        "weight": 1,
+        "selectable": true,
+        "mutable": false
+      },
+      {
+        "traitId": 104,
+        "name": "Flash",
+        "weight": 1,
+        "selectable": true,
+        "mutable": false
+      },
+      {
+        "traitId": 105,
+        "name": "Fxxk Crabs-Project M.A.D.",
+        "weight": 1,
+        "selectable": true,
+        "mutable": false
+      },
+      {
+        "traitId": 106,
+        "name": "Goldish",
+        "weight": 10,
+        "selectable": true,
+        "mutable": false
+      },
+      {
+        "traitId": 107,
+        "name": "Green Grade",
+        "weight": 1,
+        "selectable": true,
+        "mutable": false
+      },
+      {
+        "traitId": 108,
+        "name": "Grey",
+        "weight": 10,
+        "selectable": true,
+        "mutable": false
+      },
+      {
+        "traitId": 109,
+        "name": "Hawhyte",
+        "weight": 1,
+        "selectable": true,
+        "mutable": false
+      },
+      {
+        "traitId": 110,
+        "name": "Kewl",
+        "weight": 1,
+        "selectable": true,
+        "mutable": false
+      },
+      {
+        "traitId": 111,
+        "name": "Kinda Blue",
+        "weight": 10,
+        "selectable": true,
+        "mutable": false
+      },
+      {
+        "traitId": 112,
+        "name": "Painfully Here-Project M.A.D.",
+        "weight": 1,
+        "selectable": true,
+        "mutable": false
+      },
+      {
+        "traitId": 113,
+        "name": "Pank",
+        "weight": 10,
+        "selectable": true,
+        "mutable": false
+      },
+      {
+        "traitId": 114,
+        "name": "Pernkple",
+        "weight": 1,
+        "selectable": true,
+        "mutable": false
+      },
+      {
+        "traitId": 115,
+        "name": "Sad Cook-Project M.A.D.",
+        "weight": 1,
+        "selectable": true,
+        "mutable": false
+      },
+      {
+        "traitId": 116,
+        "name": "Simovision-Project M.A.D.",
+        "weight": 1,
+        "selectable": true,
+        "mutable": false
+      },
+      {
+        "traitId": 117,
+        "name": "Soul Catcher-Project M.A.D.",
+        "weight": 1,
+        "selectable": true,
+        "mutable": false
+      },
+      {
+        "traitId": 118,
+        "name": "Sunset",
+        "weight": 1,
+        "selectable": true,
+        "mutable": false
+      },
+      {
+        "traitId": 119,
+        "name": "The Way-Project M.A.D.",
+        "weight": 1,
+        "selectable": true,
+        "mutable": false
+      },
+      {
+        "traitId": 120,
+        "name": "Tisumusem-Project M.A.D.",
+        "weight": 1,
+        "selectable": true,
+        "mutable": false
+      },
+      {
+        "traitId": 121,
+        "name": "Yorange",
+        "weight": 10,
+        "selectable": true,
+        "mutable": false
+      }
+    ],
+    "Droid": [
+      {
+        "traitId": 200,
+        "name": "Black",
+        "weight": 10,
+        "selectable": true,
+        "mutable": false
+      },
+      {
+        "traitId": 201,
+        "name": "Blue",
+        "weight": 12,
+        "selectable": true,
+        "mutable": false
+      },
+      {
+        "traitId": 202,
+        "name": "Dark Chrome",
+        "weight": 1,
+        "selectable": true,
+        "mutable": false
+      },
+      {
+        "traitId": 204,
+        "name": "Gold Chrome",
+        "weight": 1,
+        "selectable": true,
+        "mutable": false
+      },
+      {
+        "traitId": 203,
+        "name": "Gold",
+        "weight": 2,
+        "selectable": true,
+        "mutable": false
+      },
+      {
+        "traitId": 206,
+        "name": "Green Chrome",
+        "weight": 1,
+        "selectable": true,
+        "mutable": false
+      },
+      {
+        "traitId": 205,
+        "name": "Green",
+        "weight": 10,
+        "selectable": true,
+        "mutable": false
+      },
+      {
+        "traitId": 207,
+        "name": "Lime Green",
+        "weight": 5,
+        "selectable": true,
+        "mutable": false
+      },
+      {
+        "traitId": 209,
+        "name": "Olive Chrome",
+        "weight": 1,
+        "selectable": true,
+        "mutable": false
+      },
+      {
+        "traitId": 208,
+        "name": "Olive",
+        "weight": 6,
+        "selectable": true,
+        "mutable": false
+      },
+      {
+        "traitId": 210,
+        "name": "Optimus (T3SLA Bot)",
+        "weight": 1,
+        "selectable": true,
+        "mutable": false
+      },
+      {
+        "traitId": 211,
+        "name": "Orange",
+        "weight": 10,
+        "selectable": true,
+        "mutable": false
+      },
+      {
+        "traitId": 212,
+        "name": "Pank",
+        "weight": 1,
+        "selectable": true,
+        "mutable": false
+      },
+      {
+        "traitId": 213,
+        "name": "Purple",
+        "weight": 8,
+        "selectable": true,
+        "mutable": false
+      },
+      {
+        "traitId": 214,
+        "name": "Red",
+        "weight": 12,
+        "selectable": true,
+        "mutable": false
+      },
+      {
+        "traitId": 215,
+        "name": "Rose Chrome",
+        "weight": 1,
+        "selectable": true,
+        "mutable": false
+      },
+      {
+        "traitId": 216,
+        "name": "White",
+        "weight": 12,
+        "selectable": true,
+        "mutable": false
+      },
+      {
+        "traitId": 217,
+        "name": "Whyte Chrome",
+        "weight": 1,
+        "selectable": true,
+        "mutable": false
+      },
+      {
+        "traitId": 218,
+        "name": "Yellow",
+        "weight": 12,
+        "selectable": true,
+        "mutable": false
+      }
+    ],
+    "Conditions": [
+      {
+        "traitId": 1000,
+        "name": "Dirty Broken'er",
+        "weight": 1,
+        "selectable": true,
+        "mutable": true
+      },
+      {
+        "traitId": 1001,
+        "name": "Dirty-Broken",
+        "weight": 1,
+        "selectable": true,
+        "mutable": true
+      },
+      {
+        "traitId": 1002,
+        "name": "S1 Skin",
+        "weight": 1,
+        "selectable": true,
+        "mutable": true
+      },
+      {
+        "traitId": null,
+        "name": "None",
+        "weight": 120,
+        "selectable": true,
+        "mutable": true
+      }
+    ],
+    "Stickers/Body art": [
+      {
+        "traitId": 2000,
+        "name": "143 Chest Sticker",
+        "weight": 1,
+        "selectable": true,
+        "mutable": true
+      },
+      {
+        "traitId": 2001,
+        "name": "143 Face Sticker",
+        "weight": 1,
+        "selectable": true,
+        "mutable": true
+      },
+      {
+        "traitId": 2002,
+        "name": "Chog Sticker",
+        "weight": 1,
+        "selectable": true,
+        "mutable": true
+      },
+      {
+        "traitId": 2003,
+        "name": "DYOOR Chest Tat",
+        "weight": 4,
+        "selectable": true,
+        "mutable": true
+      },
+      {
+        "traitId": 2004,
+        "name": "LeverUp sticker",
+        "weight": 1,
+        "selectable": true,
+        "mutable": true
+      },
+      {
+        "traitId": null,
+        "name": "None",
+        "weight": 100,
+        "selectable": true,
+        "mutable": true
+      }
+    ],
+    "Clothes": [
+      {
+        "traitId": 3000,
+        "name": "Baby Blue Tee",
+        "weight": 6,
+        "selectable": true,
+        "mutable": true
+      },
+      {
+        "traitId": 3001,
+        "name": "Bartman Shirt n Cape",
+        "weight": 1,
+        "selectable": true,
+        "mutable": true
+      },
+      {
+        "traitId": 3002,
+        "name": "Beige Hoodie",
+        "weight": 2,
+        "selectable": true,
+        "mutable": true
+      },
+      {
+        "traitId": 3003,
+        "name": "Black Hoodie",
+        "weight": 7,
+        "selectable": true,
+        "mutable": true
+      },
+      {
+        "traitId": 3005,
+        "name": "Black N White Tee 2",
+        "weight": 2,
+        "selectable": true,
+        "mutable": true
+      },
+      {
+        "traitId": 3004,
+        "name": "Black N White Tee",
+        "weight": 4,
+        "selectable": true,
+        "mutable": true
+      },
+      {
+        "traitId": 3006,
+        "name": "Black Racer",
+        "weight": 6,
+        "selectable": true,
+        "mutable": true
+      },
+      {
+        "traitId": 3007,
+        "name": "Black Tee",
+        "weight": 5,
+        "selectable": true,
+        "mutable": true
+      },
+      {
+        "traitId": 3008,
+        "name": "Blue Hoodie",
+        "weight": 7,
+        "selectable": true,
+        "mutable": true
+      },
+      {
+        "traitId": 3009,
+        "name": "Blue Racer",
+        "weight": 2,
+        "selectable": true,
+        "mutable": true
+      },
+      {
+        "traitId": 3010,
+        "name": "BuildAnything Tee",
+        "weight": 5,
+        "selectable": true,
+        "mutable": true
+      },
+      {
+        "traitId": 3011,
+        "name": "Caveman Leotard",
+        "weight": 2,
+        "selectable": true,
+        "mutable": true
+      },
+      {
+        "traitId": 3012,
+        "name": "Convict Shirt",
+        "weight": 2,
+        "selectable": true,
+        "mutable": true
+      },
+      {
+        "traitId": 3016,
+        "name": "DWO Black 2",
+        "weight": 9,
+        "selectable": true,
+        "mutable": true
+      },
+      {
+        "traitId": 3015,
+        "name": "DWO Black",
+        "weight": 10,
+        "selectable": true,
+        "mutable": true
+      },
+      {
+        "traitId": 3017,
+        "name": "DWO White",
+        "weight": 4,
+        "selectable": true,
+        "mutable": true
+      },
+      {
+        "traitId": 3018,
+        "name": "DYOOR Black Gold Text Hoodie",
+        "weight": 1,
+        "selectable": true,
+        "mutable": true
+      },
+      {
+        "traitId": 3019,
+        "name": "DYOOR Black Hoodie",
+        "weight": 3,
+        "selectable": true,
+        "mutable": true
+      },
+      {
+        "traitId": 3020,
+        "name": "DYOOR Blue Hoodie",
+        "weight": 1,
+        "selectable": true,
+        "mutable": true
+      },
+      {
+        "traitId": 3021,
+        "name": "DYOOR Red Gold Text Hoodie",
+        "weight": 1,
+        "selectable": true,
+        "mutable": true
+      },
+      {
+        "traitId": 3013,
+        "name": "Dictator Jacket",
+        "weight": 3,
+        "selectable": true,
+        "mutable": true
+      },
+      {
+        "traitId": 3014,
+        "name": "Durag Stays On Tank",
+        "weight": 3,
+        "selectable": true,
+        "mutable": true
+      },
+      {
+        "traitId": 3022,
+        "name": "Emo Tank",
+        "weight": 3,
+        "selectable": true,
+        "mutable": true
+      },
+      {
+        "traitId": 3023,
+        "name": "Emo Tee",
+        "weight": 3,
+        "selectable": true,
+        "mutable": true
+      },
+      {
+        "traitId": 3024,
+        "name": "Fur Coat Gold",
+        "weight": 3,
+        "selectable": true,
+        "mutable": true
+      },
+      {
+        "traitId": 3025,
+        "name": "Fur Coat Pink",
+        "weight": 3,
+        "selectable": true,
+        "mutable": true
+      },
+      {
+        "traitId": 3026,
+        "name": "Fur Coat Purple",
+        "weight": 3,
+        "selectable": true,
+        "mutable": true
+      },
+      {
+        "traitId": 3027,
+        "name": "GiftGoats Tee",
+        "weight": 4,
+        "selectable": true,
+        "mutable": true
+      },
+      {
+        "traitId": 3028,
+        "name": "Grey Tee",
+        "weight": 7,
+        "selectable": true,
+        "mutable": true
+      },
+      {
+        "traitId": 3029,
+        "name": "Hawaiian Shirt",
+        "weight": 1,
+        "selectable": true,
+        "mutable": true
+      },
+      {
+        "traitId": 3030,
+        "name": "Jailhouse Stripes Shirt",
+        "weight": 2,
+        "selectable": true,
+        "mutable": true
+      },
+      {
+        "traitId": 3032,
+        "name": "King's Robe 2",
+        "weight": 3,
+        "selectable": true,
+        "mutable": true
+      },
+      {
+        "traitId": 3031,
+        "name": "King's Robe",
+        "weight": 3,
+        "selectable": true,
+        "mutable": true
+      },
+      {
+        "traitId": 3033,
+        "name": "Kuru Tee",
+        "weight": 9,
+        "selectable": true,
+        "mutable": true
+      },
+      {
+        "traitId": 3034,
+        "name": "Kuru White Tee",
+        "weight": 5,
+        "selectable": true,
+        "mutable": true
+      },
+      {
+        "traitId": 3035,
+        "name": "Lab Coat",
+        "weight": 6,
+        "selectable": true,
+        "mutable": true
+      },
+      {
+        "traitId": 3037,
+        "name": "Leather Jacket Torn Tee",
+        "weight": 2,
+        "selectable": true,
+        "mutable": true
+      },
+      {
+        "traitId": 3038,
+        "name": "Leather Jacket White Shirt W:Tie",
+        "weight": 5,
+        "selectable": true,
+        "mutable": true
+      },
+      {
+        "traitId": 3036,
+        "name": "Leather Jacket",
+        "weight": 8,
+        "selectable": true,
+        "mutable": true
+      },
+      {
+        "traitId": 3039,
+        "name": "Luffy",
+        "weight": 1,
+        "selectable": true,
+        "mutable": true
+      },
+      {
+        "traitId": 3041,
+        "name": "MESH Tee",
+        "weight": 3,
+        "selectable": true,
+        "mutable": true
+      },
+      {
+        "traitId": 3040,
+        "name": "McDyoornalds",
+        "weight": 8,
+        "selectable": true,
+        "mutable": true
+      },
+      {
+        "traitId": 3042,
+        "name": "Neverland Tee",
+        "weight": 5,
+        "selectable": true,
+        "mutable": true
+      },
+      {
+        "traitId": 3043,
+        "name": "Orange Plaid",
+        "weight": 4,
+        "selectable": true,
+        "mutable": true
+      },
+      {
+        "traitId": 3044,
+        "name": "Orange Racer",
+        "weight": 8,
+        "selectable": true,
+        "mutable": true
+      },
+      {
+        "traitId": 3045,
+        "name": "Overalls",
+        "weight": 3,
+        "selectable": true,
+        "mutable": true
+      },
+      {
+        "traitId": 3046,
+        "name": "PAMPAM Tee",
+        "weight": 4,
+        "selectable": true,
+        "mutable": true
+      },
+      {
+        "traitId": 3047,
+        "name": "Pink Plaid",
+        "weight": 6,
+        "selectable": true,
+        "mutable": true
+      },
+      {
+        "traitId": 3048,
+        "name": "R3tard Tee",
+        "weight": 1,
+        "selectable": true,
+        "mutable": true
+      },
+      {
+        "traitId": 3049,
+        "name": "Red Hoodie",
+        "weight": 8,
+        "selectable": true,
+        "mutable": true
+      },
+      {
+        "traitId": 3050,
+        "name": "Red Plaid",
+        "weight": 8,
+        "selectable": true,
+        "mutable": true
+      },
+      {
+        "traitId": 3051,
+        "name": "Tech Bro",
+        "weight": 8,
+        "selectable": true,
+        "mutable": true
+      },
+      {
+        "traitId": 3052,
+        "name": "Torn Black Tee",
+        "weight": 2,
+        "selectable": true,
+        "mutable": true
+      },
+      {
+        "traitId": 3053,
+        "name": "Torn Tee",
+        "weight": 2,
+        "selectable": true,
+        "mutable": true
+      },
+      {
+        "traitId": 3054,
+        "name": "Tuxedo",
+        "weight": 2,
+        "selectable": true,
+        "mutable": true
+      },
+      {
+        "traitId": 3055,
+        "name": "White Shirt W:Tie",
+        "weight": 4,
+        "selectable": true,
+        "mutable": true
+      },
+      {
+        "traitId": 3056,
+        "name": "White Tee",
+        "weight": 5,
+        "selectable": true,
+        "mutable": true
+      },
+      {
+        "traitId": null,
+        "name": "None",
+        "weight": 24,
+        "selectable": true,
+        "mutable": true
+      }
+    ],
+    "Mouth": [
+      {
+        "traitId": 4000,
+        "name": "AHHH Scared",
+        "weight": 3,
+        "selectable": true,
+        "mutable": true
+      },
+      {
+        "traitId": 4001,
+        "name": "AHHH Tongue",
+        "weight": 3,
+        "selectable": true,
+        "mutable": true
+      },
+      {
+        "traitId": 4003,
+        "name": "AHHHH Flames",
+        "weight": 3,
+        "selectable": true,
+        "mutable": true
+      },
+      {
+        "traitId": 4002,
+        "name": "AHHHH",
+        "weight": 2,
+        "selectable": true,
+        "mutable": true
+      },
+      {
+        "traitId": 4004,
+        "name": "Ayeee",
+        "weight": 9,
+        "selectable": true,
+        "mutable": true
+      },
+      {
+        "traitId": 4005,
+        "name": "Ayeyo",
+        "weight": 9,
+        "selectable": true,
+        "mutable": true
+      },
+      {
+        "traitId": 4006,
+        "name": "Braces",
+        "weight": 2,
+        "selectable": true,
+        "mutable": true
+      },
+      {
+        "traitId": 4007,
+        "name": "Cigar Mouth",
+        "weight": 3,
+        "selectable": true,
+        "mutable": true
+      },
+      {
+        "traitId": 4008,
+        "name": "Deep Thought",
+        "weight": 2,
+        "selectable": true,
+        "mutable": true
+      },
+      {
+        "traitId": 4009,
+        "name": "Diamond Grill",
+        "weight": 1,
+        "selectable": true,
+        "mutable": true
+      },
+      {
+        "traitId": 4011,
+        "name": "Displeased toothpick",
+        "weight": 3,
+        "selectable": true,
+        "mutable": true
+      },
+      {
+        "traitId": 4010,
+        "name": "Displeased",
+        "weight": 7,
+        "selectable": true,
+        "mutable": true
+      },
+      {
+        "traitId": 4012,
+        "name": "Drool",
+        "weight": 7,
+        "selectable": true,
+        "mutable": true
+      },
+      {
+        "traitId": 4013,
+        "name": "Emo Sheesh",
+        "weight": 3,
+        "selectable": true,
+        "mutable": true
+      },
+      {
+        "traitId": 4014,
+        "name": "Emo Whatever",
+        "weight": 3,
+        "selectable": true,
+        "mutable": true
+      },
+      {
+        "traitId": 4015,
+        "name": "Errrh",
+        "weight": 3,
+        "selectable": true,
+        "mutable": true
+      },
+      {
+        "traitId": 4016,
+        "name": "Gold Bar",
+        "weight": 3,
+        "selectable": true,
+        "mutable": true
+      },
+      {
+        "traitId": 4017,
+        "name": "Gold Grill",
+        "weight": 3,
+        "selectable": true,
+        "mutable": true
+      },
+      {
+        "traitId": 4018,
+        "name": "Joint Mouth",
+        "weight": 3,
+        "selectable": true,
+        "mutable": true
+      },
+      {
+        "traitId": 4021,
+        "name": "MMMMKay",
+        "weight": 10,
+        "selectable": true,
+        "mutable": true
+      },
+      {
+        "traitId": 4020,
+        "name": "Meh Cigarette",
+        "weight": 6,
+        "selectable": true,
+        "mutable": true
+      },
+      {
+        "traitId": 4019,
+        "name": "Meh",
+        "weight": 2,
+        "selectable": true,
+        "mutable": true
+      },
+      {
+        "traitId": 4022,
+        "name": "Muah",
+        "weight": 4,
+        "selectable": true,
+        "mutable": true
+      },
+      {
+        "traitId": 4023,
+        "name": "Party Horn Mouth",
+        "weight": 2,
+        "selectable": true,
+        "mutable": true
+      },
+      {
+        "traitId": 4024,
+        "name": "Pepe Mouth",
+        "weight": 2,
+        "selectable": true,
+        "mutable": true
+      },
+      {
+        "traitId": 4025,
+        "name": "Pipe",
+        "weight": 2,
+        "selectable": true,
+        "mutable": true
+      },
+      {
+        "traitId": 4026,
+        "name": "Resting DYOOR mouth",
+        "weight": 7,
+        "selectable": true,
+        "mutable": true
+      },
+      {
+        "traitId": 4027,
+        "name": "Toothless Drool",
+        "weight": 7,
+        "selectable": true,
+        "mutable": true
+      },
+      {
+        "traitId": 4028,
+        "name": "Vamp Fangs",
+        "weight": 2,
+        "selectable": true,
+        "mutable": true
+      },
+      {
+        "traitId": 4029,
+        "name": "Waaaat",
+        "weight": 4,
+        "selectable": true,
+        "mutable": true
+      },
+      {
+        "traitId": null,
+        "name": "None",
+        "weight": 0,
+        "selectable": false,
+        "mutable": true
+      }
+    ],
+    "Eyes": [
+      {
+        "traitId": 5001,
+        "name": "Abyss Laser",
+        "weight": 1,
+        "selectable": true,
+        "mutable": true
+      },
+      {
+        "traitId": 5000,
+        "name": "Abyss",
+        "weight": 7,
+        "selectable": true,
+        "mutable": true
+      },
+      {
+        "traitId": 5002,
+        "name": "Build Anything Glasses",
+        "weight": 2,
+        "selectable": true,
+        "mutable": true
+      },
+      {
+        "traitId": 5003,
+        "name": "Cyclops",
+        "weight": 2,
+        "selectable": true,
+        "mutable": true
+      },
+      {
+        "traitId": 5004,
+        "name": "Emo Eyeliner",
+        "weight": 3,
+        "selectable": true,
+        "mutable": true
+      },
+      {
+        "traitId": 5005,
+        "name": "Excited",
+        "weight": 10,
+        "selectable": true,
+        "mutable": true
+      },
+      {
+        "traitId": 5006,
+        "name": "Eye Patch",
+        "weight": 2,
+        "selectable": true,
+        "mutable": true
+      },
+      {
+        "traitId": 5007,
+        "name": "Googley Eyes",
+        "weight": 2,
+        "selectable": true,
+        "mutable": true
+      },
+      {
+        "traitId": 5008,
+        "name": "Got em",
+        "weight": 2,
+        "selectable": true,
+        "mutable": true
+      },
+      {
+        "traitId": 5009,
+        "name": "HMMMHM",
+        "weight": 4,
+        "selectable": true,
+        "mutable": true
+      },
+      {
+        "traitId": 5010,
+        "name": "I Know What You Did",
+        "weight": 2,
+        "selectable": true,
+        "mutable": true
+      },
+      {
+        "traitId": 5011,
+        "name": "Intense",
+        "weight": 4,
+        "selectable": true,
+        "mutable": true
+      },
+      {
+        "traitId": 5012,
+        "name": "Lazy Laser",
+        "weight": 1,
+        "selectable": true,
+        "mutable": true
+      },
+      {
+        "traitId": 5013,
+        "name": "Monad Specs Black",
+        "weight": 2,
+        "selectable": true,
+        "mutable": true
+      },
+      {
+        "traitId": 5014,
+        "name": "Monad Specs Gold",
+        "weight": 2,
+        "selectable": true,
+        "mutable": true
+      },
+      {
+        "traitId": 5015,
+        "name": "Neverland Specs",
+        "weight": 5,
+        "selectable": true,
+        "mutable": true
+      },
+      {
+        "traitId": 5016,
+        "name": "Okay",
+        "weight": 10,
+        "selectable": true,
+        "mutable": true
+      },
+      {
+        "traitId": 5017,
+        "name": "Pit Viper",
+        "weight": 1,
+        "selectable": true,
+        "mutable": true
+      },
+      {
+        "traitId": 5018,
+        "name": "Point Dexter Glasses Eyes",
+        "weight": 3,
+        "selectable": true,
+        "mutable": true
+      },
+      {
+        "traitId": 5020,
+        "name": "Radiation Glow (Red)",
+        "weight": 2,
+        "selectable": true,
+        "mutable": true
+      },
+      {
+        "traitId": 5021,
+        "name": "Radiation Glow (Red)Laser",
+        "weight": 1,
+        "selectable": true,
+        "mutable": true
+      },
+      {
+        "traitId": 5019,
+        "name": "Radiation Glow",
+        "weight": 7,
+        "selectable": true,
+        "mutable": true
+      },
+      {
+        "traitId": 5022,
+        "name": "Ricky V",
+        "weight": 7,
+        "selectable": true,
+        "mutable": true
+      },
+      {
+        "traitId": 5023,
+        "name": "Scared",
+        "weight": 4,
+        "selectable": true,
+        "mutable": true
+      },
+      {
+        "traitId": 5024,
+        "name": "Sly",
+        "weight": 4,
+        "selectable": true,
+        "mutable": true
+      },
+      {
+        "traitId": 5025,
+        "name": "Snake Eyes",
+        "weight": 2,
+        "selectable": true,
+        "mutable": true
+      },
+      {
+        "traitId": 5026,
+        "name": "Sunglasses",
+        "weight": 8,
+        "selectable": true,
+        "mutable": true
+      },
+      {
+        "traitId": 5027,
+        "name": "Third Eye",
+        "weight": 3,
+        "selectable": true,
+        "mutable": true
+      },
+      {
+        "traitId": 5028,
+        "name": "Tri-Specs",
+        "weight": 3,
+        "selectable": true,
+        "mutable": true
+      },
+      {
+        "traitId": 5029,
+        "name": "Un Enthused",
+        "weight": 10,
+        "selectable": true,
+        "mutable": true
+      },
+      {
+        "traitId": 5030,
+        "name": "VR Headset",
+        "weight": 2,
+        "selectable": true,
+        "mutable": true
+      },
+      {
+        "traitId": 5031,
+        "name": "Zombie",
+        "weight": 2,
+        "selectable": true,
+        "mutable": true
+      },
+      {
+        "traitId": null,
+        "name": "None",
+        "weight": 0,
+        "selectable": false,
+        "mutable": true
+      }
+    ],
+    "Hat": [
+      {
+        "traitId": 6000,
+        "name": "Alternative",
+        "weight": 3,
+        "selectable": true,
+        "mutable": true
+      },
+      {
+        "traitId": 6001,
+        "name": "Antenna",
+        "weight": 10,
+        "selectable": true,
+        "mutable": true
+      },
+      {
+        "traitId": 6009,
+        "name": "BOB Mask",
+        "weight": 1,
+        "selectable": true,
+        "mutable": true
+      },
+      {
+        "traitId": 6002,
+        "name": "Bartman",
+        "weight": 1,
+        "selectable": true,
+        "mutable": true
+      },
+      {
+        "traitId": 6003,
+        "name": "Beanie Red",
+        "weight": 2,
+        "selectable": true,
+        "mutable": true
+      },
+      {
+        "traitId": 6004,
+        "name": "Black Ball Cap",
+        "weight": 10,
+        "selectable": true,
+        "mutable": true
+      },
+      {
+        "traitId": 6005,
+        "name": "Black Beanie",
+        "weight": 7,
+        "selectable": true,
+        "mutable": true
+      },
+      {
+        "traitId": 6006,
+        "name": "Black Cap",
+        "weight": 7,
+        "selectable": true,
+        "mutable": true
+      },
+      {
+        "traitId": 6007,
+        "name": "Black N White Cap",
+        "weight": 3,
+        "selectable": true,
+        "mutable": true
+      },
+      {
+        "traitId": 6008,
+        "name": "Black Shystie",
+        "weight": 5,
+        "selectable": true,
+        "mutable": true
+      },
+      {
+        "traitId": 6010,
+        "name": "Burning Chog",
+        "weight": 2,
+        "selectable": true,
+        "mutable": true
+      },
+      {
+        "traitId": 6011,
+        "name": "Captain Hat",
+        "weight": 8,
+        "selectable": true,
+        "mutable": true
+      },
+      {
+        "traitId": 6012,
+        "name": "Casino",
+        "weight": 3,
+        "selectable": true,
+        "mutable": true
+      },
+      {
+        "traitId": 6013,
+        "name": "Construction",
+        "weight": 8,
+        "selectable": true,
+        "mutable": true
+      },
+      {
+        "traitId": 6014,
+        "name": "Cowboy",
+        "weight": 8,
+        "selectable": true,
+        "mutable": true
+      },
+      {
+        "traitId": 6015,
+        "name": "Crown",
+        "weight": 3,
+        "selectable": true,
+        "mutable": true
+      },
+      {
+        "traitId": 6018,
+        "name": "DWO Black Cap",
+        "weight": 2,
+        "selectable": true,
+        "mutable": true
+      },
+      {
+        "traitId": 6019,
+        "name": "DYOOR Black Cap",
+        "weight": 10,
+        "selectable": true,
+        "mutable": true
+      },
+      {
+        "traitId": 6020,
+        "name": "DYOOR Flipped Brim",
+        "weight": 7,
+        "selectable": true,
+        "mutable": true
+      },
+      {
+        "traitId": 6021,
+        "name": "DYOOR White Cap",
+        "weight": 10,
+        "selectable": true,
+        "mutable": true
+      },
+      {
+        "traitId": 6016,
+        "name": "Dunce Hat",
+        "weight": 2,
+        "selectable": true,
+        "mutable": true
+      },
+      {
+        "traitId": 6017,
+        "name": "Durag",
+        "weight": 3,
+        "selectable": true,
+        "mutable": true
+      },
+      {
+        "traitId": 6022,
+        "name": "Emonad",
+        "weight": 2,
+        "selectable": true,
+        "mutable": true
+      },
+      {
+        "traitId": 6023,
+        "name": "Glowing Antenna",
+        "weight": 2,
+        "selectable": true,
+        "mutable": true
+      },
+      {
+        "traitId": 6024,
+        "name": "Gotta Catchem Cap",
+        "weight": 9,
+        "selectable": true,
+        "mutable": true
+      },
+      {
+        "traitId": 6025,
+        "name": "Halo",
+        "weight": 3,
+        "selectable": true,
+        "mutable": true
+      },
+      {
+        "traitId": 6026,
+        "name": "Horns",
+        "weight": 3,
+        "selectable": true,
+        "mutable": true
+      },
+      {
+        "traitId": 6027,
+        "name": "Jailhouse Stripes Hat",
+        "weight": 2,
+        "selectable": true,
+        "mutable": true
+      },
+      {
+        "traitId": 6028,
+        "name": "Luffy",
+        "weight": 1,
+        "selectable": true,
+        "mutable": true
+      },
+      {
+        "traitId": 6029,
+        "name": "McDYOORs",
+        "weight": 9,
+        "selectable": true,
+        "mutable": true
+      },
+      {
+        "traitId": 6031,
+        "name": "Monad Cap Black",
+        "weight": 7,
+        "selectable": true,
+        "mutable": true
+      },
+      {
+        "traitId": 6030,
+        "name": "Monad Cap",
+        "weight": 9,
+        "selectable": true,
+        "mutable": true
+      },
+      {
+        "traitId": 6032,
+        "name": "PamPam",
+        "weight": 1,
+        "selectable": true,
+        "mutable": true
+      },
+      {
+        "traitId": 6033,
+        "name": "Party Hat",
+        "weight": 3,
+        "selectable": true,
+        "mutable": true
+      },
+      {
+        "traitId": 6034,
+        "name": "Pink Shystie",
+        "weight": 5,
+        "selectable": true,
+        "mutable": true
+      },
+      {
+        "traitId": 6035,
+        "name": "Pirate Hat",
+        "weight": 2,
+        "selectable": true,
+        "mutable": true
+      },
+      {
+        "traitId": 6036,
+        "name": "Salmonad Mask",
+        "weight": 3,
+        "selectable": true,
+        "mutable": true
+      },
+      {
+        "traitId": 6037,
+        "name": "Sealuminati Mask",
+        "weight": 1,
+        "selectable": true,
+        "mutable": true
+      },
+      {
+        "traitId": 6038,
+        "name": "Shramp Beanie",
+        "weight": 2,
+        "selectable": true,
+        "mutable": true
+      },
+      {
+        "traitId": 6039,
+        "name": "Sweatband",
+        "weight": 7,
+        "selectable": true,
+        "mutable": true
+      },
+      {
+        "traitId": 6040,
+        "name": "Tech bro",
+        "weight": 8,
+        "selectable": true,
+        "mutable": true
+      },
+      {
+        "traitId": 6041,
+        "name": "Wormhole",
+        "weight": 3,
+        "selectable": true,
+        "mutable": true
+      },
+      {
+        "traitId": null,
+        "name": "None",
+        "weight": 100,
+        "selectable": true,
+        "mutable": true
+      }
+    ],
+    "Accessories": [
+      {
+        "traitId": 7000,
+        "name": "10KSquad",
+        "weight": 1,
+        "selectable": true,
+        "mutable": true
+      },
+      {
+        "traitId": 7004,
+        "name": "BOB-chain",
+        "weight": 1,
+        "selectable": true,
+        "mutable": true
+      },
+      {
+        "traitId": 7001,
+        "name": "Bandaid",
+        "weight": 6,
+        "selectable": true,
+        "mutable": true
+      },
+      {
+        "traitId": 7002,
+        "name": "Bandana Black",
+        "weight": 6,
+        "selectable": true,
+        "mutable": true
+      },
+      {
+        "traitId": 7003,
+        "name": "Bandana Pink",
+        "weight": 6,
+        "selectable": true,
+        "mutable": true
+      },
+      {
+        "traitId": 7005,
+        "name": "Choker Necklace",
+        "weight": 4,
+        "selectable": true,
+        "mutable": true
+      },
+      {
+        "traitId": 7006,
+        "name": "MESH Bandanna",
+        "weight": 4,
+        "selectable": true,
+        "mutable": true
+      },
+      {
+        "traitId": 7007,
+        "name": "Molandak",
+        "weight": 4,
+        "selectable": true,
+        "mutable": true
+      },
+      {
+        "traitId": 7008,
+        "name": "Mouch",
+        "weight": 3,
+        "selectable": true,
+        "mutable": true
+      },
+      {
+        "traitId": 7009,
+        "name": "Sealuminati chain",
+        "weight": 1,
+        "selectable": true,
+        "mutable": true
+      },
+      {
+        "traitId": 7010,
+        "name": "Shramp",
+        "weight": 1,
+        "selectable": true,
+        "mutable": true
+      },
+      {
+        "traitId": 7011,
+        "name": "The Hive",
+        "weight": 3,
+        "selectable": true,
+        "mutable": true
+      },
+      {
+        "traitId": null,
+        "name": "None",
+        "weight": 180,
+        "selectable": true,
+        "mutable": true
+      }
+    ],
+    "Accessories 2": [
+      {
+        "traitId": 8000,
+        "name": "10KSquad",
+        "weight": 1,
+        "selectable": true,
+        "mutable": true
+      },
+      {
+        "traitId": 8004,
+        "name": "BOB-chain",
+        "weight": 1,
+        "selectable": true,
+        "mutable": true
+      },
+      {
+        "traitId": 8001,
+        "name": "Bandaid",
+        "weight": 6,
+        "selectable": true,
+        "mutable": true
+      },
+      {
+        "traitId": 8002,
+        "name": "Bandana Black",
+        "weight": 6,
+        "selectable": true,
+        "mutable": true
+      },
+      {
+        "traitId": 8003,
+        "name": "Bandana Pink",
+        "weight": 6,
+        "selectable": true,
+        "mutable": true
+      },
+      {
+        "traitId": 8005,
+        "name": "Choker Necklace",
+        "weight": 4,
+        "selectable": true,
+        "mutable": true
+      },
+      {
+        "traitId": 8006,
+        "name": "MESH Bandanna",
+        "weight": 4,
+        "selectable": true,
+        "mutable": true
+      },
+      {
+        "traitId": 8007,
+        "name": "Molandak",
+        "weight": 4,
+        "selectable": true,
+        "mutable": true
+      },
+      {
+        "traitId": 8008,
+        "name": "Mouch",
+        "weight": 3,
+        "selectable": true,
+        "mutable": true
+      },
+      {
+        "traitId": 8009,
+        "name": "Sealuminati chain",
+        "weight": 1,
+        "selectable": true,
+        "mutable": true
+      },
+      {
+        "traitId": 8010,
+        "name": "Shramp",
+        "weight": 1,
+        "selectable": true,
+        "mutable": true
+      },
+      {
+        "traitId": 8011,
+        "name": "The Hive",
+        "weight": 3,
+        "selectable": true,
+        "mutable": true
+      },
+      {
+        "traitId": null,
+        "name": "None",
+        "weight": 220,
+        "selectable": true,
+        "mutable": true
+      }
+    ],
+    "Special": [
+      {
+        "traitId": null,
+        "name": "Anime Mask",
+        "weight": 1,
+        "selectable": true,
+        "mutable": true
+      },
+      {
+        "traitId": null,
+        "name": "DeepSea Bruh",
+        "weight": 1,
+        "selectable": true,
+        "mutable": true
+      },
+      {
+        "traitId": null,
+        "name": "Gimp",
+        "weight": 1,
+        "selectable": true,
+        "mutable": true
+      },
+      {
+        "traitId": null,
+        "name": "Green Ski Mask Laser",
+        "weight": 1,
+        "selectable": true,
+        "mutable": true
+      },
+      {
+        "traitId": null,
+        "name": "Pink Ski Mask Laser",
+        "weight": 1,
+        "selectable": true,
+        "mutable": true
+      },
+      {
+        "traitId": null,
+        "name": "Space Suit",
+        "weight": 1,
+        "selectable": true,
+        "mutable": true
+      },
+      {
+        "traitId": null,
+        "name": "None",
+        "weight": 900,
+        "selectable": true,
+        "mutable": true
+      }
+    ]
+  }
+}

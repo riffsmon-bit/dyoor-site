@@ -40,15 +40,15 @@ const nextConfig = {
         headers: [
           {
             key: "Cache-Control",
-            value: "s-maxage=60, stale-while-revalidate=300",
+            value: "no-store",
           },
           {
             key: "CDN-Cache-Control",
-            value: "s-maxage=60, stale-while-revalidate=300",
+            value: "no-store",
           },
           {
             key: "Netlify-CDN-Cache-Control",
-            value: "s-maxage=60, stale-while-revalidate=300",
+            value: "no-store",
           },
         ],
       },
