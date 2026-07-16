@@ -182,6 +182,7 @@ export async function fetchMintedNFTMetadata(tokenId) {
   if (!token) throw new Error("Missing token ID.");
 
   const localPaths = [
+    `/api/metadata/${encodeURIComponent(token)}`,
     `/data/season2-metadata/${encodeURIComponent(token)}.json`,
     `/metadata/${encodeURIComponent(token)}.json`
   ];
@@ -197,6 +198,17 @@ export async function fetchMintedNFTMetadata(tokenId) {
 export async function checkExactBlueprintMatch(walletAddress, tokenId, options = {}) {
   const wallet = normalizeWalletAddress(walletAddress);
   if (!wallet) throw new Error("Missing or invalid wallet.");
+
+  if (!options.blueprint && !options.mintedNFTMetadata) {
+    const response = await fetch(`/api/blueprint-checker?wallet=${encodeURIComponent(wallet)}&tokenId=${encodeURIComponent(String(tokenId || "").trim())}`, {
+      cache: "no-store"
+    });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok || data?.ok === false) {
+      throw new Error(data?.error || "Blueprint checker failed.");
+    }
+    return data;
+  }
 
   const blueprint = options.blueprint || await fetch(`/.netlify/functions/ascension-blueprints?wallet=${encodeURIComponent(wallet)}`, {
     cache: "no-store"

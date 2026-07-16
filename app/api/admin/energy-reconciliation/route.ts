@@ -158,11 +158,32 @@ function formatContractError(error: any) {
   return String(
     error?.shortMessage
     || error?.reason
+    || error?.info?.payload?.method && `${error.info.payload.method} failed`
     || error?.info?.error?.message
     || error?.error?.message
     || error?.message
     || "Credit failed.",
   ).replace(/\s+/g, " ").slice(0, 800);
+}
+
+function formatPreflightError(step: string, error: any) {
+  const message = formatContractError(error);
+  const rpcCode = error?.info?.error?.code || error?.error?.code || error?.code || "";
+  const rpcMethod = error?.info?.payload?.method || "";
+  const details = [
+    `Energy Bank preflight failed at ${step}: ${message}`,
+    rpcMethod ? `rpc=${rpcMethod}` : "",
+    rpcCode ? `code=${rpcCode}` : "",
+  ].filter(Boolean);
+  return details.join(" ");
+}
+
+async function preflightStep<T>(step: string, task: () => Promise<T>) {
+  try {
+    return await task();
+  } catch (error: any) {
+    throw Object.assign(new Error(formatPreflightError(step, error)), { step, cause: error });
+  }
 }
 
 function legacyClaimKey(wallet: string, txHash: string, index: number) {
@@ -437,21 +458,13 @@ async function buildReport() {
 }
 
 async function readRole(bank: ethers.Contract, roleName: "DEFAULT_ADMIN_ROLE" | "CREDIT_ROLE", fallback = "") {
-  try {
-    const role = await bank[roleName]();
-    return ethers.getBytes(role).length === 32 ? String(role) : fallback;
-  } catch {
-    return fallback;
-  }
+  const role = await bank[roleName]();
+  return ethers.getBytes(role).length === 32 ? String(role) : fallback;
 }
 
 async function hasRole(bank: ethers.Contract, role: string, account: string) {
   if (!role) return null;
-  try {
-    return Boolean(await bank.hasRole(role, account));
-  } catch {
-    return null;
-  }
+  return Boolean(await bank.hasRole(role, account));
 }
 
 async function repairPreflight(provider: ethers.JsonRpcProvider, energyBankAddress: string) {
@@ -468,19 +481,46 @@ async function repairPreflight(provider: ethers.JsonRpcProvider, energyBankAddre
     };
   }
 
+  let operator = "";
+  let signer: ethers.Wallet;
   try {
-    const signer = new ethers.Wallet(signerKey, provider);
+    signer = new ethers.Wallet(signerKey, provider);
+    operator = signer.address.toLowerCase();
+  } catch (error: any) {
+    return {
+      ready: false,
+      reason: `Invalid ENERGY_BANK_OPERATOR_PRIVATE_KEY: ${formatContractError(error)}`,
+      operator: "",
+      chainId: "",
+      hasCreditRole: null,
+      hasAdminRole: null,
+      paused: null,
+      operatorKeyConfigured: true,
+    };
+  }
+
+  try {
     const bank = new ethers.Contract(energyBankAddress, ENERGY_BANK_ABI, signer);
-    const [network, creditRole, adminRole, paused] = await Promise.all([
-      provider.getNetwork(),
-      readRole(bank, "CREDIT_ROLE"),
-      readRole(bank, "DEFAULT_ADMIN_ROLE", ethers.ZeroHash),
-      bank.paused().then(Boolean).catch(() => null),
-    ]);
-    const [hasCreditRole, hasAdminRole] = await Promise.all([
-      hasRole(bank, creditRole, signer.address),
-      hasRole(bank, adminRole, signer.address),
-    ]);
+    const network = await preflightStep("network", () => provider.getNetwork());
+    const code = await preflightStep("energyBank bytecode", () => provider.getCode(energyBankAddress));
+    if (code === "0x") {
+      return {
+        ready: false,
+        reason: `No contract bytecode found at Energy Bank address ${energyBankAddress}.`,
+        operator,
+        chainId: network.chainId.toString(),
+        hasCreditRole: null,
+        hasAdminRole: null,
+        paused: null,
+        operatorKeyConfigured: true,
+      };
+    }
+
+    const creditRole = await preflightStep("CREDIT_ROLE", () => readRole(bank, "CREDIT_ROLE"));
+    const adminRole = await preflightStep("DEFAULT_ADMIN_ROLE", () => readRole(bank, "DEFAULT_ADMIN_ROLE", ethers.ZeroHash));
+    const paused = await preflightStep("paused", () => bank.paused().then(Boolean));
+    const hasCreditRole = await preflightStep("has CREDIT_ROLE", () => hasRole(bank, creditRole, signer.address));
+    const hasAdminRole = await preflightStep("has DEFAULT_ADMIN_ROLE", () => hasRole(bank, adminRole, signer.address));
     const wrongNetwork = network.chainId !== BigInt(MONAD_CHAIN_ID);
     const ready = !wrongNetwork && paused !== true && hasCreditRole === true;
     const reason = wrongNetwork
@@ -494,23 +534,25 @@ async function repairPreflight(provider: ethers.JsonRpcProvider, energyBankAddre
     return {
       ready,
       reason,
-      operator: signer.address.toLowerCase(),
+      operator,
       chainId: network.chainId.toString(),
       hasCreditRole,
       hasAdminRole,
       paused,
       creditRoleAvailable: Boolean(creditRole),
       adminRoleAvailable: Boolean(adminRole),
+      operatorKeyConfigured: true,
     };
   } catch (error: any) {
     return {
       ready: false,
       reason: formatContractError(error),
-      operator: "",
+      operator,
       chainId: "",
       hasCreditRole: null,
       hasAdminRole: null,
       paused: null,
+      operatorKeyConfigured: true,
     };
   }
 }
