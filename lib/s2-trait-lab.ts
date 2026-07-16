@@ -134,8 +134,8 @@ const DEFAULT_MONAD_TESTNET_RPC_URL = "https://testnet-rpc.monad.xyz";
 const DEFAULT_MONAD_TESTNET_EXPLORER_URL = "https://testnet.monadscan.com";
 const SERVERLESS_LOG_SPAN = 25_000;
 const MIN_OWNED_TOKEN_LOG_SPAN = 10_000;
-const OWNED_TOKEN_CACHE_VERSION = "s2-owned-v6";
-const DEFAULT_OWNER_OF_CONCURRENCY = 1;
+const OWNED_TOKEN_CACHE_VERSION = "s2-owned-v7";
+const DEFAULT_OWNER_OF_CONCURRENCY = 16;
 const CLOTHES_ALLOWED_SPECIALS = new Set([
   "anime mask",
   "gimp",
@@ -877,7 +877,7 @@ function s2Contract() {
 
 export async function verifyS2TokenOwner(tokenId: number, wallet: string, maxSupply = 3333) {
   const contract = s2Contract();
-  const owner = await ownerOfToken(contract, tokenId);
+  const { owner } = await ownerOfToken(contract, tokenId);
   if (owner === wallet) return owner;
 
   const tokenIds: string[] = await ownedS2TokenIds(wallet, maxSupply).catch((): string[] => []);
@@ -970,28 +970,56 @@ async function ownedTokensFromTransferLogs(contract: ethers.Contract, wallet: st
   return verified;
 }
 
-async function ownerOfToken(contract: ethers.Contract, tokenId: number) {
-  for (let attempt = 0; attempt < 3; attempt += 1) {
-    const owner = normalizeWallet(await contract.ownerOf(BigInt(tokenId)).catch(() => ""));
-    if (owner) return owner;
-    if (attempt < 2) await new Promise((resolve) => setTimeout(resolve, 120 * (attempt + 1)));
-  }
-  return "";
+function isTransientOwnerReadError(error: unknown) {
+  const message = String((error as { shortMessage?: string; message?: string })?.shortMessage || (error as Error)?.message || "");
+  return /429|timeout|timed out|rate|coalesce|missing revert data|network|server|fetch|ECONN/i.test(message);
 }
 
-async function ownedTokensFromOwnerScan(contract: ethers.Contract, wallet: string, maxSupply: number) {
+async function ownerOfToken(contract: ethers.Contract, tokenId: number, attempts = 3) {
+  let transient = false;
+  for (let attempt = 0; attempt < attempts; attempt += 1) {
+    try {
+      const owner = normalizeWallet(await contract.ownerOf(BigInt(tokenId)));
+      if (owner) return { owner, transient: false };
+    } catch (error) {
+      transient = transient || isTransientOwnerReadError(error);
+    }
+    if (attempt < attempts - 1) await new Promise((resolve) => setTimeout(resolve, 90 * (attempt + 1)));
+  }
+  return { owner: "", transient };
+}
+
+async function ownedTokensFromOwnerScan(contract: ethers.Contract, wallet: string, maxSupply: number, expectedBalance = 0) {
   const tokenIds: string[] = [];
   const concurrency = ownerOfConcurrency();
-  for (let start = 1; start <= maxSupply; start += concurrency) {
-    const batch = Array.from({ length: Math.min(concurrency, maxSupply - start + 1) }, (_, index) => start + index);
+  const transientFailures: number[] = [];
+
+  async function scanBatch(batch: number[], attempts: number) {
     const owners = await Promise.all(batch.map(async (tokenId) => {
-      const owner = await ownerOfToken(contract, tokenId);
-      return { tokenId, owner };
+      const result = await ownerOfToken(contract, tokenId, attempts);
+      return { tokenId, ...result };
     }));
     for (const item of owners) {
       if (item.owner === wallet) tokenIds.push(String(item.tokenId));
+      else if (!item.owner && item.transient) transientFailures.push(item.tokenId);
     }
   }
+
+  for (let start = 1; start <= maxSupply; start += concurrency) {
+    const batch = Array.from({ length: Math.min(concurrency, maxSupply - start + 1) }, (_, index) => start + index);
+    await scanBatch(batch, 1);
+    if (expectedBalance > 0 && tokenIds.length >= expectedBalance) return tokenIds;
+  }
+
+  if (expectedBalance > 0 && tokenIds.length < expectedBalance && transientFailures.length > 0) {
+    const retryTokenIds = Array.from(new Set(transientFailures));
+    const retryConcurrency = Math.max(1, Math.min(8, concurrency));
+    for (let start = 0; start < retryTokenIds.length; start += retryConcurrency) {
+      await scanBatch(retryTokenIds.slice(start, start + retryConcurrency), 4);
+      if (tokenIds.length >= expectedBalance) return tokenIds;
+    }
+  }
+
   return tokenIds;
 }
 
@@ -1043,8 +1071,9 @@ export async function ownedS2TokenIds(wallet: string, maxSupply: number) {
     } catch {}
   }
 
+  const scanMax = await ownedTokenScanMax(contract, maxSupply, balance);
   try {
-    for (const tokenId of await ownedTokensFromTransferLogs(contract, wallet)) tokenIds.add(tokenId);
+    for (const tokenId of await ownedTokensFromOwnerScan(contract, wallet, scanMax, balance)) tokenIds.add(tokenId);
     if (done()) {
       const sorted = sortedResult();
       ownedTokenCache.set(cacheKey, { tokenIds: sorted, expiresAt: Date.now() + 120_000 });
@@ -1052,9 +1081,8 @@ export async function ownedS2TokenIds(wallet: string, maxSupply: number) {
     }
   } catch {}
 
-  const scanMax = await ownedTokenScanMax(contract, maxSupply, balance);
   try {
-    for (const tokenId of await ownedTokensFromOwnerScan(contract, wallet, scanMax)) tokenIds.add(tokenId);
+    for (const tokenId of await ownedTokensFromTransferLogs(contract, wallet)) tokenIds.add(tokenId);
   } catch {}
 
   const sorted = sortedResult();
