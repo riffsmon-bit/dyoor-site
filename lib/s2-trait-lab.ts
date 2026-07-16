@@ -128,9 +128,13 @@ const DEFAULT_TRAIT_ASSETS_CID = "bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6h
 const PREVIEW_TTL_MS = 5 * 60 * 1000;
 const CONFIRM_WINDOW_MS = 5 * 60 * 1000;
 const TRANSFER_TOPIC = ethers.id("Transfer(address,address,uint256)");
+const DEFAULT_MONAD_MAINNET_RPC_URL = "https://rpc.monad.xyz";
+const DEFAULT_MONAD_MAINNET_EXPLORER_URL = "https://monadscan.com";
+const DEFAULT_MONAD_TESTNET_RPC_URL = "https://testnet-rpc.monad.xyz";
+const DEFAULT_MONAD_TESTNET_EXPLORER_URL = "https://testnet.monadscan.com";
 const SERVERLESS_LOG_SPAN = 25_000;
 const MIN_OWNED_TOKEN_LOG_SPAN = 10_000;
-const OWNED_TOKEN_CACHE_VERSION = "s2-owned-v5";
+const OWNED_TOKEN_CACHE_VERSION = "s2-owned-v6";
 const DEFAULT_OWNER_OF_CONCURRENCY = 1;
 const CLOTHES_ALLOWED_SPECIALS = new Set([
   "anime mask",
@@ -189,10 +193,7 @@ function monCostRaw(value: string) {
 }
 
 function configuredS2ChainId() {
-  const testnetEnabled = /^(1|true|yes|on)$/i.test(readEnv(
-    "DYOOR_S2_ENABLE_TESTNET",
-    "NEXT_PUBLIC_DYOOR_S2_ENABLE_TESTNET",
-  ));
+  const testnetEnabled = s2TestnetEnabled();
   const parsed = Number(readEnv(
     "DYOOR_S2_CHAIN_ID",
     "NEXT_PUBLIC_DYOOR_S2_CHAIN_ID",
@@ -202,6 +203,43 @@ function configuredS2ChainId() {
   ) || "143");
   const chainId = Number.isFinite(parsed) && parsed > 0 ? Math.floor(parsed) : 143;
   return chainId === 10143 && !testnetEnabled ? 143 : chainId;
+}
+
+function s2TestnetEnabled() {
+  return /^(1|true|yes|on)$/i.test(readEnv(
+    "DYOOR_S2_ENABLE_TESTNET",
+    "NEXT_PUBLIC_DYOOR_S2_ENABLE_TESTNET",
+  ));
+}
+
+function isTestnetLikeUrl(value: string) {
+  return /testnet/i.test(value);
+}
+
+function firstUsableRpc(names: string[], mainnet: boolean) {
+  for (const name of names) {
+    const value = readEnv(name);
+    if (!value) continue;
+    if (mainnet && isTestnetLikeUrl(value)) continue;
+    return value;
+  }
+  return "";
+}
+
+function configuredS2RpcUrl() {
+  const mainnet = configuredS2ChainId() === 143;
+  const rpcUrl = mainnet
+    ? firstUsableRpc(["DYOOR_S2_RPC_URL", "MONAD_RPC_URL", "NEXT_PUBLIC_MONAD_RPC_URL", "NEXT_PUBLIC_DYOOR_S2_RPC_URL", "RPC_URL"], true)
+    : firstUsableRpc(["DYOOR_S2_RPC_URL", "NEXT_PUBLIC_DYOOR_S2_RPC_URL", "MONAD_TESTNET_RPC_URL", "NEXT_PUBLIC_MONAD_TESTNET_RPC_URL", "MONAD_RPC_URL", "NEXT_PUBLIC_MONAD_RPC_URL", "RPC_URL"], false);
+  return rpcUrl || (mainnet ? DEFAULT_MONAD_MAINNET_RPC_URL : DEFAULT_MONAD_TESTNET_RPC_URL);
+}
+
+function configuredS2ExplorerUrl() {
+  const mainnet = configuredS2ChainId() === 143;
+  const configured = readEnv("NEXT_PUBLIC_DYOOR_S2_EXPLORER_URL");
+  if (mainnet && configured && !isTestnetLikeUrl(configured)) return configured.replace(/\/+$/, "");
+  if (!mainnet && configured) return configured.replace(/\/+$/, "");
+  return (mainnet ? DEFAULT_MONAD_MAINNET_EXPLORER_URL : DEFAULT_MONAD_TESTNET_EXPLORER_URL).replace(/\/+$/, "");
 }
 
 function parsePositiveInt(value: string, fallback: number) {
@@ -416,9 +454,6 @@ export function traitLabPublicConfig() {
   const safeChainName = defaultMainnet && /testnet/i.test(configuredChainName)
     ? "Monad"
     : configuredChainName || (defaultMainnet ? "Monad" : "Monad Testnet");
-  const rpcUrl = defaultMainnet
-    ? readEnv("NEXT_PUBLIC_DYOOR_S2_RPC_URL", "NEXT_PUBLIC_MONAD_RPC_URL") || "https://rpc.monad.xyz"
-    : readEnv("NEXT_PUBLIC_DYOOR_S2_RPC_URL", "NEXT_PUBLIC_MONAD_TESTNET_RPC_URL", "NEXT_PUBLIC_MONAD_RPC_URL");
   return {
     ok: true,
     treasuryWallet: traitLabTreasuryWallet(),
@@ -426,8 +461,8 @@ export function traitLabPublicConfig() {
     chainId,
     chainHex: chainId > 0 ? `0x${chainId.toString(16)}` : "",
     chainName: safeChainName,
-    rpcUrl,
-    explorerUrl: (readEnv("NEXT_PUBLIC_DYOOR_S2_EXPLORER_URL") || (defaultMainnet ? "https://monadscan.com" : "https://testnet.monadscan.com")).replace(/\/+$/, ""),
+    rpcUrl: configuredS2RpcUrl(),
+    explorerUrl: configuredS2ExplorerUrl(),
     monCosts: S2_TRAIT_LAB_MON_COSTS,
   };
 }
@@ -789,7 +824,7 @@ function validateProposedPatch(currentTraits: Record<string, string>, payload: P
 }
 
 function provider() {
-  const rpcUrl = readEnv("DYOOR_S2_RPC_URL", "NEXT_PUBLIC_DYOOR_S2_RPC_URL", "MONAD_RPC_URL", "NEXT_PUBLIC_MONAD_RPC_URL", "RPC_URL");
+  const rpcUrl = configuredS2RpcUrl();
   if (!rpcUrl) {
     throw Object.assign(new Error("DYOOR_S2_RPC_URL or MONAD_RPC_URL is required before Trait Lab can verify ownership."), { status: 500 });
   }
@@ -982,32 +1017,47 @@ export async function ownedS2TokenIds(wallet: string, maxSupply: number) {
 
   const contract = s2Contract();
   const balance = Number(await contract.balanceOf(wallet).catch(() => 0n));
-  const scanMax = await ownedTokenScanMax(contract, maxSupply, balance);
   const tokenIds = new Set<string>();
 
-  try {
-    const fromOwnerScan = await ownedTokensFromOwnerScan(contract, wallet, scanMax);
-    if (fromOwnerScan.length > 0) {
-      for (const tokenId of fromOwnerScan) tokenIds.add(tokenId);
-      if (!Number.isFinite(balance) || balance <= 0 || tokenIds.size >= balance) {
-        const sorted = Array.from(tokenIds).sort((a, b) => Number(a) - Number(b));
-        ownedTokenCache.set(cacheKey, { tokenIds: sorted, expiresAt: Date.now() + 120_000 });
-        return sorted;
-      }
-    }
-  } catch {}
+  if (Number.isFinite(balance) && balance <= 0) {
+    ownedTokenCache.set(cacheKey, { tokenIds: [], expiresAt: Date.now() + 120_000 });
+    return [];
+  }
 
-  try {
-    for (const tokenId of await ownedTokensFromTransferLogs(contract, wallet)) tokenIds.add(tokenId);
-  } catch {}
+  function done() {
+    return Number.isFinite(balance) && balance > 0 && tokenIds.size >= balance;
+  }
+
+  function sortedResult() {
+    return Array.from(tokenIds).sort((a, b) => Number(a) - Number(b));
+  }
 
   if (Number.isFinite(balance) && balance > 0) {
     try {
       for (const tokenId of await ownedTokensFromEnumerable(contract, wallet, balance)) tokenIds.add(tokenId);
+      if (done()) {
+        const sorted = sortedResult();
+        ownedTokenCache.set(cacheKey, { tokenIds: sorted, expiresAt: Date.now() + 120_000 });
+        return sorted;
+      }
     } catch {}
   }
 
-  const sorted = Array.from(tokenIds).sort((a, b) => Number(a) - Number(b));
+  try {
+    for (const tokenId of await ownedTokensFromTransferLogs(contract, wallet)) tokenIds.add(tokenId);
+    if (done()) {
+      const sorted = sortedResult();
+      ownedTokenCache.set(cacheKey, { tokenIds: sorted, expiresAt: Date.now() + 120_000 });
+      return sorted;
+    }
+  } catch {}
+
+  const scanMax = await ownedTokenScanMax(contract, maxSupply, balance);
+  try {
+    for (const tokenId of await ownedTokensFromOwnerScan(contract, wallet, scanMax)) tokenIds.add(tokenId);
+  } catch {}
+
+  const sorted = sortedResult();
   if (!Number.isFinite(balance) || balance <= 0 || sorted.length >= balance) {
     ownedTokenCache.set(cacheKey, { tokenIds: sorted, expiresAt: Date.now() + 120_000 });
   }

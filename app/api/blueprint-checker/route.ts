@@ -24,6 +24,7 @@ const LOCAL_BLUEPRINTS_PATH = path.join(process.cwd(), "data", "ascension-bluepr
 const ERC721_OWNER_ABI = [
   "function ownerOf(uint256 tokenId) view returns (address)",
 ];
+const DEFAULT_MONAD_MAINNET_RPC_URL = "https://rpc.monad.xyz";
 
 function json(status: number, body: Record<string, unknown>) {
   return Response.json(body, {
@@ -38,6 +39,18 @@ function readEnv(...names: string[]) {
     if (value && String(value).trim()) return String(value).trim();
   }
   return "";
+}
+
+function isTestnetLikeUrl(value: string) {
+  return /testnet/i.test(value);
+}
+
+function mainnetRpcUrl() {
+  for (const name of ["DYOOR_S2_RPC_URL", "MONAD_RPC_URL", "NEXT_PUBLIC_MONAD_RPC_URL", "NEXT_PUBLIC_DYOOR_S2_RPC_URL", "RPC_URL"]) {
+    const value = readEnv(name);
+    if (value && !isTestnetLikeUrl(value)) return value;
+  }
+  return DEFAULT_MONAD_MAINNET_RPC_URL;
 }
 
 function getBlobStore() {
@@ -61,7 +74,7 @@ async function readBlueprints() {
 }
 
 function provider() {
-  const rpcUrl = readEnv("DYOOR_S2_RPC_URL", "NEXT_PUBLIC_DYOOR_S2_RPC_URL", "MONAD_RPC_URL", "NEXT_PUBLIC_MONAD_RPC_URL", "RPC_URL");
+  const rpcUrl = mainnetRpcUrl();
   if (!rpcUrl) throw Object.assign(new Error("DYOOR_S2_RPC_URL or MONAD_RPC_URL is required for Blueprint checking."), { status: 500 });
   return new ethers.JsonRpcProvider(rpcUrl);
 }

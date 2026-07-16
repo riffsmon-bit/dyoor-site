@@ -105,6 +105,18 @@ function readEnv(...names: string[]) {
   return "";
 }
 
+function isTestnetLikeUrl(value: string) {
+  return /testnet/i.test(value);
+}
+
+function configuredMonadRpcUrl() {
+  for (const name of ["MONAD_RPC_URL", "DYOOR_S2_RPC_URL", "NEXT_PUBLIC_MONAD_RPC_URL", "NEXT_PUBLIC_DYOOR_S2_RPC_URL", "RPC_URL"]) {
+    const value = readEnv(name);
+    if (value && !isTestnetLikeUrl(value)) return value;
+  }
+  return DEFAULT_RPC;
+}
+
 function secretsEqual(left: string, right: string) {
   const leftBuffer = Buffer.from(left);
   const rightBuffer = Buffer.from(right);
@@ -178,9 +190,39 @@ function formatPreflightError(step: string, error: any) {
   return details.join(" ");
 }
 
+function retryableRpcError(error: any) {
+  const code = error?.info?.error?.code || error?.error?.code || error?.code || error?.cause?.code || "";
+  const message = String(
+    error?.shortMessage
+    || error?.info?.error?.message
+    || error?.error?.message
+    || error?.message
+    || "",
+  );
+  return String(code) === "429" || /rate limit|too many|timeout|timed out|429|ECONNRESET|ETIMEDOUT/i.test(message);
+}
+
+function sleep(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+async function retryRpc<T>(task: () => Promise<T>) {
+  let lastError: any;
+  for (let attempt = 0; attempt < 4; attempt += 1) {
+    try {
+      return await task();
+    } catch (error: any) {
+      lastError = error;
+      if (!retryableRpcError(error) || attempt === 3) break;
+      await sleep(350 * 2 ** attempt);
+    }
+  }
+  throw lastError;
+}
+
 async function preflightStep<T>(step: string, task: () => Promise<T>) {
   try {
-    return await task();
+    return await retryRpc(task);
   } catch (error: any) {
     throw Object.assign(new Error(formatPreflightError(step, error)), { step, cause: error });
   }
@@ -332,7 +374,7 @@ async function buildReport() {
     readHarvestLedger(),
   ]);
   const energyBankAddress = ethers.getAddress(readEnv("ENERGY_BANK_ADDRESS", "NEXT_PUBLIC_ENERGY_BANK_ADDRESS") || DEFAULT_ENERGY_BANK_CONTRACT);
-  const provider = new ethers.JsonRpcProvider(readEnv("MONAD_RPC_URL", "NEXT_PUBLIC_MONAD_RPC_URL") || DEFAULT_RPC);
+  const provider = new ethers.JsonRpcProvider(configuredMonadRpcUrl());
   const bank = new ethers.Contract(energyBankAddress, ENERGY_BANK_ABI, provider);
   const harvests = mergeLegacyHarvests(indexed.harvests, ledger);
   const wallets = Array.from(new Set(harvests.map((item) => item.wallet))).sort();
@@ -503,7 +545,7 @@ async function repairPreflight(provider: ethers.JsonRpcProvider, energyBankAddre
     const bank = new ethers.Contract(energyBankAddress, ENERGY_BANK_ABI, signer);
     const network = await preflightStep("network", () => provider.getNetwork());
     let bytecodeWarning = "";
-    const code = await provider.getCode(energyBankAddress).catch((error: any) => {
+    const code = await retryRpc(() => provider.getCode(energyBankAddress)).catch((error: any) => {
       bytecodeWarning = `${formatPreflightError("energyBank bytecode", error)}. Role and pause checks will decide repair readiness.`;
       return "";
     });
@@ -588,7 +630,7 @@ async function readRepairLog() {
 async function repairMissingCredits(report: Awaited<ReturnType<typeof buildReport>>, body: Record<string, unknown>) {
   const signerKey = normalizePrivateKey(readEnv("ENERGY_BANK_OPERATOR_PRIVATE_KEY", "DEPLOYER_PRIVATE_KEY"));
   if (!signerKey) throw Object.assign(new Error("Missing ENERGY_BANK_OPERATOR_PRIVATE_KEY."), { status: 500 });
-  const provider = new ethers.JsonRpcProvider(readEnv("MONAD_RPC_URL", "NEXT_PUBLIC_MONAD_RPC_URL") || DEFAULT_RPC);
+  const provider = new ethers.JsonRpcProvider(configuredMonadRpcUrl());
   const signer = new ethers.Wallet(signerKey, provider);
   const bank = new ethers.Contract(report.energyBankAddress, ENERGY_BANK_ABI, signer);
   const preflight = await repairPreflight(provider, report.energyBankAddress);
