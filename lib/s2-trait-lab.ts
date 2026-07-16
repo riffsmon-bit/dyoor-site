@@ -189,6 +189,10 @@ function monCostRaw(value: string) {
 }
 
 function configuredS2ChainId() {
+  const testnetEnabled = /^(1|true|yes|on)$/i.test(readEnv(
+    "DYOOR_S2_ENABLE_TESTNET",
+    "NEXT_PUBLIC_DYOOR_S2_ENABLE_TESTNET",
+  ));
   const parsed = Number(readEnv(
     "DYOOR_S2_CHAIN_ID",
     "NEXT_PUBLIC_DYOOR_S2_CHAIN_ID",
@@ -196,7 +200,8 @@ function configuredS2ChainId() {
     "EXPECTED_CHAIN_ID",
     "CHAIN_ID",
   ) || "143");
-  return Number.isFinite(parsed) && parsed > 0 ? Math.floor(parsed) : 143;
+  const chainId = Number.isFinite(parsed) && parsed > 0 ? Math.floor(parsed) : 143;
+  return chainId === 10143 && !testnetEnabled ? 143 : chainId;
 }
 
 function parsePositiveInt(value: string, fallback: number) {

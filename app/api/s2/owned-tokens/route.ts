@@ -1,4 +1,5 @@
 import { getRuntimeMetadataConfig } from "@/lib/dyoor-s2-metadata.js";
+import { dyoorS2Contract } from "@/lib/contracts/addresses";
 import { assertTraitLabRateLimit, normalizeWallet, ownedS2TokenIds } from "@/lib/s2-trait-lab";
 
 export const runtime = "nodejs";
@@ -29,6 +30,7 @@ export async function GET(request: Request) {
     return json(200, {
       ok: true,
       wallet,
+      contractAddress: dyoorS2Contract,
       tokenIds,
       count: tokenIds.length,
       contractBaseUri: "https://dyoor.xyz/api/metadata/",
