@@ -1,14 +1,14 @@
 {
   "name": "D.Y.O.O.R Season 2",
   "description": "Directive: Yield Opportunity Optimization Robots",
-  "image": "ipfs://bafybeidh5ilyx54iklgazcdzwrzyr3llnj6v7jc3ll2hbrn36mxk2xle7i/1.png",
+  "image": "ipfs://bafybeifz4gwsvqbypeki3wwwmmvng2z2lusqjndevfqemzibisk266vepq/1.png",
   "external_link": "https://dyoor.xyz",
   "base_uri": "https://dyoor.xyz/api/metadata/",
   "metadata_api": "https://dyoor.xyz/api/metadata/{tokenId}",
   "metadata_backup": {
-    "cid": "bafybeictzn54rbfnqd7vdqfhtu2vwy2bp7vnqj4zp2tswsrosge43frapi",
-    "uri": "ipfs://bafybeictzn54rbfnqd7vdqfhtu2vwy2bp7vnqj4zp2tswsrosge43frapi",
-    "gateway": "https://jade-efficient-beaver-697.mypinata.cloud/ipfs/bafybeictzn54rbfnqd7vdqfhtu2vwy2bp7vnqj4zp2tswsrosge43frapi"
+    "cid": "bafybeidz7htb3digthznwvl4ytdpckq2q3d2ytgxtsie5bcp7a4lgtb2sq",
+    "uri": "ipfs://bafybeidz7htb3digthznwvl4ytdpckq2q3d2ytgxtsie5bcp7a4lgtb2sq",
+    "gateway": "https://jade-efficient-beaver-697.mypinata.cloud/ipfs/bafybeidz7htb3digthznwvl4ytdpckq2q3d2ytgxtsie5bcp7a4lgtb2sq"
   },
   "layer_assets": {
     "cid": "",

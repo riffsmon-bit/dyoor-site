@@ -35,13 +35,13 @@ export async function GET(_request: Request, context: MetadataRouteContext) {
   let { metadata } = result;
   const override = await getRuntimeTraitOverrides(tokenId);
   const legacyRenderId = String(override?.imageRender?.imageId || "").includes("eyJ0b2tlbklk");
-  const localRenderUrl = isLocalTraitLabRenderUrl(override?.image || override?.imageRender?.url);
+  const externalRenderUrl = isExternalTraitLabRenderUrl(override?.image || override?.imageRender?.url, requestOrigin);
   const staleRenderer = Boolean(override?.imageRender?.rendererVersion)
     ? override?.imageRender?.rendererVersion !== RENDER_PIPELINE_VERSION
     : Boolean(override?.imageRender);
   const shouldRenderOverrideImage = Boolean(
     override?.attributes
-      && (!override.image || legacyRenderId || localRenderUrl || staleRenderer || /image recomposition TODO/i.test(String(override.notes || "")))
+      && (!override.image || legacyRenderId || externalRenderUrl || staleRenderer || /image recomposition TODO/i.test(String(override.notes || "")))
       && !result.usedFallback,
   );
   if (shouldRenderOverrideImage) {
@@ -69,11 +69,13 @@ export async function GET(_request: Request, context: MetadataRouteContext) {
   });
 }
 
-function isLocalTraitLabRenderUrl(value: unknown) {
+function isExternalTraitLabRenderUrl(value: unknown, requestOrigin: string) {
   if (typeof value !== "string" || !value.trim()) return false;
   try {
     const parsed = new URL(value);
-    return isLocalHost(parsed.hostname) && parsed.pathname.startsWith("/api/s2/trait-lab/render/");
+    const origin = new URL(requestOrigin);
+    return parsed.pathname.startsWith("/api/s2/trait-lab/render/")
+      && (isLocalHost(parsed.hostname) || parsed.origin !== origin.origin);
   } catch {
     return false;
   }
@@ -90,7 +92,6 @@ function normalizeRenderUrl(value: unknown, requestOrigin: string) {
   try {
     const parsed = new URL(value);
     if (!parsed.pathname.startsWith("/api/s2/trait-lab/render/")) return value;
-    if (!isLocalHost(parsed.hostname)) return value;
     return `${requestOrigin}${parsed.pathname}${parsed.search}`;
   } catch {
     return value;
