@@ -7,8 +7,10 @@ import {
   METADATA_BLOB_STORE,
   REQUIRED_TRAIT_TYPES,
   buildTokenMetadataAsync,
+  getRuntimeTraitOverrides,
   getRuntimeMetadataConfig,
   parseTokenId,
+  runtimeTraitOverrideKey,
   uploadedMetadataBlobKey,
   validateMetadataObject,
 } from "@/lib/dyoor-s2-metadata.js";
@@ -213,13 +215,14 @@ async function statusPayload(wallet: string, tokenId?: string) {
       body.token = { ok: false, error: parsed.error };
     } else {
       const result = await buildTokenMetadataAsync(parsed.tokenId, config);
+      const override = authorized ? await getRuntimeTraitOverrides(parsed.tokenId) : null;
       body.token = {
         ok: true,
         tokenId: parsed.tokenId,
         metadata: result.metadata,
         uploadedBaseFound: Boolean(index.tokens?.[String(parsed.tokenId)]),
         liveUploadedBase: result.uploadedBaseFound,
-        override: authorized ? overrides?.[String(parsed.tokenId)] || null : null,
+        override,
       };
     }
   }
@@ -324,7 +327,7 @@ export async function POST(request: Request) {
       const tokenId = requireTokenId(body.tokenId, config.maxSupply);
       const overrides = await readJson<Record<string, TokenOverride>>(METADATA_BLOB_OVERRIDES_KEY, {});
       const override = normalizeOverride(body);
-      overrides[String(tokenId)] = override;
+      overrides[runtimeTraitOverrideKey(tokenId)] = override;
       await writeJson(METADATA_BLOB_OVERRIDES_KEY, overrides);
       return json(200, await statusPayload(normalizeWallet(body.wallet), String(tokenId)));
     }
@@ -333,7 +336,7 @@ export async function POST(request: Request) {
       const config = await getRuntimeMetadataConfig();
       const tokenId = requireTokenId(body.tokenId, config.maxSupply);
       const overrides = await readJson<Record<string, TokenOverride>>(METADATA_BLOB_OVERRIDES_KEY, {});
-      delete overrides[String(tokenId)];
+      delete overrides[runtimeTraitOverrideKey(tokenId)];
       await writeJson(METADATA_BLOB_OVERRIDES_KEY, overrides);
       return json(200, await statusPayload(normalizeWallet(body.wallet), String(tokenId)));
     }

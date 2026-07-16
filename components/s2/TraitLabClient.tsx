@@ -345,6 +345,51 @@ function LayerPreview({ fallbackImage, metadata, title }: { fallbackImage?: stri
   );
 }
 
+function RollProgress({
+  action,
+  paymentMode,
+  traitType,
+}: {
+  action?: string;
+  paymentMode?: S2TraitLabPaymentMode;
+  traitType?: string;
+}) {
+  const actionLabel = action === "unlock" ? "Rolling unlock" : "Rolling reroll";
+  const paymentLabel = paymentMode === "mon" ? "MON transaction" : "Energy spend";
+
+  return (
+    <div className="mt-5 overflow-hidden rounded border border-dyoor-cyan/30 bg-dyoor-cyan/10">
+      <div className="grid gap-5 p-5 md:grid-cols-[auto_minmax(0,1fr)] md:items-center">
+        <div className="relative grid h-20 w-20 place-items-center rounded-full border border-dyoor-cyan/35 bg-black/45 shadow-[0_0_28px_rgba(57,255,226,.18)]">
+          <div className="absolute inset-2 rounded-full border border-dyoor-cyan/20" />
+          <div className="h-12 w-12 animate-spin rounded-full border-2 border-dyoor-cyan/20 border-t-dyoor-cyan" />
+          <div className="absolute h-3 w-3 rounded-full bg-dyoor-cyan shadow-[0_0_18px_rgba(57,255,226,.8)]" />
+        </div>
+        <div className="min-w-0">
+          <p className="eyebrow text-dyoor-cyan">Roll In Progress</p>
+          <h3 className="mt-2 text-2xl font-black uppercase text-white">{actionLabel}</h3>
+          <p className="mt-2 text-sm font-semibold leading-6 text-white/62">
+            Generating a compatible {traitType || "trait"} result and preserving the current metadata view.
+          </p>
+          <div className="mt-4 grid gap-2 text-xs font-black uppercase tracking-[0.14em] text-white/56 sm:grid-cols-2">
+            <div className="rounded border border-white/10 bg-black/30 px-3 py-2">
+              <span className="text-white/35">Trait</span>
+              <span className="ml-2 text-white">{traitType || "-"}</span>
+            </div>
+            <div className="rounded border border-white/10 bg-black/30 px-3 py-2">
+              <span className="text-white/35">Payment</span>
+              <span className="ml-2 text-dyoor-cyan">{paymentLabel}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div className="h-1 overflow-hidden bg-black/40">
+        <div className="h-full w-1/2 animate-pulse bg-gradient-to-r from-dyoor-cyan via-dyoor-magenta to-dyoor-cyan" />
+      </div>
+    </div>
+  );
+}
+
 export function TraitLabClient() {
   const wallet = useWalletService();
   const walletAddress = normalizeAddress(wallet.address);
@@ -377,6 +422,8 @@ export function TraitLabClient() {
   const selectedTraitCost = paymentMode === "mon" && selectedTraitAction ? `${selectedTraitMonCost} MON` : costFor(selectedTrait, selectedTraitAction, paymentMode);
   const selectedTraitIsEmpty = isEmptyTraitValue(selectedTraitValue);
   const selectedTraitLoading = actionLoading === `${selectedTraitAction}:${selectedTrait}`;
+  const rollLoading = Boolean(actionLoading && actionLoading !== "confirm");
+  const [rollingAction, rollingTraitType] = rollLoading ? actionLoading.split(":") : ["", ""];
   const previewCurrentMetadata = preview?.currentMetadata || null;
   const previewProposedMetadata = preview?.proposedMetadata || null;
   const previewBeforeImage = mediaUrl(previewCurrentMetadata?.image || metadata?.image);
@@ -608,6 +655,7 @@ export function TraitLabClient() {
     setActionLoading(key);
     setPreview(null);
     setError("");
+    setStatus(mode === "mon" ? "Preparing MON roll transaction." : "Spending Energy and generating roll.");
     try {
       const paymentTxHash = mode === "mon" ? await sendTraitLabMonPayment(traitType, action) : "";
       let response: Response | null = null;
@@ -935,7 +983,13 @@ export function TraitLabClient() {
               ) : null}
             </div>
 
-            {!preview ? (
+            {rollLoading && !preview ? (
+              <RollProgress
+                action={rollingAction}
+                paymentMode={paymentMode}
+                traitType={rollingTraitType || selectedTrait}
+              />
+            ) : !preview ? (
               <EmptyState className="mt-5" title="No Roll Active" copy="Select Roll Reroll or Roll Unlock on an editable trait." />
             ) : (
               <div className="mt-5 grid gap-5">
