@@ -70,7 +70,7 @@ type ParsedMetadataFile = {
 
 const REQUIRED_TRAITS = ["Background", "Droid", "Eyes", "Clothes", "Mouth", "Hat", "Special", "Accessories"];
 const UPLOAD_BATCH_SIZE = 100;
-const DEFAULT_IMAGE_CID = "bafybeidh5ilyx54iklgazcdzwrzyr3llnj6v7jc3ll2hbrn36mxk2xle7i";
+const DEFAULT_IMAGE_CID = "bafybeifz4gwsvqbypeki3wwwmmvng2z2lusqjndevfqemzibisk266vepq";
 
 function normalizeAddress(address?: string) {
   return /^0x[a-fA-F0-9]{40}$/.test(address || "") ? String(address).toLowerCase() : "";

@@ -189,8 +189,14 @@ function monCostRaw(value: string) {
 }
 
 function configuredS2ChainId() {
-  const parsed = Number(readEnv("DYOOR_S2_CHAIN_ID", "NEXT_PUBLIC_DYOOR_S2_CHAIN_ID", "NEXT_PUBLIC_MONAD_TESTNET_CHAIN_ID") || "0");
-  return Number.isFinite(parsed) && parsed > 0 ? Math.floor(parsed) : 0;
+  const parsed = Number(readEnv(
+    "DYOOR_S2_CHAIN_ID",
+    "NEXT_PUBLIC_DYOOR_S2_CHAIN_ID",
+    "NEXT_PUBLIC_MONAD_CHAIN_ID",
+    "EXPECTED_CHAIN_ID",
+    "CHAIN_ID",
+  ) || "143");
+  return Number.isFinite(parsed) && parsed > 0 ? Math.floor(parsed) : 143;
 }
 
 function parsePositiveInt(value: string, fallback: number) {
@@ -400,15 +406,23 @@ function traitLabPaymentCost(traitType: S2EditableTrait, action: S2TraitLabActio
 
 export function traitLabPublicConfig() {
   const chainId = configuredS2ChainId();
+  const defaultMainnet = chainId === 143;
+  const configuredChainName = readEnv("DYOOR_S2_CHAIN_NAME", "NEXT_PUBLIC_DYOOR_S2_CHAIN_NAME");
+  const safeChainName = defaultMainnet && /testnet/i.test(configuredChainName)
+    ? "Monad"
+    : configuredChainName || (defaultMainnet ? "Monad" : "Monad Testnet");
+  const rpcUrl = defaultMainnet
+    ? readEnv("NEXT_PUBLIC_DYOOR_S2_RPC_URL", "NEXT_PUBLIC_MONAD_RPC_URL") || "https://rpc.monad.xyz"
+    : readEnv("NEXT_PUBLIC_DYOOR_S2_RPC_URL", "NEXT_PUBLIC_MONAD_TESTNET_RPC_URL", "NEXT_PUBLIC_MONAD_RPC_URL");
   return {
     ok: true,
     treasuryWallet: traitLabTreasuryWallet(),
     monTestMode: monTestModeEnabled(),
     chainId,
     chainHex: chainId > 0 ? `0x${chainId.toString(16)}` : "",
-    chainName: readEnv("NEXT_PUBLIC_DYOOR_S2_CHAIN_NAME") || "Monad Testnet",
-    rpcUrl: readEnv("NEXT_PUBLIC_DYOOR_S2_RPC_URL", "NEXT_PUBLIC_MONAD_TESTNET_RPC_URL", "NEXT_PUBLIC_MONAD_RPC_URL"),
-    explorerUrl: (readEnv("NEXT_PUBLIC_DYOOR_S2_EXPLORER_URL") || "https://testnet.monadscan.com").replace(/\/+$/, ""),
+    chainName: safeChainName,
+    rpcUrl,
+    explorerUrl: (readEnv("NEXT_PUBLIC_DYOOR_S2_EXPLORER_URL") || (defaultMainnet ? "https://monadscan.com" : "https://testnet.monadscan.com")).replace(/\/+$/, ""),
     monCosts: S2_TRAIT_LAB_MON_COSTS,
   };
 }

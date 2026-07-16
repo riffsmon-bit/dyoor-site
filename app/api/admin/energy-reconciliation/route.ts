@@ -502,7 +502,11 @@ async function repairPreflight(provider: ethers.JsonRpcProvider, energyBankAddre
   try {
     const bank = new ethers.Contract(energyBankAddress, ENERGY_BANK_ABI, signer);
     const network = await preflightStep("network", () => provider.getNetwork());
-    const code = await preflightStep("energyBank bytecode", () => provider.getCode(energyBankAddress));
+    let bytecodeWarning = "";
+    const code = await provider.getCode(energyBankAddress).catch((error: any) => {
+      bytecodeWarning = `${formatPreflightError("energyBank bytecode", error)}. Role and pause checks will decide repair readiness.`;
+      return "";
+    });
     if (code === "0x") {
       return {
         ready: false,
@@ -512,9 +516,9 @@ async function repairPreflight(provider: ethers.JsonRpcProvider, energyBankAddre
         hasCreditRole: null,
         hasAdminRole: null,
         paused: null,
-        operatorKeyConfigured: true,
-      };
-    }
+      operatorKeyConfigured: true,
+    };
+  }
 
     const creditRole = await preflightStep("CREDIT_ROLE", () => readRole(bank, "CREDIT_ROLE"));
     const adminRole = await preflightStep("DEFAULT_ADMIN_ROLE", () => readRole(bank, "DEFAULT_ADMIN_ROLE", ethers.ZeroHash));
@@ -539,6 +543,7 @@ async function repairPreflight(provider: ethers.JsonRpcProvider, energyBankAddre
       hasCreditRole,
       hasAdminRole,
       paused,
+      warning: bytecodeWarning,
       creditRoleAvailable: Boolean(creditRole),
       adminRoleAvailable: Boolean(adminRole),
       operatorKeyConfigured: true,

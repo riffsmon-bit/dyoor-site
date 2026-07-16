@@ -193,6 +193,7 @@ type ReconciliationReport = {
     hasCreditRole?: boolean | null;
     hasAdminRole?: boolean | null;
     paused?: boolean | null;
+    warning?: string;
   };
   rowCount: number;
   affectedCount: number;
@@ -1038,7 +1039,9 @@ export default function AdminPage() {
       const preflight = data.report?.repairPreflight;
       setReconciliationStatus(preflight?.ready === false
         ? `Report ready, but repair is blocked: ${preflight.reason || "Energy Bank operator preflight failed."}`
-        : `Report ready. ${data.report?.affectedCount || 0} affected wallet(s), ${data.report?.totalRecommendedCredit || "0"} Energy recommended.`);
+        : preflight?.warning
+          ? `Report ready with an RPC warning. ${data.report?.affectedCount || 0} affected wallet(s), ${data.report?.totalRecommendedCredit || "0"} Energy recommended.`
+          : `Report ready. ${data.report?.affectedCount || 0} affected wallet(s), ${data.report?.totalRecommendedCredit || "0"} Energy recommended.`);
       setReconciliationConfirm(false);
     } catch (err) {
       setReconciliationStatus(err instanceof Error ? err.message : "Energy reconciliation report failed.");
@@ -1704,6 +1707,9 @@ export default function AdminPage() {
               <p>Paused: <span className={reconciliationReport.repairPreflight.paused ? "text-red-200" : "text-dyoor-cyan"}>{String(reconciliationReport.repairPreflight.paused)}</span></p>
               {reconciliationReport.repairPreflight.reason ? (
                 <p className="md:col-span-2 xl:col-span-4">Reason: <span className="text-yellow-100">{reconciliationReport.repairPreflight.reason}</span></p>
+              ) : null}
+              {reconciliationReport.repairPreflight.warning ? (
+                <p className="md:col-span-2 xl:col-span-4">Warning: <span className="text-yellow-100">{reconciliationReport.repairPreflight.warning}</span></p>
               ) : null}
             </div>
           ) : null}
