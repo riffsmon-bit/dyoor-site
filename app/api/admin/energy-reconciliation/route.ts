@@ -199,7 +199,7 @@ function retryableRpcError(error: any) {
     || error?.message
     || "",
   );
-  return String(code) === "429" || /rate limit|too many|timeout|timed out|429|ECONNRESET|ETIMEDOUT/i.test(message);
+  return String(code) === "429" || /rate limit|too many|timeout|timed out|429|ECONNRESET|ETIMEDOUT|coalesce|missing revert data|server error/i.test(message);
 }
 
 function sleep(ms: number) {
@@ -218,6 +218,24 @@ async function retryRpc<T>(task: () => Promise<T>) {
     }
   }
   throw lastError;
+}
+
+async function waitForSubmittedRepairTx(tx: ethers.TransactionResponse, provider: ethers.JsonRpcProvider) {
+  try {
+    return await tx.wait();
+  } catch (error: any) {
+    if (!retryableRpcError(error)) throw error;
+  }
+
+  let receipt: ethers.TransactionReceipt | null = null;
+  for (let attempt = 0; attempt < 6; attempt += 1) {
+    await sleep(1_000 * (attempt + 1));
+    receipt = await retryRpc(() => provider.getTransactionReceipt(tx.hash)).catch(() => null);
+    if (receipt) break;
+  }
+  if (!receipt) throw new Error(`Submitted repair transaction ${tx.hash}, but receipt lookup timed out. Check MonadScan before retrying.`);
+  if (receipt.status !== 1) throw new Error(`Submitted repair transaction ${tx.hash} reverted.`);
+  return receipt;
 }
 
 async function preflightStep<T>(step: string, task: () => Promise<T>) {
@@ -659,6 +677,7 @@ async function repairMissingCredits(report: Awaited<ReturnType<typeof buildRepor
 
   const results = [];
   for (const item of candidates) {
+    let txHash = "";
     try {
       const amount = safeBigInt(item.amountRaw);
       if (amount <= 0n) throw new Error("Invalid repair amount.");
@@ -669,18 +688,20 @@ async function repairMissingCredits(report: Awaited<ReturnType<typeof buildRepor
 
       let tx;
       if (item.method === "correctEnergy") {
-        await bank.correctEnergy.staticCall(item.wallet, amount, item.claimKey);
+        await retryRpc(() => bank.correctEnergy.staticCall(item.wallet, amount, item.claimKey));
         tx = await bank.correctEnergy(item.wallet, amount, item.claimKey, { gasLimit: ENERGY_REPAIR_GAS_LIMIT });
+        txHash = tx.hash;
       } else {
-        const alreadyUsed = await bank.usedClaimTxHash(item.claimKey);
+        const alreadyUsed = await retryRpc(() => bank.usedClaimTxHash(item.claimKey));
         if (alreadyUsed) {
           results.push({ ...item, status: "skipped", reason: "Claim key already credited." });
           continue;
         }
-        await bank.creditEnergy.staticCall(item.wallet, amount, item.claimKey);
+        await retryRpc(() => bank.creditEnergy.staticCall(item.wallet, amount, item.claimKey));
         tx = await bank.creditEnergy(item.wallet, amount, item.claimKey, { gasLimit: ENERGY_REPAIR_GAS_LIMIT });
+        txHash = tx.hash;
       }
-      const receipt = await tx.wait();
+      const receipt = await waitForSubmittedRepairTx(tx, provider);
       results.push({
         ...item,
         status: "success",
@@ -691,6 +712,7 @@ async function repairMissingCredits(report: Awaited<ReturnType<typeof buildRepor
       results.push({
         ...item,
         status: "failed",
+        creditTxHash: txHash || undefined,
         error: formatContractError(error),
       });
     }

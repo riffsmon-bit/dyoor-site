@@ -218,6 +218,25 @@ function sleep(ms: number) {
   return new Promise((resolve) => window.setTimeout(resolve, ms));
 }
 
+async function fetchJsonWithRetry<T>(url: string, fallbackMessage: string, attempts = 3): Promise<T> {
+  let lastError = "";
+  for (let attempt = 0; attempt < attempts; attempt += 1) {
+    try {
+      const separator = url.includes("?") ? "&" : "?";
+      const response = await fetch(`${url}${separator}_=${Date.now()}`, { cache: "no-store" });
+      const data = await response.json().catch(() => ({})) as T & { ok?: boolean; error?: string };
+      if (!response.ok || data.ok === false) {
+        throw new Error(data.error || `${fallbackMessage} (${response.status})`);
+      }
+      return data;
+    } catch (error) {
+      lastError = error instanceof Error ? error.message : fallbackMessage;
+      if (attempt < attempts - 1) await sleep(700 * (attempt + 1));
+    }
+  }
+  throw new Error(lastError || fallbackMessage);
+}
+
 function hexQuantity(value: bigint) {
   return `0x${value.toString(16)}`;
 }
@@ -446,9 +465,10 @@ export function TraitLabClient() {
     setOwnedLoading(true);
     setError("");
     try {
-      const response = await fetch(`/api/s2/owned-tokens?wallet=${encodeURIComponent(walletAddress)}`, { cache: "no-store" });
-      const data = await response.json().catch(() => ({})) as OwnedResponse;
-      if (!response.ok || data.ok === false) throw new Error(data.error || "Could not load owned Season 2 tokens.");
+      const data = await fetchJsonWithRetry<OwnedResponse>(
+        `/api/s2/owned-tokens?wallet=${encodeURIComponent(walletAddress)}`,
+        "Could not load owned Season 2 tokens.",
+      );
       const tokenIds = Array.from(new Set(Array.isArray(data.tokenIds)
         ? data.tokenIds.map((tokenId) => String(tokenId)).filter(Boolean)
         : []));
