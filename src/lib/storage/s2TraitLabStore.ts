@@ -29,6 +29,8 @@ export type TraitLabRollRecord = {
   confirmedAt?: string;
   energyDebitId?: string;
   energyDebitDeduped?: boolean;
+  energySpendTxHash?: string;
+  energySpendBlockNumber?: string;
   monPaymentTxHash?: string;
   monPaymentAmountRaw?: string;
   monPaymentBlockNumber?: string;

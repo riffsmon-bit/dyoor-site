@@ -398,20 +398,20 @@ async function buildReport() {
   const wallets = Array.from(new Set(harvests.map((item) => item.wallet))).sort();
 
   const allClaimKeys = Array.from(new Set(harvests.map((item) => item.claimKey)));
-  const usedPairs = await mapLimit(allClaimKeys, 12, async (claimKey) => {
-    const used = await bank.usedClaimTxHash(claimKey).catch(() => false);
+  const usedPairs = await mapLimit(allClaimKeys, 4, async (claimKey) => {
+    const used = await retryRpc(() => bank.usedClaimTxHash(claimKey));
     return [claimKey, Boolean(used)] as const;
   });
   const usedClaimKeys = new Map(usedPairs);
 
-  const rows = await mapLimit(wallets, 8, async (wallet): Promise<ReconciliationRow> => {
+  const rows = await mapLimit(wallets, 4, async (wallet): Promise<ReconciliationRow> => {
     const walletHarvests = harvests.filter((item) => item.wallet === wallet);
     const eventHarvests = walletHarvests.filter((item) => item.source === "goldsky");
     const legacyHarvests = walletHarvests.filter((item) => item.source === "legacy");
     const [bankRaw, lifetimeRaw, spentRaw] = await Promise.all([
-      bank.spendableEnergy(wallet).catch(() => 0n),
-      bank.lifetimeEnergy(wallet).catch(() => 0n),
-      bank.totalSpent(wallet).catch(() => 0n),
+      retryRpc(() => bank.spendableEnergy(wallet)),
+      retryRpc(() => bank.lifetimeEnergy(wallet)),
+      retryRpc(() => bank.totalSpent(wallet)),
     ]);
 
     const expectedHarvestedRaw = walletHarvests.reduce((sum, item) => sum + item.amountRaw, 0n);

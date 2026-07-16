@@ -222,6 +222,14 @@ type ReconciliationRepairResult = {
   error?: string;
 };
 
+function repairFailureSummary(data: ReconciliationRepairResult) {
+  const firstFailure = data.repair?.results?.find((row) => String(row?.status || "") === "failed");
+  if (!firstFailure) return data.error || "";
+  const wallet = shortAddress(String(firstFailure.wallet || ""));
+  const detail = String(firstFailure.error || firstFailure.reason || firstFailure.creditTxHash || data.error || "first credit failed");
+  return `First failure${wallet !== "-" ? ` for ${wallet}` : ""}: ${detail}`;
+}
+
 type LedgerEnergyResponse = {
   ok?: boolean;
   wallet?: string;
@@ -1073,10 +1081,18 @@ export default function AdminPage() {
       });
       const data = await response.json().catch(() => ({}));
       setReconciliationResult(data as ReconciliationRepairResult);
-      if (!response.ok || (data?.ok === false && !data?.partial)) throw new Error(data?.error || "Energy reconciliation repair failed.");
-      setReconciliationStatus(data.partial
-        ? `Repair partially complete. ${data.repair?.successCount || 0} credited, ${data.repair?.failureCount || 0} failed.`
-        : `Repair batch complete. ${data.repair?.successCount || 0} credit(s) applied, ${data.repair?.skippedCount || 0} skipped.`);
+      const failureSummary = repairFailureSummary(data as ReconciliationRepairResult);
+      if (data?.repair) {
+        if (data.partial) {
+          setReconciliationStatus(`Repair partially complete. ${data.repair?.successCount || 0} credited, ${data.repair?.failureCount || 0} failed. ${failureSummary}`.trim());
+        } else if (data.ok === false || (data.repair?.failureCount || 0) > 0) {
+          setReconciliationStatus(`Repair failed. ${data.repair?.successCount || 0} credited, ${data.repair?.failureCount || 0} failed. ${failureSummary || data.error || ""}`.trim());
+        } else {
+          setReconciliationStatus(`Repair batch complete. ${data.repair?.successCount || 0} credit(s) applied, ${data.repair?.skippedCount || 0} skipped.`);
+        }
+      } else if (!response.ok || data?.ok === false) {
+        throw new Error(data?.error || "Energy reconciliation repair failed.");
+      }
       setReconciliationConfirm(false);
     } catch (err) {
       setReconciliationStatus(err instanceof Error ? err.message : "Energy reconciliation repair failed.");

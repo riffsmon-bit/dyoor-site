@@ -394,7 +394,9 @@ export function TraitLabClient() {
   }, [selectedTokenId]);
 
   useEffect(() => {
-    if (!monPaymentVisible && paymentMode === "mon") setPaymentMode("energy");
+    if (monPaymentVisible || paymentMode !== "mon") return;
+    const timer = window.setTimeout(() => setPaymentMode("energy"), 0);
+    return () => window.clearTimeout(timer);
   }, [monPaymentVisible, paymentMode]);
 
   useEffect(() => {
@@ -555,10 +557,10 @@ export function TraitLabClient() {
         method: "wallet_addEthereumChain",
         params: [{
           chainId: traitLabConfig.chainHex,
-          chainName: traitLabConfig.chainName || "Monad Testnet",
-          rpcUrls: [traitLabConfig.rpcUrl || "https://testnet-rpc.monad.xyz"],
+          chainName: traitLabConfig.chainName || "Monad",
+          rpcUrls: [traitLabConfig.rpcUrl || "https://rpc.monad.xyz"],
           nativeCurrency: { name: "MON", symbol: "MON", decimals: 18 },
-          blockExplorerUrls: [traitLabConfig.explorerUrl || "https://testnet.monadscan.com"],
+          blockExplorerUrls: [traitLabConfig.explorerUrl || "https://monadscan.com"],
         }],
       });
     }
@@ -989,7 +991,7 @@ export function TraitLabClient() {
                         {preview.paymentTxHash ? (
                           <a
                             className="truncate text-xs font-black uppercase tracking-[0.12em] text-dyoor-cyan underline-offset-4 hover:underline"
-                            href={`${traitLabConfig?.explorerUrl || "https://testnet.monadscan.com"}/tx/${preview.paymentTxHash}`}
+                            href={`${traitLabConfig?.explorerUrl || "https://monadscan.com"}/tx/${preview.paymentTxHash}`}
                             target="_blank"
                             rel="noreferrer"
                           >

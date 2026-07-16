@@ -2,7 +2,7 @@ import crypto from "node:crypto";
 import { ethers } from "ethers";
 import traitCatalogJson from "@/data/dyoor-s2-trait-catalog.json";
 import traitItemMetadataJson from "@/data/dyoor-s2-trait-item-metadata.json";
-import { DEFAULT_TREASURY_WALLET, dyoorS2Contract } from "@/lib/contracts/addresses";
+import { DEFAULT_TREASURY_WALLET, dyoorS2Contract, energyBankContract } from "@/lib/contracts/addresses";
 import { builderTraits, fileLabel, ruleConflict, type BuilderCategory, type BuilderSelection } from "@/lib/dyoor-builder";
 import {
   S2_EDITABLE_TRAITS,
@@ -24,7 +24,6 @@ import {
   saveRuntimeTraitOverride,
 } from "@/lib/dyoor-s2-metadata.js";
 import { renderTraitLabImage } from "@/lib/s2-trait-lab-render";
-import { addEnergyDebit } from "@/src/lib/storage/energyStore";
 import {
   applyTraitSupplyDeltas,
   assertTraitSupplyAvailable,
@@ -123,6 +122,13 @@ const ERC721_ABI = [
   "function tokenOfOwnerByIndex(address owner,uint256 index) view returns (uint256)",
 ];
 
+const ENERGY_BANK_ABI = [
+  "function spendEnergy(address user,uint256 amount,bytes32 reason)",
+  "function spendableEnergy(address user) view returns (uint256)",
+  "function SPENDER_ROLE() view returns (bytes32)",
+  "function hasRole(bytes32 role,address account) view returns (bool)",
+];
+
 const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
 const DEFAULT_TRAIT_ASSETS_CID = "bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu";
 const PREVIEW_TTL_MS = 5 * 60 * 1000;
@@ -130,12 +136,12 @@ const CONFIRM_WINDOW_MS = 5 * 60 * 1000;
 const TRANSFER_TOPIC = ethers.id("Transfer(address,address,uint256)");
 const DEFAULT_MONAD_MAINNET_RPC_URL = "https://rpc.monad.xyz";
 const DEFAULT_MONAD_MAINNET_EXPLORER_URL = "https://monadscan.com";
-const DEFAULT_MONAD_TESTNET_RPC_URL = "https://testnet-rpc.monad.xyz";
-const DEFAULT_MONAD_TESTNET_EXPLORER_URL = "https://testnet.monadscan.com";
+const DEFAULT_S2_DEPLOYMENT_BLOCK = 87616887;
 const SERVERLESS_LOG_SPAN = 25_000;
 const MIN_OWNED_TOKEN_LOG_SPAN = 10_000;
-const OWNED_TOKEN_CACHE_VERSION = "s2-owned-v7";
-const DEFAULT_OWNER_OF_CONCURRENCY = 16;
+const OWNED_TOKEN_CACHE_VERSION = "s2-owned-v8";
+const DEFAULT_OWNER_OF_CONCURRENCY = 8;
+const ALCHEMY_TRANSFER_PAGE_SIZE = "0x3e8";
 const CLOTHES_ALLOWED_SPECIALS = new Set([
   "anime mask",
   "gimp",
@@ -152,6 +158,12 @@ function readEnv(...names: string[]) {
     if (value && String(value).trim()) return String(value).trim();
   }
   return "";
+}
+
+function normalizePrivateKey(value: string) {
+  const trimmed = String(value || "").trim();
+  if (!trimmed) return "";
+  return trimmed.startsWith("0x") ? trimmed : `0x${trimmed}`;
 }
 
 function optionalAddress(value: unknown) {
@@ -193,23 +205,7 @@ function monCostRaw(value: string) {
 }
 
 function configuredS2ChainId() {
-  const testnetEnabled = s2TestnetEnabled();
-  const parsed = Number(readEnv(
-    "DYOOR_S2_CHAIN_ID",
-    "NEXT_PUBLIC_DYOOR_S2_CHAIN_ID",
-    "NEXT_PUBLIC_MONAD_CHAIN_ID",
-    "EXPECTED_CHAIN_ID",
-    "CHAIN_ID",
-  ) || "143");
-  const chainId = Number.isFinite(parsed) && parsed > 0 ? Math.floor(parsed) : 143;
-  return chainId === 10143 && !testnetEnabled ? 143 : chainId;
-}
-
-function s2TestnetEnabled() {
-  return /^(1|true|yes|on)$/i.test(readEnv(
-    "DYOOR_S2_ENABLE_TESTNET",
-    "NEXT_PUBLIC_DYOOR_S2_ENABLE_TESTNET",
-  ));
+  return 143;
 }
 
 function isTestnetLikeUrl(value: string) {
@@ -227,19 +223,23 @@ function firstUsableRpc(names: string[], mainnet: boolean) {
 }
 
 function configuredS2RpcUrl() {
-  const mainnet = configuredS2ChainId() === 143;
-  const rpcUrl = mainnet
-    ? firstUsableRpc(["DYOOR_S2_RPC_URL", "MONAD_RPC_URL", "NEXT_PUBLIC_MONAD_RPC_URL", "NEXT_PUBLIC_DYOOR_S2_RPC_URL", "RPC_URL"], true)
-    : firstUsableRpc(["DYOOR_S2_RPC_URL", "NEXT_PUBLIC_DYOOR_S2_RPC_URL", "MONAD_TESTNET_RPC_URL", "NEXT_PUBLIC_MONAD_TESTNET_RPC_URL", "MONAD_RPC_URL", "NEXT_PUBLIC_MONAD_RPC_URL", "RPC_URL"], false);
-  return rpcUrl || (mainnet ? DEFAULT_MONAD_MAINNET_RPC_URL : DEFAULT_MONAD_TESTNET_RPC_URL);
+  return firstUsableRpc(
+    ["DYOOR_S2_RPC_URL", "MONAD_RPC_URL", "NEXT_PUBLIC_MONAD_RPC_URL", "NEXT_PUBLIC_DYOOR_S2_RPC_URL", "RPC_URL"],
+    true,
+  ) || DEFAULT_MONAD_MAINNET_RPC_URL;
 }
 
 function configuredS2ExplorerUrl() {
-  const mainnet = configuredS2ChainId() === 143;
   const configured = readEnv("NEXT_PUBLIC_DYOOR_S2_EXPLORER_URL");
-  if (mainnet && configured && !isTestnetLikeUrl(configured)) return configured.replace(/\/+$/, "");
-  if (!mainnet && configured) return configured.replace(/\/+$/, "");
-  return (mainnet ? DEFAULT_MONAD_MAINNET_EXPLORER_URL : DEFAULT_MONAD_TESTNET_EXPLORER_URL).replace(/\/+$/, "");
+  if (configured && !isTestnetLikeUrl(configured)) return configured.replace(/\/+$/, "");
+  return DEFAULT_MONAD_MAINNET_EXPLORER_URL;
+}
+
+function alchemyTransferLookupEnabled() {
+  const configured = readEnv("DYOOR_S2_ENABLE_ALCHEMY_TRANSFERS", "NEXT_PUBLIC_DYOOR_S2_ENABLE_ALCHEMY_TRANSFERS");
+  if (/^(1|true|yes|on)$/i.test(configured)) return true;
+  if (/^(0|false|no|off)$/i.test(configured)) return false;
+  return /alchemy/i.test(configuredS2RpcUrl());
 }
 
 function parsePositiveInt(value: string, fallback: number) {
@@ -415,7 +415,7 @@ function monTestModeEnabled() {
   const raw = readEnv("DYOOR_TRAIT_LAB_ENABLE_MON_TEST", "NEXT_PUBLIC_DYOOR_TRAIT_LAB_ENABLE_MON_TEST");
   if (/^(0|false|no|off)$/i.test(raw)) return false;
   if (/^(1|true|yes|on)$/i.test(raw)) return true;
-  return process.env.NODE_ENV !== "production" || configuredS2ChainId() === 10143;
+  return process.env.NODE_ENV !== "production";
 }
 
 function parsePaymentMode(value: unknown) {
@@ -449,11 +449,8 @@ function traitLabPaymentCost(traitType: S2EditableTrait, action: S2TraitLabActio
 
 export function traitLabPublicConfig() {
   const chainId = configuredS2ChainId();
-  const defaultMainnet = chainId === 143;
   const configuredChainName = readEnv("DYOOR_S2_CHAIN_NAME", "NEXT_PUBLIC_DYOOR_S2_CHAIN_NAME");
-  const safeChainName = defaultMainnet && /testnet/i.test(configuredChainName)
-    ? "Monad"
-    : configuredChainName || (defaultMainnet ? "Monad" : "Monad Testnet");
+  const safeChainName = !configuredChainName || /testnet/i.test(configuredChainName) ? "Monad" : configuredChainName;
   return {
     ok: true,
     treasuryWallet: traitLabTreasuryWallet(),
@@ -831,6 +828,52 @@ function provider() {
   return new ethers.JsonRpcProvider(rpcUrl);
 }
 
+function energyBankSigner() {
+  const privateKey = normalizePrivateKey(readEnv("ENERGY_BANK_OPERATOR_PRIVATE_KEY", "DEPLOYER_PRIVATE_KEY"));
+  if (!privateKey) {
+    throw Object.assign(new Error("ENERGY_BANK_OPERATOR_PRIVATE_KEY is required for Energy Trait Lab rolls."), { status: 500 });
+  }
+  return new ethers.Wallet(privateKey, provider());
+}
+
+function traitLabEnergySpendReason(payload: PreviewPayload) {
+  return ethers.keccak256(ethers.toUtf8Bytes([
+    "trait-lab",
+    payload.rollId,
+    String(payload.tokenId),
+    payload.traitType,
+    payload.action,
+    payload.proposedValue,
+  ].join(":")));
+}
+
+async function spendTraitLabEnergy(payload: PreviewPayload) {
+  const amount = BigInt(payload.costRaw || "0");
+  if (amount <= 0n) {
+    throw Object.assign(new Error("Invalid Energy roll cost."), { status: 500 });
+  }
+  const signer = energyBankSigner();
+  const signerAddress = await signer.getAddress();
+  const bank = new ethers.Contract(energyBankContract, ENERGY_BANK_ABI, signer);
+  const spenderRole = await bank.SPENDER_ROLE();
+  const hasRole = await bank.hasRole(spenderRole, signerAddress).then(Boolean);
+  if (!hasRole) {
+    throw Object.assign(new Error("Energy Bank operator is missing SPENDER_ROLE."), { status: 500 });
+  }
+  const reason = traitLabEnergySpendReason(payload);
+  await bank.spendEnergy.staticCall(payload.wallet, amount, reason);
+  const tx = await bank.spendEnergy(payload.wallet, amount, reason, { gasLimit: 160000n });
+  const receipt = await tx.wait();
+  if (receipt?.status !== 1) {
+    throw Object.assign(new Error("Energy spend transaction failed."), { status: 500 });
+  }
+  return {
+    txHash: tx.hash,
+    blockNumber: String(receipt?.blockNumber || ""),
+    reason,
+  };
+}
+
 async function verifyTraitLabMonPayment({
   wallet,
   txHash,
@@ -916,10 +959,96 @@ async function ownedTokensFromEnumerable(contract: ethers.Contract, wallet: stri
   return tokenIds;
 }
 
+function hexQuantity(value: number) {
+  return `0x${Math.max(0, Math.floor(value)).toString(16)}`;
+}
+
+function tokenIdFromAssetTransfer(transfer: Record<string, unknown>) {
+  const rawContract = transfer.rawContract as Record<string, unknown> | undefined;
+  const value = transfer.tokenId ?? transfer.erc721TokenId ?? rawContract?.tokenId;
+  try {
+    return BigInt(String(value || "")).toString();
+  } catch {
+    return "";
+  }
+}
+
+async function alchemyAssetTransfers(
+  rpcProvider: ethers.JsonRpcProvider,
+  params: Record<string, unknown>,
+) {
+  const transfers: Array<Record<string, unknown>> = [];
+  let pageKey = "";
+
+  for (let page = 0; page < 50; page += 1) {
+    const response = await rpcProvider.send("alchemy_getAssetTransfers", [{
+      ...params,
+      ...(pageKey ? { pageKey } : {}),
+    }]) as { transfers?: Array<Record<string, unknown>>; pageKey?: string };
+    transfers.push(...(Array.isArray(response?.transfers) ? response.transfers : []));
+    pageKey = String(response?.pageKey || "");
+    if (!pageKey) break;
+  }
+
+  return transfers;
+}
+
+async function verifyCandidateTokenIds(
+  contract: ethers.Contract,
+  wallet: string,
+  candidateIds: Iterable<string>,
+  expectedBalance = 0,
+) {
+  const candidates = Array.from(new Set(candidateIds))
+    .filter(Boolean)
+    .sort((a, b) => Number(a) - Number(b));
+  const verified: string[] = [];
+  const concurrency = Math.max(1, Math.min(12, ownerOfConcurrency()));
+
+  for (let start = 0; start < candidates.length; start += concurrency) {
+    const batch = candidates.slice(start, start + concurrency);
+    const owners = await Promise.all(batch.map(async (tokenId) => {
+      const result = await ownerOfToken(contract, Number(tokenId), 3);
+      return { tokenId, ...result };
+    }));
+    for (const item of owners) {
+      if (item.owner === wallet) verified.push(item.tokenId);
+    }
+    if (expectedBalance > 0 && verified.length >= expectedBalance) break;
+  }
+
+  return verified;
+}
+
+async function ownedTokensFromAlchemyTransfers(contract: ethers.Contract, wallet: string, balance: number) {
+  if (!alchemyTransferLookupEnabled()) return [];
+  const rpcProvider = provider();
+  const baseParams = {
+    fromBlock: hexQuantity(DEFAULT_S2_DEPLOYMENT_BLOCK),
+    toBlock: "latest",
+    contractAddresses: [s2ContractAddress()],
+    category: ["erc721"],
+    withMetadata: false,
+    excludeZeroValue: false,
+    maxCount: ALCHEMY_TRANSFER_PAGE_SIZE,
+    order: "asc",
+  };
+  const [incoming, outgoing] = await Promise.all([
+    alchemyAssetTransfers(rpcProvider, { ...baseParams, toAddress: wallet }),
+    alchemyAssetTransfers(rpcProvider, { ...baseParams, fromAddress: wallet }),
+  ]);
+  const candidates = incoming.concat(outgoing).map(tokenIdFromAssetTransfer).filter(Boolean);
+  if (!candidates.length) return [];
+  return verifyCandidateTokenIds(contract, wallet, candidates, balance);
+}
+
 async function ownedTokensFromTransferLogs(contract: ethers.Contract, wallet: string) {
   const rpcProvider = provider();
   const latest = await rpcProvider.getBlockNumber();
-  const startBlock = Math.max(0, Number.parseInt(readEnv("DYOOR_S2_START_BLOCK", "NEXT_PUBLIC_DYOOR_S2_START_BLOCK") || "0", 10) || 0);
+  const startBlock = Math.max(
+    0,
+    parsePositiveInt(readEnv("DYOOR_S2_START_BLOCK", "NEXT_PUBLIC_DYOOR_S2_START_BLOCK"), DEFAULT_S2_DEPLOYMENT_BLOCK),
+  );
   const configuredChunk = readEnv(
     "DYOOR_S2_OWNED_TOKEN_LOG_CHUNK_SIZE",
     "NEXT_PUBLIC_DYOOR_S2_OWNED_TOKEN_LOG_CHUNK_SIZE",
@@ -962,12 +1091,7 @@ async function ownedTokensFromTransferLogs(contract: ethers.Contract, wallet: st
     else tokenIds.delete(change.tokenId);
   }
 
-  const verified: string[] = [];
-  for (const tokenId of Array.from(tokenIds)) {
-    const owner = normalizeWallet(await contract.ownerOf(BigInt(tokenId)).catch(() => ""));
-    if (owner === wallet) verified.push(tokenId);
-  }
-  return verified;
+  return verifyCandidateTokenIds(contract, wallet, tokenIds);
 }
 
 function isTransientOwnerReadError(error: unknown) {
@@ -984,15 +1108,36 @@ async function ownerOfToken(contract: ethers.Contract, tokenId: number, attempts
     } catch (error) {
       transient = transient || isTransientOwnerReadError(error);
     }
-    if (attempt < attempts - 1) await new Promise((resolve) => setTimeout(resolve, 90 * (attempt + 1)));
+    if (attempt < attempts - 1) await new Promise((resolve) => setTimeout(resolve, 125 * (attempt + 1)));
   }
   return { owner: "", transient };
+}
+
+function ownerScanOrder(maxSupply: number) {
+  const firstWindow = Math.min(250, maxSupply);
+  const tailStart = Math.max(firstWindow + 1, maxSupply - 250 + 1);
+  const tokenIds: number[] = [];
+  const seen = new Set<number>();
+
+  function add(tokenId: number) {
+    if (tokenId >= 1 && tokenId <= maxSupply && !seen.has(tokenId)) {
+      seen.add(tokenId);
+      tokenIds.push(tokenId);
+    }
+  }
+
+  for (let tokenId = 1; tokenId <= firstWindow; tokenId += 1) add(tokenId);
+  for (let tokenId = tailStart; tokenId <= maxSupply; tokenId += 1) add(tokenId);
+  for (let tokenId = firstWindow + 1; tokenId < tailStart; tokenId += 1) add(tokenId);
+
+  return tokenIds;
 }
 
 async function ownedTokensFromOwnerScan(contract: ethers.Contract, wallet: string, maxSupply: number, expectedBalance = 0) {
   const tokenIds: string[] = [];
   const concurrency = ownerOfConcurrency();
   const transientFailures: number[] = [];
+  const scanOrder = ownerScanOrder(maxSupply);
 
   async function scanBatch(batch: number[], attempts: number) {
     const owners = await Promise.all(batch.map(async (tokenId) => {
@@ -1005,9 +1150,9 @@ async function ownedTokensFromOwnerScan(contract: ethers.Contract, wallet: strin
     }
   }
 
-  for (let start = 1; start <= maxSupply; start += concurrency) {
-    const batch = Array.from({ length: Math.min(concurrency, maxSupply - start + 1) }, (_, index) => start + index);
-    await scanBatch(batch, 1);
+  for (let start = 0; start < scanOrder.length; start += concurrency) {
+    const batch = scanOrder.slice(start, start + concurrency);
+    await scanBatch(batch, 4);
     if (expectedBalance > 0 && tokenIds.length >= expectedBalance) return tokenIds;
   }
 
@@ -1071,6 +1216,15 @@ export async function ownedS2TokenIds(wallet: string, maxSupply: number) {
     } catch {}
   }
 
+  try {
+    for (const tokenId of await ownedTokensFromAlchemyTransfers(contract, wallet, balance)) tokenIds.add(tokenId);
+    if (done()) {
+      const sorted = sortedResult();
+      ownedTokenCache.set(cacheKey, { tokenIds: sorted, expiresAt: Date.now() + 120_000 });
+      return sorted;
+    }
+  } catch {}
+
   const scanMax = await ownedTokenScanMax(contract, maxSupply, balance);
   try {
     for (const tokenId of await ownedTokensFromOwnerScan(contract, wallet, scanMax, balance)) tokenIds.add(tokenId);
@@ -1083,6 +1237,11 @@ export async function ownedS2TokenIds(wallet: string, maxSupply: number) {
 
   try {
     for (const tokenId of await ownedTokensFromTransferLogs(contract, wallet)) tokenIds.add(tokenId);
+    if (done()) {
+      const sorted = sortedResult();
+      ownedTokenCache.set(cacheKey, { tokenIds: sorted, expiresAt: Date.now() + 120_000 });
+      return sorted;
+    }
   } catch {}
 
   const sorted = sortedResult();
@@ -1165,6 +1324,7 @@ export async function createTraitLabPreview(input: Record<string, unknown>) {
     attributes: candidate.proposedAttributes,
   }, tokenId, config);
   let energyDebitDeduped = false;
+  let energySpend: Awaited<ReturnType<typeof spendTraitLabEnergy>> | null = null;
   let monPayment: Awaited<ReturnType<typeof verifyTraitLabMonPayment>> | null = null;
 
   if (paymentMode === "mon") {
@@ -1211,16 +1371,7 @@ export async function createTraitLabPreview(input: Record<string, unknown>) {
   });
 
   if (paymentMode === "energy") {
-    const debit = await addEnergyDebit({
-      id: energyDebitId,
-      wallet,
-      amountRaw: costRaw,
-      type: action === "unlock" ? "DEBIT_UPGRADE" : "DEBIT_REROLL",
-      source: `trait-lab-roll-${action}`,
-      tokenId: String(tokenId),
-      notes: `Generated ${action} roll for ${traitType}: ${payload.previousValue} -> ${payload.proposedValue}.`,
-    });
-    energyDebitDeduped = debit.deduped;
+    energySpend = await spendTraitLabEnergy(payload);
   }
 
   await saveTraitLabRoll({
@@ -1242,6 +1393,8 @@ export async function createTraitLabPreview(input: Record<string, unknown>) {
     expiresAt: new Date(payload.expiresAt).toISOString(),
     energyDebitId: paymentMode === "energy" ? energyDebitId : undefined,
     energyDebitDeduped,
+    energySpendTxHash: energySpend?.txHash,
+    energySpendBlockNumber: energySpend?.blockNumber,
     monPaymentTxHash: monPayment?.txHash,
     monPaymentAmountRaw: monPayment?.amountRaw,
     monPaymentBlockNumber: monPayment?.blockNumber,
@@ -1274,9 +1427,9 @@ export async function createTraitLabPreview(input: Record<string, unknown>) {
     rollCharged: true,
     energyDebitSkipped: paymentMode !== "energy",
     energyDebitDeduped,
-    paymentTxHash: monPayment?.txHash || "",
-    paymentAmountRaw: monPayment?.amountRaw || "",
-    paymentBlockNumber: monPayment?.blockNumber || "",
+    paymentTxHash: monPayment?.txHash || energySpend?.txHash || "",
+    paymentAmountRaw: monPayment?.amountRaw || (energySpend ? costRaw : ""),
+    paymentBlockNumber: monPayment?.blockNumber || energySpend?.blockNumber || "",
     supplyDeltas,
     previewId,
     expiresAt: new Date(payload.expiresAt).toISOString(),
@@ -1413,9 +1566,9 @@ export async function confirmTraitLabPreview(input: Record<string, unknown>) {
     rollCharged: true,
     debitDeduped: Boolean(paidRoll.energyDebitDeduped),
     energyDebitSkipped: payload.paymentMode !== "energy",
-    paymentTxHash: paidRoll.monPaymentTxHash || "",
-    paymentAmountRaw: paidRoll.monPaymentAmountRaw || "",
-    paymentBlockNumber: paidRoll.monPaymentBlockNumber || "",
+    paymentTxHash: paidRoll.monPaymentTxHash || paidRoll.energySpendTxHash || "",
+    paymentAmountRaw: paidRoll.monPaymentAmountRaw || (paidRoll.energySpendTxHash ? payload.costRaw : ""),
+    paymentBlockNumber: paidRoll.monPaymentBlockNumber || paidRoll.energySpendBlockNumber || "",
     supplyDeltas,
     supplyEventDeduped: supplyEvent.deduped,
     override,
