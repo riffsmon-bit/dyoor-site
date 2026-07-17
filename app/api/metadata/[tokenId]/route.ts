@@ -16,7 +16,7 @@ type MetadataRouteContext = {
 };
 
 export async function GET(_request: Request, context: MetadataRouteContext) {
-  const requestOrigin = new URL(_request.url).origin;
+  const requestOrigin = metadataResponseOrigin(_request);
   const params = await context.params;
   const config = await getRuntimeMetadataConfig();
   const parsed = parseTokenId(params.tokenId, config.maxSupply);
@@ -67,6 +67,25 @@ export async function GET(_request: Request, context: MetadataRouteContext) {
   return jsonResponse(metadata, {
     headers: metadataCacheHeaders(),
   });
+}
+
+function metadataResponseOrigin(request: Request) {
+  const configured = firstEnv("DYOOR_METADATA_PUBLIC_ORIGIN", "NEXT_PUBLIC_DYOOR_METADATA_ORIGIN");
+  if (configured) return configured.replace(/\/+$/, "");
+
+  const url = new URL(request.url);
+  if (url.hostname === "dyoor.xyz" || url.hostname.endsWith("--dyoor.netlify.app")) {
+    return "https://dyoor.netlify.app";
+  }
+  return url.origin;
+}
+
+function firstEnv(...names: string[]) {
+  for (const name of names) {
+    const value = process.env[name];
+    if (value && String(value).trim()) return String(value).trim();
+  }
+  return "";
 }
 
 function isExternalTraitLabRenderUrl(value: unknown, requestOrigin: string) {
