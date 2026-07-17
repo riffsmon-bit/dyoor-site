@@ -18,7 +18,6 @@ export const S2_EDITABLE_TRAITS = [
   "Clothes",
   "Mouth",
   "Hat",
-  "Special",
   "Accessories",
   "Accessories 2",
   "Stickers/Body art",
@@ -29,7 +28,6 @@ export const S2_GUARANTEED_TRAITS = ["Eyes", "Mouth"] as const;
 export const S2_UNLOCKABLE_TRAITS = [
   "Clothes",
   "Hat",
-  "Special",
   "Accessories",
   "Accessories 2",
   "Stickers/Body art",
@@ -56,7 +54,6 @@ export const S2_TRAIT_LAB_COSTS = {
     Accessories: 1000,
     "Accessories 2": 1000,
     "Stickers/Body art": 1000,
-    Special: 2500,
   },
   unlock: {
     Eyes: 0,
@@ -66,7 +63,6 @@ export const S2_TRAIT_LAB_COSTS = {
     Accessories: S2_TRAIT_LAB_FLAT_UNLOCK_COST,
     "Accessories 2": S2_TRAIT_LAB_FLAT_UNLOCK_COST,
     "Stickers/Body art": S2_TRAIT_LAB_FLAT_UNLOCK_COST,
-    Special: S2_TRAIT_LAB_FLAT_UNLOCK_COST,
   },
 } as const satisfies Record<S2TraitLabAction, Record<S2EditableTrait, number>>;
 
@@ -79,7 +75,6 @@ export const S2_TRAIT_LAB_MON_COSTS = {
     Accessories: "20",
     "Accessories 2": "20",
     "Stickers/Body art": "20",
-    Special: "50",
   },
   unlock: {
     Eyes: "0",
@@ -89,7 +84,6 @@ export const S2_TRAIT_LAB_MON_COSTS = {
     Accessories: "15",
     "Accessories 2": "15",
     "Stickers/Body art": "15",
-    Special: "15",
   },
 } as const satisfies Record<S2TraitLabAction, Record<S2EditableTrait, string>>;
 
