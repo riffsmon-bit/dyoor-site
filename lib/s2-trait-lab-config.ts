@@ -30,6 +30,8 @@ export type S2EditableTrait = typeof S2_EDITABLE_TRAITS[number];
 export type S2TraitLabAction = "reroll" | "unlock";
 export type S2TraitLabPaymentMode = "energy" | "mon";
 
+export const S2_TRAIT_LAB_ENERGY_PER_MON = 50;
+
 export const S2_TRAIT_LAB_COSTS = {
   reroll: {
     Eyes: 500,
@@ -55,24 +57,24 @@ export const S2_TRAIT_LAB_COSTS = {
 
 export const S2_TRAIT_LAB_MON_COSTS = {
   reroll: {
-    Eyes: "0",
-    Mouth: "0",
-    Hat: "0",
-    Clothes: "0",
-    Accessories: "0",
-    "Accessories 2": "0",
-    "Stickers/Body art": "0",
-    Special: "0",
+    Eyes: "10",
+    Mouth: "10",
+    Hat: "15",
+    Clothes: "15",
+    Accessories: "20",
+    "Accessories 2": "20",
+    "Stickers/Body art": "20",
+    Special: "50",
   },
   unlock: {
-    Eyes: "0",
-    Mouth: "0",
-    Hat: "0",
-    Clothes: "0",
-    Accessories: "0",
-    "Accessories 2": "0",
-    "Stickers/Body art": "0",
-    Special: "0",
+    Eyes: "15",
+    Mouth: "15",
+    Hat: "20",
+    Clothes: "20",
+    Accessories: "30",
+    "Accessories 2": "30",
+    "Stickers/Body art": "30",
+    Special: "70",
   },
 } as const satisfies Record<S2TraitLabAction, Record<S2EditableTrait, string>>;
 

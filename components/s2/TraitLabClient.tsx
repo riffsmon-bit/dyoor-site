@@ -8,6 +8,7 @@ import {
   S2_LOCKED_TRAITS,
   S2_REQUIRED_TRAITS,
   S2_TRAIT_LAB_COSTS,
+  S2_TRAIT_LAB_MON_COSTS,
   type S2EditableTrait,
   type S2TraitLabAction,
   type S2TraitLabPaymentMode,
@@ -109,6 +110,7 @@ type TraitLabConfigResponse = {
   chainName?: string;
   rpcUrl?: string;
   explorerUrl?: string;
+  energyPerMon?: number;
   monCosts?: Record<S2TraitLabAction, Record<string, string>>;
   error?: string;
 };
@@ -180,6 +182,11 @@ function metadataVersion(metadata?: MetadataJson | null) {
   return traitMap(metadata)["Metadata Version"] || "1";
 }
 
+function metadataVersionNumber(metadata?: MetadataJson | null) {
+  const parsed = Number.parseInt(metadataVersion(metadata), 10);
+  return Number.isSafeInteger(parsed) && parsed > 0 ? parsed : 1;
+}
+
 function actionForTrait(traitType: string, value: unknown): S2TraitLabAction | "" {
   if (!editableTraits.has(traitType)) return "";
   return isEmptyTraitValue(value) ? "unlock" : "reroll";
@@ -187,7 +194,7 @@ function actionForTrait(traitType: string, value: unknown): S2TraitLabAction | "
 
 function costFor(traitType: string, action: S2TraitLabAction | "", paymentMode: S2TraitLabPaymentMode) {
   if (!action || !editableTraits.has(traitType)) return null;
-  if (paymentMode === "mon") return "0 MON";
+  if (paymentMode === "mon") return `${S2_TRAIT_LAB_MON_COSTS[action][traitType as S2EditableTrait]} MON`;
   return `${S2_TRAIT_LAB_COSTS[action][traitType as S2EditableTrait]} Energy`;
 }
 
@@ -418,7 +425,9 @@ export function TraitLabClient() {
   const monPaymentVisible = true;
   const selectedTraitValue = selectedTraits[selectedTrait];
   const selectedTraitAction = actionForTrait(selectedTrait, selectedTraitValue) as S2TraitLabAction;
-  const selectedTraitMonCost = selectedTraitAction ? traitLabConfig?.monCosts?.[selectedTraitAction]?.[selectedTrait] ?? "0" : "0";
+  const selectedTraitMonCost = selectedTraitAction
+    ? traitLabConfig?.monCosts?.[selectedTraitAction]?.[selectedTrait] ?? S2_TRAIT_LAB_MON_COSTS[selectedTraitAction][selectedTrait]
+    : "0";
   const selectedTraitCost = paymentMode === "mon" && selectedTraitAction ? `${selectedTraitMonCost} MON` : costFor(selectedTrait, selectedTraitAction, paymentMode);
   const selectedTraitIsEmpty = isEmptyTraitValue(selectedTraitValue);
   const selectedTraitLoading = actionLoading === `${selectedTraitAction}:${selectedTrait}`;
@@ -576,7 +585,11 @@ export function TraitLabClient() {
     try {
       const response = await fetch(`/api/metadata/${encodeURIComponent(tokenId)}?confirmed=${Date.now()}`, { cache: "no-store" });
       const fresh = await response.json().catch(() => ({})) as MetadataJson & { error?: string };
-      if (response.ok && !fresh.error) nextMetadata = fresh;
+      if (response.ok && !fresh.error) {
+        const fallbackVersion = metadataVersionNumber(nextMetadata);
+        const freshVersion = metadataVersionNumber(fresh);
+        if (!nextMetadata || freshVersion >= fallbackVersion) nextMetadata = fresh;
+      }
     } catch {}
 
     if (nextMetadata) {
@@ -631,7 +644,7 @@ export function TraitLabClient() {
     if (!treasuryWallet) throw new Error("Trait Lab treasury wallet is not configured.");
     await switchToTraitLabChain();
 
-    const monCost = traitLabConfig?.monCosts?.[action]?.[traitType] ?? "0";
+    const monCost = traitLabConfig?.monCosts?.[action]?.[traitType] ?? S2_TRAIT_LAB_MON_COSTS[action][traitType];
     const amountRaw = parseMonRaw(monCost);
     setStatus(`Confirm wallet transaction for this ${action} roll.`);
     const txHash = await wallet.sendTransaction({
