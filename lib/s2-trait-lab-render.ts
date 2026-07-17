@@ -20,7 +20,7 @@ const STORE_NAME = "dyoor-s2-metadata";
 const IMAGE_PREFIX = "trait-lab/images";
 const DEFAULT_S2_LAYER_DIR = "/Volumes/DYOOR Hard Drive/dyoor-generator-local 3/layers";
 const DEFAULT_RENDER_SIZE = 1024;
-export const RENDER_PIPELINE_VERSION = "trait-assets-v2";
+export const RENDER_PIPELINE_VERSION = "trait-assets-v3";
 
 const RENDER_LAYER_ORDER = [
   "Background",

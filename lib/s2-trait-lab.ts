@@ -88,6 +88,14 @@ type TraitCatalog = {
   incompatibilityRules?: CatalogRule[];
 };
 
+const SPECIAL_WEARABLE_SIDE_EFFECT_TRAITS = new Set<S2EditableTrait>([
+  "Clothes",
+  "Hat",
+  "Accessories",
+  "Accessories 2",
+  "Stickers/Body art",
+]);
+
 type TraitItemMetadata = {
   slot?: string;
   name?: string;
@@ -730,13 +738,15 @@ function validationConflict(traits: Record<string, string>) {
 
 function specialConflictForCategory(specialFile: string, traitType: S2EditableTrait, value: string) {
   if (traitType === "Special" || isEmptyTraitValue(value)) return "";
+  if (!SPECIAL_WEARABLE_SIDE_EFFECT_TRAITS.has(traitType)) return "";
+
   const normalizedSpecial = normalizeComparable(specialFile);
   if (traitType === "Hat" || traitType === "Accessories" || traitType === "Accessories 2") return "Special hides this trait.";
   if (traitType === "Clothes" && !CLOTHES_ALLOWED_SPECIALS.has(normalizedSpecial)) return "Special hides this trait.";
-  if ((traitType === "Eyes" || traitType === "Mouth") && CLOTHES_ALLOWED_SPECIALS.has(normalizedSpecial)) return "Special hides this trait.";
+  if (traitType === "Stickers/Body art") return "Special hides this trait.";
 
   const option = resolveTraitOption(traitType, value);
-  if (!option) return new Set<string>(["Clothes", "Hat", "Accessories", "Accessories 2"]).has(traitType) ? "Special hides this trait." : "";
+  if (!option) return SPECIAL_WEARABLE_SIDE_EFFECT_TRAITS.has(traitType) ? "Special hides this trait." : "";
   return ruleConflict({ category: traitType as BuilderCategory, file: option.file }, { Special: specialFile } as BuilderSelection);
 }
 
