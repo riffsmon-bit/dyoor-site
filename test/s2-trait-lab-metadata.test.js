@@ -29,13 +29,36 @@ function traitMap(metadata) {
 
 test("Trait Lab overrides cannot replace locked Background or Droid traits", () => {
   const metadata = mergeMetadata(baseMetadata, {
-    version: 3,
+    version: 2,
     attributes: {
       Background: "Unknown",
       Droid: "Unknown",
-      Special: "Anime Mask",
+      Eyes: "Scared",
+      Clothes: "Black Hoodie",
+    },
+  }, 123);
+
+  const traits = traitMap(metadata);
+  assert.equal(traits.Background, "Eye Sea U-Project M.A.D.");
+  assert.equal(traits.Droid, "Lime Green");
+  assert.equal(traits.Eyes, "Scared");
+  assert.equal(traits.Clothes, "Black Hoodie");
+  assert.equal(traits.Mouth, "Joint Mouth");
+  assert.equal(traits["Metadata Version"], "2");
+});
+
+test("legacy broken Special reroll for token 486 is ignored so base metadata is restored", () => {
+  const metadata = mergeMetadata(baseMetadata, {
+    version: 3,
+    image: "ipfs://bad-render/486.png",
+    attributes: {
+      Background: "Unknown",
+      Droid: "Unknown",
+      Eyes: "None",
       Clothes: "None",
+      Mouth: "None",
       Hat: "None",
+      Special: "Anime Mask",
       Accessories: "None",
       "Accessories 2": "None",
       "Stickers/Body art": "None",
@@ -43,16 +66,18 @@ test("Trait Lab overrides cannot replace locked Background or Droid traits", () 
   }, 486);
 
   const traits = traitMap(metadata);
+  assert.equal(metadata.image, "ipfs://base/486.png");
   assert.equal(traits.Background, "Eye Sea U-Project M.A.D.");
   assert.equal(traits.Droid, "Lime Green");
-  assert.equal(traits.Special, "Anime Mask");
-  assert.equal(traits.Clothes, "None");
-  assert.equal(traits.Hat, "None");
-  assert.equal(traits.Accessories, "None");
-  assert.equal(traits["Accessories 2"], "None");
-  assert.equal(traits["Stickers/Body art"], "None");
   assert.equal(traits.Eyes, "Okay");
+  assert.equal(traits.Clothes, "Neverland Tee");
   assert.equal(traits.Mouth, "Joint Mouth");
+  assert.equal(traits.Hat, "Gotta Catchem Cap");
+  assert.equal(traits.Special, "None");
+  assert.equal(traits.Accessories, "None");
+  assert.equal(traits["Accessories 2"], "The Hive");
+  assert.equal(traits["Stickers/Body art"], "None");
+  assert.equal(traits["Metadata Version"], "1");
 });
 
 test("locked traits are stripped before Trait Lab overrides are saved", () => {
@@ -62,7 +87,6 @@ test("locked traits are stripped before Trait Lab overrides are saved", () => {
     Special: "Anime Mask",
     Clothes: "None",
   }), {
-    Special: "Anime Mask",
     Clothes: "None",
   });
 });

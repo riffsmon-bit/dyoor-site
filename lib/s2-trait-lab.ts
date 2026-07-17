@@ -429,7 +429,7 @@ function monTestModeEnabled() {
   const raw = readEnv("DYOOR_TRAIT_LAB_ENABLE_MON_TEST", "NEXT_PUBLIC_DYOOR_TRAIT_LAB_ENABLE_MON_TEST");
   if (/^(0|false|no|off)$/i.test(raw)) return false;
   if (/^(1|true|yes|on)$/i.test(raw)) return true;
-  return process.env.NODE_ENV !== "production";
+  return true;
 }
 
 function parsePaymentMode(value: unknown) {
@@ -438,7 +438,7 @@ function parsePaymentMode(value: unknown) {
     throw Object.assign(new Error("Invalid Trait Lab payment mode."), { status: 400 });
   }
   if (paymentMode === "mon" && !monTestModeEnabled()) {
-    throw Object.assign(new Error("MON Trait Lab testing is not enabled."), { status: 403 });
+    throw Object.assign(new Error("MON Trait Lab payments are disabled."), { status: 403 });
   }
   return paymentMode;
 }
@@ -550,7 +550,7 @@ export function traitRegistry() {
           weight: trait.weight,
           rarity: item?.rarity,
           initialSupply: item?.initialSupply,
-          maxActiveSupply: item?.maxActiveSupply || (traitType === "Special" ? S2_TRAIT_LAB_SPECIAL_MAX_ACTIVE_SUPPLY : undefined),
+          maxActiveSupply: item?.maxActiveSupply,
           burnOnEquip: item?.burnOnEquip,
           assetUri: item?.image || traitAssetUri(traitType, value),
         };
@@ -737,7 +737,7 @@ function validationConflict(traits: Record<string, string>) {
 }
 
 function specialConflictForCategory(specialFile: string, traitType: S2EditableTrait, value: string) {
-  if (traitType === "Special" || isEmptyTraitValue(value)) return "";
+  if (isEmptyTraitValue(value)) return "";
   if (!SPECIAL_WEARABLE_SIDE_EFFECT_TRAITS.has(traitType)) return "";
 
   const normalizedSpecial = normalizeComparable(specialFile);
@@ -756,7 +756,6 @@ function applySpecialSideEffects(traits: Record<string, string>) {
   if (!special) return next;
 
   for (const traitType of S2_EDITABLE_TRAITS) {
-    if (traitType === "Special") continue;
     if (specialConflictForCategory(special.file, traitType, next[traitType])) {
       next[traitType] = "None";
     }
