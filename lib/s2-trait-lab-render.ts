@@ -20,7 +20,9 @@ const STORE_NAME = "dyoor-s2-metadata";
 const IMAGE_PREFIX = "trait-lab/images";
 const DEFAULT_S2_LAYER_DIR = "/Volumes/DYOOR Hard Drive/dyoor-generator-local 3/layers";
 const DEFAULT_RENDER_SIZE = 1024;
-export const RENDER_PIPELINE_VERSION = "trait-assets-v3";
+export const RENDER_PIPELINE_VERSION = "trait-assets-v4";
+
+const REQUIRED_RENDER_BASE_LAYERS = new Set(["Background", "Droid"]);
 
 const RENDER_LAYER_ORDER = [
   "Background",
@@ -255,15 +257,30 @@ export async function renderTraitLabImage(tokenId: number, metadata: MetadataJso
   const traits = traitMapFromMetadata(metadata as any);
   const size = renderSize();
   const composites: sharp.OverlayOptions[] = [];
+  const missingRequiredLayers: string[] = [];
 
   for (const traitType of RENDER_LAYER_ORDER) {
     const buffer = await layerBuffer(traitType, traits[traitType]);
-    if (!buffer) continue;
+    if (!buffer) {
+      if (REQUIRED_RENDER_BASE_LAYERS.has(traitType) && !isEmptyTraitValue(traits[traitType])) {
+        missingRequiredLayers.push(traitType);
+      }
+      continue;
+    }
     composites.push({
       input: await sharp(buffer).resize(size, size, { fit: "fill" }).png().toBuffer(),
       top: 0,
       left: 0,
     });
+  }
+
+  if (missingRequiredLayers.length) {
+    return {
+      imageId: "",
+      imageUrl: metadata.image || "",
+      rendered: false,
+      missingRequiredLayers,
+    };
   }
 
   if (!composites.length) {

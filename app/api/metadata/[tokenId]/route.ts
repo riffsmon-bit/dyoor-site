@@ -59,6 +59,17 @@ export async function GET(_request: Request, context: MetadataRouteContext) {
         notes: String(override.notes || "").replace(/;?\s*image recomposition TODO\.?/i, "").trim() || override.notes,
       });
       metadata = (await buildTokenMetadataAsync(tokenId, config)).metadata;
+    } else if (staleRenderer || externalRenderUrl || legacyRenderId) {
+      const nextOverride = { ...override };
+      delete nextOverride.image;
+      delete nextOverride.imageRender;
+      await saveRuntimeTraitOverride(tokenId, {
+        ...nextOverride,
+        notes: [String(override.notes || "").replace(/;?\s*image recomposition TODO\.?/i, "").trim(), "image render skipped because a locked base layer asset is unavailable."]
+          .filter(Boolean)
+          .join("; "),
+      });
+      metadata = (await buildTokenMetadataAsync(tokenId, config)).metadata;
     }
   }
 
