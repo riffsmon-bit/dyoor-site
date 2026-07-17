@@ -486,6 +486,49 @@ function ManualStakePanel({
   );
 }
 
+function ManualUnstakePanel({
+  manualUnstake,
+  onManualUnstake,
+  setManualUnstake,
+  working,
+}: {
+  manualUnstake: string;
+  onManualUnstake: () => void;
+  setManualUnstake: (value: string) => void;
+  working: boolean;
+}) {
+  return (
+    <section className="mt-4 rounded border border-white/12 bg-white/[0.04] p-5">
+      <div className="flex flex-col justify-between gap-4 md:flex-row md:items-start">
+        <div>
+          <p className="text-xs font-black uppercase tracking-[0.22em] text-dyoor-cyan">Manual Unstake</p>
+          <h2 className="mt-2 text-2xl font-black uppercase text-white">Unstake By Token ID</h2>
+          <p className="mt-2 max-w-3xl text-sm font-semibold leading-6 text-white/64">
+            Use this when an ascended NFT is registered but the card list has not rendered.
+          </p>
+        </div>
+      </div>
+      <div className="mt-4 flex flex-col gap-3 md:flex-row">
+        <input
+          className="min-w-0 flex-1 rounded border border-white/14 bg-black/35 px-4 py-3 text-sm font-bold text-white outline-none focus:border-dyoor-cyan"
+          placeholder="Token ID, e.g. 595"
+          inputMode="numeric"
+          value={manualUnstake}
+          onChange={(event) => setManualUnstake(event.target.value)}
+        />
+        <button
+          className="rounded border border-dyoor-cyan px-4 py-3 text-sm font-black uppercase text-dyoor-cyan disabled:opacity-50"
+          type="button"
+          disabled={working}
+          onClick={onManualUnstake}
+        >
+          Unstake Manually
+        </button>
+      </div>
+    </section>
+  );
+}
+
 export default function AscensionPage() {
   const walletService = useWalletService();
   const authenticated = walletService.connected;
@@ -494,6 +537,7 @@ export default function AscensionPage() {
   const [selected, setSelected] = useState<Set<string>>(() => new Set());
   const [manualRecovery, setManualRecovery] = useState("");
   const [manualStake, setManualStake] = useState("");
+  const [manualUnstake, setManualUnstake] = useState("");
   const [actionStatus, setActionStatus] = useState("Select NFTs to stake or unstake. Hover a card for quick actions.");
   const [treasuryWallet, setTreasuryWallet] = useState("");
   const [rechargeMon, setRechargeMon] = useState("");
@@ -622,8 +666,8 @@ export default function AscensionPage() {
         detail: ascension.energyLoading
           ? "Refreshing Energy values..."
           : energyBankSyncPending
-            ? `${formatCompactEnergy(ascension.missingSpendableEnergy)} Energy needs owner sync before it is spendable.`
-            : "Pending, banked, harvested, and lifetime values loaded.",
+            ? `${formatCompactEnergy(ascension.missingSpendableEnergy)} Energy is waiting for ledger indexing.`
+            : "Pending, harvested, spendable, and lifetime values loaded.",
       },
       {
         label: "Blueprint Saved",
@@ -792,6 +836,24 @@ export default function AscensionPage() {
     try {
       const provider = await ensureReady();
       const ids = tokenIds.map((id) => BigInt(id));
+      const connectedWallet = getAddress(ascension.walletAddress);
+      for (const id of ids) {
+        setActionStatus(`Checking Ascension registration for #${id.toString()}...`);
+        const info = await readContractWithFailover({
+          address: ascensionStakingContract,
+          abi: ascensionStakingAbi,
+          functionName: "stakeInfo",
+          args: [id],
+          label: `Ascension stakeInfo before unstake #${id.toString()}`,
+        }) as readonly [string, number | bigint];
+        const staker = info?.[0] && isAddress(info[0]) ? getAddress(info[0]) : ZERO_ADDRESS;
+        if (staker === ZERO_ADDRESS) {
+          throw new Error(`Token #${id.toString()} is inside Ascension but is not registered to a staker. Use recovery first.`);
+        }
+        if (staker !== connectedWallet) {
+          throw new Error(`Token #${id.toString()} is registered to ${shortAddress(staker)}, not your connected wallet.`);
+        }
+      }
       setActionStatus(`Unstaking ${ids.length} NFT${ids.length === 1 ? "" : "s"}...`);
       const data = encodeFunctionData({
         abi: ascensionStakingAbi,
@@ -801,6 +863,7 @@ export default function AscensionPage() {
       await sendContract(provider, ascensionStakingContract, data);
       setActionStatus("Unstake complete. Refreshing NFTs...");
       setSelected(new Set());
+      setManualUnstake("");
       await ascension.refresh();
     } catch (error) {
       setActionStatus(formatWalletError(error, "Unstake failed."));
@@ -830,61 +893,32 @@ export default function AscensionPage() {
       const tx = await sendContract(provider, ascensionStakingContract, data);
       const harvestedRaw = harvestAmountFromReceipt(tx.receipt, ascension.walletAddress) || pendingBefore;
       if (harvestedRaw > 0n) {
-        let bankCreditOk = false;
-        let bankCreditMessage = "";
-        let bankCreditResponse = await fetch("/api/energy-harvest-credit", {
+        let response = await fetch("/api/energy/sync-wallet", {
           method: "POST",
           headers: { "content-type": "application/json" },
           body: JSON.stringify({
-            user: getAddress(ascension.walletAddress),
-            amountRaw: harvestedRaw.toString(),
+            wallet: getAddress(ascension.walletAddress),
             txHash: tx.hash,
           }),
         });
-        if (bankCreditResponse.status === 409) {
+        if (response.status === 409) {
           await new Promise((resolve) => window.setTimeout(resolve, 2500));
-          bankCreditResponse = await fetch("/api/energy-harvest-credit", {
+          response = await fetch("/api/energy/sync-wallet", {
             method: "POST",
             headers: { "content-type": "application/json" },
             body: JSON.stringify({
-              user: getAddress(ascension.walletAddress),
-              amountRaw: harvestedRaw.toString(),
+              wallet: getAddress(ascension.walletAddress),
               txHash: tx.hash,
             }),
           });
         }
-        const bankCredit = await bankCreditResponse.json().catch(() => ({}));
-        bankCreditOk = bankCreditResponse.ok && bankCredit?.ok !== false;
-        if (!bankCreditOk) bankCreditMessage = bankCredit?.error || "Energy Bank credit failed";
-
-        const harvestRecordBody = JSON.stringify({
-          action: "recordHarvest",
-          address: getAddress(ascension.walletAddress),
-          amountRaw: harvestedRaw.toString(),
-          txHash: tx.hash,
-        });
-        let response = await fetch("/.netlify/functions/ascension-stats", {
-          method: "POST",
-          headers: { "content-type": "application/json" },
-          body: harvestRecordBody,
-        });
-        if (response.status === 409) {
-          await new Promise((resolve) => window.setTimeout(resolve, 2500));
-          response = await fetch("/.netlify/functions/ascension-stats", {
-            method: "POST",
-            headers: { "content-type": "application/json" },
-            body: harvestRecordBody,
-          });
-        }
         const record = await response.json().catch(() => ({}));
         if (!response.ok || record?.ok === false) {
-          setActionStatus(`Harvest confirmed${bankCreditOk ? " and bank credited" : ""}, but the legacy display ledger did not update: ${record?.error || "ledger update failed"}`);
-        } else if (!bankCreditOk) {
-          setActionStatus(`Harvest confirmed and indexed, but Energy Bank was not credited: ${bankCreditMessage}. Use admin reconciliation.`);
-        } else if (bankCredit?.alreadyCredited) {
-          setActionStatus("Energy harvest was already credited. Refreshing state...");
+          setActionStatus(`Harvest confirmed, but the Energy ledger did not index yet: ${record?.error || "ledger sync failed"}`);
+        } else if (record?.deduped) {
+          setActionStatus("Energy harvest was already indexed. Refreshing state...");
         } else {
-          setActionStatus("Energy harvest credited to Energy Bank. Refreshing state...");
+          setActionStatus("Energy harvest indexed and spendable. Refreshing state...");
         }
       } else {
         setActionStatus("Energy harvest confirmed. Refreshing state...");
@@ -964,6 +998,10 @@ export default function AscensionPage() {
     await stakeTokenIds(parseTokenIds(manualStake));
   }
 
+  async function unstakeManualDeposits() {
+    await unstakeTokenIds(parseTokenIds(manualUnstake));
+  }
+
   async function recoverDetectedDeposits() {
     await recoverTokenIds(ascension.recovery.recoverableTokenIds, "auto");
   }
@@ -994,7 +1032,7 @@ export default function AscensionPage() {
       return;
     }
     if (!rechargeCreditReady) {
-      setRechargeStatus("Recharge is unavailable: Energy credit operator is not configured.");
+      setRechargeStatus("Recharge is unavailable: Energy ledger crediting is not configured.");
       return;
     }
     if (!rechargeMonRaw) {
@@ -1010,7 +1048,7 @@ export default function AscensionPage() {
       const provider = await ensureReady();
       const paymentTxHash = await sendNative(provider, getAddress(treasuryWallet), rechargeMonRaw);
       setRechargeTxHash(paymentTxHash);
-      setRechargeStatus("Payment confirmed. Verifying recharge and crediting Energy...");
+      setRechargeStatus("Payment confirmed. Verifying recharge and crediting spendable Energy...");
       await creditRechargePayment(paymentTxHash, rechargeMonRaw);
       setRechargeStatus("Energy recharged successfully.");
       setRechargeMon("");
@@ -1030,14 +1068,14 @@ export default function AscensionPage() {
       return;
     }
     if (!rechargeCreditReady) {
-      setRechargeStatus("Recharge recovery is unavailable: Energy credit operator is not configured.");
+      setRechargeStatus("Recharge recovery is unavailable: Energy ledger crediting is not configured.");
       return;
     }
 
     setRecharging(true);
     setRechargeTxHash(txHash);
     setRechargeCreditTxHash("");
-    setRechargeStatus("Verifying recharge transaction and crediting Energy...");
+    setRechargeStatus("Verifying recharge transaction and crediting spendable Energy...");
     try {
       await ensureReady();
       await creditRechargePayment(txHash);
@@ -1076,7 +1114,7 @@ export default function AscensionPage() {
       return;
     }
     if (lendEnergyRaw > spendableEnergyRaw) {
-      setLendStatus("Energy amount exceeds your transferable Energy Bank balance.");
+      setLendStatus("Energy amount exceeds your transferable spendable Energy balance.");
       return;
     }
 
@@ -1172,13 +1210,13 @@ export default function AscensionPage() {
         <StatCard label="Harvested Energy" value={formatCompactEnergy(ascension.harvestedEnergy)} />
         <StatCard label="Lifetime Energy" value={formatCompactEnergy(ascension.lifetimeEnergy)} />
         <StatCard
-          label="Energy Bank"
+          label="Spendable Energy"
           value={(
             <span className="grid gap-1">
               <span>{formatCompactEnergy(energyBankDisplay)}</span>
               {energyBankSyncPending ? (
                 <span className="text-[0.68rem] font-black uppercase tracking-[0.12em] text-yellow-100">
-                  Spendable {formatCompactEnergy(ascension.spendableEnergy)} syncing
+                  Ledger indexing
                 </span>
               ) : null}
             </span>
@@ -1188,7 +1226,7 @@ export default function AscensionPage() {
 
       {energyBankSyncPending ? (
         <Alert className="mb-8" tone="warning">
-          Energy Bank sync is pending for this wallet. Indexed Harvested and Lifetime Energy are shown, but only {formatCompactEnergy(ascension.spendableEnergy)} Energy is currently spendable until the owner reconciliation credit runs.
+          Energy ledger indexing is catching up for this wallet. Refresh after the harvest transaction is confirmed.
         </Alert>
       ) : null}
 
@@ -1269,6 +1307,12 @@ export default function AscensionPage() {
                 setManualStake={setManualStake}
                 working={working}
                 onManualStake={() => void stakeManualDeposits()}
+              />
+              <ManualUnstakePanel
+                manualUnstake={manualUnstake}
+                setManualUnstake={setManualUnstake}
+                working={working}
+                onManualUnstake={() => void unstakeManualDeposits()}
               />
             </div>
           </div>
@@ -1367,10 +1411,10 @@ export default function AscensionPage() {
 
         <div className="grid gap-5 lg:grid-cols-2">
           <div className="rounded border border-dyoor-purple/30 bg-gradient-to-br from-dyoor-cyan/[0.10] via-dyoor-purple/[0.10] to-fuchsia-500/[0.08] p-5 shadow-[0_0_42px_rgba(131,110,249,.12)] md:p-6">
-            <p className="text-xs font-black uppercase tracking-[0.2em] text-dyoor-cyan">Energy Bank</p>
+            <p className="text-xs font-black uppercase tracking-[0.2em] text-dyoor-cyan">Spendable Energy</p>
             <h2 className="mt-2 text-3xl font-black uppercase text-white">Recharge Energy</h2>
             <p className="mt-2 text-sm font-semibold leading-6 text-white/66">
-              Power up your Ascension bank with MON.
+              Power up spendable Energy with MON.
             </p>
             <p className="mt-4 inline-flex rounded border border-dyoor-cyan/35 bg-black/30 px-3 py-2 text-sm font-black uppercase text-dyoor-cyan">
               1 MON = 50 Energy
@@ -1441,7 +1485,7 @@ export default function AscensionPage() {
                   </Button>
                 </div>
                 <p className="mt-2 text-xs leading-5 text-white/48">
-                  Use this only if MON was sent but Energy did not appear.
+                  Use this only if MON was sent but spendable Energy did not appear.
                 </p>
               </div>
             </div>
@@ -1451,7 +1495,7 @@ export default function AscensionPage() {
             <p className="text-xs font-black uppercase tracking-[0.2em] text-dyoor-cyan">Energy Utility</p>
             <h2 className="mt-2 text-3xl font-black uppercase text-white">Lend to a Fren</h2>
             <p className="mt-2 text-sm font-semibold leading-6 text-white/66">
-              Transfer spendable Energy from your Energy Bank to another wallet after server verification.
+              Transfer spendable Energy to another wallet after server verification.
             </p>
             <div className="mt-5 rounded border border-dyoor-purple/24 bg-black/35 p-4 shadow-[inset_0_1px_0_rgba(255,255,255,.05)]">
               <label className="text-xs font-black uppercase tracking-[0.16em] text-white/45" htmlFor="lend-recipient">

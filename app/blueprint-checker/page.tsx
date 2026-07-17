@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   ASCENSION_BLUEPRINT_TRAITS,
   checkExactBlueprintMatch,
@@ -51,6 +51,13 @@ type SavedBlueprint = {
   image?: string;
   imageUrl?: string;
   png?: string;
+};
+
+type OwnedTokensResponse = {
+  ok?: boolean;
+  tokenIds?: string[];
+  count?: number;
+  error?: string;
 };
 
 function TraitGrid({
@@ -343,6 +350,9 @@ export default function BlueprintCheckerPage() {
   const [savedWallet, setSavedWallet] = useState("");
   const [savedStatus, setSavedStatus] = useState("Connect wallet, then click View My Saved Blueprint.");
   const [savedLoading, setSavedLoading] = useState(false);
+  const [ownedTokenIds, setOwnedTokenIds] = useState<string[]>([]);
+  const [ownedLoading, setOwnedLoading] = useState(false);
+  const [ownedStatus, setOwnedStatus] = useState("Connect wallet to load owned Season 2 droids.");
   const visibleSavedBlueprint = savedWallet === walletAddress ? savedBlueprint : null;
   const visibleSavedStatus = savedWallet && savedWallet !== walletAddress
     ? "Wallet changed. Click View My Saved Blueprint to load this wallet."
@@ -355,6 +365,51 @@ export default function BlueprintCheckerPage() {
     bad: "border-red-400/40 bg-red-400/10 text-red-100",
     busy: "border-dyoor-cyan/40 bg-dyoor-cyan/10 text-dyoor-cyan",
   }[statusTone];
+
+  useEffect(() => {
+    let active = true;
+
+    async function loadOwnedDroids() {
+      if (!walletAddress) {
+        setOwnedTokenIds([]);
+        setOwnedStatus("Connect wallet to load owned Season 2 droids.");
+        return;
+      }
+
+      setOwnedLoading(true);
+      setOwnedStatus("Loading owned Season 2 droids...");
+      try {
+        const data = await fetchJson<OwnedTokensResponse>(
+          `/api/s2/owned-tokens?wallet=${encodeURIComponent(walletAddress)}`,
+        );
+        if (!active) return;
+        const tokenIds = Array.from(new Set(Array.isArray(data.tokenIds)
+          ? data.tokenIds.map((id) => String(id)).filter((id) => /^\d+$/.test(id))
+          : []))
+          .sort((a, b) => Number(a) - Number(b));
+
+        setOwnedTokenIds(tokenIds);
+        setTokenId((current) => {
+          const cleanCurrent = current.trim();
+          return cleanCurrent && tokenIds.includes(cleanCurrent) ? cleanCurrent : tokenIds[0] || current;
+        });
+        setOwnedStatus(tokenIds.length
+          ? `${tokenIds.length} owned Season 2 droid${tokenIds.length === 1 ? "" : "s"} loaded.`
+          : "No Season 2 droids found for this wallet.");
+      } catch (error) {
+        if (!active) return;
+        setOwnedTokenIds([]);
+        setOwnedStatus(error instanceof Error ? error.message : "Could not load owned Season 2 droids.");
+      } finally {
+        if (active) setOwnedLoading(false);
+      }
+    }
+
+    void loadOwnedDroids();
+    return () => {
+      active = false;
+    };
+  }, [walletAddress]);
 
   async function runCheck() {
     const cleanTokenId = tokenId.trim();
@@ -458,11 +513,27 @@ export default function BlueprintCheckerPage() {
           <p className="text-xs font-black uppercase tracking-[0.16em] text-white/45">Wallet + Token</p>
           <h2 className="mt-2 text-2xl font-black uppercase">Match Check</h2>
           <div className="mt-5 space-y-3">
+            <label className="grid gap-2">
+              <span className="text-xs font-black uppercase tracking-[0.16em] text-white/45">Owned Droid</span>
+              <select
+                className="field-control"
+                disabled={!walletAddress || ownedLoading || !ownedTokenIds.length}
+                value={ownedTokenIds.includes(tokenId.trim()) ? tokenId.trim() : ""}
+                onChange={(event) => setTokenId(event.target.value)}
+              >
+                <option value="">
+                  {ownedLoading ? "Loading owned droids..." : ownedTokenIds.length ? "Select a droid" : "No owned droids loaded"}
+                </option>
+                {ownedTokenIds.map((id) => (
+                  <option key={id} value={id}>D.Y.O.O.R #{id}</option>
+                ))}
+              </select>
+            </label>
             <input
               className="field-control"
               inputMode="numeric"
               autoComplete="off"
-              placeholder="Token ID"
+              placeholder="Token ID, or select above"
               value={tokenId}
               onChange={(event) => setTokenId(event.target.value)}
             />
@@ -491,6 +562,10 @@ export default function BlueprintCheckerPage() {
           <div className={`status-signal mt-5 ${statusClass}`}>{status}</div>
           <div className="terminal-panel mt-4 p-4 text-sm text-white/58">
             Wallet: {walletAddress || "Not connected"}
+            <br />
+            Owned droids: {ownedLoading ? "loading" : ownedTokenIds.length}
+            <br />
+            {ownedStatus}
           </div>
         </Card>
 

@@ -51,6 +51,30 @@ function isTxHash(value) {
   return /^0x[a-fA-F0-9]{64}$/.test(String(value || ""));
 }
 
+function retryableRpcError(error) {
+  const code = error?.info?.error?.code || error?.error?.code || error?.code || error?.cause?.code || "";
+  const message = String(error?.shortMessage || error?.info?.error?.message || error?.error?.message || error?.message || "");
+  return String(code) === "429" || /rate limit|too many|timeout|timed out|429|ECONNRESET|ETIMEDOUT|coalesce|missing revert data|server error/i.test(message);
+}
+
+function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+async function retryRpc(task, attempts = 5) {
+  let lastError;
+  for (let attempt = 0; attempt < attempts; attempt += 1) {
+    try {
+      return await task();
+    } catch (error) {
+      lastError = error;
+      if (!retryableRpcError(error) || attempt === attempts - 1) break;
+      await sleep(400 * 2 ** attempt);
+    }
+  }
+  throw lastError;
+}
+
 function legacyClaimKey(wallet, txHash, index) {
   if (isTxHash(txHash)) return String(txHash).toLowerCase();
   return ethers.keccak256(ethers.toUtf8Bytes(`dyoor-legacy-harvest:${wallet}:${txHash || index}`));
@@ -217,20 +241,20 @@ async function buildReport() {
   const harvests = mergeLegacyHarvests(indexed.harvests, ledger);
   const wallets = Array.from(new Set(harvests.map((item) => item.wallet))).sort();
   const allClaimKeys = Array.from(new Set(harvests.map((item) => item.claimKey)));
-  const usedPairs = await mapLimit(allClaimKeys, 12, async (claimKey) => {
-    const used = await bank.usedClaimTxHash(claimKey).catch(() => false);
+  const usedPairs = await mapLimit(allClaimKeys, 4, async (claimKey) => {
+    const used = await retryRpc(() => bank.usedClaimTxHash(claimKey));
     return [claimKey, Boolean(used)];
   });
   const usedClaimKeys = new Map(usedPairs);
 
-  const rows = await mapLimit(wallets, 8, async (wallet) => {
+  const rows = await mapLimit(wallets, 4, async (wallet) => {
     const walletHarvests = harvests.filter((item) => item.wallet === wallet);
     const eventHarvests = walletHarvests.filter((item) => item.source === "goldsky");
     const legacyHarvests = walletHarvests.filter((item) => item.source === "legacy");
     const [bankRaw, lifetimeRaw, spentRaw] = await Promise.all([
-      bank.spendableEnergy(wallet).catch(() => 0n),
-      bank.lifetimeEnergy(wallet).catch(() => 0n),
-      bank.totalSpent(wallet).catch(() => 0n),
+      retryRpc(() => bank.spendableEnergy(wallet)),
+      retryRpc(() => bank.lifetimeEnergy(wallet)),
+      retryRpc(() => bank.totalSpent(wallet)),
     ]);
 
     const expectedHarvestedRaw = walletHarvests.reduce((sum, item) => sum + item.amountRaw, 0n);

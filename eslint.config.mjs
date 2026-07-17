@@ -6,7 +6,11 @@ export default defineConfig([
   globalIgnores([
     ".next/**",
     "node_modules/**",
+    "lib/seadrop/**",
     "out/**",
+    "broadcast/**",
+    "artifacts/**",
+    "cache/**",
     "build/**",
     "next-env.d.ts",
   ]),

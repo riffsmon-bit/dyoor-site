@@ -12,7 +12,6 @@ const navLinks = [
   { href: "/#swap", label: "Swap" },
   { href: "/ascension", label: "Ascension" },
   { href: "/verify", label: "Verify" },
-  { href: "/build-droid", label: "Builder" },
   { href: "/blueprint-checker", label: "Checker" },
   { href: "/whitepaper", label: "Whitepaper" },
 ];

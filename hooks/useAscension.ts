@@ -625,10 +625,6 @@ async function discoverStakedTokenIds(wallet: Address) {
 }
 
 async function fetchEnergy(wallet: Address, options: EnergyRefreshOptions = {}) {
-  const params = new URLSearchParams({ address: wallet });
-  if (options.scanLogs) params.set("scanLogs", "1");
-  if (options.scanGrants) params.set("scanGrants", "1");
-
   const [pendingResult, bankedResult, lifetimeResult, statsResult] = await Promise.allSettled([
     readContractWithFailover({
       address: ascensionStakingContract,
@@ -651,15 +647,21 @@ async function fetchEnergy(wallet: Address, options: EnergyRefreshOptions = {}) 
       args: [wallet],
       label: "Energy Bank lifetimeEnergy",
     }),
-    fetch(`/.netlify/functions/ascension-stats?${params.toString()}`, {
-      cache: "no-store",
-    }),
+    options.scanLogs
+      ? fetch("/api/energy/sync-wallet", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ wallet }),
+          cache: "no-store",
+        })
+      : fetch(`/api/energy/${wallet}`, { cache: "no-store" }),
   ]);
 
   let pendingEnergy = pendingResult.status === "fulfilled" ? formatUnits18(pendingResult.value as bigint) : "0.00";
-  let bankedEnergy = bankedResult.status === "fulfilled" ? formatUnits18(bankedResult.value as bigint) : "0.00";
-  let spendableEnergy = bankedEnergy;
-  let calculatedBankEnergy = bankedEnergy;
+  const contractBankedEnergy = bankedResult.status === "fulfilled" ? formatUnits18(bankedResult.value as bigint) : "0.00";
+  let bankedEnergy = contractBankedEnergy;
+  let spendableEnergy = contractBankedEnergy;
+  let calculatedBankEnergy = contractBankedEnergy;
   let missingSpendableEnergy = "0";
   let lifetimeEnergy = lifetimeResult.status === "fulfilled" ? formatUnits18(lifetimeResult.value as bigint) : "0.00";
   let harvestedEnergy = "0.00";
@@ -669,10 +671,10 @@ async function fetchEnergy(wallet: Address, options: EnergyRefreshOptions = {}) 
     if (response?.ok) {
       const json = await response.json() as EnergyStatsResponse;
       pendingEnergy = String(json.pendingEnergy || pendingEnergy);
-      bankedEnergy = String(json.bankedEnergy || bankedEnergy);
+      bankedEnergy = String(json.bankedEnergy || json.spendableEnergy || bankedEnergy);
       spendableEnergy = String(json.spendableEnergy || json.bankedEnergy || spendableEnergy);
-      calculatedBankEnergy = String(json.calculatedBankEnergy || calculatedBankEnergy);
-      missingSpendableEnergy = String(json.missingSpendableEnergy || "0");
+      calculatedBankEnergy = String(json.calculatedBankEnergy || json.spendableEnergy || calculatedBankEnergy);
+      missingSpendableEnergy = "0";
       harvestedEnergy = String(json.harvestedEnergy || harvestedEnergy);
       lifetimeEnergy = String(json.lifetimeEnergy || lifetimeEnergy);
       if (process.env.NODE_ENV !== "production") {
@@ -685,7 +687,7 @@ async function fetchEnergy(wallet: Address, options: EnergyRefreshOptions = {}) 
           outgoingTransfers: json.outgoingTransfersEnergy || "0",
           spentEnergy: json.spentEnergy || "0",
           lifetimeEnergy,
-          energyBank: bankedEnergy,
+          energyBank: contractBankedEnergy,
           calculatedBankEnergy,
           missingSpendableEnergy,
           harvestEventsFound: json.harvestEventsFound || 0,

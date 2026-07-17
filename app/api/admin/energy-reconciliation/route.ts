@@ -105,6 +105,18 @@ function readEnv(...names: string[]) {
   return "";
 }
 
+function isTestnetLikeUrl(value: string) {
+  return /testnet/i.test(value);
+}
+
+function configuredMonadRpcUrl() {
+  for (const name of ["MONAD_RPC_URL", "DYOOR_S2_RPC_URL", "NEXT_PUBLIC_MONAD_RPC_URL", "NEXT_PUBLIC_DYOOR_S2_RPC_URL", "RPC_URL"]) {
+    const value = readEnv(name);
+    if (value && !isTestnetLikeUrl(value)) return value;
+  }
+  return DEFAULT_RPC;
+}
+
 function secretsEqual(left: string, right: string) {
   const leftBuffer = Buffer.from(left);
   const rightBuffer = Buffer.from(right);
@@ -158,11 +170,80 @@ function formatContractError(error: any) {
   return String(
     error?.shortMessage
     || error?.reason
+    || error?.info?.payload?.method && `${error.info.payload.method} failed`
     || error?.info?.error?.message
     || error?.error?.message
     || error?.message
     || "Credit failed.",
   ).replace(/\s+/g, " ").slice(0, 800);
+}
+
+function formatPreflightError(step: string, error: any) {
+  const message = formatContractError(error);
+  const rpcCode = error?.info?.error?.code || error?.error?.code || error?.code || "";
+  const rpcMethod = error?.info?.payload?.method || "";
+  const details = [
+    `Energy Bank preflight failed at ${step}: ${message}`,
+    rpcMethod ? `rpc=${rpcMethod}` : "",
+    rpcCode ? `code=${rpcCode}` : "",
+  ].filter(Boolean);
+  return details.join(" ");
+}
+
+function retryableRpcError(error: any) {
+  const code = error?.info?.error?.code || error?.error?.code || error?.code || error?.cause?.code || "";
+  const message = String(
+    error?.shortMessage
+    || error?.info?.error?.message
+    || error?.error?.message
+    || error?.message
+    || "",
+  );
+  return String(code) === "429" || /rate limit|too many|timeout|timed out|429|ECONNRESET|ETIMEDOUT|coalesce|missing revert data|server error/i.test(message);
+}
+
+function sleep(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+async function retryRpc<T>(task: () => Promise<T>) {
+  let lastError: any;
+  for (let attempt = 0; attempt < 4; attempt += 1) {
+    try {
+      return await task();
+    } catch (error: any) {
+      lastError = error;
+      if (!retryableRpcError(error) || attempt === 3) break;
+      await sleep(350 * 2 ** attempt);
+    }
+  }
+  throw lastError;
+}
+
+async function waitForSubmittedRepairTx(tx: ethers.TransactionResponse, provider: ethers.JsonRpcProvider) {
+  try {
+    return await tx.wait();
+  } catch (error: any) {
+    if (!retryableRpcError(error)) throw error;
+  }
+
+  let receipt: ethers.TransactionReceipt | null = null;
+  for (let attempt = 0; attempt < 6; attempt += 1) {
+    await sleep(1_000 * (attempt + 1));
+    receipt = await retryRpc(() => provider.getTransactionReceipt(tx.hash)).catch(() => null);
+    if (receipt) break;
+  }
+  if (!receipt) throw new Error(`Submitted repair transaction ${tx.hash}, but receipt lookup timed out. Check MonadScan before retrying.`);
+  if (receipt.status !== 1) throw new Error(`Submitted repair transaction ${tx.hash} reverted.`);
+  return receipt;
+}
+
+async function preflightStep<T>(step: string, task: () => Promise<T>) {
+  try {
+    return await retryRpc(task);
+  } catch (error: any) {
+    throw Object.assign(new Error(formatPreflightError(step, error)), { step, cause: error });
+  }
 }
 
 function legacyClaimKey(wallet: string, txHash: string, index: number) {
@@ -311,26 +392,26 @@ async function buildReport() {
     readHarvestLedger(),
   ]);
   const energyBankAddress = ethers.getAddress(readEnv("ENERGY_BANK_ADDRESS", "NEXT_PUBLIC_ENERGY_BANK_ADDRESS") || DEFAULT_ENERGY_BANK_CONTRACT);
-  const provider = new ethers.JsonRpcProvider(readEnv("MONAD_RPC_URL", "NEXT_PUBLIC_MONAD_RPC_URL") || DEFAULT_RPC);
+  const provider = new ethers.JsonRpcProvider(configuredMonadRpcUrl());
   const bank = new ethers.Contract(energyBankAddress, ENERGY_BANK_ABI, provider);
   const harvests = mergeLegacyHarvests(indexed.harvests, ledger);
   const wallets = Array.from(new Set(harvests.map((item) => item.wallet))).sort();
 
   const allClaimKeys = Array.from(new Set(harvests.map((item) => item.claimKey)));
-  const usedPairs = await mapLimit(allClaimKeys, 12, async (claimKey) => {
-    const used = await bank.usedClaimTxHash(claimKey).catch(() => false);
+  const usedPairs = await mapLimit(allClaimKeys, 4, async (claimKey) => {
+    const used = await retryRpc(() => bank.usedClaimTxHash(claimKey));
     return [claimKey, Boolean(used)] as const;
   });
   const usedClaimKeys = new Map(usedPairs);
 
-  const rows = await mapLimit(wallets, 8, async (wallet): Promise<ReconciliationRow> => {
+  const rows = await mapLimit(wallets, 4, async (wallet): Promise<ReconciliationRow> => {
     const walletHarvests = harvests.filter((item) => item.wallet === wallet);
     const eventHarvests = walletHarvests.filter((item) => item.source === "goldsky");
     const legacyHarvests = walletHarvests.filter((item) => item.source === "legacy");
     const [bankRaw, lifetimeRaw, spentRaw] = await Promise.all([
-      bank.spendableEnergy(wallet).catch(() => 0n),
-      bank.lifetimeEnergy(wallet).catch(() => 0n),
-      bank.totalSpent(wallet).catch(() => 0n),
+      retryRpc(() => bank.spendableEnergy(wallet)),
+      retryRpc(() => bank.lifetimeEnergy(wallet)),
+      retryRpc(() => bank.totalSpent(wallet)),
     ]);
 
     const expectedHarvestedRaw = walletHarvests.reduce((sum, item) => sum + item.amountRaw, 0n);
@@ -437,21 +518,13 @@ async function buildReport() {
 }
 
 async function readRole(bank: ethers.Contract, roleName: "DEFAULT_ADMIN_ROLE" | "CREDIT_ROLE", fallback = "") {
-  try {
-    const role = await bank[roleName]();
-    return ethers.getBytes(role).length === 32 ? String(role) : fallback;
-  } catch {
-    return fallback;
-  }
+  const role = await bank[roleName]();
+  return ethers.getBytes(role).length === 32 ? String(role) : fallback;
 }
 
 async function hasRole(bank: ethers.Contract, role: string, account: string) {
   if (!role) return null;
-  try {
-    return Boolean(await bank.hasRole(role, account));
-  } catch {
-    return null;
-  }
+  return Boolean(await bank.hasRole(role, account));
 }
 
 async function repairPreflight(provider: ethers.JsonRpcProvider, energyBankAddress: string) {
@@ -468,19 +541,50 @@ async function repairPreflight(provider: ethers.JsonRpcProvider, energyBankAddre
     };
   }
 
+  let operator = "";
+  let signer: ethers.Wallet;
   try {
-    const signer = new ethers.Wallet(signerKey, provider);
+    signer = new ethers.Wallet(signerKey, provider);
+    operator = signer.address.toLowerCase();
+  } catch (error: any) {
+    return {
+      ready: false,
+      reason: `Invalid ENERGY_BANK_OPERATOR_PRIVATE_KEY: ${formatContractError(error)}`,
+      operator: "",
+      chainId: "",
+      hasCreditRole: null,
+      hasAdminRole: null,
+      paused: null,
+      operatorKeyConfigured: true,
+    };
+  }
+
+  try {
     const bank = new ethers.Contract(energyBankAddress, ENERGY_BANK_ABI, signer);
-    const [network, creditRole, adminRole, paused] = await Promise.all([
-      provider.getNetwork(),
-      readRole(bank, "CREDIT_ROLE"),
-      readRole(bank, "DEFAULT_ADMIN_ROLE", ethers.ZeroHash),
-      bank.paused().then(Boolean).catch(() => null),
-    ]);
-    const [hasCreditRole, hasAdminRole] = await Promise.all([
-      hasRole(bank, creditRole, signer.address),
-      hasRole(bank, adminRole, signer.address),
-    ]);
+    const network = await preflightStep("network", () => provider.getNetwork());
+    let bytecodeWarning = "";
+    const code = await retryRpc(() => provider.getCode(energyBankAddress)).catch((error: any) => {
+      bytecodeWarning = `${formatPreflightError("energyBank bytecode", error)}. Role and pause checks will decide repair readiness.`;
+      return "";
+    });
+    if (code === "0x") {
+      return {
+        ready: false,
+        reason: `No contract bytecode found at Energy Bank address ${energyBankAddress}.`,
+        operator,
+        chainId: network.chainId.toString(),
+        hasCreditRole: null,
+        hasAdminRole: null,
+        paused: null,
+      operatorKeyConfigured: true,
+    };
+  }
+
+    const creditRole = await preflightStep("CREDIT_ROLE", () => readRole(bank, "CREDIT_ROLE"));
+    const adminRole = await preflightStep("DEFAULT_ADMIN_ROLE", () => readRole(bank, "DEFAULT_ADMIN_ROLE", ethers.ZeroHash));
+    const paused = await preflightStep("paused", () => bank.paused().then(Boolean));
+    const hasCreditRole = await preflightStep("has CREDIT_ROLE", () => hasRole(bank, creditRole, signer.address));
+    const hasAdminRole = await preflightStep("has DEFAULT_ADMIN_ROLE", () => hasRole(bank, adminRole, signer.address));
     const wrongNetwork = network.chainId !== BigInt(MONAD_CHAIN_ID);
     const ready = !wrongNetwork && paused !== true && hasCreditRole === true;
     const reason = wrongNetwork
@@ -494,23 +598,26 @@ async function repairPreflight(provider: ethers.JsonRpcProvider, energyBankAddre
     return {
       ready,
       reason,
-      operator: signer.address.toLowerCase(),
+      operator,
       chainId: network.chainId.toString(),
       hasCreditRole,
       hasAdminRole,
       paused,
+      warning: bytecodeWarning,
       creditRoleAvailable: Boolean(creditRole),
       adminRoleAvailable: Boolean(adminRole),
+      operatorKeyConfigured: true,
     };
   } catch (error: any) {
     return {
       ready: false,
       reason: formatContractError(error),
-      operator: "",
+      operator,
       chainId: "",
       hasCreditRole: null,
       hasAdminRole: null,
       paused: null,
+      operatorKeyConfigured: true,
     };
   }
 }
@@ -541,7 +648,7 @@ async function readRepairLog() {
 async function repairMissingCredits(report: Awaited<ReturnType<typeof buildReport>>, body: Record<string, unknown>) {
   const signerKey = normalizePrivateKey(readEnv("ENERGY_BANK_OPERATOR_PRIVATE_KEY", "DEPLOYER_PRIVATE_KEY"));
   if (!signerKey) throw Object.assign(new Error("Missing ENERGY_BANK_OPERATOR_PRIVATE_KEY."), { status: 500 });
-  const provider = new ethers.JsonRpcProvider(readEnv("MONAD_RPC_URL", "NEXT_PUBLIC_MONAD_RPC_URL") || DEFAULT_RPC);
+  const provider = new ethers.JsonRpcProvider(configuredMonadRpcUrl());
   const signer = new ethers.Wallet(signerKey, provider);
   const bank = new ethers.Contract(report.energyBankAddress, ENERGY_BANK_ABI, signer);
   const preflight = await repairPreflight(provider, report.energyBankAddress);
@@ -570,6 +677,7 @@ async function repairMissingCredits(report: Awaited<ReturnType<typeof buildRepor
 
   const results = [];
   for (const item of candidates) {
+    let txHash = "";
     try {
       const amount = safeBigInt(item.amountRaw);
       if (amount <= 0n) throw new Error("Invalid repair amount.");
@@ -580,18 +688,20 @@ async function repairMissingCredits(report: Awaited<ReturnType<typeof buildRepor
 
       let tx;
       if (item.method === "correctEnergy") {
-        await bank.correctEnergy.staticCall(item.wallet, amount, item.claimKey);
+        await retryRpc(() => bank.correctEnergy.staticCall(item.wallet, amount, item.claimKey));
         tx = await bank.correctEnergy(item.wallet, amount, item.claimKey, { gasLimit: ENERGY_REPAIR_GAS_LIMIT });
+        txHash = tx.hash;
       } else {
-        const alreadyUsed = await bank.usedClaimTxHash(item.claimKey);
+        const alreadyUsed = await retryRpc(() => bank.usedClaimTxHash(item.claimKey));
         if (alreadyUsed) {
           results.push({ ...item, status: "skipped", reason: "Claim key already credited." });
           continue;
         }
-        await bank.creditEnergy.staticCall(item.wallet, amount, item.claimKey);
+        await retryRpc(() => bank.creditEnergy.staticCall(item.wallet, amount, item.claimKey));
         tx = await bank.creditEnergy(item.wallet, amount, item.claimKey, { gasLimit: ENERGY_REPAIR_GAS_LIMIT });
+        txHash = tx.hash;
       }
-      const receipt = await tx.wait();
+      const receipt = await waitForSubmittedRepairTx(tx, provider);
       results.push({
         ...item,
         status: "success",
@@ -602,6 +712,7 @@ async function repairMissingCredits(report: Awaited<ReturnType<typeof buildRepor
       results.push({
         ...item,
         status: "failed",
+        creditTxHash: txHash || undefined,
         error: formatContractError(error),
       });
     }

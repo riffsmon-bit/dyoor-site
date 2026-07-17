@@ -1,0 +1,218 @@
+{
+  "generatedAt": "2026-07-04T16:22:58.235Z",
+  "chainId": 143,
+  "nftAddress": "0x2c79c9e233fea4b4dcfe6561d9209dc292cd932f",
+  "stakingAddress": "0xf9611226c1CcCcCa37951938d6f358D3d5106549",
+  "sourceFile": "data/snapshots/manual-s1-ascended/transfer-evidence-to-staking-partial.json",
+  "note": "Verified ERC721 Transfer-to-staking evidence for S1 tokens whose Ascension stakeInfo currently returns a zero wallet.",
+  "transfers": [
+    {
+      "tokenId": "62",
+      "wallet": "0x5ee89be87d5356bd97b441669a2a21dc1da627d6",
+      "source": "verified-erc721-transfer-to-staking",
+      "blockNumber": 78429160,
+      "txHash": "0xa860ecbff48581499318490ab8e04a3452ca2d49ce78a9d4cd0495e6caf6023b",
+      "logIndex": 31
+    },
+    {
+      "tokenId": "63",
+      "wallet": "0x5ee89be87d5356bd97b441669a2a21dc1da627d6",
+      "source": "verified-erc721-transfer-to-staking",
+      "blockNumber": 78429169,
+      "txHash": "0x25d289ad733cef17e185c58196c30fb1636c9b321b359cac1b0c4c40a29fc599",
+      "logIndex": 69
+    },
+    {
+      "tokenId": "67",
+      "wallet": "0x5ee89be87d5356bd97b441669a2a21dc1da627d6",
+      "source": "verified-erc721-transfer-to-staking",
+      "blockNumber": 78429179,
+      "txHash": "0xd275cc1a3a1ac8b6e4229b69b23e15159710c4c5f893c2d99800d5c4741f4d77",
+      "logIndex": 32
+    },
+    {
+      "tokenId": "72",
+      "wallet": "0x5ee89be87d5356bd97b441669a2a21dc1da627d6",
+      "source": "verified-erc721-transfer-to-staking",
+      "blockNumber": 78429188,
+      "txHash": "0x6b93820723de85630d4da10e1517b8387023e9319c9998b79e7e66cd069f7bb0",
+      "logIndex": 13
+    },
+    {
+      "tokenId": "77",
+      "wallet": "0x5ee89be87d5356bd97b441669a2a21dc1da627d6",
+      "source": "verified-erc721-transfer-to-staking",
+      "blockNumber": 78429198,
+      "txHash": "0xa48f69f3ce37fd2679108953da9fe89332fb88de63d9fc0ec548b31767fd391c",
+      "logIndex": 23
+    },
+    {
+      "tokenId": "79",
+      "wallet": "0x5ee89be87d5356bd97b441669a2a21dc1da627d6",
+      "source": "verified-erc721-transfer-to-staking",
+      "blockNumber": 78429208,
+      "txHash": "0x9201f6ac25f203b991e4d903a1a75bd614535902f22ad838c7f3435d47176ec8",
+      "logIndex": 94
+    },
+    {
+      "tokenId": "122",
+      "wallet": "0x854038f3d137e753c7e3245d9163c58bbd068d91",
+      "source": "verified-erc721-transfer-to-staking",
+      "blockNumber": 82873634,
+      "txHash": "0xdeadeebb053f16ac2477a24ea3ddc61415694072281b380072ffebb40204c9cf",
+      "logIndex": 33
+    },
+    {
+      "tokenId": "129",
+      "wallet": "0x854038f3d137e753c7e3245d9163c58bbd068d91",
+      "source": "verified-erc721-transfer-to-staking",
+      "blockNumber": 82873605,
+      "txHash": "0x2d1a15f171380a59c962db6718465bf0d3aeaa1e1019b4f6d6960df9a7e1bad4",
+      "logIndex": 63
+    },
+    {
+      "tokenId": "278",
+      "wallet": "0x4f64512f1a4a2e754d571dc81fac34550048113a",
+      "source": "verified-erc721-transfer-to-staking",
+      "blockNumber": 82795120,
+      "txHash": "0xde22bc23644654c9aae719366a32355622a9c76b2893ec20ce31f35f4dcf5f0b",
+      "logIndex": 83
+    },
+    {
+      "tokenId": "529",
+      "wallet": "0x4d540f7d0eb841c839334655c9f88313d750c6d5",
+      "source": "verified-erc721-transfer-to-staking",
+      "blockNumber": 64395295,
+      "txHash": "0x11231a5fbc0bc817c77ac012c74909b2aae5bc49db31540cddfd271152a98ecd",
+      "logIndex": 5
+    },
+    {
+      "tokenId": "544",
+      "wallet": "0x4d540f7d0eb841c839334655c9f88313d750c6d5",
+      "source": "verified-erc721-transfer-to-staking",
+      "blockNumber": 64396047,
+      "txHash": "0x55541de3c471165150f3bdbe73909342f6e1f6ae1d9ae32de4377b56f2b695f7",
+      "logIndex": 1
+    },
+    {
+      "tokenId": "557",
+      "wallet": "0x4d540f7d0eb841c839334655c9f88313d750c6d5",
+      "source": "verified-erc721-transfer-to-staking",
+      "blockNumber": 64395964,
+      "txHash": "0xbedb61d7b1ea65e98f57c8491106ef722fd63dfa2ebd117b127903f7f6e5f090",
+      "logIndex": 1
+    },
+    {
+      "tokenId": "585",
+      "wallet": "0x4d540f7d0eb841c839334655c9f88313d750c6d5",
+      "source": "verified-erc721-transfer-to-staking",
+      "blockNumber": 64396271,
+      "txHash": "0x61bf316c0aac548b56d8a3b7ac998c6fab2d50bbaae137a92a4e3fec0c60e1b3",
+      "logIndex": 29
+    },
+    {
+      "tokenId": "796",
+      "wallet": "0x5ee89be87d5356bd97b441669a2a21dc1da627d6",
+      "source": "verified-erc721-transfer-to-staking",
+      "blockNumber": 78429217,
+      "txHash": "0x713025f17202c056864fe153b41f887c49448f3e5e82d009fa0498b706bf141e",
+      "logIndex": 71
+    },
+    {
+      "tokenId": "797",
+      "wallet": "0x5ee89be87d5356bd97b441669a2a21dc1da627d6",
+      "source": "verified-erc721-transfer-to-staking",
+      "blockNumber": 78429227,
+      "txHash": "0x67617abf7c9304a5a1037c63e9dcda523065bb3f868b2c2be25a83aedf6bfc05",
+      "logIndex": 52
+    },
+    {
+      "tokenId": "801",
+      "wallet": "0x5ee89be87d5356bd97b441669a2a21dc1da627d6",
+      "source": "verified-erc721-transfer-to-staking",
+      "blockNumber": 78429238,
+      "txHash": "0xdd6bc6527acf2f05cf3045e7c214fb5cfa973fc97ee7f5d022009e32c6de00c4",
+      "logIndex": 123
+    },
+    {
+      "tokenId": "803",
+      "wallet": "0x5ee89be87d5356bd97b441669a2a21dc1da627d6",
+      "source": "verified-erc721-transfer-to-staking",
+      "blockNumber": 78429244,
+      "txHash": "0xf734c3e7c0eb93ac5c103c7172c27f13561400acaae146850de0f517d88975f2",
+      "logIndex": 139
+    },
+    {
+      "tokenId": "804",
+      "wallet": "0x5ee89be87d5356bd97b441669a2a21dc1da627d6",
+      "source": "verified-erc721-transfer-to-staking",
+      "blockNumber": 78429255,
+      "txHash": "0x55d3f97b3bfc1f6e3d4f33dc4393a1c5ddc4f364f533deec128245d6a14b129e",
+      "logIndex": 22
+    },
+    {
+      "tokenId": "806",
+      "wallet": "0x4d540f7d0eb841c839334655c9f88313d750c6d5",
+      "source": "verified-erc721-transfer-to-staking",
+      "blockNumber": 64395316,
+      "txHash": "0x6b8708c4e9d3ba4498ca37281377f9452a743bb7e7d72510524cbf700b086ae6",
+      "logIndex": 1
+    },
+    {
+      "tokenId": "860",
+      "wallet": "0x6d2cea496ba329a0ce2a8e58719fc162c3d82c04",
+      "source": "verified-erc721-transfer-to-staking",
+      "blockNumber": 80201606,
+      "txHash": "0x05959b5659b775d2ab984c2066b52d94e69c72be08ffc7c95dcb3a3e42cc6a6f",
+      "logIndex": 60
+    },
+    {
+      "tokenId": "1031",
+      "wallet": "0x5ee89be87d5356bd97b441669a2a21dc1da627d6",
+      "source": "verified-erc721-transfer-to-staking",
+      "blockNumber": 78429265,
+      "txHash": "0xa1ed5e8ec2375348603260e625654b525e31286e43fc7905bcd18f28cc740048",
+      "logIndex": 75
+    },
+    {
+      "tokenId": "1052",
+      "wallet": "0x5ee89be87d5356bd97b441669a2a21dc1da627d6",
+      "source": "verified-erc721-transfer-to-staking",
+      "blockNumber": 78429274,
+      "txHash": "0x0c98be29a639cc519369b09e1184d5ca3f29f040eb6369a088ca52450418c8fd",
+      "logIndex": 21
+    },
+    {
+      "tokenId": "1069",
+      "wallet": "0x5ee89be87d5356bd97b441669a2a21dc1da627d6",
+      "source": "verified-erc721-transfer-to-staking",
+      "blockNumber": 78429283,
+      "txHash": "0x23088e37da3a02629ed19f08c538c57d68c0879cd3c0498a16c8758618c388a7",
+      "logIndex": 10
+    },
+    {
+      "tokenId": "1072",
+      "wallet": "0x5ee89be87d5356bd97b441669a2a21dc1da627d6",
+      "source": "verified-erc721-transfer-to-staking",
+      "blockNumber": 78429293,
+      "txHash": "0x3ad48ecc11c1b5e2f26e8316f994cb6753ac66fa6530f48119162d47c348d941",
+      "logIndex": 1
+    },
+    {
+      "tokenId": "1074",
+      "wallet": "0x5ee89be87d5356bd97b441669a2a21dc1da627d6",
+      "source": "verified-erc721-transfer-to-staking",
+      "blockNumber": 78429303,
+      "txHash": "0xee688849f04ef45e5cb303ffbe116d9d926510b984bf84ac4201287a802411ee",
+      "logIndex": 29
+    },
+    {
+      "tokenId": "1105",
+      "wallet": "0x445fe5258ecb8bca8a9ee76617ce0bbb507059df",
+      "source": "verified-erc721-transfer-to-staking",
+      "blockNumber": 64393541,
+      "txHash": "0x6704e8572a7d146cd1bc44a46aec764682d305eec8ca169df7cb7988ad7029f7",
+      "logIndex": 5
+    }
+  ]
+}

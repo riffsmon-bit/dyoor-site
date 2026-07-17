@@ -28,10 +28,9 @@ export function AppProviders({ children }: { children: ReactNode }) {
     const originalError = console.error;
     console.error = (...args: unknown[]) => {
       const message = args.map((arg) => String(arg)).join(" ");
-      if (
-        message.includes('Each child in a list should have a unique "key" prop') &&
-        message.includes("AppProviders")
-      ) {
+      const keyWarning = message.includes('Each child in a list should have a unique "key" prop');
+      const providerStackWarning = message.includes("AppProviders") || message.includes("from xe") || message.includes("from `xe`");
+      if (keyWarning && providerStackWarning) {
         return;
       }
       originalError(...args);

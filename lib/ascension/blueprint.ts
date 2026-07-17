@@ -200,6 +200,7 @@ export async function fetchMintedNFTMetadata(tokenId: string) {
   if (!token) throw new Error("Missing token ID.");
 
   const localPaths = [
+    `/api/metadata/${encodeURIComponent(token)}`,
     `/data/season2-metadata/${encodeURIComponent(token)}.json`,
     `/metadata/${encodeURIComponent(token)}.json`,
   ];
@@ -216,28 +217,9 @@ export async function checkExactBlueprintMatch(walletAddress: string, tokenId: s
   const wallet = normalizeWalletAddress(walletAddress);
   if (!wallet) throw new Error("Missing or invalid wallet.");
 
-  const data = await fetchJson<{ registration?: BlueprintRegistration }>(
-    `/api/ascension-blueprints?wallet=${encodeURIComponent(wallet)}`,
+  const data = await fetchJson<BlueprintMatchResult & { ok?: boolean; error?: string }>(
+    `/api/blueprint-checker?wallet=${encodeURIComponent(wallet)}&tokenId=${encodeURIComponent(String(tokenId || "").trim())}`,
   );
-  const blueprint = data?.registration;
-  if (!blueprint) throw new Error("No saved Ascension Blueprint for this wallet.");
-
-  const mintedNFTMetadata = await fetchMintedNFTMetadata(tokenId);
-  const mintedOwner = normalizeWalletAddress(
-    mintedNFTMetadata.wallet || mintedNFTMetadata.owner || mintedNFTMetadata.minter || "",
-  );
-  const ownershipConfirmed = mintedOwner ? mintedOwner === wallet : null;
-  const mintedTraits = attributesToTraitMap(mintedNFTMetadata);
-  const comparison = compareBlueprintToMintedNFT(blueprint.traits, mintedTraits);
-  const rewardTier = comparison.exactMatch ? getBlueprintRewardTier(mintedNFTMetadata) : "";
-
-  return {
-    wallet,
-    blueprint,
-    tokenId: String(tokenId || "").trim(),
-    mintedTraits,
-    ownershipConfirmed,
-    rewardTier,
-    ...comparison,
-  };
+  if (!data) throw new Error("Blueprint checker is unavailable.");
+  return data;
 }

@@ -1,0 +1,17 @@
+[profile.default]
+src = "contracts"
+test = "test"
+script = "script"
+out = "out"
+libs = ["lib", "node_modules"]
+auto_detect_solc = true
+optimizer = true
+optimizer_runs = 1
+fs_permissions = [{ access = "read", path = "./" }]
+
+[fmt]
+line_length = 100
+tab_width = 4
+bracket_spacing = true
+int_types = "long"
+multiline_func_header = "attributes_first"

@@ -19,8 +19,39 @@ const csp = [
 const nextConfig = {
   reactStrictMode: true,
   poweredByHeader: false,
+  outputFileTracingExcludes: {
+    "/*": [
+      "./artifacts/**/*",
+      "./broadcast/**/*",
+      "./cache/**/*",
+      "./coverage/**/*",
+      "./data/runtime/**/*",
+      "./data/snapshots/**/*",
+      "./lib/seadrop/**/*",
+      "./out/**/*",
+      "./scripts/**/*",
+      "./test/**/*",
+    ],
+  },
   async headers() {
     return [
+      {
+        source: "/api/metadata/:tokenId",
+        headers: [
+          {
+            key: "Cache-Control",
+            value: "no-store",
+          },
+          {
+            key: "CDN-Cache-Control",
+            value: "no-store",
+          },
+          {
+            key: "Netlify-CDN-Cache-Control",
+            value: "no-store",
+          },
+        ],
+      },
       {
         source: "/:path*",
         headers: [

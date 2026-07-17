@@ -35,8 +35,8 @@ export default function HomePage() {
               and planned quarterly reward programs for eligible staked Droids.
             </p>
             <div className="mt-8 flex flex-wrap gap-3">
-              <Link className="btn-primary" href="/build-droid">
-                Save Blueprint
+              <Link className="btn-primary" href="/blueprint-checker">
+                Check Blueprint
               </Link>
               <Link className="btn-secondary" href="/whitepaper">
                 Read Whitepaper
@@ -60,7 +60,7 @@ export default function HomePage() {
       <section className="mx-auto grid max-w-7xl gap-4 px-5 py-12 md:grid-cols-3">
         {[
           ["Ascension", "Ascend S1, generate Energy, and unlock Season 2 allocation eligibility.", "/ascension"],
-          ["Blueprints", "Register your intended Droid build before Season 2 and compete for Architect recognition.", "/build-droid"],
+          ["Blueprints", "Check saved Ascension Blueprints against minted Season 2 Droid traits.", "/blueprint-checker"],
           ["Treasury", "Track the Season 2 treasury model, staking vision, and planned reward programs.", "/whitepaper#treasury"],
         ].map(([title, copy, href]) => (
           <Link key={href} href={href} className="glass-panel hover-lift p-5">

@@ -21,6 +21,7 @@ const TRAITS = [
   "accessories",
   "accessories 2"
 ];
+const REGISTRATION_ENABLED = process.env.ASCENSION_BLUEPRINT_REGISTRATION_ENABLED === "1";
 
 function json(statusCode, body) {
   return {
@@ -85,6 +86,7 @@ function currentStatus(blueprints, wallet = "") {
   const registeredCount = blueprints.length;
   return {
     ok: true,
+    registrationOpen: REGISTRATION_ENABLED,
     launchAt: LAUNCH_AT,
     limit: LIMIT,
     registeredCount,
@@ -144,6 +146,14 @@ exports.handler = async function (event) {
 
     if (event.httpMethod !== "POST") {
       return json(405, { ok: false, error: "Method not allowed" });
+    }
+
+    if (!REGISTRATION_ENABLED) {
+      return json(410, {
+        ok: false,
+        registrationOpen: false,
+        error: "Ascension Blueprint registration is closed. Use the Blueprint Checker for saved Blueprint verification."
+      });
     }
 
     const launchTime = Date.parse(LAUNCH_AT);

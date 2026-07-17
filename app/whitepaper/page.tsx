@@ -186,8 +186,8 @@ export default function WhitepaperPage() {
               opportunities, staking, and planned quarterly reward programs for eligible staked Droids.
             </p>
             <div className="mt-7 flex flex-wrap gap-3">
-              <Link className="btn-primary" href="/build-droid">
-                Build A Droid
+              <Link className="btn-primary" href="/blueprint-checker">
+                Check Blueprint
               </Link>
               <Link className="btn-secondary" href="/ascension">
                 Open Ascension
@@ -428,8 +428,8 @@ export default function WhitepaperPage() {
             copy="D.Y.O.O.R is designed around ecosystem participation. Revenue-sharing language is intentionally careful: future programs are planned, eligibility-based, and subject to final mechanics before activation."
           />
           <div className="flex flex-wrap gap-3">
-            <Link className="rounded border border-dyoor-cyan bg-dyoor-cyan px-4 py-3 text-sm font-black uppercase text-black" href="/build-droid">
-              Save A Blueprint
+            <Link className="rounded border border-dyoor-cyan bg-dyoor-cyan px-4 py-3 text-sm font-black uppercase text-black" href="/blueprint-checker">
+              Check Blueprint
             </Link>
             <Link className="rounded border border-white/20 px-4 py-3 text-sm font-black uppercase text-white/80" href="/verify">
               Verify Roles

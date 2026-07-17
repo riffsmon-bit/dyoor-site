@@ -24,6 +24,8 @@ const TRAITS = [
   "accessories 2",
 ];
 
+const REGISTRATION_ENABLED = process.env.ASCENSION_BLUEPRINT_REGISTRATION_ENABLED === "1";
+
 function readEnv(...names: string[]) {
   for (const name of names) {
     const value = process.env[name];
@@ -114,6 +116,7 @@ export async function GET(request: Request) {
 
   return Response.json({
     ok: true,
+    registrationOpen: REGISTRATION_ENABLED,
     limit: LIMIT,
     registeredCount: blueprints.length,
     remaining: Math.max(0, LIMIT - blueprints.length),
@@ -128,6 +131,14 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   try {
+    if (!REGISTRATION_ENABLED) {
+      return Response.json({
+        ok: false,
+        registrationOpen: false,
+        error: "Ascension Blueprint registration is closed. Use the Blueprint Checker for saved Blueprint verification.",
+      }, { status: 410, headers: { "cache-control": "no-store" } });
+    }
+
     const launchBypassed = process.env.ASCENSION_BLUEPRINT_BYPASS_LAUNCH === "1";
     if (!launchBypassed && Date.now() < Date.parse(LAUNCH_AT)) {
       return Response.json({
