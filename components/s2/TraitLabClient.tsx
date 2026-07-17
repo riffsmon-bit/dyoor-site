@@ -661,16 +661,29 @@ export function TraitLabClient() {
     throw new Error("Roll transaction is still pending. Wait a moment and try again.");
   }
 
+  async function activeProviderWallet() {
+    const provider = await wallet.getProvider();
+    const accounts = await provider.request({ method: "eth_accounts" }).catch(() => []) as string[];
+    return normalizeAddress(accounts?.[0]);
+  }
+
   async function sendTraitLabMonPayment(traitType: S2EditableTrait, action: S2TraitLabAction) {
     const treasuryWallet = normalizeAddress(traitLabConfig?.treasuryWallet);
     if (!treasuryWallet) throw new Error("Trait Lab treasury wallet is not configured.");
     await switchToTraitLabChain();
+    const activeWallet = await activeProviderWallet();
+    if (!activeWallet) {
+      throw new Error("Wallet provider did not return an active account. Reconnect wallet and try again.");
+    }
+    if (activeWallet !== walletAddress) {
+      throw new Error(`Wallet account changed. Switch wallet to ${shortAddress(walletAddress)} before using MON rerolls. Active wallet is ${shortAddress(activeWallet)}.`);
+    }
 
     const monCost = traitLabConfig?.monCosts?.[action]?.[traitType] ?? S2_TRAIT_LAB_MON_COSTS[action][traitType];
     const amountRaw = parseMonRaw(monCost);
     setStatus(`Confirm wallet transaction for this ${action} roll.`);
     const txHash = await wallet.sendTransaction({
-      from: walletAddress,
+      from: activeWallet,
       to: treasuryWallet,
       value: hexQuantity(amountRaw),
     });

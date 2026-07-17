@@ -402,6 +402,10 @@ export function normalizeWallet(value: unknown) {
   }
 }
 
+function shortWallet(value: string) {
+  return value ? `${value.slice(0, 6)}...${value.slice(-4)}` : "-";
+}
+
 export function isEmptyTraitValue(value: unknown) {
   const normalized = normalizeComparable(value);
   return !normalized
@@ -918,7 +922,9 @@ async function verifyTraitLabMonPayment({
 
   const sender = normalizeWallet(tx.from);
   const recipient = optionalAddress(tx.to).toLowerCase();
-  if (sender !== wallet) throw Object.assign(new Error("Roll transaction sender does not match connected wallet."), { status: 400 });
+  if (sender !== wallet) {
+    throw Object.assign(new Error(`Roll transaction sender ${shortWallet(sender)} does not match connected wallet ${shortWallet(wallet)}.`), { status: 400 });
+  }
   if (recipient !== treasuryWallet.toLowerCase()) throw Object.assign(new Error("Roll transaction recipient does not match Trait Lab treasury."), { status: 400 });
   if (tx.value < expectedAmountRaw) throw Object.assign(new Error("Roll transaction MON amount is below the required cost."), { status: 400 });
 
