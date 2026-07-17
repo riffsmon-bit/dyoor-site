@@ -5,10 +5,12 @@ import { Alert, Button, Card, EmptyState, LoadingSkeleton, PageShell, SectionHea
 import { WalletButton } from "@/components/wallet/WalletButton";
 import {
   S2_EDITABLE_TRAITS,
+  S2_GUARANTEED_TRAITS,
   S2_LOCKED_TRAITS,
   S2_REQUIRED_TRAITS,
   S2_TRAIT_LAB_COSTS,
   S2_TRAIT_LAB_MON_COSTS,
+  S2_UNLOCKABLE_TRAITS,
   type S2EditableTrait,
   type S2TraitLabAction,
   type S2TraitLabPaymentMode,
@@ -111,12 +113,18 @@ type TraitLabConfigResponse = {
   rpcUrl?: string;
   explorerUrl?: string;
   energyPerMon?: number;
+  flatUnlockCostEnergy?: number;
+  specialMaxActiveSupply?: number;
+  guaranteedTraits?: readonly string[];
+  unlockableTraits?: readonly string[];
   monCosts?: Record<S2TraitLabAction, Record<string, string>>;
   error?: string;
 };
 
 const editableTraits = new Set<string>(S2_EDITABLE_TRAITS);
 const lockedTraits = new Set<string>(S2_LOCKED_TRAITS);
+const guaranteedTraits = new Set<string>(S2_GUARANTEED_TRAITS);
+const unlockableTraits = new Set<string>(S2_UNLOCKABLE_TRAITS);
 const renderTraits = [
   "Background",
   "Droid",
@@ -189,7 +197,8 @@ function metadataVersionNumber(metadata?: MetadataJson | null) {
 
 function actionForTrait(traitType: string, value: unknown): S2TraitLabAction | "" {
   if (!editableTraits.has(traitType)) return "";
-  return isEmptyTraitValue(value) ? "unlock" : "reroll";
+  if (isEmptyTraitValue(value)) return unlockableTraits.has(traitType) ? "unlock" : "";
+  return "reroll";
 }
 
 function costFor(traitType: string, action: S2TraitLabAction | "", paymentMode: S2TraitLabPaymentMode) {
@@ -430,6 +439,7 @@ export function TraitLabClient() {
     : "0";
   const selectedTraitCost = paymentMode === "mon" && selectedTraitAction ? `${selectedTraitMonCost} MON` : costFor(selectedTrait, selectedTraitAction, paymentMode);
   const selectedTraitIsEmpty = isEmptyTraitValue(selectedTraitValue);
+  const selectedTraitGuaranteedEmpty = selectedTraitIsEmpty && guaranteedTraits.has(selectedTrait);
   const selectedTraitLoading = actionLoading === `${selectedTraitAction}:${selectedTrait}`;
   const rollLoading = Boolean(actionLoading && actionLoading !== "confirm");
   const [rollingAction, rollingTraitType] = rollLoading ? actionLoading.split(":") : ["", ""];
@@ -454,6 +464,18 @@ export function TraitLabClient() {
     const timer = window.setTimeout(() => setPaymentMode("energy"), 0);
     return () => window.clearTimeout(timer);
   }, [monPaymentVisible, paymentMode]);
+
+  useEffect(() => {
+    if (!metadata || selectedTraitAction) return;
+    const nextTrait = S2_EDITABLE_TRAITS.find((trait) => actionForTrait(trait, selectedTraits[trait]));
+    if (nextTrait && nextTrait !== selectedTrait) {
+      const timer = window.setTimeout(() => {
+        setSelectedTrait(nextTrait);
+        setPreview(null);
+      }, 0);
+      return () => window.clearTimeout(timer);
+    }
+  }, [metadata, selectedTrait, selectedTraitAction, selectedTraits]);
 
   useEffect(() => {
     let active = true;
@@ -913,7 +935,7 @@ export function TraitLabClient() {
                       <div className="min-h-11 rounded border border-white/10 bg-white/[0.035] px-3 py-2.5">
                         <p className="truncate text-sm font-black text-white">{displayTraitValue(selectedTraitValue)}</p>
                         <p className={`mt-1 text-[0.65rem] font-black uppercase tracking-[0.14em] ${selectedTraitIsEmpty ? "text-yellow-100" : "text-dyoor-cyan"}`}>
-                          {selectedTraitIsEmpty ? "Unlock Trait Slot" : "Reroll Available"} / {selectedTraitCost || "-"} per roll
+                          {selectedTraitGuaranteedEmpty ? "Guaranteed trait" : selectedTraitIsEmpty ? "Unlock Trait Slot" : "Reroll Available"} / {selectedTraitCost || "-"} per roll
                         </p>
                       </div>
                     </div>
@@ -924,11 +946,13 @@ export function TraitLabClient() {
                       variant={selectedTraitIsEmpty ? "primary" : "secondary"}
                       onClick={() => void previewChange(selectedTrait, selectedTraitAction)}
                     >
-                      {selectedTraitLoading ? "Rolling" : selectedTraitIsEmpty ? "Roll Unlock" : "Roll Reroll"}
+                      {selectedTraitLoading ? "Rolling" : selectedTraitGuaranteedEmpty ? "Guaranteed" : selectedTraitIsEmpty ? "Roll Unlock" : "Roll Reroll"}
                     </Button>
                   </div>
                   <p className="mt-2 text-xs font-semibold leading-5 text-white/45">
-                    {selectedTraitIsEmpty
+                    {selectedTraitGuaranteedEmpty
+                      ? "Eyes and Mouth are guaranteed mint traits, so empty values are not unlockable in Trait Lab."
+                      : selectedTraitIsEmpty
                       ? "Rolling spends the selected payment method and creates one approved unlock result."
                       : "Rolling spends the selected payment method and creates one compatible reroll result."}
                   </p>
@@ -938,6 +962,7 @@ export function TraitLabClient() {
                   {S2_REQUIRED_TRAITS.map((trait) => {
                     const value = selectedTraits[trait];
                     const locked = lockedTraits.has(trait);
+                    const guaranteed = guaranteedTraits.has(trait);
                     const empty = isEmptyTraitValue(value);
                     const action = actionForTrait(trait, value);
                     const selected = trait === selectedTrait;
@@ -965,11 +990,13 @@ export function TraitLabClient() {
                           <span className={`shrink-0 rounded border px-1.5 py-0.5 text-[0.56rem] font-black uppercase tracking-[0.1em] ${
                             locked
                               ? "border-dyoor-cyan/25 text-dyoor-cyan"
+                              : guaranteed && empty
+                                ? "border-white/20 text-white/45"
                               : empty
                                 ? "border-yellow-300/25 text-yellow-100"
                                 : "border-emerald-300/25 text-emerald-100"
                           }`}>
-                            {locked ? "Locked" : empty ? "Empty" : "Filled"}
+                            {locked ? "Locked" : guaranteed && empty ? "Guaranteed" : empty ? "Empty" : "Filled"}
                           </span>
                         </div>
                         <p className={`mt-2 truncate text-sm font-black ${empty ? "text-yellow-100" : "text-white"}`}>
