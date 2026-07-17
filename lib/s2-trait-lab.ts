@@ -6,9 +6,15 @@ import { DEFAULT_TREASURY_WALLET, dyoorS2Contract, energyBankContract } from "@/
 import { builderTraits, fileLabel, ruleConflict, type BuilderCategory, type BuilderSelection } from "@/lib/dyoor-builder";
 import {
   S2_EDITABLE_TRAITS,
+  S2_GUARANTEED_TRAITS,
+  S2_UNLOCKABLE_TRAITS,
+  S2_TRAIT_LAB_FLAT_UNLOCK_COST,
+  S2_TRAIT_LAB_ENERGY_PER_MON,
+  S2_TRAIT_LAB_SPECIAL_MAX_ACTIVE_SUPPLY,
   S2_TRAIT_LAB_MON_COSTS,
   S2_TRAIT_LAB_COSTS,
   isS2EditableTrait,
+  isS2UnlockableTrait,
   isS2TraitLabAction,
   isS2TraitLabPaymentMode,
   type S2EditableTrait,
@@ -460,6 +466,11 @@ export function traitLabPublicConfig() {
     chainName: safeChainName,
     rpcUrl: configuredS2RpcUrl(),
     explorerUrl: configuredS2ExplorerUrl(),
+    energyPerMon: S2_TRAIT_LAB_ENERGY_PER_MON,
+    flatUnlockCostEnergy: S2_TRAIT_LAB_FLAT_UNLOCK_COST,
+    specialMaxActiveSupply: S2_TRAIT_LAB_SPECIAL_MAX_ACTIVE_SUPPLY,
+    guaranteedTraits: S2_GUARANTEED_TRAITS,
+    unlockableTraits: S2_UNLOCKABLE_TRAITS,
     monCosts: S2_TRAIT_LAB_MON_COSTS,
   };
 }
@@ -531,7 +542,7 @@ export function traitRegistry() {
           weight: trait.weight,
           rarity: item?.rarity,
           initialSupply: item?.initialSupply,
-          maxActiveSupply: item?.maxActiveSupply,
+          maxActiveSupply: item?.maxActiveSupply || (traitType === "Special" ? S2_TRAIT_LAB_SPECIAL_MAX_ACTIVE_SUPPLY : undefined),
           burnOnEquip: item?.burnOnEquip,
           assetUri: item?.image || traitAssetUri(traitType, value),
         };
@@ -755,6 +766,9 @@ function proposedAttributePatch(previous: Record<string, string>, next: Record<s
 
 function assertValidRequestedChange(traits: Record<string, string>, traitType: S2EditableTrait, action: S2TraitLabAction) {
   const currentValue = traits[traitType];
+  if (action === "unlock" && !isS2UnlockableTrait(traitType)) {
+    throw Object.assign(new Error(`${traitType} is guaranteed and cannot be unlocked.`), { status: 400 });
+  }
   if (action === "unlock" && !isEmptyTraitValue(currentValue)) {
     throw Object.assign(new Error(`${traitType} already has a trait. Use reroll instead.`), { status: 400 });
   }
