@@ -6,6 +6,7 @@ import { DEFAULT_TREASURY_WALLET, dyoorS2Contract, energyBankContract } from "@/
 import { builderTraits, fileLabel, ruleConflict, type BuilderCategory, type BuilderSelection } from "@/lib/dyoor-builder";
 import {
   S2_EDITABLE_TRAITS,
+  S2_TRAIT_LAB_ENERGY_PER_MON,
   S2_TRAIT_LAB_MON_COSTS,
   S2_TRAIT_LAB_COSTS,
   isS2EditableTrait,
@@ -460,6 +461,7 @@ export function traitLabPublicConfig() {
     chainName: safeChainName,
     rpcUrl: configuredS2RpcUrl(),
     explorerUrl: configuredS2ExplorerUrl(),
+    energyPerMon: S2_TRAIT_LAB_ENERGY_PER_MON,
     monCosts: S2_TRAIT_LAB_MON_COSTS,
   };
 }
