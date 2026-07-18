@@ -38,7 +38,6 @@ import {
   parseTokenId,
   saveRuntimeTraitOverride,
 } from "@/lib/dyoor-s2-metadata.js";
-import { renderTraitLabImage } from "@/lib/s2-trait-lab-render";
 import {
   applyTraitSupplyDeltas,
   assertTraitSupplyAvailable,
@@ -62,6 +61,15 @@ type MetadataJson = {
   image?: string;
   attributes?: MetadataAttribute[];
   [key: string]: unknown;
+};
+
+type TraitLabImageRenderResult = {
+  imageId?: string;
+  imageUrl?: string;
+  rendererVersion?: string;
+  rendered?: boolean;
+  missingLayers?: string[];
+  missingRequiredLayers?: string[];
 };
 
 type TraitOption = {
@@ -616,16 +624,26 @@ export function confirmationMessageFromPreviewId(previewId: string, timestamp: s
   return traitLabMessage(payload, timestamp, nonce);
 }
 
-function renderFailureMessage(renderedImage: Awaited<ReturnType<typeof renderTraitLabImage>>) {
-  const missingLayers = Array.isArray((renderedImage as any)?.missingLayers)
-    ? (renderedImage as any).missingLayers.map((value: unknown) => String(value || "").trim()).filter(Boolean)
+async function renderTraitLabImageRuntime(
+  tokenId: number,
+  metadata: MetadataJson,
+  origin = "",
+  options: { baseImageUrl?: string; overlayTraitTypes?: string[]; dryRun?: boolean } = {},
+) {
+  const { renderTraitLabImage } = await import("@/lib/s2-trait-lab-render");
+  return renderTraitLabImage(tokenId, metadata, origin, options);
+}
+
+function renderFailureMessage(renderedImage: TraitLabImageRenderResult) {
+  const missingLayers = Array.isArray(renderedImage?.missingLayers)
+    ? renderedImage.missingLayers.map((value: unknown) => String(value || "").trim()).filter(Boolean)
     : [];
   const suffix = missingLayers.length ? ` Missing layer assets: ${missingLayers.join(", ")}.` : "";
   return `Trait image composition failed, so metadata was not changed.${suffix}`;
 }
 
 async function assertTraitLabMetadataCanRender(tokenId: number, metadata: MetadataJson, origin = "") {
-  const renderedImage = await renderTraitLabImage(tokenId, metadata, origin, { dryRun: true });
+  const renderedImage = await renderTraitLabImageRuntime(tokenId, metadata, origin, { dryRun: true });
   if (!renderedImage.rendered) {
     throw Object.assign(new Error(renderFailureMessage(renderedImage)), { status: 503 });
   }
@@ -1904,7 +1922,7 @@ export async function confirmTraitLabPreview(input: Record<string, unknown>) {
     notes: `Trait Lab ${payload.action} ${payload.traitType}.`,
   };
   const draftMetadata = mergeMetadata(metadata, draftOverride, tokenId, config);
-  const renderedImage = await renderTraitLabImage(tokenId, draftMetadata as MetadataJson, String(input.origin || ""));
+  const renderedImage = await renderTraitLabImageRuntime(tokenId, draftMetadata as MetadataJson, String(input.origin || ""));
   if (!renderedImage.rendered) {
     throw Object.assign(new Error(renderFailureMessage(renderedImage)), { status: 503 });
   }

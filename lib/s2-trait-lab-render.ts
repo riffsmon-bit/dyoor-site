@@ -25,7 +25,6 @@ type TraitItemMetadata = {
 const STORE_NAME = "dyoor-s2-metadata";
 const IMAGE_PREFIX = "trait-lab/images";
 const BUNDLED_BASE_LAYER_DIR = "data/dyoor-s2-base-layers";
-const DEFAULT_S2_LAYER_DIR = "/Volumes/DYOOR Hard Drive/dyoor-generator-local 3/layers";
 const DEFAULT_RENDER_SIZE = 1024;
 const DEFAULT_SITE_URL = "https://dyoor.netlify.app";
 export const RENDER_PIPELINE_VERSION = "trait-assets-v4";
@@ -119,8 +118,6 @@ function layerRoots() {
   return [
     readEnv("DYOOR_S2_LAYER_DIR"),
     path.join(process.cwd(), BUNDLED_BASE_LAYER_DIR),
-    DEFAULT_S2_LAYER_DIR,
-    path.join(process.cwd(), "dyoor-builder", "layers"),
   ].filter(Boolean).map((root) => path.resolve(root));
 }
 

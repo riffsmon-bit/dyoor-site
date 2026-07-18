@@ -34,7 +34,16 @@ const nextConfig = {
     ],
   },
   outputFileTracingIncludes: {
-    "/*": [
+    "/api/metadata/[tokenId]": [
+      "./data/dyoor-s2-base-layers/**/*",
+    ],
+    "/api/s2/trait-lab/confirm": [
+      "./data/dyoor-s2-base-layers/**/*",
+    ],
+    "/api/s2/trait-lab/preview": [
+      "./data/dyoor-s2-base-layers/**/*",
+    ],
+    "/api/s2/trait-lab/render/[imageId]": [
       "./data/dyoor-s2-base-layers/**/*",
     ],
   },
