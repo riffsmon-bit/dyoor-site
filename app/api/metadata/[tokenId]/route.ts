@@ -36,12 +36,13 @@ export async function GET(_request: Request, context: MetadataRouteContext) {
   const override = await getRuntimeTraitOverrides(tokenId);
   const legacyRenderId = String(override?.imageRender?.imageId || "").includes("eyJ0b2tlbklk");
   const externalRenderUrl = isExternalTraitLabRenderUrl(override?.image || override?.imageRender?.url, requestOrigin);
+  const staticBaseImageUrl = isStaticBaseTokenImageUrl(override?.image, tokenId);
   const staleRenderer = Boolean(override?.imageRender?.rendererVersion)
     ? override?.imageRender?.rendererVersion !== RENDER_PIPELINE_VERSION
     : Boolean(override?.imageRender);
   const shouldRenderOverrideImage = Boolean(
     override?.attributes
-      && (!override.image || legacyRenderId || externalRenderUrl || staleRenderer || /image recomposition TODO/i.test(String(override.notes || "")))
+      && (!override.image || legacyRenderId || externalRenderUrl || staticBaseImageUrl || staleRenderer || /image recomposition TODO/i.test(String(override.notes || "")))
       && !result.usedFallback,
   );
   if (shouldRenderOverrideImage) {
@@ -106,6 +107,21 @@ function isExternalTraitLabRenderUrl(value: unknown, requestOrigin: string) {
     const origin = new URL(requestOrigin);
     return parsed.pathname.startsWith("/api/s2/trait-lab/render/")
       && (isLocalHost(parsed.hostname) || parsed.origin !== origin.origin);
+  } catch {
+    return false;
+  }
+}
+
+function isStaticBaseTokenImageUrl(value: unknown, tokenId: number) {
+  if (typeof value !== "string" || !value.trim()) return false;
+  const raw = value.trim();
+  const tokenFile = `${tokenId}.png`;
+  if (raw.startsWith("ipfs://")) return raw.endsWith(`/${tokenFile}`);
+
+  try {
+    const parsed = new URL(raw);
+    return parsed.pathname.endsWith(`/${tokenFile}`)
+      && !parsed.pathname.includes("/api/s2/trait-lab/render/");
   } catch {
     return false;
   }
