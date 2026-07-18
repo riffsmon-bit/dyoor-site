@@ -33,7 +33,7 @@ export async function GET(request: Request) {
       contractAddress: dyoorS2Contract,
       tokenIds,
       count: tokenIds.length,
-      contractBaseUri: "https://dyoor.xyz/api/metadata/",
+      contractBaseUri: "https://dyoor.netlify.app/api/metadata/",
     });
   } catch (error: any) {
     return json(Number(error?.status || 500), { ok: false, error: error?.message || "Could not load owned Season 2 tokens." });

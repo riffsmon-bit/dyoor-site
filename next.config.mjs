@@ -33,6 +33,11 @@ const nextConfig = {
       "./test/**/*",
     ],
   },
+  outputFileTracingIncludes: {
+    "/*": [
+      "./data/dyoor-s2-base-layers/**/*",
+    ],
+  },
   async headers() {
     return [
       {

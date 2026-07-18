@@ -13,6 +13,7 @@ type MetadataJson = {
 type RenderTraitLabImageOptions = {
   baseImageUrl?: string;
   overlayTraitTypes?: string[];
+  dryRun?: boolean;
 };
 
 type TraitItemMetadata = {
@@ -23,6 +24,7 @@ type TraitItemMetadata = {
 
 const STORE_NAME = "dyoor-s2-metadata";
 const IMAGE_PREFIX = "trait-lab/images";
+const BUNDLED_BASE_LAYER_DIR = "data/dyoor-s2-base-layers";
 const DEFAULT_S2_LAYER_DIR = "/Volumes/DYOOR Hard Drive/dyoor-generator-local 3/layers";
 const DEFAULT_RENDER_SIZE = 1024;
 const DEFAULT_SITE_URL = "https://dyoor.netlify.app";
@@ -116,6 +118,7 @@ function traitFolder(traitType: string) {
 function layerRoots() {
   return [
     readEnv("DYOOR_S2_LAYER_DIR"),
+    path.join(process.cwd(), BUNDLED_BASE_LAYER_DIR),
     DEFAULT_S2_LAYER_DIR,
     path.join(process.cwd(), "dyoor-builder", "layers"),
   ].filter(Boolean).map((root) => path.resolve(root));
@@ -125,7 +128,7 @@ async function existingLocalLayer(traitType: string, value: unknown) {
   if (isEmptyTraitValue(value)) return "";
   const folder = traitFolder(traitType);
   const rawName = String(value || "").trim().replace(/\.[a-z0-9]+$/i, "");
-  const candidateNames = [`${rawName}.png`, `${rawName}.PNG`, rawName];
+  const candidateNames = [`${rawName}.png`, `${rawName}.PNG`, `${rawName}.webp`, `${rawName}.WEBP`, rawName];
 
   for (const root of layerRoots()) {
     const directory = path.join(root, folder);
@@ -290,6 +293,7 @@ export async function renderTraitLabImage(
   const traits = traitMapFromMetadata(metadata as any);
   const size = renderSize();
   const composites: sharp.OverlayOptions[] = [];
+  const missingLayers: string[] = [];
   const missingRequiredLayers: string[] = [];
   const overlayTraitTypes = new Set((options.overlayTraitTypes || []).map((traitType) => String(traitType || "").trim()).filter(Boolean));
   const renderOrder = overlayTraitTypes.size
@@ -309,6 +313,9 @@ export async function renderTraitLabImage(
   for (const traitType of renderOrder) {
     const buffer = await layerBuffer(traitType, traits[traitType]);
     if (!buffer) {
+      if (!isEmptyTraitValue(traits[traitType])) {
+        missingLayers.push(traitType);
+      }
       if (!baseBuffer && REQUIRED_RENDER_BASE_LAYERS.has(traitType) && !isEmptyTraitValue(traits[traitType])) {
         missingRequiredLayers.push(traitType);
       }
@@ -327,15 +334,17 @@ export async function renderTraitLabImage(
       imageId: "",
       imageUrl: metadata.image || "",
       rendered: false,
+      missingLayers,
       missingRequiredLayers,
     };
   }
 
-  if (!composites.length || (overlayTraitTypes.size > 0 && overlayCount === 0)) {
+  if (!composites.length || missingLayers.length || (overlayTraitTypes.size > 0 && overlayCount === 0)) {
     return {
       imageId: "",
       imageUrl: metadata.image || "",
       rendered: false,
+      missingLayers,
     };
   }
 
@@ -356,7 +365,9 @@ export async function renderTraitLabImage(
     },
   }).composite(composites).png().toBuffer();
 
-  await writeImage(imageId, png);
+  if (!options.dryRun) {
+    await writeImage(imageId, png);
+  }
 
   return {
     imageId,

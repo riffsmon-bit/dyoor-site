@@ -179,7 +179,7 @@ const DEFAULT_MONAD_MAINNET_EXPLORER_URL = "https://monadscan.com";
 const DEFAULT_S2_DEPLOYMENT_BLOCK = 87616887;
 const SERVERLESS_LOG_SPAN = 25_000;
 const MIN_OWNED_TOKEN_LOG_SPAN = 10_000;
-const OWNED_TOKEN_CACHE_VERSION = "s2-owned-v8";
+const OWNED_TOKEN_CACHE_VERSION = "s2-owned-v9";
 const DEFAULT_OWNER_OF_CONCURRENCY = 8;
 const ALCHEMY_TRANSFER_PAGE_SIZE = "0x3e8";
 const CLOTHES_ALLOWED_SPECIALS = new Set([
@@ -614,6 +614,21 @@ export function traitLabMessage(payload: PreviewPayload, timestamp: string, nonc
 export function confirmationMessageFromPreviewId(previewId: string, timestamp: string, nonce: string) {
   const payload = decodePreview(previewId);
   return traitLabMessage(payload, timestamp, nonce);
+}
+
+function renderFailureMessage(renderedImage: Awaited<ReturnType<typeof renderTraitLabImage>>) {
+  const missingLayers = Array.isArray((renderedImage as any)?.missingLayers)
+    ? (renderedImage as any).missingLayers.map((value: unknown) => String(value || "").trim()).filter(Boolean)
+    : [];
+  const suffix = missingLayers.length ? ` Missing layer assets: ${missingLayers.join(", ")}.` : "";
+  return `Trait image composition failed, so metadata was not changed.${suffix}`;
+}
+
+async function assertTraitLabMetadataCanRender(tokenId: number, metadata: MetadataJson, origin = "") {
+  const renderedImage = await renderTraitLabImage(tokenId, metadata, origin, { dryRun: true });
+  if (!renderedImage.rendered) {
+    throw Object.assign(new Error(renderFailureMessage(renderedImage)), { status: 503 });
+  }
 }
 
 export function traitMapFromMetadata(metadata: MetadataJson) {
@@ -1352,6 +1367,24 @@ async function ownerOfToken(contract: ethers.Contract, tokenId: number, attempts
   return { owner: "", transient };
 }
 
+async function balanceOfWallet(contract: ethers.Contract, wallet: string, attempts = 3) {
+  let lastError: unknown = null;
+  for (let attempt = 0; attempt < attempts; attempt += 1) {
+    try {
+      const balance = Number(await contract.balanceOf(wallet));
+      if (Number.isFinite(balance) && balance >= 0) return balance;
+    } catch (error) {
+      lastError = error;
+    }
+    if (attempt < attempts - 1) await new Promise((resolve) => setTimeout(resolve, 150 * (attempt + 1)));
+  }
+
+  const message = isTransientOwnerReadError(lastError)
+    ? "Could not read Season 2 wallet balance from Monad RPC. Wait a moment and refresh."
+    : "Could not read Season 2 wallet balance.";
+  throw Object.assign(new Error(message), { status: 503 });
+}
+
 function ownerScanOrder(maxSupply: number) {
   const firstWindow = Math.min(250, maxSupply);
   const tailStart = Math.max(firstWindow + 1, maxSupply - 250 + 1);
@@ -1428,7 +1461,7 @@ export async function ownedS2TokenIds(wallet: string, maxSupply: number) {
   if (cached && cached.expiresAt > Date.now()) return [...cached.tokenIds];
 
   const contract = s2Contract();
-  const balance = Number(await contract.balanceOf(wallet).catch(() => 0n));
+  const balance = await balanceOfWallet(contract, wallet);
   const tokenIds = new Set<string>();
 
   if (Number.isFinite(balance) && balance <= 0) {
@@ -1593,6 +1626,7 @@ export async function createTraitLabPreview(input: Record<string, unknown>) {
     version,
     attributes: candidate.proposedAttributes,
   }, tokenId, config);
+  await assertTraitLabMetadataCanRender(tokenId, proposedMetadata as MetadataJson, String(input.origin || ""));
   let energyDebitDeduped = false;
   let energySpend: Awaited<ReturnType<typeof spendTraitLabEnergy>> | null = null;
   let monPayment: Awaited<ReturnType<typeof verifyTraitLabMonPayment>> | null = null;
@@ -1871,15 +1905,18 @@ export async function confirmTraitLabPreview(input: Record<string, unknown>) {
   };
   const draftMetadata = mergeMetadata(metadata, draftOverride, tokenId, config);
   const renderedImage = await renderTraitLabImage(tokenId, draftMetadata as MetadataJson, String(input.origin || ""));
+  if (!renderedImage.rendered) {
+    throw Object.assign(new Error(renderFailureMessage(renderedImage)), { status: 503 });
+  }
   const nextOverride = {
     ...draftOverride,
-    ...(renderedImage.rendered ? { image: renderedImage.imageUrl } : {}),
-    imageRender: renderedImage.rendered ? {
+    image: renderedImage.imageUrl,
+    imageRender: {
       imageId: renderedImage.imageId,
       url: renderedImage.imageUrl,
       rendererVersion: renderedImage.rendererVersion,
       renderedAt: new Date().toISOString(),
-    } : undefined,
+    },
   };
   const override = await saveRuntimeTraitOverride(tokenId, nextOverride);
   const supplyEvent = await applyTraitSupplyDeltas({

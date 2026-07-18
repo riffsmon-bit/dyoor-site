@@ -147,6 +147,7 @@ const renderTraits = [
   "Accessories 2",
   "Special",
 ];
+const TOKEN_CARD_METADATA_CONCURRENCY = 6;
 
 function normalizeAddress(address?: string) {
   return /^0x[a-fA-F0-9]{40}$/.test(address || "") ? String(address).toLowerCase() : "";
@@ -247,6 +248,24 @@ function costFor(traitType: string, action: S2TraitLabAction | "", paymentMode: 
 
 function tokenTitle(tokenId: string, metadata?: MetadataJson | null) {
   return metadata?.name || `D.Y.O.O.R #${tokenId}`;
+}
+
+async function mapWithConcurrency<T, R>(
+  values: T[],
+  limit: number,
+  mapper: (value: T, index: number) => Promise<R>,
+) {
+  const results = new Array<R>(values.length);
+  let cursor = 0;
+  const workers = Array.from({ length: Math.max(1, Math.min(limit, values.length)) }, async () => {
+    while (cursor < values.length) {
+      const index = cursor;
+      cursor += 1;
+      results[index] = await mapper(values[index], index);
+    }
+  });
+  await Promise.all(workers);
+  return results;
 }
 
 function previewRows(current?: MetadataJson | null, proposed?: MetadataJson | null) {
@@ -622,7 +641,7 @@ export function TraitLabClient() {
       setOwnedTokenIds(tokenIds);
       setStatus(tokenIds.length ? "Select a D.Y.O.O.R Droid" : "No D.Y.O.O.R Season 2 droids found for this wallet.");
 
-      const cards = await Promise.all(tokenIds.slice(0, 36).map(async (tokenId) => {
+      const cards = await mapWithConcurrency(tokenIds.slice(0, 36), TOKEN_CARD_METADATA_CONCURRENCY, async (tokenId) => {
         try {
           const metadataResponse = await fetch(`/api/metadata/${encodeURIComponent(tokenId)}`, { cache: "no-store" });
           const tokenMetadata = await metadataResponse.json().catch(() => ({})) as MetadataJson;
@@ -634,7 +653,7 @@ export function TraitLabClient() {
         } catch {
           return { tokenId, name: `D.Y.O.O.R #${tokenId}`, image: "" };
         }
-      }));
+      });
       setTokenCards(cards);
       const currentSelected = selectedTokenIdRef.current;
       const nextSelected = currentSelected && tokenIds.includes(currentSelected) ? currentSelected : tokenIds[0] || "";
