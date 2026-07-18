@@ -4,7 +4,7 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 type RenderContext = {
-  params: Promise<{ imageId: string }> | { imageId: string };
+  params: Promise<{ imageId: string }>;
 };
 
 export async function GET(_request: Request, context: RenderContext) {

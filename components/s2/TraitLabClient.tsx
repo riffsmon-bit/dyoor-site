@@ -7,11 +7,13 @@ import {
   S2_EDITABLE_TRAITS,
   S2_GUARANTEED_TRAITS,
   S2_LOCKED_TRAITS,
+  S2_REMOVABLE_TRAITS,
   S2_REQUIRED_TRAITS,
+  S2_TRAIT_LAB_TRAITS,
   S2_TRAIT_LAB_COSTS,
   S2_TRAIT_LAB_MON_COSTS,
   S2_UNLOCKABLE_TRAITS,
-  type S2EditableTrait,
+  type S2TraitLabTrait,
   type S2TraitLabAction,
   type S2TraitLabPaymentMode,
 } from "@/lib/s2-trait-lab-config";
@@ -55,7 +57,7 @@ type PreviewResponse = {
   ok?: boolean;
   wallet?: string;
   tokenId?: number;
-  traitType?: S2EditableTrait;
+  traitType?: S2TraitLabTrait;
   action?: S2TraitLabAction;
   paymentMode?: S2TraitLabPaymentMode;
   costEnergy?: number;
@@ -125,6 +127,7 @@ const editableTraits = new Set<string>(S2_EDITABLE_TRAITS);
 const lockedTraits = new Set<string>(S2_LOCKED_TRAITS);
 const guaranteedTraits = new Set<string>(S2_GUARANTEED_TRAITS);
 const unlockableTraits = new Set<string>(S2_UNLOCKABLE_TRAITS);
+const removableTraits = new Set<string>(S2_REMOVABLE_TRAITS);
 const renderTraits = [
   "Background",
   "Droid",
@@ -195,16 +198,39 @@ function metadataVersionNumber(metadata?: MetadataJson | null) {
   return Number.isSafeInteger(parsed) && parsed > 0 ? parsed : 1;
 }
 
+function actionOptionsForTrait(traitType: string, value: unknown): S2TraitLabAction[] {
+  if (!S2_TRAIT_LAB_TRAITS.includes(traitType as S2TraitLabTrait)) return [];
+  if (isEmptyTraitValue(value)) return unlockableTraits.has(traitType) ? ["unlock"] : [];
+  const actions: S2TraitLabAction[] = [];
+  if (editableTraits.has(traitType)) actions.push("reroll");
+  if (removableTraits.has(traitType)) actions.push("remove");
+  return actions;
+}
+
 function actionForTrait(traitType: string, value: unknown): S2TraitLabAction | "" {
-  if (!editableTraits.has(traitType)) return "";
-  if (isEmptyTraitValue(value)) return unlockableTraits.has(traitType) ? "unlock" : "";
-  return "reroll";
+  return actionOptionsForTrait(traitType, value)[0] || "";
+}
+
+function actionLabel(action: S2TraitLabAction | "") {
+  if (action === "unlock") return "Unlock Slot";
+  if (action === "remove") return "Remove Trait";
+  if (action === "reroll") return "Reroll";
+  return "Unavailable";
+}
+
+function actionVerb(action: S2TraitLabAction | "") {
+  if (action === "unlock") return "Unlock";
+  if (action === "remove") return "Remove";
+  if (action === "reroll") return "Reroll";
+  return "Roll";
 }
 
 function costFor(traitType: string, action: S2TraitLabAction | "", paymentMode: S2TraitLabPaymentMode) {
-  if (!action || !editableTraits.has(traitType)) return null;
-  if (paymentMode === "mon") return `${S2_TRAIT_LAB_MON_COSTS[action][traitType as S2EditableTrait]} MON`;
-  return `${S2_TRAIT_LAB_COSTS[action][traitType as S2EditableTrait]} Energy`;
+  if (!action || !S2_TRAIT_LAB_TRAITS.includes(traitType as S2TraitLabTrait)) return null;
+  const energyCost = S2_TRAIT_LAB_COSTS[action]?.[traitType as S2TraitLabTrait];
+  const monCost = S2_TRAIT_LAB_MON_COSTS[action]?.[traitType as S2TraitLabTrait];
+  if (paymentMode === "mon") return monCost ? `${monCost} MON` : null;
+  return typeof energyCost === "number" ? `${energyCost} Energy` : null;
 }
 
 function tokenTitle(tokenId: string, metadata?: MetadataJson | null) {
@@ -370,7 +396,7 @@ function RollProgress({
   paymentMode?: S2TraitLabPaymentMode;
   traitType?: string;
 }) {
-  const actionLabel = action === "unlock" ? "Rolling unlock" : "Rolling reroll";
+  const actionLabel = action === "unlock" ? "Rolling unlock" : action === "remove" ? "Removing trait" : "Rolling reroll";
   const paymentLabel = paymentMode === "mon" ? "MON transaction" : "Energy spend";
 
   return (
@@ -417,7 +443,8 @@ export function TraitLabClient() {
   const [traitLabConfig, setTraitLabConfig] = useState<TraitLabConfigResponse | null>(null);
   const [preview, setPreview] = useState<PreviewResponse | null>(null);
   const [paymentMode, setPaymentMode] = useState<S2TraitLabPaymentMode>("energy");
-  const [selectedTrait, setSelectedTrait] = useState<S2EditableTrait>("Eyes");
+  const [selectedTrait, setSelectedTrait] = useState<S2TraitLabTrait>("Eyes");
+  const [selectedAction, setSelectedAction] = useState<S2TraitLabAction | "">("");
   const [ownedLoading, setOwnedLoading] = useState(false);
   const [metadataLoading, setMetadataLoading] = useState(false);
   const [energyLoading, setEnergyLoading] = useState(false);
@@ -433,11 +460,16 @@ export function TraitLabClient() {
   const rows = previewRows(preview?.currentMetadata || metadata, preview?.proposedMetadata || metadata);
   const monPaymentVisible = true;
   const selectedTraitValue = selectedTraits[selectedTrait];
-  const selectedTraitAction = actionForTrait(selectedTrait, selectedTraitValue) as S2TraitLabAction;
+  const selectedTraitActions = useMemo(() => actionOptionsForTrait(selectedTrait, selectedTraitValue), [selectedTrait, selectedTraitValue]);
+  const selectedTraitAction = selectedTraitActions.includes(selectedAction as S2TraitLabAction)
+    ? selectedAction as S2TraitLabAction
+    : selectedTraitActions[0] || "";
   const selectedTraitMonCost = selectedTraitAction
-    ? traitLabConfig?.monCosts?.[selectedTraitAction]?.[selectedTrait] ?? S2_TRAIT_LAB_MON_COSTS[selectedTraitAction][selectedTrait]
-    : "0";
-  const selectedTraitCost = paymentMode === "mon" && selectedTraitAction ? `${selectedTraitMonCost} MON` : costFor(selectedTrait, selectedTraitAction, paymentMode);
+    ? traitLabConfig?.monCosts?.[selectedTraitAction]?.[selectedTrait] ?? S2_TRAIT_LAB_MON_COSTS[selectedTraitAction]?.[selectedTrait] ?? ""
+    : "";
+  const selectedTraitCost = paymentMode === "mon" && selectedTraitAction
+    ? (selectedTraitMonCost ? `${selectedTraitMonCost} MON` : null)
+    : costFor(selectedTrait, selectedTraitAction, paymentMode);
   const selectedTraitIsEmpty = isEmptyTraitValue(selectedTraitValue);
   const selectedTraitGuaranteedEmpty = selectedTraitIsEmpty && guaranteedTraits.has(selectedTrait);
   const selectedTraitLoading = actionLoading === `${selectedTraitAction}:${selectedTrait}`;
@@ -467,15 +499,22 @@ export function TraitLabClient() {
 
   useEffect(() => {
     if (!metadata || selectedTraitAction) return;
-    const nextTrait = S2_EDITABLE_TRAITS.find((trait) => actionForTrait(trait, selectedTraits[trait]));
+    const nextTrait = S2_TRAIT_LAB_TRAITS.find((trait) => actionForTrait(trait, selectedTraits[trait]));
     if (nextTrait && nextTrait !== selectedTrait) {
       const timer = window.setTimeout(() => {
         setSelectedTrait(nextTrait);
+        setSelectedAction(actionForTrait(nextTrait, selectedTraits[nextTrait]));
         setPreview(null);
       }, 0);
       return () => window.clearTimeout(timer);
     }
   }, [metadata, selectedTrait, selectedTraitAction, selectedTraits]);
+
+  useEffect(() => {
+    if (selectedAction === selectedTraitAction) return;
+    const timer = window.setTimeout(() => setSelectedAction(selectedTraitAction), 0);
+    return () => window.clearTimeout(timer);
+  }, [selectedAction, selectedTraitAction]);
 
   useEffect(() => {
     let active = true;
@@ -667,7 +706,7 @@ export function TraitLabClient() {
     return normalizeAddress(accounts?.[0]);
   }
 
-  async function sendTraitLabMonPayment(traitType: S2EditableTrait, action: S2TraitLabAction) {
+  async function sendTraitLabMonPayment(traitType: S2TraitLabTrait, action: S2TraitLabAction) {
     const treasuryWallet = normalizeAddress(traitLabConfig?.treasuryWallet);
     if (!treasuryWallet) throw new Error("Trait Lab treasury wallet is not configured.");
     await switchToTraitLabChain();
@@ -679,7 +718,8 @@ export function TraitLabClient() {
       throw new Error(`Wallet account changed. Switch wallet to ${shortAddress(walletAddress)} before using MON rerolls. Active wallet is ${shortAddress(activeWallet)}.`);
     }
 
-    const monCost = traitLabConfig?.monCosts?.[action]?.[traitType] ?? S2_TRAIT_LAB_MON_COSTS[action][traitType];
+    const monCost = traitLabConfig?.monCosts?.[action]?.[traitType] ?? S2_TRAIT_LAB_MON_COSTS[action]?.[traitType];
+    if (!monCost) throw new Error(`${traitType} does not support ${action} with MON.`);
     const amountRaw = parseMonRaw(monCost);
     setStatus(`Confirm wallet transaction for this ${action} roll.`);
     const txHash = await wallet.sendTransaction({
@@ -692,7 +732,7 @@ export function TraitLabClient() {
     return txHash;
   }
 
-  async function previewChange(traitType: S2EditableTrait, action: S2TraitLabAction, mode: S2TraitLabPaymentMode = paymentMode) {
+  async function previewChange(traitType: S2TraitLabTrait, action: S2TraitLabAction, mode: S2TraitLabPaymentMode = paymentMode) {
     if (!walletAddress) {
       await connectWallet();
       return;
@@ -729,7 +769,7 @@ export function TraitLabClient() {
       if (!response) throw new Error("Preview failed.");
       if (!response.ok || data.ok === false) throw new Error(data.error || "Preview failed.");
       setPreview(data);
-      setStatus(action === "unlock" ? "Unlock roll ready." : "Reroll ready.");
+      setStatus(action === "unlock" ? "Unlock roll ready." : action === "remove" ? "Remove trait preview ready." : "Reroll ready.");
       if (data.paymentMode === "energy") await loadEnergy();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Preview failed.");
@@ -910,20 +950,41 @@ export function TraitLabClient() {
                 </div>
 
                 <div className="mt-3 rounded border border-dyoor-cyan/20 bg-black/30 p-3">
-                  <div className="grid gap-3 lg:grid-cols-[minmax(0,0.72fr)_minmax(0,0.72fr)_minmax(0,1fr)_auto] lg:items-end">
+                  <div className="grid gap-3 lg:grid-cols-[minmax(0,0.72fr)_minmax(0,0.72fr)_minmax(0,0.72fr)_minmax(0,1fr)_auto] lg:items-end">
                     <label className="grid gap-2">
                       <span className="text-xs font-black uppercase tracking-[0.16em] text-white/45">Trait</span>
                       <select
                         className="field-control min-h-11 py-2.5 text-sm font-black uppercase"
                         value={selectedTrait}
                         onChange={(event) => {
-                          setSelectedTrait(event.target.value as S2EditableTrait);
+                          const trait = event.target.value as S2TraitLabTrait;
+                          setSelectedTrait(trait);
+                          setSelectedAction(actionForTrait(trait, selectedTraits[trait]));
                           setPreview(null);
                         }}
                       >
-                        {S2_EDITABLE_TRAITS.map((trait) => (
+                        {S2_TRAIT_LAB_TRAITS.map((trait) => (
                           <option key={trait} value={trait}>{trait}</option>
                         ))}
+                      </select>
+                    </label>
+
+                    <label className="grid gap-2">
+                      <span className="text-xs font-black uppercase tracking-[0.16em] text-white/45">Action</span>
+                      <select
+                        className="field-control min-h-11 py-2.5 text-sm font-black uppercase"
+                        value={selectedTraitAction}
+                        disabled={!selectedTraitActions.length}
+                        onChange={(event) => {
+                          setSelectedAction(event.target.value as S2TraitLabAction);
+                          setPreview(null);
+                        }}
+                      >
+                        {selectedTraitActions.length ? selectedTraitActions.map((action) => (
+                          <option key={action} value={action}>{actionLabel(action)}</option>
+                        )) : (
+                          <option value="">Unavailable</option>
+                        )}
                       </select>
                     </label>
 
@@ -948,7 +1009,7 @@ export function TraitLabClient() {
                       <div className="min-h-11 rounded border border-white/10 bg-white/[0.035] px-3 py-2.5">
                         <p className="truncate text-sm font-black text-white">{displayTraitValue(selectedTraitValue)}</p>
                         <p className={`mt-1 text-[0.65rem] font-black uppercase tracking-[0.14em] ${selectedTraitIsEmpty ? "text-yellow-100" : "text-dyoor-cyan"}`}>
-                          {selectedTraitGuaranteedEmpty ? "Guaranteed trait" : selectedTraitIsEmpty ? "Unlock Trait Slot" : "Reroll Available"} / {selectedTraitCost || "-"} per roll
+                          {selectedTraitGuaranteedEmpty ? "Guaranteed trait" : selectedTraitAction ? actionLabel(selectedTraitAction) : "Unavailable"} / {selectedTraitCost || "-"} per roll
                         </p>
                       </div>
                     </div>
@@ -959,15 +1020,25 @@ export function TraitLabClient() {
                       variant={selectedTraitIsEmpty ? "primary" : "secondary"}
                       onClick={() => void previewChange(selectedTrait, selectedTraitAction)}
                     >
-                      {selectedTraitLoading ? "Rolling" : selectedTraitGuaranteedEmpty ? "Guaranteed" : selectedTraitIsEmpty ? "Roll Unlock" : "Roll Reroll"}
+                      {selectedTraitLoading
+                        ? (selectedTraitAction === "remove" ? "Removing" : "Rolling")
+                        : selectedTraitGuaranteedEmpty
+                          ? "Guaranteed"
+                          : selectedTraitAction === "remove"
+                            ? "Remove Trait"
+                            : selectedTraitAction
+                              ? `Roll ${actionVerb(selectedTraitAction)}`
+                              : "Unavailable"}
                     </Button>
                   </div>
                   <p className="mt-2 text-xs font-semibold leading-5 text-white/45">
                     {selectedTraitGuaranteedEmpty
                       ? "Eyes and Mouth are guaranteed mint traits, so empty values are not unlockable in Trait Lab."
                       : selectedTraitIsEmpty
-                      ? "Rolling spends the selected payment method and creates one approved unlock result."
-                      : "Rolling spends the selected payment method and creates one compatible reroll result."}
+                        ? "Rolling spends the selected payment method and creates one approved unlock result."
+                        : selectedTraitAction === "remove"
+                          ? "Removing spends the selected payment method and clears this optional trait to None."
+                          : "Rolling spends the selected payment method and creates one compatible reroll result."}
                   </p>
                 </div>
 
@@ -994,7 +1065,9 @@ export function TraitLabClient() {
                         } disabled:cursor-not-allowed`}
                         onClick={() => {
                           if (!selectable) return;
-                          setSelectedTrait(trait as S2EditableTrait);
+                          const nextTrait = trait as S2TraitLabTrait;
+                          setSelectedTrait(nextTrait);
+                          setSelectedAction(actionForTrait(nextTrait, value));
                           setPreview(null);
                         }}
                       >
@@ -1043,7 +1116,7 @@ export function TraitLabClient() {
                 traitType={rollingTraitType || selectedTrait}
               />
             ) : !preview ? (
-              <EmptyState className="mt-5" title="No Roll Active" copy="Select Roll Reroll or Roll Unlock on an editable trait." />
+              <EmptyState className="mt-5" title="No Roll Active" copy="Select Roll Reroll, Roll Unlock, or Remove Trait on an eligible slot." />
             ) : (
               <div className="mt-5 grid gap-5">
                 <div className="grid gap-3 md:grid-cols-3">
@@ -1118,12 +1191,12 @@ export function TraitLabClient() {
                             </div>
                           </div>
                         ) : null}
-                        {preview.traitType && preview.action ? (
+                        {preview.traitType && preview.action && preview.action !== "remove" ? (
                           <Button
                             className="mt-2 w-full py-2 text-xs"
                             disabled={Boolean(actionLoading)}
                             variant="secondary"
-                            onClick={() => void previewChange(preview.traitType as S2EditableTrait, preview.action as S2TraitLabAction, preview.paymentMode || paymentMode)}
+                            onClick={() => void previewChange(preview.traitType as S2TraitLabTrait, preview.action as S2TraitLabAction, preview.paymentMode || paymentMode)}
                           >
                             {actionLoading === `${preview.action}:${preview.traitType}`
                               ? "Rolling"

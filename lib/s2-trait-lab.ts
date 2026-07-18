@@ -7,7 +7,9 @@ import { builderTraits, fileLabel, ruleConflict, type BuilderCategory, type Buil
 import {
   S2_EDITABLE_TRAITS,
   S2_GUARANTEED_TRAITS,
+  S2_TRAIT_LAB_TRAITS,
   S2_UNLOCKABLE_TRAITS,
+  S2_REMOVABLE_TRAITS,
   S2_TRAIT_LAB_FLAT_UNLOCK_COST,
   S2_TRAIT_LAB_ENERGY_PER_MON,
   S2_TRAIT_LAB_SPECIAL_MAX_ACTIVE_SUPPLY,
@@ -15,9 +17,12 @@ import {
   S2_TRAIT_LAB_COSTS,
   isS2EditableTrait,
   isS2UnlockableTrait,
+  isS2RemovableTrait,
+  isS2TraitLabTrait,
   isS2TraitLabAction,
   isS2TraitLabPaymentMode,
   type S2EditableTrait,
+  type S2TraitLabTrait,
   type S2TraitLabAction,
   type S2TraitLabPaymentMode,
 } from "@/lib/s2-trait-lab-config";
@@ -56,7 +61,7 @@ type MetadataJson = {
 };
 
 type TraitOption = {
-  traitType: S2EditableTrait;
+  traitType: S2TraitLabTrait;
   file: string;
   value: string;
   assetUri: string;
@@ -110,7 +115,7 @@ type PreviewPayload = {
   rollId: string;
   wallet: string;
   tokenId: number;
-  traitType: S2EditableTrait;
+  traitType: S2TraitLabTrait;
   action: S2TraitLabAction;
   paymentMode: S2TraitLabPaymentMode;
   previousValue: string;
@@ -421,8 +426,11 @@ export function formatTraitLabEnergyRaw(value: number) {
   return ethers.parseUnits(String(value), 18).toString();
 }
 
-export function traitLabCost(traitType: S2EditableTrait, action: S2TraitLabAction) {
+export function traitLabCost(traitType: S2TraitLabTrait, action: S2TraitLabAction) {
   const costEnergy = S2_TRAIT_LAB_COSTS[action][traitType];
+  if (typeof costEnergy !== "number") {
+    throw Object.assign(new Error(`${traitType} does not support Trait Lab ${action}.`), { status: 400 });
+  }
   return {
     costEnergy,
     costRaw: formatTraitLabEnergyRaw(costEnergy),
@@ -447,10 +455,13 @@ function parsePaymentMode(value: unknown) {
   return paymentMode;
 }
 
-function traitLabPaymentCost(traitType: S2EditableTrait, action: S2TraitLabAction, paymentMode: S2TraitLabPaymentMode) {
+function traitLabPaymentCost(traitType: S2TraitLabTrait, action: S2TraitLabAction, paymentMode: S2TraitLabPaymentMode) {
   const energyCost = traitLabCost(traitType, action);
   if (paymentMode === "mon") {
     const costMon = S2_TRAIT_LAB_MON_COSTS[action][traitType];
+    if (typeof costMon !== "string") {
+      throw Object.assign(new Error(`${traitType} does not support Trait Lab ${action}.`), { status: 400 });
+    }
     return {
       costEnergy: 0,
       costRaw: "0",
@@ -483,6 +494,7 @@ export function traitLabPublicConfig() {
     specialMaxActiveSupply: S2_TRAIT_LAB_SPECIAL_MAX_ACTIVE_SUPPLY,
     guaranteedTraits: S2_GUARANTEED_TRAITS,
     unlockableTraits: S2_UNLOCKABLE_TRAITS,
+    removableTraits: S2_REMOVABLE_TRAITS,
     monCosts: S2_TRAIT_LAB_MON_COSTS,
   };
 }
@@ -538,7 +550,7 @@ export function metadataVersion(metadata: MetadataJson) {
 }
 
 export function traitRegistry() {
-  return S2_EDITABLE_TRAITS.reduce<Record<S2EditableTrait, TraitOption[]>>((acc, traitType) => {
+  return S2_TRAIT_LAB_TRAITS.reduce<Record<S2TraitLabTrait, TraitOption[]>>((acc, traitType) => {
     const catalogTraits = traitCatalog()?.traits?.[traitType] || [];
     const fromCatalog: TraitOption[] = catalogTraits
       .filter((trait) => trait?.selectable !== false && trait?.mutable !== false && !isEmptyTraitValue(trait.name))
@@ -575,15 +587,15 @@ export function traitRegistry() {
       return true;
     });
     return acc;
-  }, {} as Record<S2EditableTrait, TraitOption[]>);
+  }, {} as Record<S2TraitLabTrait, TraitOption[]>);
 }
 
-function optionsForTrait(traitType: S2EditableTrait) {
+function optionsForTrait(traitType: S2TraitLabTrait) {
   return traitRegistry()[traitType] || [];
 }
 
 function resolveTraitOption(traitType: string, value: unknown) {
-  if (!isS2EditableTrait(traitType) || isEmptyTraitValue(value)) return null;
+  if (!isS2TraitLabTrait(traitType) || isEmptyTraitValue(value)) return null;
   const normalized = normalizeComparable(value);
   return optionsForTrait(traitType).find((option) => {
     return normalizeComparable(option.value) === normalized || normalizeComparable(option.file) === normalized;
@@ -620,7 +632,7 @@ function isOptionSupplyAvailable(option: TraitOption, supplyLedger?: TraitSupply
 }
 
 function supplyDeltaForTrait(traitType: string, value: string, delta: number, reason: TraitSupplyDelta["reason"]): TraitSupplyDelta | null {
-  if (!isS2EditableTrait(traitType) || isEmptyTraitValue(value)) return null;
+  if (!isS2TraitLabTrait(traitType) || isEmptyTraitValue(value)) return null;
   const option = resolveTraitOption(traitType, value);
   return {
     traitType,
@@ -636,7 +648,7 @@ function supplyDeltasForPatch(currentTraits: Record<string, string>, proposedAtt
   const deltas: TraitSupplyDelta[] = [];
 
   for (const [traitType, nextValue] of Object.entries(proposedAttributes)) {
-    if (!isS2EditableTrait(traitType)) continue;
+    if (!isS2TraitLabTrait(traitType)) continue;
     const currentValue = currentTraits[traitType];
     if (valuesMatch(currentValue, nextValue)) continue;
 
@@ -777,10 +789,19 @@ function proposedAttributePatch(previous: Record<string, string>, next: Record<s
   return patch;
 }
 
-function assertValidRequestedChange(traits: Record<string, string>, traitType: S2EditableTrait, action: S2TraitLabAction) {
+function assertValidRequestedChange(traits: Record<string, string>, traitType: S2TraitLabTrait, action: S2TraitLabAction) {
   const currentValue = traits[traitType];
+  if (action === "remove" && !isS2RemovableTrait(traitType)) {
+    throw Object.assign(new Error(`${traitType} cannot be removed in Trait Lab.`), { status: 400 });
+  }
+  if (action === "remove" && isEmptyTraitValue(currentValue)) {
+    throw Object.assign(new Error(`${traitType} is already empty.`), { status: 400 });
+  }
   if (action === "unlock" && !isS2UnlockableTrait(traitType)) {
     throw Object.assign(new Error(`${traitType} is guaranteed and cannot be unlocked.`), { status: 400 });
+  }
+  if ((action === "unlock" || action === "reroll") && !isS2EditableTrait(traitType)) {
+    throw Object.assign(new Error(`${traitType} cannot be rerolled or unlocked in Trait Lab.`), { status: 400 });
   }
   if (action === "unlock" && !isEmptyTraitValue(currentValue)) {
     throw Object.assign(new Error(`${traitType} already has a trait. Use reroll instead.`), { status: 400 });
@@ -792,13 +813,36 @@ function assertValidRequestedChange(traits: Record<string, string>, traitType: S
 
 function generateCandidate(
   traits: Record<string, string>,
-  traitType: S2EditableTrait,
+  traitType: S2TraitLabTrait,
   action: S2TraitLabAction,
   supplyLedger?: TraitSupplyLedger,
 ) {
   assertValidRequestedChange(traits, traitType, action);
 
   const currentValue = traits[traitType];
+  if (action === "remove") {
+    return {
+      option: {
+        traitType,
+        file: "",
+        value: "None",
+        assetUri: "",
+        rarity: "Removed",
+      },
+      nextTraits: {
+        ...traits,
+        [traitType]: "None",
+      },
+      proposedAttributes: {
+        [traitType]: "None",
+      },
+    };
+  }
+
+  if (!isS2EditableTrait(traitType)) {
+    throw Object.assign(new Error(`${traitType} cannot be rerolled or unlocked in Trait Lab.`), { status: 400 });
+  }
+
   const candidates = weightedOptionOrder(optionsForTrait(traitType).filter((option) => {
     return isOptionSupplyAvailable(option, supplyLedger) && (action === "unlock" || !valuesMatch(option.value, currentValue));
   }));
@@ -827,13 +871,28 @@ function generateCandidate(
 
 function validateProposedPatch(currentTraits: Record<string, string>, payload: PreviewPayload) {
   const changedValue = payload.proposedAttributes[payload.traitType];
-  const approved = optionsForTrait(payload.traitType).some((option) => valuesMatch(option.value, changedValue));
-  if (!approved || !valuesMatch(changedValue, payload.proposedValue)) {
+  if (payload.action === "remove") {
+    if (!isS2RemovableTrait(payload.traitType)) {
+      throw Object.assign(new Error("Preview contains a non-removable trait update."), { status: 400 });
+    }
+    if (!isEmptyTraitValue(changedValue) || !isEmptyTraitValue(payload.proposedValue)) {
+      throw Object.assign(new Error("Remove previews may only clear a trait to None."), { status: 400 });
+    }
+  } else if (!isS2EditableTrait(payload.traitType)) {
+    throw Object.assign(new Error("Preview contains a trait that cannot be rerolled or unlocked."), { status: 400 });
+  } else {
+    const approved = optionsForTrait(payload.traitType).some((option) => valuesMatch(option.value, changedValue));
+    if (!approved || !valuesMatch(changedValue, payload.proposedValue)) {
+      throw Object.assign(new Error("Preview contains an unapproved trait result."), { status: 400 });
+    }
+  }
+
+  if (!valuesMatch(changedValue, payload.proposedValue)) {
     throw Object.assign(new Error("Preview contains an unapproved trait result."), { status: 400 });
   }
 
   for (const [traitType, value] of Object.entries(payload.proposedAttributes)) {
-    if (!isS2EditableTrait(traitType)) {
+    if (!isS2TraitLabTrait(traitType)) {
       throw Object.assign(new Error("Preview contains a locked or invalid trait update."), { status: 400 });
     }
     if (traitType !== payload.traitType && !isEmptyTraitValue(value)) {
@@ -1288,9 +1347,9 @@ function parseInputTokenId(value: unknown, maxSupply: number) {
   return parsed.tokenId;
 }
 
-function parseTraitType(value: unknown) {
+function parseTraitType(value: unknown): S2TraitLabTrait {
   const traitType = String(value || "").trim();
-  if (!isS2EditableTrait(traitType)) {
+  if (!isS2TraitLabTrait(traitType)) {
     throw Object.assign(new Error("Invalid trait type. Background and Droid are locked."), { status: 400 });
   }
   return traitType;

@@ -33,19 +33,41 @@ export const S2_UNLOCKABLE_TRAITS = [
   "Stickers/Body art",
 ] as const;
 
+export const S2_REMOVABLE_TRAITS = [
+  "Clothes",
+  "Hat",
+  "Special",
+  "Accessories",
+  "Accessories 2",
+  "Stickers/Body art",
+] as const;
+
+export const S2_TRAIT_LAB_TRAITS = [
+  "Eyes",
+  "Clothes",
+  "Mouth",
+  "Hat",
+  "Special",
+  "Accessories",
+  "Accessories 2",
+  "Stickers/Body art",
+] as const;
+
 export type S2RequiredTrait = typeof S2_REQUIRED_TRAITS[number];
 export type S2LockedTrait = typeof S2_LOCKED_TRAITS[number];
 export type S2EditableTrait = typeof S2_EDITABLE_TRAITS[number];
 export type S2GuaranteedTrait = typeof S2_GUARANTEED_TRAITS[number];
 export type S2UnlockableTrait = typeof S2_UNLOCKABLE_TRAITS[number];
-export type S2TraitLabAction = "reroll" | "unlock";
+export type S2RemovableTrait = typeof S2_REMOVABLE_TRAITS[number];
+export type S2TraitLabTrait = typeof S2_TRAIT_LAB_TRAITS[number];
+export type S2TraitLabAction = "reroll" | "unlock" | "remove";
 export type S2TraitLabPaymentMode = "energy" | "mon";
 
 export const S2_TRAIT_LAB_ENERGY_PER_MON = 50;
 export const S2_TRAIT_LAB_FLAT_UNLOCK_COST = 750;
 export const S2_TRAIT_LAB_SPECIAL_MAX_ACTIVE_SUPPLY = 10;
 
-export const S2_TRAIT_LAB_COSTS = {
+export const S2_TRAIT_LAB_COSTS: Record<S2TraitLabAction, Partial<Record<S2TraitLabTrait, number>>> = {
   reroll: {
     Eyes: 500,
     Mouth: 500,
@@ -64,9 +86,17 @@ export const S2_TRAIT_LAB_COSTS = {
     "Accessories 2": S2_TRAIT_LAB_FLAT_UNLOCK_COST,
     "Stickers/Body art": S2_TRAIT_LAB_FLAT_UNLOCK_COST,
   },
-} as const satisfies Record<S2TraitLabAction, Record<S2EditableTrait, number>>;
+  remove: {
+    Hat: S2_TRAIT_LAB_FLAT_UNLOCK_COST,
+    Clothes: S2_TRAIT_LAB_FLAT_UNLOCK_COST,
+    Special: S2_TRAIT_LAB_FLAT_UNLOCK_COST,
+    Accessories: S2_TRAIT_LAB_FLAT_UNLOCK_COST,
+    "Accessories 2": S2_TRAIT_LAB_FLAT_UNLOCK_COST,
+    "Stickers/Body art": S2_TRAIT_LAB_FLAT_UNLOCK_COST,
+  },
+};
 
-export const S2_TRAIT_LAB_MON_COSTS = {
+export const S2_TRAIT_LAB_MON_COSTS: Record<S2TraitLabAction, Partial<Record<S2TraitLabTrait, string>>> = {
   reroll: {
     Eyes: "10",
     Mouth: "10",
@@ -85,7 +115,15 @@ export const S2_TRAIT_LAB_MON_COSTS = {
     "Accessories 2": "15",
     "Stickers/Body art": "15",
   },
-} as const satisfies Record<S2TraitLabAction, Record<S2EditableTrait, string>>;
+  remove: {
+    Hat: "15",
+    Clothes: "15",
+    Special: "15",
+    Accessories: "15",
+    "Accessories 2": "15",
+    "Stickers/Body art": "15",
+  },
+};
 
 export function isS2EditableTrait(value: unknown): value is S2EditableTrait {
   return S2_EDITABLE_TRAITS.includes(value as S2EditableTrait);
@@ -103,8 +141,16 @@ export function isS2UnlockableTrait(value: unknown): value is S2UnlockableTrait 
   return S2_UNLOCKABLE_TRAITS.includes(value as S2UnlockableTrait);
 }
 
+export function isS2RemovableTrait(value: unknown): value is S2RemovableTrait {
+  return S2_REMOVABLE_TRAITS.includes(value as S2RemovableTrait);
+}
+
+export function isS2TraitLabTrait(value: unknown): value is S2TraitLabTrait {
+  return S2_TRAIT_LAB_TRAITS.includes(value as S2TraitLabTrait);
+}
+
 export function isS2TraitLabAction(value: unknown): value is S2TraitLabAction {
-  return value === "reroll" || value === "unlock";
+  return value === "reroll" || value === "unlock" || value === "remove";
 }
 
 export function isS2TraitLabPaymentMode(value: unknown): value is S2TraitLabPaymentMode {

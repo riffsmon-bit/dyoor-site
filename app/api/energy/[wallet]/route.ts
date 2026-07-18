@@ -7,7 +7,7 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 type EnergyRouteContext = {
-  params: Promise<{ wallet: string }> | { wallet: string };
+  params: Promise<{ wallet: string }>;
 };
 
 const ENERGY_BANK_ABI = [

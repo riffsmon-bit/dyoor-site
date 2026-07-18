@@ -12,7 +12,7 @@ export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
 type MetadataRouteContext = {
-  params: Promise<{ tokenId: string }> | { tokenId: string };
+  params: Promise<{ tokenId: string }>;
 };
 
 export async function GET(_request: Request, context: MetadataRouteContext) {
