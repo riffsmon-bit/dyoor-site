@@ -1,6 +1,6 @@
 import { getRuntimeMetadataConfig } from "@/lib/dyoor-s2-metadata.js";
 import { dyoorS2Contract } from "@/lib/contracts/addresses";
-import { assertTraitLabRateLimit, normalizeWallet, ownedS2TokenIds } from "@/lib/s2-trait-lab";
+import { assertTraitLabRateLimit, normalizeWallet, ownedS2TokenIds } from "@/lib/s2-trait-lab-public";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";

@@ -1,4 +1,4 @@
-import { traitLabPublicConfig } from "@/lib/s2-trait-lab";
+import { traitLabPublicConfig } from "@/lib/s2-trait-lab-public";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
