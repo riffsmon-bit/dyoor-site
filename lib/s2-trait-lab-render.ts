@@ -20,6 +20,7 @@ const STORE_NAME = "dyoor-s2-metadata";
 const IMAGE_PREFIX = "trait-lab/images";
 const DEFAULT_S2_LAYER_DIR = "/Volumes/DYOOR Hard Drive/dyoor-generator-local 3/layers";
 const DEFAULT_RENDER_SIZE = 1024;
+const DEFAULT_SITE_URL = "https://dyoor.netlify.app";
 export const RENDER_PIPELINE_VERSION = "trait-assets-v4";
 
 const REQUIRED_RENDER_BASE_LAYERS = new Set(["Background", "Droid"]);
@@ -249,8 +250,23 @@ export async function readRenderedTraitImage(imageId: string) {
 
 export function renderedTraitImageUrl(imageId: string, origin = "") {
   const pathName = `/api/s2/trait-lab/render/${encodeURIComponent(safeImageId(imageId))}`;
-  const base = String(origin || readEnv("DYOOR_SITE_URL", "NEXT_PUBLIC_SITE_URL", "URL")).replace(/\/+$/, "");
+  const base = canonicalRenderBaseUrl(origin);
   return base ? `${base}${pathName}` : pathName;
+}
+
+function canonicalRenderBaseUrl(origin = "") {
+  const configured = readEnv("DYOOR_TRAIT_LAB_RENDER_BASE_URL", "DYOOR_SITE_URL", "NEXT_PUBLIC_SITE_URL");
+  const base = String(configured || origin || "").replace(/\/+$/, "");
+  if (!base) return DEFAULT_SITE_URL;
+
+  try {
+    const parsed = new URL(base);
+    if (/^deploy-preview-\d+--dyoor\.netlify\.app$/i.test(parsed.hostname)) return DEFAULT_SITE_URL;
+    if (parsed.hostname === "localhost" || parsed.hostname === "127.0.0.1" || parsed.hostname === "0.0.0.0") return base;
+    return base;
+  } catch {
+    return DEFAULT_SITE_URL;
+  }
 }
 
 export async function renderTraitLabImage(tokenId: number, metadata: MetadataJson, origin = "") {

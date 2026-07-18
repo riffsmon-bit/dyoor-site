@@ -19,6 +19,12 @@ export type TraitLabRollRecord = {
   paymentMode: string;
   costRaw: string;
   costLabel: string;
+  recycleRewardRaw?: string;
+  recycleRewardLabel?: string;
+  recycleCreditClaim?: string;
+  recycleCreditTxHash?: string;
+  recycleCreditBlockNumber?: string;
+  recycleCreditDeduped?: boolean;
   previousValue: string;
   proposedValue: string;
   proposedAttributes: Record<string, string>;

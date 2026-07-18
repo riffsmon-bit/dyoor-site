@@ -7,11 +7,12 @@ import {
   S2_EDITABLE_TRAITS,
   S2_GUARANTEED_TRAITS,
   S2_LOCKED_TRAITS,
-  S2_REMOVABLE_TRAITS,
+  S2_RECYCLABLE_TRAITS,
   S2_REQUIRED_TRAITS,
   S2_TRAIT_LAB_TRAITS,
   S2_TRAIT_LAB_COSTS,
   S2_TRAIT_LAB_MON_COSTS,
+  S2_TRAIT_LAB_RECYCLE_REWARDS,
   S2_UNLOCKABLE_TRAITS,
   type S2TraitLabTrait,
   type S2TraitLabAction,
@@ -64,6 +65,9 @@ type PreviewResponse = {
   costRaw?: string;
   costMon?: string;
   costLabel?: string;
+  rewardEnergy?: number;
+  rewardRaw?: string;
+  rewardLabel?: string;
   previousValue?: string;
   proposedValue?: string;
   proposedAttributes?: Record<string, string>;
@@ -119,6 +123,8 @@ type TraitLabConfigResponse = {
   specialMaxActiveSupply?: number;
   guaranteedTraits?: readonly string[];
   unlockableTraits?: readonly string[];
+  recyclableTraits?: readonly string[];
+  recycleRewards?: Record<string, number>;
   monCosts?: Record<S2TraitLabAction, Record<string, string>>;
   error?: string;
 };
@@ -127,7 +133,7 @@ const editableTraits = new Set<string>(S2_EDITABLE_TRAITS);
 const lockedTraits = new Set<string>(S2_LOCKED_TRAITS);
 const guaranteedTraits = new Set<string>(S2_GUARANTEED_TRAITS);
 const unlockableTraits = new Set<string>(S2_UNLOCKABLE_TRAITS);
-const removableTraits = new Set<string>(S2_REMOVABLE_TRAITS);
+const recyclableTraits = new Set<string>(S2_RECYCLABLE_TRAITS);
 const renderTraits = [
   "Background",
   "Droid",
@@ -203,7 +209,7 @@ function actionOptionsForTrait(traitType: string, value: unknown): S2TraitLabAct
   if (isEmptyTraitValue(value)) return unlockableTraits.has(traitType) ? ["unlock"] : [];
   const actions: S2TraitLabAction[] = [];
   if (editableTraits.has(traitType)) actions.push("reroll");
-  if (removableTraits.has(traitType)) actions.push("remove");
+  if (recyclableTraits.has(traitType)) actions.push("recycle");
   return actions;
 }
 
@@ -214,6 +220,7 @@ function actionForTrait(traitType: string, value: unknown): S2TraitLabAction | "
 function actionLabel(action: S2TraitLabAction | "") {
   if (action === "unlock") return "Unlock Slot";
   if (action === "remove") return "Remove Trait";
+  if (action === "recycle") return "Recycle Trait";
   if (action === "reroll") return "Reroll";
   return "Unavailable";
 }
@@ -221,12 +228,17 @@ function actionLabel(action: S2TraitLabAction | "") {
 function actionVerb(action: S2TraitLabAction | "") {
   if (action === "unlock") return "Unlock";
   if (action === "remove") return "Remove";
+  if (action === "recycle") return "Recycle";
   if (action === "reroll") return "Reroll";
   return "Roll";
 }
 
 function costFor(traitType: string, action: S2TraitLabAction | "", paymentMode: S2TraitLabPaymentMode) {
   if (!action || !S2_TRAIT_LAB_TRAITS.includes(traitType as S2TraitLabTrait)) return null;
+  if (action === "recycle") {
+    const reward = S2_TRAIT_LAB_RECYCLE_REWARDS[traitType as S2TraitLabTrait];
+    return typeof reward === "number" ? `Earn ${reward} Energy` : null;
+  }
   const energyCost = S2_TRAIT_LAB_COSTS[action]?.[traitType as S2TraitLabTrait];
   const monCost = S2_TRAIT_LAB_MON_COSTS[action]?.[traitType as S2TraitLabTrait];
   if (paymentMode === "mon") return monCost ? `${monCost} MON` : null;
@@ -396,8 +408,14 @@ function RollProgress({
   paymentMode?: S2TraitLabPaymentMode;
   traitType?: string;
 }) {
-  const actionLabel = action === "unlock" ? "Rolling unlock" : action === "remove" ? "Removing trait" : "Rolling reroll";
-  const paymentLabel = paymentMode === "mon" ? "MON transaction" : "Energy spend";
+  const actionLabel = action === "unlock"
+    ? "Rolling unlock"
+    : action === "remove"
+      ? "Removing trait"
+      : action === "recycle"
+        ? "Recycling trait"
+        : "Rolling reroll";
+  const paymentLabel = action === "recycle" ? "Energy reward" : paymentMode === "mon" ? "MON transaction" : "Energy spend";
 
   return (
     <div className="mt-5 overflow-hidden rounded border border-dyoor-cyan/30 bg-dyoor-cyan/10">
@@ -411,7 +429,9 @@ function RollProgress({
           <p className="eyebrow text-dyoor-cyan">Roll In Progress</p>
           <h3 className="mt-2 text-2xl font-black uppercase text-white">{actionLabel}</h3>
           <p className="mt-2 text-sm font-semibold leading-6 text-white/62">
-            Generating a compatible {traitType || "trait"} result and preserving the current metadata view.
+            {action === "recycle"
+              ? `Preparing a ${traitType || "trait"} burn and Energy reward while preserving the current metadata view.`
+              : `Generating a compatible ${traitType || "trait"} result and preserving the current metadata view.`}
           </p>
           <div className="mt-4 grid gap-2 text-xs font-black uppercase tracking-[0.14em] text-white/56 sm:grid-cols-2">
             <div className="rounded border border-white/10 bg-black/30 px-3 py-2">
@@ -464,12 +484,18 @@ export function TraitLabClient() {
   const selectedTraitAction = selectedTraitActions.includes(selectedAction as S2TraitLabAction)
     ? selectedAction as S2TraitLabAction
     : selectedTraitActions[0] || "";
+  const selectedTraitPaymentMode = selectedTraitAction === "recycle" ? "energy" : paymentMode;
+  const selectedTraitReward = selectedTraitAction === "recycle"
+    ? traitLabConfig?.recycleRewards?.[selectedTrait] ?? S2_TRAIT_LAB_RECYCLE_REWARDS[selectedTrait] ?? 0
+    : 0;
   const selectedTraitMonCost = selectedTraitAction
     ? traitLabConfig?.monCosts?.[selectedTraitAction]?.[selectedTrait] ?? S2_TRAIT_LAB_MON_COSTS[selectedTraitAction]?.[selectedTrait] ?? ""
     : "";
-  const selectedTraitCost = paymentMode === "mon" && selectedTraitAction
+  const selectedTraitCost = selectedTraitAction === "recycle" && selectedTraitReward
+    ? `Earn ${selectedTraitReward} Energy`
+    : selectedTraitPaymentMode === "mon" && selectedTraitAction
     ? (selectedTraitMonCost ? `${selectedTraitMonCost} MON` : null)
-    : costFor(selectedTrait, selectedTraitAction, paymentMode);
+    : costFor(selectedTrait, selectedTraitAction, selectedTraitPaymentMode);
   const selectedTraitIsEmpty = isEmptyTraitValue(selectedTraitValue);
   const selectedTraitGuaranteedEmpty = selectedTraitIsEmpty && guaranteedTraits.has(selectedTrait);
   const selectedTraitLoading = actionLoading === `${selectedTraitAction}:${selectedTrait}`;
@@ -480,7 +506,9 @@ export function TraitLabClient() {
   const previewBeforeImage = mediaUrl(previewCurrentMetadata?.image || metadata?.image);
   const previewTraitAssetImage = mediaUrl(preview?.proposedAsset?.uri);
   const previewImageChanged = normalizeTraitValue(previewCurrentMetadata?.image) !== normalizeTraitValue(previewProposedMetadata?.image);
-  const paymentOptions = monPaymentVisible
+  const paymentOptions = selectedTraitAction === "recycle"
+    ? [{ value: "energy" as const, label: "Energy Reward" }]
+    : monPaymentVisible
     ? [
       { value: "energy" as const, label: "Spend Energy" },
       { value: "mon" as const, label: "Spend MON" },
@@ -707,6 +735,7 @@ export function TraitLabClient() {
   }
 
   async function sendTraitLabMonPayment(traitType: S2TraitLabTrait, action: S2TraitLabAction) {
+    if (action === "recycle") return "";
     const treasuryWallet = normalizeAddress(traitLabConfig?.treasuryWallet);
     if (!treasuryWallet) throw new Error("Trait Lab treasury wallet is not configured.");
     await switchToTraitLabChain();
@@ -739,13 +768,18 @@ export function TraitLabClient() {
     }
     if (!selectedTokenId) return;
 
+    const effectiveMode = action === "recycle" ? "energy" : mode;
     const key = `${action}:${traitType}`;
     setActionLoading(key);
     setPreview(null);
     setError("");
-    setStatus(mode === "mon" ? "Preparing MON roll transaction." : "Spending Energy and generating roll.");
+    setStatus(action === "recycle"
+      ? "Preparing trait recycle preview."
+      : effectiveMode === "mon"
+        ? "Preparing MON roll transaction."
+        : "Spending Energy and generating roll.");
     try {
-      const paymentTxHash = mode === "mon" ? await sendTraitLabMonPayment(traitType, action) : "";
+      const paymentTxHash = effectiveMode === "mon" ? await sendTraitLabMonPayment(traitType, action) : "";
       let response: Response | null = null;
       let data = {} as PreviewResponse;
       for (let attempt = 0; attempt < 4; attempt += 1) {
@@ -757,7 +791,7 @@ export function TraitLabClient() {
             tokenId: selectedTokenId,
             traitType,
             action,
-            paymentMode: mode,
+            paymentMode: effectiveMode,
             ...(paymentTxHash ? { paymentTxHash } : {}),
           }),
         });
@@ -769,7 +803,13 @@ export function TraitLabClient() {
       if (!response) throw new Error("Preview failed.");
       if (!response.ok || data.ok === false) throw new Error(data.error || "Preview failed.");
       setPreview(data);
-      setStatus(action === "unlock" ? "Unlock roll ready." : action === "remove" ? "Remove trait preview ready." : "Reroll ready.");
+      setStatus(action === "unlock"
+        ? "Unlock roll ready."
+        : action === "remove"
+          ? "Remove trait preview ready."
+          : action === "recycle"
+            ? "Recycle preview ready."
+            : "Reroll ready.");
       if (data.paymentMode === "energy") await loadEnergy();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Preview failed.");
@@ -804,7 +844,7 @@ export function TraitLabClient() {
       await refreshConfirmedToken(selectedTokenId, data.metadata || preview.proposedMetadata || metadata);
       setPreview(null);
       await loadEnergy();
-      setStatus("Metadata Version updated. Trait supply updated.");
+      setStatus(data.action === "recycle" ? "Trait recycled. Energy reward credited." : "Metadata Version updated. Trait supply updated.");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Confirm failed.");
     } finally {
@@ -992,7 +1032,8 @@ export function TraitLabClient() {
                       <span className="text-xs font-black uppercase tracking-[0.16em] text-white/45">Payment</span>
                       <select
                         className="field-control min-h-11 py-2.5 text-sm font-black uppercase"
-                        value={paymentMode}
+                        value={selectedTraitPaymentMode}
+                        disabled={selectedTraitAction === "recycle"}
                         onChange={(event) => {
                           setPaymentMode(event.target.value as S2TraitLabPaymentMode);
                           setPreview(null);
@@ -1009,7 +1050,7 @@ export function TraitLabClient() {
                       <div className="min-h-11 rounded border border-white/10 bg-white/[0.035] px-3 py-2.5">
                         <p className="truncate text-sm font-black text-white">{displayTraitValue(selectedTraitValue)}</p>
                         <p className={`mt-1 text-[0.65rem] font-black uppercase tracking-[0.14em] ${selectedTraitIsEmpty ? "text-yellow-100" : "text-dyoor-cyan"}`}>
-                          {selectedTraitGuaranteedEmpty ? "Guaranteed trait" : selectedTraitAction ? actionLabel(selectedTraitAction) : "Unavailable"} / {selectedTraitCost || "-"} per roll
+                          {selectedTraitGuaranteedEmpty ? "Guaranteed trait" : selectedTraitAction ? actionLabel(selectedTraitAction) : "Unavailable"} / {selectedTraitCost || "-"}{selectedTraitAction === "recycle" ? "" : " per roll"}
                         </p>
                       </div>
                     </div>
@@ -1018,14 +1059,14 @@ export function TraitLabClient() {
                       className="w-full min-w-[11rem] py-2.5 lg:w-auto"
                       disabled={!metadata || !selectedTraitAction || Boolean(actionLoading)}
                       variant={selectedTraitIsEmpty ? "primary" : "secondary"}
-                      onClick={() => void previewChange(selectedTrait, selectedTraitAction)}
+                      onClick={() => void previewChange(selectedTrait, selectedTraitAction, selectedTraitPaymentMode)}
                     >
                       {selectedTraitLoading
-                        ? (selectedTraitAction === "remove" ? "Removing" : "Rolling")
+                        ? (selectedTraitAction === "remove" || selectedTraitAction === "recycle" ? actionVerb(selectedTraitAction) : "Rolling")
                         : selectedTraitGuaranteedEmpty
                           ? "Guaranteed"
-                          : selectedTraitAction === "remove"
-                            ? "Remove Trait"
+                          : selectedTraitAction === "remove" || selectedTraitAction === "recycle"
+                            ? actionLabel(selectedTraitAction)
                             : selectedTraitAction
                               ? `Roll ${actionVerb(selectedTraitAction)}`
                               : "Unavailable"}
@@ -1033,12 +1074,14 @@ export function TraitLabClient() {
                   </div>
                   <p className="mt-2 text-xs font-semibold leading-5 text-white/45">
                     {selectedTraitGuaranteedEmpty
-                      ? "Eyes and Mouth are guaranteed mint traits, so empty values are not unlockable in Trait Lab."
-                      : selectedTraitIsEmpty
-                        ? "Rolling spends the selected payment method and creates one approved unlock result."
-                        : selectedTraitAction === "remove"
-                          ? "Removing spends the selected payment method and clears this optional trait to None."
-                          : "Rolling spends the selected payment method and creates one compatible reroll result."}
+                        ? "Eyes and Mouth are guaranteed mint traits, so empty values are not unlockable in Trait Lab."
+                        : selectedTraitIsEmpty
+                          ? "Rolling spends the selected payment method and creates one approved unlock result."
+                          : selectedTraitAction === "recycle"
+                            ? "Recycling burns this optional trait, clears the slot to None, and awards Energy after Confirm Change."
+                          : selectedTraitAction === "remove"
+                            ? "Removing spends the selected payment method and clears this optional trait to None."
+                            : "Rolling spends the selected payment method and creates one compatible reroll result."}
                   </p>
                 </div>
 
@@ -1155,6 +1198,12 @@ export function TraitLabClient() {
                       <div className="grid content-start gap-2 border-t border-dyoor-magenta/20 p-3 md:border-l md:border-t-0">
                         <p className="text-xs font-black uppercase tracking-[0.14em] text-white/40">Rarity</p>
                         <p className="text-lg font-black text-white">{preview.proposedAsset?.rarity || "Unlisted"}</p>
+                        {preview.action === "recycle" && preview.rewardLabel ? (
+                          <div className="rounded border border-dyoor-cyan/25 bg-dyoor-cyan/10 px-3 py-2">
+                            <p className="text-xs font-black uppercase tracking-[0.14em] text-dyoor-cyan">Recycle Reward</p>
+                            <p className="mt-1 text-lg font-black text-white">{preview.rewardLabel}</p>
+                          </div>
+                        ) : null}
                         <div className="grid grid-cols-2 gap-2 text-xs font-bold text-white/58">
                           <span>Initial</span>
                           <span className="text-right text-white">{preview.proposedAsset?.initialSupply || "-"}</span>
@@ -1175,7 +1224,7 @@ export function TraitLabClient() {
                             target="_blank"
                             rel="noreferrer"
                           >
-                            Roll Tx
+                            {preview.action === "recycle" ? "Reward Tx" : "Roll Tx"}
                           </a>
                         ) : null}
                         {preview.supplyDeltas?.length ? (
@@ -1191,7 +1240,7 @@ export function TraitLabClient() {
                             </div>
                           </div>
                         ) : null}
-                        {preview.traitType && preview.action && preview.action !== "remove" ? (
+                        {preview.traitType && preview.action && preview.action !== "remove" && preview.action !== "recycle" ? (
                           <Button
                             className="mt-2 w-full py-2 text-xs"
                             disabled={Boolean(actionLoading)}
