@@ -27,6 +27,7 @@ const nextConfig = {
       "./coverage/**/*",
       "./data/runtime/**/*",
       "./data/snapshots/**/*",
+      "./dyoor-builder/layers/**/*",
       "./lib/seadrop/**/*",
       "./out/**/*",
       "./scripts/**/*",
