@@ -2,6 +2,7 @@ import traitItemMetadataJson from "@/data/dyoor-s2-trait-item-metadata.json";
 import { NextResponse } from "next/server";
 
 const DEFAULT_TRAIT_ASSETS_CID = "bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu";
+const DEFAULT_PINATA_GATEWAY = "https://jade-efficient-beaver-697.mypinata.cloud";
 
 type TraitItemMetadata = {
   slot?: string;
@@ -40,7 +41,7 @@ function slugFile(value: string) {
 }
 
 function gatewayBase() {
-  return (readEnv("NEXT_PUBLIC_PINATA_GATEWAY_URL", "PINATA_GATEWAY_URL") || "https://ipfs.io").replace(/\/+$/, "");
+  return (readEnv("NEXT_PUBLIC_PINATA_GATEWAY_URL", "PINATA_GATEWAY_URL") || DEFAULT_PINATA_GATEWAY).replace(/\/+$/, "");
 }
 
 function ipfsGatewayUrl(uri: string) {
