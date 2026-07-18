@@ -1507,7 +1507,8 @@ function parseTraitType(value: unknown): S2TraitLabTrait {
 }
 
 function parseAction(value: unknown) {
-  const action = String(value || "").trim();
+  const requestedAction = String(value || "").trim();
+  const action = requestedAction === "remove" ? "recycle" : requestedAction;
   if (!isS2TraitLabAction(action)) {
     throw Object.assign(new Error("Invalid Trait Lab action."), { status: 400 });
   }

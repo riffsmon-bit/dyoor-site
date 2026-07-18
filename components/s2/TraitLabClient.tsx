@@ -962,19 +962,20 @@ export function TraitLabClient() {
 
                 <Alert tone="idle" className="mt-3 py-3">Locked traits cannot be changed.</Alert>
 
-                <div className="mt-3 hidden gap-2 rounded border border-white/10 bg-white/[0.035] p-2 sm:grid sm:grid-cols-2">
+                <div className={`mt-3 hidden gap-2 rounded border border-white/10 bg-white/[0.035] p-2 sm:grid ${selectedTraitAction === "recycle" ? "sm:grid-cols-1" : "sm:grid-cols-2"}`}>
                   <button
                     type="button"
                     className={`rounded border px-3 py-2.5 text-xs font-black uppercase tracking-[0.12em] transition ${
-                      paymentMode === "energy"
+                      selectedTraitPaymentMode === "energy"
                         ? "border-dyoor-cyan bg-dyoor-cyan text-black"
                         : "border-white/10 bg-black/30 text-white/60 hover:border-dyoor-cyan/40 hover:text-dyoor-cyan"
                     }`}
+                    disabled={selectedTraitAction === "recycle"}
                     onClick={() => setPaymentMode("energy")}
                   >
-                    Spend Energy
+                    {selectedTraitAction === "recycle" ? "Earn Energy" : "Spend Energy"}
                   </button>
-                  {monPaymentVisible ? (
+                  {monPaymentVisible && selectedTraitAction !== "recycle" ? (
                     <button
                       type="button"
                       className={`rounded border px-3 py-2.5 text-xs font-black uppercase tracking-[0.12em] transition ${
@@ -1147,7 +1148,9 @@ export function TraitLabClient() {
               </div>
               {preview ? (
                 <div className="rounded border border-dyoor-cyan/30 bg-dyoor-cyan/10 px-3 py-2 text-xs font-black uppercase tracking-[0.14em] text-dyoor-cyan">
-                  {preview.paymentMode === "mon" ? "MON Transaction" : "Spend Energy"}: {preview.costLabel || `${preview.costEnergy || 0} Energy`}
+                  {preview.action === "recycle"
+                    ? `Energy Reward: ${preview.rewardLabel || preview.costLabel || "Pending"}`
+                    : `${preview.paymentMode === "mon" ? "MON Transaction" : "Spend Energy"}: ${preview.costLabel || `${preview.costEnergy || 0} Energy`}`}
                 </div>
               ) : null}
             </div>
@@ -1159,7 +1162,7 @@ export function TraitLabClient() {
                 traitType={rollingTraitType || selectedTrait}
               />
             ) : !preview ? (
-              <EmptyState className="mt-5" title="No Roll Active" copy="Select Roll Reroll, Roll Unlock, or Remove Trait on an eligible slot." />
+              <EmptyState className="mt-5" title="No Roll Active" copy="Select Reroll, Unlock Slot, or Recycle Trait on an eligible slot." />
             ) : (
               <div className="mt-5 grid gap-5">
                 <div className="grid gap-3 md:grid-cols-3">
@@ -1285,7 +1288,7 @@ export function TraitLabClient() {
 
                 <div className="flex flex-wrap gap-3">
                   <Button variant="primary" disabled={actionLoading === "confirm"} onClick={() => void confirmChange()}>
-                    {actionLoading === "confirm" ? "Confirming" : "Confirm Change"}
+                    {actionLoading === "confirm" ? "Confirming" : preview.action === "recycle" ? "Confirm Recycle" : "Confirm Change"}
                   </Button>
                   <Button variant="secondary" disabled={actionLoading === "confirm"} onClick={() => setPreview(null)}>
                     Cancel
