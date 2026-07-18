@@ -10,6 +10,11 @@ type MetadataJson = {
   attributes?: Array<{ trait_type?: string; value?: unknown }>;
 };
 
+type RenderTraitLabImageOptions = {
+  baseImageUrl?: string;
+  overlayTraitTypes?: string[];
+};
+
 type TraitItemMetadata = {
   slot?: string;
   name?: string;
@@ -168,6 +173,13 @@ async function fetchBuffer(url: string) {
   return Buffer.from(await response.arrayBuffer());
 }
 
+async function imageBuffer(value: unknown) {
+  if (typeof value !== "string" || !value.trim()) return null;
+  const raw = value.trim();
+  const url = /^https?:\/\//i.test(raw) ? raw : ipfsGatewayUrl(raw);
+  return url ? await fetchBuffer(url) : null;
+}
+
 async function remoteLayerBuffer(traitType: string, value: unknown) {
   const cid = readEnv("DYOOR_S2_LAYER_IMAGE_CID", "NEXT_PUBLIC_DYOOR_S2_LAYER_IMAGE_CID");
   if (!cid || isEmptyTraitValue(value)) return null;
@@ -269,20 +281,40 @@ function canonicalRenderBaseUrl(origin = "") {
   }
 }
 
-export async function renderTraitLabImage(tokenId: number, metadata: MetadataJson, origin = "") {
+export async function renderTraitLabImage(
+  tokenId: number,
+  metadata: MetadataJson,
+  origin = "",
+  options: RenderTraitLabImageOptions = {},
+) {
   const traits = traitMapFromMetadata(metadata as any);
   const size = renderSize();
   const composites: sharp.OverlayOptions[] = [];
   const missingRequiredLayers: string[] = [];
+  const overlayTraitTypes = new Set((options.overlayTraitTypes || []).map((traitType) => String(traitType || "").trim()).filter(Boolean));
+  const renderOrder = overlayTraitTypes.size
+    ? RENDER_LAYER_ORDER.filter((traitType) => overlayTraitTypes.has(traitType))
+    : RENDER_LAYER_ORDER;
+  let overlayCount = 0;
 
-  for (const traitType of RENDER_LAYER_ORDER) {
+  const baseBuffer = await imageBuffer(options.baseImageUrl);
+  if (baseBuffer) {
+    composites.push({
+      input: await sharp(baseBuffer).resize(size, size, { fit: "fill" }).png().toBuffer(),
+      top: 0,
+      left: 0,
+    });
+  }
+
+  for (const traitType of renderOrder) {
     const buffer = await layerBuffer(traitType, traits[traitType]);
     if (!buffer) {
-      if (REQUIRED_RENDER_BASE_LAYERS.has(traitType) && !isEmptyTraitValue(traits[traitType])) {
+      if (!baseBuffer && REQUIRED_RENDER_BASE_LAYERS.has(traitType) && !isEmptyTraitValue(traits[traitType])) {
         missingRequiredLayers.push(traitType);
       }
       continue;
     }
+    overlayCount += 1;
     composites.push({
       input: await sharp(buffer).resize(size, size, { fit: "fill" }).png().toBuffer(),
       top: 0,
@@ -299,7 +331,7 @@ export async function renderTraitLabImage(tokenId: number, metadata: MetadataJso
     };
   }
 
-  if (!composites.length) {
+  if (!composites.length || (overlayTraitTypes.size > 0 && overlayCount === 0)) {
     return {
       imageId: "",
       imageUrl: metadata.image || "",

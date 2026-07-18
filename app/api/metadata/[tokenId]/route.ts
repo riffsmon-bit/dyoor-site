@@ -36,17 +36,29 @@ export async function GET(_request: Request, context: MetadataRouteContext) {
   const override = await getRuntimeTraitOverrides(tokenId);
   const legacyRenderId = String(override?.imageRender?.imageId || "").includes("eyJ0b2tlbklk");
   const externalRenderUrl = isExternalTraitLabRenderUrl(override?.image || override?.imageRender?.url, requestOrigin);
-  const staticBaseImageUrl = isStaticBaseTokenImageUrl(override?.image, tokenId);
+  const overrideImageIsStaticBase = isStaticBaseTokenImageUrl(override?.image, tokenId);
+  const metadataImageIsStaticBase = isStaticBaseTokenImageUrl((metadata as any)?.image, tokenId);
+  const additiveOverlayTraitTypes = metadataImageIsStaticBase
+    ? additiveOverlayTraitTypesForOverride(metadata, override?.attributes)
+    : [];
   const staleRenderer = Boolean(override?.imageRender?.rendererVersion)
     ? override?.imageRender?.rendererVersion !== RENDER_PIPELINE_VERSION
     : Boolean(override?.imageRender);
   const shouldRenderOverrideImage = Boolean(
     override?.attributes
-      && (!override.image || legacyRenderId || externalRenderUrl || staticBaseImageUrl || staleRenderer || /image recomposition TODO/i.test(String(override.notes || "")))
+      && (!override.image || legacyRenderId || externalRenderUrl || overrideImageIsStaticBase || metadataImageIsStaticBase || staleRenderer || /image recomposition TODO/i.test(String(override.notes || "")))
       && !result.usedFallback,
   );
   if (shouldRenderOverrideImage) {
-    const rendered = await renderTraitLabImage(tokenId, metadata as any, requestOrigin);
+    const rendered = await renderTraitLabImage(
+      tokenId,
+      metadata as any,
+      requestOrigin,
+      additiveOverlayTraitTypes.length ? {
+        baseImageUrl: String((metadata as any)?.image || override?.image || ""),
+        overlayTraitTypes: additiveOverlayTraitTypes,
+      } : undefined,
+    );
     if (rendered.rendered) {
       await saveRuntimeTraitOverride(tokenId, {
         ...override,
@@ -125,6 +137,57 @@ function isStaticBaseTokenImageUrl(value: unknown, tokenId: number) {
   } catch {
     return false;
   }
+}
+
+function normalizeComparableTraitValue(value: unknown) {
+  return String(value ?? "")
+    .trim()
+    .replace(/\.[a-z0-9]+$/i, "")
+    .replace(/&/g, " and ")
+    .replace(/[^a-z0-9]+/gi, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+    .toLowerCase();
+}
+
+function isEmptyTraitValue(value: unknown) {
+  const normalized = normalizeComparableTraitValue(value);
+  return !normalized
+    || normalized === "none"
+    || normalized === "null"
+    || normalized === "undefined"
+    || normalized === "n a"
+    || normalized === "na"
+    || normalized === "unknown";
+}
+
+function initialDnaTraitMap(metadata: any) {
+  const raw = String(metadata?.properties?.initial_dna || "");
+  const entries: Record<string, string> = {};
+
+  for (const part of raw.split("|")) {
+    const index = part.indexOf(":");
+    if (index <= 0) continue;
+    entries[part.slice(0, index)] = part.slice(index + 1);
+  }
+
+  return entries;
+}
+
+function additiveOverlayTraitTypesForOverride(metadata: any, attributes: unknown) {
+  if (!attributes || typeof attributes !== "object" || Array.isArray(attributes)) return [];
+
+  const initialTraits = initialDnaTraitMap(metadata);
+  const traitTypes: string[] = [];
+
+  for (const [traitType, nextValue] of Object.entries(attributes as Record<string, unknown>)) {
+    if (traitType === "Metadata Version") continue;
+    if (isEmptyTraitValue(nextValue)) return [];
+    if (!isEmptyTraitValue(initialTraits[traitType])) return [];
+    traitTypes.push(traitType);
+  }
+
+  return traitTypes;
 }
 
 function isLocalHost(hostname: string) {
