@@ -925,6 +925,32 @@ function applyTraitSideEffects(traits: Record<string, string>, changedTraitType:
   return applySpecialSideEffects(applyHeadwearSideEffects(traits, changedTraitType));
 }
 
+function repairMouthAfterFaceCoverRemoval(
+  previousTraits: Record<string, string>,
+  nextTraits: Record<string, string>,
+  changedTraitType: S2TraitLabTrait,
+  supplyLedger?: TraitSupplyLedger,
+) {
+  if (changedTraitType !== "Hat") return nextTraits;
+  if (!hasBandannaAccessory(previousTraits) || hasBandannaAccessory(nextTraits)) return nextTraits;
+  if (isEmptyTraitValue(nextTraits.Hat)) return nextTraits;
+  if (!isEmptyTraitValue(previousTraits.Mouth) || !isEmptyTraitValue(nextTraits.Mouth)) return nextTraits;
+
+  const candidates = weightedOptionOrder(optionsForTrait("Mouth").filter((option) => (
+    !isEmptyTraitValue(option.value) && isOptionSupplyAvailable(option, supplyLedger)
+  )));
+
+  for (const option of candidates) {
+    const repaired = {
+      ...nextTraits,
+      Mouth: option.value,
+    };
+    if (!validationConflict(repaired)) return repaired;
+  }
+
+  return null;
+}
+
 function proposedAttributePatch(previous: Record<string, string>, next: Record<string, string>, traitType: S2EditableTrait) {
   const patch: Record<string, string> = { [traitType]: next[traitType] };
   for (const editable of S2_EDITABLE_TRAITS) {
@@ -1003,7 +1029,9 @@ function generateCandidate(
       ...traits,
       [traitType]: option.value,
     };
-    const next = applyTraitSideEffects(changed, traitType);
+    const sideEffectTraits = applyTraitSideEffects(changed, traitType);
+    const next = repairMouthAfterFaceCoverRemoval(traits, sideEffectTraits, traitType, supplyLedger);
+    if (!next) continue;
     const conflict = validationConflict(next);
     if (!conflict) {
       return {
@@ -1049,7 +1077,9 @@ function validateProposedPatch(currentTraits: Record<string, string>, payload: P
     if (!isS2TraitLabTrait(traitType)) {
       throw Object.assign(new Error("Preview contains a locked or invalid trait update."), { status: 400 });
     }
-    if (traitType !== payload.traitType && !isEmptyTraitValue(value)) {
+    if (traitType !== payload.traitType
+      && !isEmptyTraitValue(value)
+      && !isApprovedMouthRepairSideEffect(currentTraits, payload, traitType, String(value))) {
       throw Object.assign(new Error("Preview contains an unexpected side-effect trait value."), { status: 400 });
     }
   }
@@ -1058,6 +1088,25 @@ function validateProposedPatch(currentTraits: Record<string, string>, payload: P
   const conflict = validationConflict(nextTraits);
   if (conflict) throw Object.assign(new Error(conflict), { status: 409 });
   return nextTraits;
+}
+
+function isApprovedMouthRepairSideEffect(
+  currentTraits: Record<string, string>,
+  payload: PreviewPayload,
+  traitType: string,
+  value: string,
+) {
+  if (traitType !== "Mouth") return false;
+  if (payload.traitType !== "Hat") return false;
+  if (payload.action !== "reroll" && payload.action !== "unlock") return false;
+  if (!hasBandannaAccessory(currentTraits)) return false;
+  if (!isEmptyTraitValue(currentTraits.Mouth)) return false;
+
+  const nextTraits = { ...currentTraits, ...payload.proposedAttributes };
+  if (hasBandannaAccessory(nextTraits) || isEmptyTraitValue(nextTraits.Hat)) return false;
+  if (isEmptyTraitValue(nextTraits.Mouth)) return false;
+  if (validationConflict(nextTraits)) return false;
+  return optionsForTrait("Mouth").some((option) => valuesMatch(option.value, value));
 }
 
 function proposedPatchAlreadyApplied(currentTraits: Record<string, string>, payload: PreviewPayload) {

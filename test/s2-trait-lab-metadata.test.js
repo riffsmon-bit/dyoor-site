@@ -125,6 +125,8 @@ test("Hat overrides clear existing Bandanna accessory layers", () => {
     attributes: baseMetadata.attributes.map((attribute) => (
       attribute.trait_type === "Hat"
         ? { ...attribute, value: "None" }
+        : attribute.trait_type === "Mouth"
+          ? { ...attribute, value: "None" }
         : attribute.trait_type === "Accessories 2"
           ? { ...attribute, value: "Bandana Black" }
           : attribute
@@ -138,6 +140,7 @@ test("Hat overrides clear existing Bandanna accessory layers", () => {
 
   const traits = traitMap(metadata);
   assert.equal(traits.Hat, "Durag");
+  assert.equal(traits.Mouth, "Displeased");
   assert.equal(traits["Accessories 2"], "None");
   assert.equal(traits.Background, "Eye Sea U-Project M.A.D.");
   assert.equal(traits.Droid, "Lime Green");

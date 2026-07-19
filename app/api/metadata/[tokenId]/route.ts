@@ -191,13 +191,22 @@ function reconciledOverrideAttributes(attributes: unknown, metadata: any) {
   if (!attributes || typeof attributes !== "object" || Array.isArray(attributes)) return attributes;
 
   const next = { ...(attributes as Record<string, unknown>) };
+  const initialTraits = initialDnaTraitMap(metadata);
+  const metadataMouth = traitValueFromMetadata(metadata, "Mouth");
   const changedHat = Object.hasOwn(next, "Hat") && !isEmptyTraitValue(next.Hat);
   const changedBandannaAccessory = (Object.hasOwn(next, "Accessories") && isBandannaTraitValue(next.Accessories))
     || (Object.hasOwn(next, "Accessories 2") && isBandannaTraitValue(next["Accessories 2"]));
+  const hadFaceCoveringBandanna = isBandannaTraitValue(next.Accessories)
+    || isBandannaTraitValue(next["Accessories 2"])
+    || isBandannaTraitValue(initialTraits.Accessories)
+    || isBandannaTraitValue(initialTraits["Accessories 2"]);
 
   if (changedHat) {
     if (isEmptyTraitValue(traitValueFromMetadata(metadata, "Accessories"))) next.Accessories = "None";
     if (isEmptyTraitValue(traitValueFromMetadata(metadata, "Accessories 2"))) next["Accessories 2"] = "None";
+    if (hadFaceCoveringBandanna && isEmptyTraitValue(next.Mouth) && !isEmptyTraitValue(metadataMouth)) {
+      next.Mouth = metadataMouth;
+    }
   }
 
   if (changedBandannaAccessory && isEmptyTraitValue(traitValueFromMetadata(metadata, "Hat"))) {
