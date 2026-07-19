@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { decodeFunctionResult, encodeFunctionData, parseUnits } from "viem";
 import { Alert, Button, Card, EmptyState, LoadingSkeleton, PageShell, SectionHeader, StatCard } from "@/components/ui/DyoorUi";
 import { WalletButton } from "@/components/wallet/WalletButton";
 import {
@@ -12,6 +13,8 @@ import {
   S2_TRAIT_LAB_TRAITS,
   S2_TRAIT_LAB_COSTS,
   S2_TRAIT_LAB_MON_COSTS,
+  S2_TRAIT_LAB_MEME_PAYMENT_TOKENS,
+  S2_TRAIT_LAB_MEME_TOKEN_COSTS,
   S2_TRAIT_LAB_RECYCLE_REWARDS,
   S2_UNLOCKABLE_TRAITS,
   type S2TraitLabTrait,
@@ -83,6 +86,11 @@ type PreviewResponse = {
   rollId?: string;
   rollCharged?: boolean;
   paymentTxHash?: string;
+  paymentBurnTxHash?: string;
+  paymentToken?: string;
+  paymentTokenSymbol?: string;
+  paymentTreasuryAmountRaw?: string;
+  paymentBurnAmountRaw?: string;
   paymentAmountRaw?: string;
   paymentBlockNumber?: string;
   supplyDeltas?: Array<{
@@ -131,8 +139,50 @@ type TraitLabConfigResponse = {
   recyclableTraits?: readonly string[];
   recycleRewards?: Record<string, number>;
   monCosts?: Record<S2TraitLabAction, Record<string, string>>;
+  memeTokenCosts?: Record<S2TraitLabAction, Record<string, string>>;
+  memePaymentTokens?: Array<{
+    address: string;
+    label: string;
+    symbol: string;
+  }>;
+  burnAddress?: string;
   error?: string;
 };
+
+type PendingMemePayment = {
+  wallet: string;
+  tokenId: string;
+  traitType: S2TraitLabTrait;
+  action: S2TraitLabAction;
+  paymentToken: string;
+  tokenCost: string;
+  treasuryAmountRaw: string;
+  burnAmountRaw: string;
+  treasuryTxHash: string;
+};
+
+const ERC20_TRANSFER_ABI = [
+  {
+    type: "function",
+    name: "transfer",
+    stateMutability: "nonpayable",
+    inputs: [
+      { name: "to", type: "address" },
+      { name: "amount", type: "uint256" },
+    ],
+    outputs: [{ name: "", type: "bool" }],
+  },
+] as const;
+
+const ERC20_DECIMALS_ABI = [
+  {
+    type: "function",
+    name: "decimals",
+    stateMutability: "view",
+    inputs: [],
+    outputs: [{ name: "", type: "uint8" }],
+  },
+] as const;
 
 const editableTraits = new Set<string>(S2_EDITABLE_TRAITS);
 const lockedTraits = new Set<string>(S2_LOCKED_TRAITS);
@@ -248,6 +298,7 @@ function costFor(traitType: string, action: S2TraitLabAction | "", paymentMode: 
   const energyCost = S2_TRAIT_LAB_COSTS[action]?.[traitType as S2TraitLabTrait];
   const monCost = S2_TRAIT_LAB_MON_COSTS[action]?.[traitType as S2TraitLabTrait];
   if (paymentMode === "mon") return monCost ? `${monCost} MON` : null;
+  if (paymentMode === "meme") return monCost ? `${monCost} meme tokens` : null;
   return typeof energyCost === "number" ? `${energyCost} Energy` : null;
 }
 
@@ -447,7 +498,7 @@ function RollProgress({
       : action === "recycle"
         ? "Recycling trait"
         : "Rolling reroll";
-  const paymentLabel = action === "recycle" ? "Energy reward" : paymentMode === "mon" ? "MON transaction" : "Energy spend";
+  const paymentLabel = action === "recycle" ? "Energy reward" : paymentMode === "mon" ? "MON transaction" : paymentMode === "meme" ? "Meme token split payment" : "Energy spend";
 
   return (
     <div className="mt-5 overflow-hidden rounded border border-dyoor-cyan/30 bg-dyoor-cyan/10">
@@ -495,6 +546,8 @@ export function TraitLabClient() {
   const [traitLabConfig, setTraitLabConfig] = useState<TraitLabConfigResponse | null>(null);
   const [preview, setPreview] = useState<PreviewResponse | null>(null);
   const [paymentMode, setPaymentMode] = useState<S2TraitLabPaymentMode>("energy");
+  const [memePaymentToken, setMemePaymentToken] = useState("");
+  const [pendingMemePayment, setPendingMemePayment] = useState<PendingMemePayment | null>(null);
   const [selectedTrait, setSelectedTrait] = useState<S2TraitLabTrait>("Eyes");
   const [selectedAction, setSelectedAction] = useState<S2TraitLabAction | "">("");
   const [ownedLoading, setOwnedLoading] = useState(false);
@@ -517,16 +570,27 @@ export function TraitLabClient() {
     ? selectedAction as S2TraitLabAction
     : selectedTraitActions[0] || "";
   const selectedTraitPaymentMode = selectedTraitAction === "recycle" ? "energy" : paymentMode;
+  const memeTokens = useMemo(() => (
+    traitLabConfig?.memePaymentTokens?.length
+      ? traitLabConfig.memePaymentTokens
+      : S2_TRAIT_LAB_MEME_PAYMENT_TOKENS.map((token) => ({ ...token }))
+  ), [traitLabConfig]);
+  const selectedMemeToken = memeTokens.find((token) => normalizeAddress(token.address) === normalizeAddress(memePaymentToken)) || memeTokens[0] || null;
   const selectedTraitReward = selectedTraitAction === "recycle"
     ? traitLabConfig?.recycleRewards?.[selectedTrait] ?? S2_TRAIT_LAB_RECYCLE_REWARDS[selectedTrait] ?? 0
     : 0;
   const selectedTraitMonCost = selectedTraitAction
     ? traitLabConfig?.monCosts?.[selectedTraitAction]?.[selectedTrait] ?? S2_TRAIT_LAB_MON_COSTS[selectedTraitAction]?.[selectedTrait] ?? ""
     : "";
+  const selectedTraitMemeCost = selectedTraitAction
+    ? traitLabConfig?.memeTokenCosts?.[selectedTraitAction]?.[selectedTrait] ?? S2_TRAIT_LAB_MEME_TOKEN_COSTS[selectedTraitAction]?.[selectedTrait] ?? ""
+    : "";
   const selectedTraitCost = selectedTraitAction === "recycle" && selectedTraitReward
     ? `Earn ${selectedTraitReward} Energy`
     : selectedTraitPaymentMode === "mon" && selectedTraitAction
     ? (selectedTraitMonCost ? `${selectedTraitMonCost} MON` : null)
+    : selectedTraitPaymentMode === "meme" && selectedTraitAction
+      ? (selectedTraitMemeCost ? `${selectedTraitMemeCost} ${selectedMemeToken?.symbol || "meme tokens"}` : null)
     : costFor(selectedTrait, selectedTraitAction, selectedTraitPaymentMode);
   const selectedTraitIsEmpty = isEmptyTraitValue(selectedTraitValue);
   const selectedTraitGuaranteedEmpty = selectedTraitIsEmpty && guaranteedTraits.has(selectedTrait);
@@ -542,10 +606,17 @@ export function TraitLabClient() {
     ? [{ value: "energy" as const, label: "Energy Reward" }]
     : monPaymentVisible
     ? [
-      { value: "energy" as const, label: "Spend Energy" },
-      { value: "mon" as const, label: "Spend MON" },
+      { value: "energy", label: "Spend Energy" },
+      { value: "mon", label: "Spend MON" },
+      ...memeTokens.map((token) => ({
+        value: `meme:${normalizeAddress(token.address)}`,
+        label: `Spend ${token.symbol || token.label}`,
+      })),
     ]
     : [{ value: "energy" as const, label: "Spend Energy" }];
+  const paymentSelectValue = selectedTraitPaymentMode === "meme"
+    ? `meme:${normalizeAddress(selectedMemeToken?.address)}`
+    : selectedTraitPaymentMode;
 
   useEffect(() => {
     selectedTokenIdRef.current = selectedTokenId;
@@ -556,6 +627,18 @@ export function TraitLabClient() {
     const timer = window.setTimeout(() => setPaymentMode("energy"), 0);
     return () => window.clearTimeout(timer);
   }, [monPaymentVisible, paymentMode]);
+
+  useEffect(() => {
+    if (paymentMode !== "meme") return;
+    if (normalizeAddress(memePaymentToken)) return;
+    const firstToken = memeTokens[0]?.address;
+    if (firstToken) {
+      const timer = window.setTimeout(() => setMemePaymentToken(firstToken), 0);
+      return () => window.clearTimeout(timer);
+    }
+    const timer = window.setTimeout(() => setPaymentMode("energy"), 0);
+    return () => window.clearTimeout(timer);
+  }, [memePaymentToken, memeTokens, paymentMode]);
 
   useEffect(() => {
     if (!metadata || selectedTraitAction) return;
@@ -793,6 +876,98 @@ export function TraitLabClient() {
     return txHash;
   }
 
+  async function readErc20Decimals(tokenAddress: string) {
+    const provider = await wallet.getProvider();
+    const data = encodeFunctionData({ abi: ERC20_DECIMALS_ABI, functionName: "decimals" });
+    const result = await provider.request({
+      method: "eth_call",
+      params: [{ to: tokenAddress, data }, "latest"],
+    }) as string;
+    const decoded = decodeFunctionResult({ abi: ERC20_DECIMALS_ABI, functionName: "decimals", data: result as `0x${string}` });
+    const decimals = Number(decoded);
+    if (!Number.isInteger(decimals) || decimals < 0 || decimals > 36) {
+      throw new Error("Selected meme token returned an invalid decimals value.");
+    }
+    return decimals;
+  }
+
+  async function sendErc20Transfer(tokenAddress: string, recipient: string, amountRaw: bigint) {
+    const activeWallet = await activeProviderWallet();
+    if (!activeWallet) {
+      throw new Error("Wallet provider did not return an active account. Reconnect wallet and try again.");
+    }
+    if (activeWallet !== walletAddress) {
+      throw new Error(`Wallet account changed. Switch wallet to ${shortAddress(walletAddress)} before using token rerolls. Active wallet is ${shortAddress(activeWallet)}.`);
+    }
+    const data = encodeFunctionData({
+      abi: ERC20_TRANSFER_ABI,
+      functionName: "transfer",
+      args: [recipient as `0x${string}`, amountRaw],
+    });
+    const txHash = await wallet.sendTransaction({
+      from: activeWallet,
+      to: tokenAddress,
+      value: "0x0",
+      data,
+    });
+    await waitForTransactionReceipt(txHash);
+    return txHash;
+  }
+
+  async function sendTraitLabMemePayment(traitType: S2TraitLabTrait, action: S2TraitLabAction) {
+    if (action === "recycle") return {};
+    const token = selectedMemeToken;
+    const treasuryWallet = normalizeAddress(traitLabConfig?.treasuryWallet);
+    const burnAddress = normalizeAddress(traitLabConfig?.burnAddress);
+    if (!token?.address) throw new Error("Select a meme token payment option.");
+    if (!treasuryWallet) throw new Error("Trait Lab treasury wallet is not configured.");
+    if (!burnAddress) throw new Error("Trait Lab burn address is not configured.");
+    const tokenAddress = normalizeAddress(token.address);
+    const tokenCost = traitLabConfig?.memeTokenCosts?.[action]?.[traitType] ?? S2_TRAIT_LAB_MEME_TOKEN_COSTS[action]?.[traitType];
+    if (!tokenCost || tokenCost === "0") throw new Error(`${traitType} does not support ${action} with meme tokens.`);
+
+    await switchToTraitLabChain();
+    const decimals = await readErc20Decimals(tokenAddress);
+    const totalRaw = parseUnits(tokenCost, decimals);
+    const burnRaw = totalRaw / 2n;
+    const treasuryRaw = totalRaw - burnRaw;
+    const matchingPending = pendingMemePayment
+      && pendingMemePayment.wallet === walletAddress
+      && pendingMemePayment.tokenId === selectedTokenId
+      && pendingMemePayment.traitType === traitType
+      && pendingMemePayment.action === action
+      && pendingMemePayment.paymentToken === tokenAddress
+      && pendingMemePayment.tokenCost === tokenCost
+      && pendingMemePayment.treasuryAmountRaw === treasuryRaw.toString()
+      && pendingMemePayment.burnAmountRaw === burnRaw.toString()
+      ? pendingMemePayment
+      : null;
+
+    setStatus(matchingPending
+      ? "Using the confirmed treasury transfer. Confirm the burn transfer to finish payment."
+      : `Meme payment requires two wallet confirmations: ${tokenCost} ${token.symbol || "tokens"} split 50/50 to treasury and burn.`);
+    const treasuryTxHash = matchingPending?.treasuryTxHash || await sendErc20Transfer(tokenAddress, treasuryWallet, treasuryRaw);
+    setPendingMemePayment({
+      wallet: walletAddress,
+      tokenId: selectedTokenId,
+      traitType,
+      action,
+      paymentToken: tokenAddress,
+      tokenCost,
+      treasuryAmountRaw: treasuryRaw.toString(),
+      burnAmountRaw: burnRaw.toString(),
+      treasuryTxHash,
+    });
+    if (!matchingPending) setStatus("Treasury transfer confirmed. Confirm the burn transfer to finish payment.");
+    const burnTxHash = await sendErc20Transfer(tokenAddress, burnAddress, burnRaw);
+    setStatus("Meme token payment confirmed. Waiting for server verification.");
+    return {
+      paymentToken: tokenAddress,
+      paymentTxHash: treasuryTxHash,
+      paymentBurnTxHash: burnTxHash,
+    };
+  }
+
   async function previewChange(traitType: S2TraitLabTrait, action: S2TraitLabAction, mode: S2TraitLabPaymentMode = paymentMode) {
     if (!walletAddress) {
       await connectWallet();
@@ -809,9 +984,15 @@ export function TraitLabClient() {
       ? "Preparing trait recycle preview."
       : effectiveMode === "mon"
         ? "Preparing MON roll transaction."
+        : effectiveMode === "meme"
+          ? "Preparing meme token roll transactions."
         : "Spending Energy and generating roll.");
     try {
-      const paymentTxHash = effectiveMode === "mon" ? await sendTraitLabMonPayment(traitType, action) : "";
+      const payment = effectiveMode === "mon"
+        ? { paymentTxHash: await sendTraitLabMonPayment(traitType, action) }
+        : effectiveMode === "meme"
+          ? await sendTraitLabMemePayment(traitType, action)
+          : {};
       let response: Response | null = null;
       let data = {} as PreviewResponse;
       for (let attempt = 0; attempt < 4; attempt += 1) {
@@ -824,17 +1005,18 @@ export function TraitLabClient() {
             traitType,
             action,
             paymentMode: effectiveMode,
-            ...(paymentTxHash ? { paymentTxHash } : {}),
+            ...payment,
           }),
         });
         data = await response.json().catch(() => ({})) as PreviewResponse;
-        if (!(response.status === 409 && paymentTxHash)) break;
+        if (!(response.status === 409 && ("paymentTxHash" in payment))) break;
         setStatus("Waiting for roll transaction to index.");
         await sleep(1500);
       }
       if (!response) throw new Error("Preview failed.");
       if (!response.ok || data.ok === false) throw new Error(data.error || "Preview failed.");
       setPreview(data);
+      if (effectiveMode === "meme") setPendingMemePayment(null);
       setStatus(action === "unlock"
         ? "Unlock roll ready."
         : action === "remove"
@@ -1071,10 +1253,16 @@ export function TraitLabClient() {
                       <span className="text-xs font-black uppercase tracking-[0.16em] text-white/45">Payment</span>
                       <select
                         className="field-control min-h-11 py-2.5 text-sm font-black uppercase"
-                        value={selectedTraitPaymentMode}
+                        value={paymentSelectValue}
                         disabled={selectedTraitAction === "recycle"}
                         onChange={(event) => {
-                          setPaymentMode(event.target.value as S2TraitLabPaymentMode);
+                          const value = event.target.value;
+                          if (value.startsWith("meme:")) {
+                            setPaymentMode("meme");
+                            setMemePaymentToken(value.slice("meme:".length));
+                          } else {
+                            setPaymentMode(value as S2TraitLabPaymentMode);
+                          }
                           setPreview(null);
                         }}
                       >
@@ -1188,7 +1376,7 @@ export function TraitLabClient() {
                 <div className="rounded border border-dyoor-cyan/30 bg-dyoor-cyan/10 px-3 py-2 text-xs font-black uppercase tracking-[0.14em] text-dyoor-cyan">
                   {preview.action === "recycle"
                     ? `Energy Reward: ${preview.rewardLabel || preview.costLabel || "Pending"}`
-                    : `${preview.paymentMode === "mon" ? "MON Transaction" : "Spend Energy"}: ${preview.costLabel || `${preview.costEnergy || 0} Energy`}`}
+                    : `${preview.paymentMode === "mon" ? "MON Transaction" : preview.paymentMode === "meme" ? "Meme Token Payment" : "Spend Energy"}: ${preview.costLabel || `${preview.costEnergy || 0} Energy`}`}
                 </div>
               ) : null}
             </div>
@@ -1265,7 +1453,17 @@ export function TraitLabClient() {
                             target="_blank"
                             rel="noreferrer"
                           >
-                            {preview.action === "recycle" ? "Reward Tx" : "Roll Tx"}
+                            {preview.action === "recycle" ? "Reward Tx" : preview.paymentMode === "meme" ? "Treasury Tx" : "Roll Tx"}
+                          </a>
+                        ) : null}
+                        {preview.paymentBurnTxHash ? (
+                          <a
+                            className="truncate text-xs font-black uppercase tracking-[0.12em] text-yellow-100 underline-offset-4 hover:underline"
+                            href={`${traitLabConfig?.explorerUrl || "https://monadscan.com"}/tx/${preview.paymentBurnTxHash}`}
+                            target="_blank"
+                            rel="noreferrer"
+                          >
+                            Burn Tx
                           </a>
                         ) : null}
                       </div>

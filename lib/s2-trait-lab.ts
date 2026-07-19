@@ -17,6 +17,9 @@ import {
   S2_TRAIT_LAB_TOKEN_COOLDOWN_MS,
   S2_TRAIT_LAB_RECYCLE_REWARDS,
   S2_TRAIT_LAB_MON_COSTS,
+  S2_TRAIT_LAB_MEME_PAYMENT_TOKENS,
+  S2_TRAIT_LAB_MEME_TOKEN_COSTS,
+  S2_TRAIT_LAB_BURN_ADDRESS,
   S2_TRAIT_LAB_COSTS,
   isS2EditableTrait,
   isS2UnlockableTrait,
@@ -42,6 +45,7 @@ import { refreshOpenSeaTokenMetadata } from "@/lib/opensea-metadata-refresh";
 import {
   applyTraitSupplyDeltas,
   assertTraitSupplyAvailable,
+  claimTraitLabMemePayment,
   claimTraitLabMonPayment,
   getTraitLabRoll,
   getTraitSupplyLedger,
@@ -142,6 +146,11 @@ type PreviewPayload = {
   rewardRaw?: string;
   rewardLabel?: string;
   recycleCreditClaim?: string;
+  paymentTokenAddress?: string;
+  paymentTokenSymbol?: string;
+  paymentTokenAmountRaw?: string;
+  paymentTokenTreasuryAmountRaw?: string;
+  paymentTokenBurnAmountRaw?: string;
   assetUri: string;
   metadataVersion: number;
   expiresAt: number;
@@ -177,6 +186,14 @@ const ENERGY_BANK_ABI = [
   "function CREDIT_ROLE() view returns (bytes32)",
   "function hasRole(bytes32 role,address account) view returns (bool)",
 ];
+
+const ERC20_ABI = [
+  "event Transfer(address indexed from,address indexed to,uint256 value)",
+  "function decimals() view returns (uint8)",
+  "function symbol() view returns (string)",
+];
+
+const ERC20_TRANSFER_TOPIC = ethers.id("Transfer(address,address,uint256)");
 
 const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
 const DEFAULT_TRAIT_ASSETS_CID = "bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu";
@@ -251,6 +268,66 @@ function monCostRaw(value: string) {
   } catch {
     throw Object.assign(new Error("Invalid MON cost configuration."), { status: 500 });
   }
+}
+
+function memePaymentBurnAddress() {
+  const address = optionalAddress(S2_TRAIT_LAB_BURN_ADDRESS);
+  if (!address) throw Object.assign(new Error("Trait Lab meme burn address is not configured."), { status: 500 });
+  return address;
+}
+
+function approvedMemePaymentTokens() {
+  return S2_TRAIT_LAB_MEME_PAYMENT_TOKENS.map((token) => ({
+    ...token,
+    address: ethers.getAddress(token.address),
+  }));
+}
+
+function requireMemePaymentToken(value: unknown) {
+  const address = optionalAddress(value);
+  if (!address) {
+    throw Object.assign(new Error("Select an approved meme token for this roll."), { status: 400 });
+  }
+  const token = approvedMemePaymentTokens().find((item) => item.address.toLowerCase() === address.toLowerCase());
+  if (!token) {
+    throw Object.assign(new Error("This meme token is not approved for Trait Lab payments."), { status: 400 });
+  }
+  return token;
+}
+
+function tokenUnitCost(traitType: S2TraitLabTrait, action: S2TraitLabAction) {
+  const cost = S2_TRAIT_LAB_MEME_TOKEN_COSTS[action][traitType];
+  if (typeof cost !== "string" || !cost || cost === "0") {
+    throw Object.assign(new Error(`${traitType} does not support Trait Lab ${action} with meme tokens.`), { status: 400 });
+  }
+  return cost;
+}
+
+async function memeTokenQuote(tokenAddress: string, traitType: S2TraitLabTrait, action: S2TraitLabAction) {
+  const costUnits = tokenUnitCost(traitType, action);
+  const token = new ethers.Contract(tokenAddress, ERC20_ABI, provider());
+  const [decimalsResult, symbolResult] = await Promise.all([
+    token.decimals(),
+    token.symbol().catch(() => ""),
+  ]);
+  const decimals = Number(decimalsResult);
+  if (!Number.isInteger(decimals) || decimals < 0 || decimals > 36) {
+    throw Object.assign(new Error("Approved meme token has an invalid decimals value."), { status: 500 });
+  }
+  const amountRaw = ethers.parseUnits(costUnits, decimals);
+  if (amountRaw <= 1n) {
+    throw Object.assign(new Error("Approved meme token cost is too small to split."), { status: 500 });
+  }
+  const burnAmountRaw = amountRaw / 2n;
+  const treasuryAmountRaw = amountRaw - burnAmountRaw;
+  return {
+    costUnits,
+    decimals,
+    symbol: String(symbolResult || "").trim(),
+    amountRaw,
+    burnAmountRaw,
+    treasuryAmountRaw,
+  };
 }
 
 function configuredS2ChainId() {
@@ -522,6 +599,18 @@ function traitLabPaymentCost(traitType: S2TraitLabTrait, action: S2TraitLabActio
       costLabel: `${costMon} MON`,
     };
   }
+  if (paymentMode === "meme") {
+    const costMeme = S2_TRAIT_LAB_MEME_TOKEN_COSTS[action][traitType];
+    if (typeof costMeme !== "string" || !costMeme || costMeme === "0") {
+      throw Object.assign(new Error(`${traitType} does not support Trait Lab ${action} with meme tokens.`), { status: 400 });
+    }
+    return {
+      costEnergy: 0,
+      costRaw: "0",
+      costMon: costMeme,
+      costLabel: `${costMeme} meme tokens`,
+    };
+  }
   return {
     ...energyCost,
     costMon: "0",
@@ -582,6 +671,9 @@ export function traitLabPublicConfig() {
     recyclableTraits: S2_RECYCLABLE_TRAITS,
     recycleRewards: S2_TRAIT_LAB_RECYCLE_REWARDS,
     monCosts: S2_TRAIT_LAB_MON_COSTS,
+    memePaymentTokens: approvedMemePaymentTokens(),
+    memeTokenCosts: S2_TRAIT_LAB_MEME_TOKEN_COSTS,
+    burnAddress: memePaymentBurnAddress(),
   };
 }
 
@@ -613,6 +705,13 @@ export function traitLabMessage(payload: PreviewPayload, timestamp: string, nonc
   if (payload.rewardLabel) {
     lines.push(`Reward: ${payload.rewardLabel}`);
     lines.push(`RewardRaw: ${payload.rewardRaw || "0"}`);
+  }
+  if (payload.paymentMode === "meme") {
+    lines.push(`Payment Token: ${payload.paymentTokenAddress || ""}`);
+    lines.push(`Payment Token Symbol: ${payload.paymentTokenSymbol || ""}`);
+    lines.push(`Payment Token AmountRaw: ${payload.paymentTokenAmountRaw || "0"}`);
+    lines.push(`Payment Token TreasuryRaw: ${payload.paymentTokenTreasuryAmountRaw || "0"}`);
+    lines.push(`Payment Token BurnRaw: ${payload.paymentTokenBurnAmountRaw || "0"}`);
   }
   lines.push(`Preview ID: ${encodePreview(payload)}`);
   lines.push(`Timestamp: ${timestamp}`);
@@ -1126,7 +1225,7 @@ function provider() {
 }
 
 function energyBankSigner() {
-  const privateKey = normalizePrivateKey(readEnv("ENERGY_BANK_OPERATOR_PRIVATE_KEY", "DEPLOYER_PRIVATE_KEY"));
+  const privateKey = normalizePrivateKey(readEnv("ENERGY_BANK_OPERATOR_PRIVATE_KEY"));
   if (!privateKey) {
     throw Object.assign(new Error("ENERGY_BANK_OPERATOR_PRIVATE_KEY is required for Energy Trait Lab rolls."), { status: 500 });
   }
@@ -1255,6 +1354,126 @@ async function verifyTraitLabMonPayment({
     treasuryWallet,
     amountRaw: tx.value.toString(),
     blockNumber: String(receipt.blockNumber || ""),
+  };
+}
+
+function receiptTokenTransferTotal(
+  receipt: ethers.TransactionReceipt,
+  tokenAddress: string,
+  from: string,
+  to: string,
+) {
+  const fromTopic = topicAddress(from).toLowerCase();
+  const toTopic = topicAddress(to).toLowerCase();
+  const token = tokenAddress.toLowerCase();
+  let total = 0n;
+
+  for (const log of receipt.logs || []) {
+    if (String(log.address || "").toLowerCase() !== token) continue;
+    if (String(log.topics?.[0] || "").toLowerCase() !== ERC20_TRANSFER_TOPIC.toLowerCase()) continue;
+    if (String(log.topics?.[1] || "").toLowerCase() !== fromTopic) continue;
+    if (String(log.topics?.[2] || "").toLowerCase() !== toTopic) continue;
+    try {
+      total += BigInt(String(log.data || "0x0"));
+    } catch {}
+  }
+
+  return total;
+}
+
+async function verifyTraitLabErc20Transfer({
+  wallet,
+  txHash,
+  tokenAddress,
+  recipient,
+  expectedAmountRaw,
+  label,
+}: {
+  wallet: string;
+  txHash: string;
+  tokenAddress: string;
+  recipient: string;
+  expectedAmountRaw: bigint;
+  label: string;
+}) {
+  const rpcProvider = provider();
+  const [tx, receipt] = await Promise.all([
+    rpcProvider.getTransaction(txHash),
+    rpcProvider.getTransactionReceipt(txHash),
+  ]);
+  if (!tx) throw Object.assign(new Error(`${label} transaction is not available yet.`), { status: 409 });
+  if (!receipt) throw Object.assign(new Error(`${label} transaction is not confirmed yet.`), { status: 409 });
+  if (receipt.status !== 1) throw Object.assign(new Error(`${label} transaction failed on-chain.`), { status: 400 });
+
+  const sender = normalizeWallet(tx.from);
+  if (sender !== wallet) {
+    throw Object.assign(new Error(`${label} transaction sender ${shortWallet(sender)} does not match connected wallet ${shortWallet(wallet)}.`), { status: 400 });
+  }
+
+  const transferred = receiptTokenTransferTotal(receipt, tokenAddress, wallet, recipient);
+  if (transferred !== expectedAmountRaw) {
+    throw Object.assign(new Error(`${label} meme token transfer must equal the required amount exactly.`), { status: 400 });
+  }
+
+  return {
+    txHash,
+    amountRaw: transferred.toString(),
+    blockNumber: String(receipt.blockNumber || ""),
+  };
+}
+
+async function verifyTraitLabMemePayment({
+  wallet,
+  tokenAddress,
+  treasuryTxHash,
+  burnTxHash,
+  traitType,
+  action,
+}: {
+  wallet: string;
+  tokenAddress: string;
+  treasuryTxHash: string;
+  burnTxHash: string;
+  traitType: S2TraitLabTrait;
+  action: S2TraitLabAction;
+}) {
+  const approvedToken = requireMemePaymentToken(tokenAddress);
+  const treasuryWallet = traitLabTreasuryWallet();
+  const burnAddress = memePaymentBurnAddress();
+  const quote = await memeTokenQuote(approvedToken.address, traitType, action);
+  const tokenSymbol = quote.symbol || approvedToken.symbol;
+  const [treasuryPayment, burnPayment] = await Promise.all([
+    verifyTraitLabErc20Transfer({
+      wallet,
+      txHash: treasuryTxHash,
+      tokenAddress: approvedToken.address,
+      recipient: treasuryWallet,
+      expectedAmountRaw: quote.treasuryAmountRaw,
+      label: "Treasury",
+    }),
+    verifyTraitLabErc20Transfer({
+      wallet,
+      txHash: burnTxHash,
+      tokenAddress: approvedToken.address,
+      recipient: burnAddress,
+      expectedAmountRaw: quote.burnAmountRaw,
+      label: "Burn",
+    }),
+  ]);
+
+  return {
+    tokenAddress: approvedToken.address,
+    tokenSymbol,
+    costUnits: quote.costUnits,
+    totalAmountRaw: quote.amountRaw.toString(),
+    treasuryAmountRaw: quote.treasuryAmountRaw.toString(),
+    burnAmountRaw: quote.burnAmountRaw.toString(),
+    treasuryWallet,
+    burnAddress,
+    treasuryTxHash,
+    burnTxHash,
+    treasuryBlockNumber: treasuryPayment.blockNumber,
+    burnBlockNumber: burnPayment.blockNumber,
   };
 }
 
@@ -1654,6 +1873,7 @@ export async function createTraitLabPreview(input: Record<string, unknown>) {
   const traitType = parseTraitType(input.traitType);
   const action = parseAction(input.action);
   const paymentMode = action === "recycle" ? "energy" : parsePaymentMode(input.paymentMode);
+  const memeToken = paymentMode === "meme" ? requireMemePaymentToken(input.paymentToken) : null;
 
   await verifyS2TokenOwner(tokenId, wallet, config.maxSupply);
 
@@ -1664,7 +1884,13 @@ export async function createTraitLabPreview(input: Record<string, unknown>) {
   const supplyLedger = await getTraitSupplyLedger();
   const candidate = generateCandidate(traits, traitType, action, supplyLedger);
   const version = metadataVersion(metadata as MetadataJson) + 1;
-  const { costEnergy, costRaw, costMon, costLabel, rewardEnergy, rewardRaw, rewardLabel } = traitLabPaymentCost(traitType, action, paymentMode);
+  const paymentCost = traitLabPaymentCost(traitType, action, paymentMode);
+  let { costEnergy, costRaw, costMon, costLabel, rewardEnergy, rewardRaw, rewardLabel } = paymentCost;
+  const memeQuote = memeToken ? await memeTokenQuote(memeToken.address, traitType, action) : null;
+  if (memeToken && memeQuote) {
+    costMon = memeQuote.costUnits;
+    costLabel = `${memeQuote.costUnits} ${memeQuote.symbol || memeToken.symbol}`;
+  }
   const supplyDeltas = supplyDeltasForPatch(traits, candidate.proposedAttributes);
   await assertSupplyDeltasAvailable(supplyDeltas);
   const rollId = crypto.randomUUID();
@@ -1687,6 +1913,11 @@ export async function createTraitLabPreview(input: Record<string, unknown>) {
       rewardEnergy,
       rewardRaw,
       rewardLabel,
+      paymentTokenAddress: memeToken?.address,
+      paymentTokenSymbol: memeQuote?.symbol || memeToken?.symbol,
+      paymentTokenAmountRaw: memeQuote?.amountRaw.toString(),
+      paymentTokenTreasuryAmountRaw: memeQuote?.treasuryAmountRaw.toString(),
+      paymentTokenBurnAmountRaw: memeQuote?.burnAmountRaw.toString(),
       assetUri: candidate.option.assetUri,
       metadataVersion: version,
       expiresAt: Date.now() + PREVIEW_TTL_MS,
@@ -1711,6 +1942,11 @@ export async function createTraitLabPreview(input: Record<string, unknown>) {
     rewardRaw,
     rewardLabel,
     recycleCreditClaim,
+    paymentTokenAddress: memeToken?.address,
+    paymentTokenSymbol: memeQuote?.symbol || memeToken?.symbol,
+    paymentTokenAmountRaw: memeQuote?.amountRaw.toString(),
+    paymentTokenTreasuryAmountRaw: memeQuote?.treasuryAmountRaw.toString(),
+    paymentTokenBurnAmountRaw: memeQuote?.burnAmountRaw.toString(),
     assetUri: candidate.option.assetUri,
     metadataVersion: version,
     expiresAt: Date.now() + PREVIEW_TTL_MS,
@@ -1727,6 +1963,7 @@ export async function createTraitLabPreview(input: Record<string, unknown>) {
   let energyDebitDeduped = false;
   let energySpend: Awaited<ReturnType<typeof spendTraitLabEnergy>> | null = null;
   let monPayment: Awaited<ReturnType<typeof verifyTraitLabMonPayment>> | null = null;
+  let memePayment: Awaited<ReturnType<typeof verifyTraitLabMemePayment>> | null = null;
 
   if (paymentMode === "mon") {
     const txHash = requireTxHash(input.paymentTxHash);
@@ -1745,6 +1982,39 @@ export async function createTraitLabPreview(input: Record<string, unknown>) {
       amountRaw: monPayment.amountRaw,
       treasuryWallet: monPayment.treasuryWallet,
       blockNumber: monPayment.blockNumber,
+      createdAt: new Date().toISOString(),
+    });
+  }
+
+  if (paymentMode === "meme") {
+    const treasuryTxHash = requireTxHash(input.paymentTxHash);
+    const burnTxHash = requireTxHash(input.paymentBurnTxHash);
+    memePayment = await verifyTraitLabMemePayment({
+      wallet,
+      tokenAddress: memeToken?.address || String(input.paymentToken || ""),
+      treasuryTxHash,
+      burnTxHash,
+      traitType,
+      action,
+    });
+    await claimTraitLabMemePayment({
+      txHash: memePayment.treasuryTxHash,
+      rollId,
+      wallet,
+      tokenId: String(tokenId),
+      traitType,
+      action,
+      tokenAddress: memePayment.tokenAddress,
+      tokenSymbol: memePayment.tokenSymbol,
+      totalAmountRaw: memePayment.totalAmountRaw,
+      treasuryAmountRaw: memePayment.treasuryAmountRaw,
+      burnAmountRaw: memePayment.burnAmountRaw,
+      treasuryWallet: memePayment.treasuryWallet,
+      burnAddress: memePayment.burnAddress,
+      treasuryTxHash: memePayment.treasuryTxHash,
+      burnTxHash: memePayment.burnTxHash,
+      treasuryBlockNumber: memePayment.treasuryBlockNumber,
+      burnBlockNumber: memePayment.burnBlockNumber,
       createdAt: new Date().toISOString(),
     });
   }
@@ -1772,6 +2042,15 @@ export async function createTraitLabPreview(input: Record<string, unknown>) {
     monPaymentTxHash: monPayment?.txHash,
     monPaymentAmountRaw: monPayment?.amountRaw,
     monPaymentBlockNumber: monPayment?.blockNumber,
+    memePaymentTokenAddress: memePayment?.tokenAddress,
+    memePaymentTokenSymbol: memePayment?.tokenSymbol,
+    memePaymentTotalAmountRaw: memePayment?.totalAmountRaw,
+    memePaymentTreasuryAmountRaw: memePayment?.treasuryAmountRaw,
+    memePaymentBurnAmountRaw: memePayment?.burnAmountRaw,
+    memePaymentTreasuryTxHash: memePayment?.treasuryTxHash,
+    memePaymentBurnTxHash: memePayment?.burnTxHash,
+    memePaymentTreasuryBlockNumber: memePayment?.treasuryBlockNumber,
+    memePaymentBurnBlockNumber: memePayment?.burnBlockNumber,
   });
 
   if (paymentMode === "energy" && action !== "recycle") {
@@ -1805,6 +2084,15 @@ export async function createTraitLabPreview(input: Record<string, unknown>) {
     monPaymentTxHash: monPayment?.txHash,
     monPaymentAmountRaw: monPayment?.amountRaw,
     monPaymentBlockNumber: monPayment?.blockNumber,
+    memePaymentTokenAddress: memePayment?.tokenAddress,
+    memePaymentTokenSymbol: memePayment?.tokenSymbol,
+    memePaymentTotalAmountRaw: memePayment?.totalAmountRaw,
+    memePaymentTreasuryAmountRaw: memePayment?.treasuryAmountRaw,
+    memePaymentBurnAmountRaw: memePayment?.burnAmountRaw,
+    memePaymentTreasuryTxHash: memePayment?.treasuryTxHash,
+    memePaymentBurnTxHash: memePayment?.burnTxHash,
+    memePaymentTreasuryBlockNumber: memePayment?.treasuryBlockNumber,
+    memePaymentBurnBlockNumber: memePayment?.burnBlockNumber,
   });
 
   return {
@@ -1837,9 +2125,14 @@ export async function createTraitLabPreview(input: Record<string, unknown>) {
     rollCharged: true,
     energyDebitSkipped: paymentMode !== "energy" || action === "recycle",
     energyDebitDeduped,
-    paymentTxHash: monPayment?.txHash || energySpend?.txHash || "",
-    paymentAmountRaw: monPayment?.amountRaw || (energySpend ? costRaw : ""),
-    paymentBlockNumber: monPayment?.blockNumber || energySpend?.blockNumber || "",
+    paymentTxHash: monPayment?.txHash || memePayment?.treasuryTxHash || energySpend?.txHash || "",
+    paymentBurnTxHash: memePayment?.burnTxHash || "",
+    paymentToken: memePayment?.tokenAddress || "",
+    paymentTokenSymbol: memePayment?.tokenSymbol || "",
+    paymentTreasuryAmountRaw: memePayment?.treasuryAmountRaw || "",
+    paymentBurnAmountRaw: memePayment?.burnAmountRaw || "",
+    paymentAmountRaw: monPayment?.amountRaw || memePayment?.totalAmountRaw || (energySpend ? costRaw : ""),
+    paymentBlockNumber: monPayment?.blockNumber || memePayment?.treasuryBlockNumber || energySpend?.blockNumber || "",
     supplyDeltas,
     previewId,
     expiresAt: new Date(payload.expiresAt).toISOString(),
@@ -1878,6 +2171,9 @@ export async function confirmTraitLabPreview(input: Record<string, unknown>) {
   }
   if (payload.paymentMode === "mon" && !paidRoll.monPaymentTxHash) {
     throw Object.assign(new Error("This roll is missing its wallet transaction."), { status: 402 });
+  }
+  if (payload.paymentMode === "meme" && (!paidRoll.memePaymentTreasuryTxHash || !paidRoll.memePaymentBurnTxHash)) {
+    throw Object.assign(new Error("This roll is missing its meme token burn/treasury transactions."), { status: 402 });
   }
   if (payload.paymentMode === "energy" && payload.action !== "recycle" && !paidRoll.energyDebitId) {
     throw Object.assign(new Error("This roll is missing its Energy debit."), { status: 402 });
@@ -2062,9 +2358,14 @@ export async function confirmTraitLabPreview(input: Record<string, unknown>) {
     rollCharged: true,
     debitDeduped: Boolean(paidRoll.energyDebitDeduped),
     energyDebitSkipped: payload.paymentMode !== "energy" || payload.action === "recycle",
-    paymentTxHash: recycleCredit?.txHash || paidRoll.monPaymentTxHash || paidRoll.energySpendTxHash || "",
-    paymentAmountRaw: recycleCredit ? payload.rewardRaw || "" : paidRoll.monPaymentAmountRaw || (paidRoll.energySpendTxHash ? payload.costRaw : ""),
-    paymentBlockNumber: recycleCredit?.blockNumber || paidRoll.monPaymentBlockNumber || paidRoll.energySpendBlockNumber || "",
+    paymentTxHash: recycleCredit?.txHash || paidRoll.monPaymentTxHash || paidRoll.memePaymentTreasuryTxHash || paidRoll.energySpendTxHash || "",
+    paymentBurnTxHash: paidRoll.memePaymentBurnTxHash || "",
+    paymentToken: paidRoll.memePaymentTokenAddress || "",
+    paymentTokenSymbol: paidRoll.memePaymentTokenSymbol || "",
+    paymentTreasuryAmountRaw: paidRoll.memePaymentTreasuryAmountRaw || "",
+    paymentBurnAmountRaw: paidRoll.memePaymentBurnAmountRaw || "",
+    paymentAmountRaw: recycleCredit ? payload.rewardRaw || "" : paidRoll.monPaymentAmountRaw || paidRoll.memePaymentTotalAmountRaw || (paidRoll.energySpendTxHash ? payload.costRaw : ""),
+    paymentBlockNumber: recycleCredit?.blockNumber || paidRoll.monPaymentBlockNumber || paidRoll.memePaymentTreasuryBlockNumber || paidRoll.energySpendBlockNumber || "",
     recycleCreditDeduped: recycleCredit?.deduped || false,
     supplyDeltas,
     supplyEventDeduped: supplyEvent.deduped,

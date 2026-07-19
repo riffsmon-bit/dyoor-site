@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { encodeFunctionData, formatUnits, getAddress, isAddress, parseEther, parseUnits } from "viem";
+import { encodeFunctionData, formatUnits, getAddress, isAddress, parseUnits } from "viem";
 import { fetchTokenMetadata, useAscension, type AscensionNft } from "@/hooks/useAscension";
 import { ascensionStakingAbi, erc721EnumerableAbi } from "@/lib/contracts/abis";
 import { ascensionStakingContract, dyoorS1Contract } from "@/lib/contracts/addresses";
@@ -29,7 +29,6 @@ type TransactionReceipt = {
 type CardMode = "wallet" | "ascended";
 
 const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
-const ENERGY_PER_MON = 50n;
 const POINTS_CLAIMED_TOPIC = "0xba953728785de35be3827ee7a7a7867a8472947562602939440e6c0bdbf4725e";
 
 function tokenKey(mode: CardMode, tokenId: string) {
@@ -42,23 +41,6 @@ function parseTokenIds(value: string) {
 
 function shortAddress(address: string) {
   return `${address.slice(0, 6)}...${address.slice(-4)}`;
-}
-
-function parseMonInput(value: string) {
-  const trimmed = value.trim();
-  if (!trimmed || !/^\d+(\.\d{0,18})?$/.test(trimmed)) return null;
-  try {
-    const raw = parseEther(trimmed);
-    return raw > 0n ? raw : null;
-  } catch {
-    return null;
-  }
-}
-
-function formatEnergyPreview(raw: bigint | null) {
-  if (!raw) return "0";
-  const formatted = formatUnits(raw * ENERGY_PER_MON, 18);
-  return formatted.replace(/\.0+$/, "").replace(/(\.\d*?)0+$/, "$1");
 }
 
 function parseEnergyInput(value: string) {
@@ -539,18 +521,12 @@ export default function AscensionPage() {
   const [manualStake, setManualStake] = useState("");
   const [manualUnstake, setManualUnstake] = useState("");
   const [actionStatus, setActionStatus] = useState("Select NFTs to stake or unstake. Hover a card for quick actions.");
-  const [treasuryWallet, setTreasuryWallet] = useState("");
-  const [rechargeMon, setRechargeMon] = useState("");
-  const [rechargeStatus, setRechargeStatus] = useState("Enter a MON amount to preview Energy.");
-  const [rechargeTxHash, setRechargeTxHash] = useState("");
-  const [rechargeCreditTxHash, setRechargeCreditTxHash] = useState("");
-  const [rechargeRecoveryTx, setRechargeRecoveryTx] = useState("");
-  const [rechargeCreditReady, setRechargeCreditReady] = useState(true);
-  const [recharging, setRecharging] = useState(false);
   const [lendRecipient, setLendRecipient] = useState("");
   const [lendEnergy, setLendEnergy] = useState("");
   const [lendStatus, setLendStatus] = useState("Enter a recipient and Energy amount.");
   const [lendTxHash, setLendTxHash] = useState("");
+  const [lendCreditTxHash, setLendCreditTxHash] = useState("");
+  const [lendTransferId, setLendTransferId] = useState("");
   const [lending, setLending] = useState(false);
   const [blueprintHealth, setBlueprintHealth] = useState<{ loading: boolean; saved: boolean; eligible: boolean; message: string }>({
     loading: false,
@@ -560,8 +536,6 @@ export default function AscensionPage() {
   });
   const [working, setWorking] = useState(false);
 
-  const rechargeMonRaw = useMemo(() => parseMonInput(rechargeMon), [rechargeMon]);
-  const rechargeEnergyPreview = useMemo(() => formatEnergyPreview(rechargeMonRaw), [rechargeMonRaw]);
   const lendEnergyRaw = useMemo(() => parseEnergyInput(lendEnergy), [lendEnergy]);
   const spendableEnergyRaw = parseDisplayEnergy(ascension.spendableEnergy || ascension.bankedEnergy);
   const missingSpendableRaw = parseDisplayEnergy(ascension.missingSpendableEnergy);
@@ -581,27 +555,6 @@ export default function AscensionPage() {
   const getProvider = useCallback(async () => {
     return await walletService.getProvider() as Eip1193Provider;
   }, [walletService]);
-
-  useEffect(() => {
-    let active = true;
-    fetch("/api/energy-recharge", { cache: "no-store" })
-      .then((response) => response.json())
-      .then((data) => {
-        if (!active) return;
-        setTreasuryWallet(typeof data?.treasuryWallet === "string" ? data.treasuryWallet : "");
-        setRechargeCreditReady(data?.creditReady !== false);
-        if (!data?.treasuryWallet) setRechargeStatus("Recharge is unavailable: treasury wallet is not configured.");
-        else if (data?.creditReady === false) setRechargeStatus(`Recharge is unavailable: ${data?.creditUnavailableReason || "Energy credit operator is not configured."}`);
-      })
-      .catch(() => {
-        if (!active) return;
-        setRechargeCreditReady(false);
-        setRechargeStatus("Recharge is unavailable: treasury config could not be loaded.");
-      });
-    return () => {
-      active = false;
-    };
-  }, []);
 
   useEffect(() => {
     let active = true;
@@ -736,16 +689,6 @@ export default function AscensionPage() {
     }) as string;
     const receipt = await waitReceipt(provider, hash);
     return { hash, receipt };
-  }
-
-  async function sendNative(provider: Eip1193Provider, to: `0x${string}`, value: bigint) {
-    const from = getAddress(ascension.walletAddress);
-    const hash = await provider.request({
-      method: "eth_sendTransaction",
-      params: [{ from, to, value: `0x${value.toString(16)}` }],
-    }) as string;
-    await waitReceipt(provider, hash);
-    return hash;
   }
 
   async function ensureApproval(provider: Eip1193Provider) {
@@ -1006,89 +949,6 @@ export default function AscensionPage() {
     await recoverTokenIds(ascension.recovery.recoverableTokenIds, "auto");
   }
 
-  async function creditRechargePayment(paymentTxHash: string, monAmountRaw?: bigint) {
-      const response = await fetch("/api/energy-recharge", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({
-          user: getAddress(ascension.walletAddress),
-          txHash: paymentTxHash,
-          ...(monAmountRaw ? { monAmountRaw: monAmountRaw.toString() } : {}),
-        }),
-      });
-      const data = await response.json().catch(() => ({}));
-      if (!response.ok || data?.ok === false) {
-        throw new Error(typeof data?.error === "string" ? data.error : "Recharge failed. Please try again.");
-      }
-
-      setRechargeCreditTxHash(String(data.creditTxHash || ""));
-      return data;
-  }
-
-  async function rechargeEnergy() {
-    if (recharging) return;
-    if (!treasuryWallet || !isAddress(treasuryWallet)) {
-      setRechargeStatus("Recharge failed. Treasury wallet is not configured.");
-      return;
-    }
-    if (!rechargeCreditReady) {
-      setRechargeStatus("Recharge is unavailable: Energy ledger crediting is not configured.");
-      return;
-    }
-    if (!rechargeMonRaw) {
-      setRechargeStatus("Enter a valid MON amount.");
-      return;
-    }
-
-    setRecharging(true);
-    setRechargeStatus("Sending MON to treasury. Confirm the wallet transaction.");
-    setRechargeTxHash("");
-    setRechargeCreditTxHash("");
-    try {
-      const provider = await ensureReady();
-      const paymentTxHash = await sendNative(provider, getAddress(treasuryWallet), rechargeMonRaw);
-      setRechargeTxHash(paymentTxHash);
-      setRechargeStatus("Payment confirmed. Verifying recharge and crediting spendable Energy...");
-      await creditRechargePayment(paymentTxHash, rechargeMonRaw);
-      setRechargeStatus("Energy recharged successfully.");
-      setRechargeMon("");
-      await ascension.refresh();
-    } catch (error) {
-      setRechargeStatus(formatWalletError(error, "Recharge failed. Please try again."));
-    } finally {
-      setRecharging(false);
-    }
-  }
-
-  async function recoverRechargePayment() {
-    const txHash = rechargeRecoveryTx.trim();
-    if (recharging) return;
-    if (!/^0x[a-fA-F0-9]{64}$/.test(txHash)) {
-      setRechargeStatus("Enter a valid recharge transaction hash.");
-      return;
-    }
-    if (!rechargeCreditReady) {
-      setRechargeStatus("Recharge recovery is unavailable: Energy ledger crediting is not configured.");
-      return;
-    }
-
-    setRecharging(true);
-    setRechargeTxHash(txHash);
-    setRechargeCreditTxHash("");
-    setRechargeStatus("Verifying recharge transaction and crediting spendable Energy...");
-    try {
-      await ensureReady();
-      await creditRechargePayment(txHash);
-      setRechargeStatus("Energy recharged successfully.");
-      setRechargeRecoveryTx("");
-      await ascension.refresh();
-    } catch (error) {
-      setRechargeStatus(formatWalletError(error, "Recharge failed. Please try again."));
-    } finally {
-      setRecharging(false);
-    }
-  }
-
   async function lendEnergyToFren() {
     if (lending) return;
     if (!authenticated || !ascension.walletAddress) {
@@ -1120,6 +980,8 @@ export default function AscensionPage() {
 
     setLending(true);
     setLendTxHash("");
+    setLendCreditTxHash("");
+    setLendTransferId("");
     setLendStatus("Sign the Energy transfer authorization.");
     try {
       await ensureReady();
@@ -1150,7 +1012,9 @@ export default function AscensionPage() {
       if (!response.ok || data?.ok === false) {
         throw new Error(typeof data?.error === "string" ? data.error : "Energy transfer failed.");
       }
-      setLendTxHash(String(data.creditTxHash || data.spendTxHash || ""));
+      setLendTxHash(String(data.spendTxHash || ""));
+      setLendCreditTxHash(String(data.creditTxHash || ""));
+      setLendTransferId(String(data.transferId || ""));
       setLendStatus(data.alreadyTransferred ? "Energy transfer was already completed." : "Energy transfer complete.");
       setLendRecipient("");
       setLendEnergy("");
@@ -1402,95 +1266,14 @@ export default function AscensionPage() {
         <div className="mb-5 flex flex-col justify-between gap-3 md:flex-row md:items-end">
           <div>
             <p className="text-xs font-black uppercase tracking-[0.22em] text-dyoor-cyan">Energy Tools</p>
-            <h2 className="mt-2 text-3xl font-black uppercase text-white">Recharge and Transfer</h2>
+            <h2 className="mt-2 text-3xl font-black uppercase text-white">Transfer Energy</h2>
           </div>
           <Button variant="ghost" onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}>
             Back to Ascension
           </Button>
         </div>
 
-        <div className="grid gap-5 lg:grid-cols-2">
-          <div className="rounded border border-dyoor-purple/30 bg-gradient-to-br from-dyoor-cyan/[0.10] via-dyoor-purple/[0.10] to-fuchsia-500/[0.08] p-5 shadow-[0_0_42px_rgba(131,110,249,.12)] md:p-6">
-            <p className="text-xs font-black uppercase tracking-[0.2em] text-dyoor-cyan">Spendable Energy</p>
-            <h2 className="mt-2 text-3xl font-black uppercase text-white">Recharge Energy</h2>
-            <p className="mt-2 text-sm font-semibold leading-6 text-white/66">
-              Power up spendable Energy with MON.
-            </p>
-            <p className="mt-4 inline-flex rounded border border-dyoor-cyan/35 bg-black/30 px-3 py-2 text-sm font-black uppercase text-dyoor-cyan">
-              1 MON = 50 Energy
-            </p>
-            <div className="rounded border border-dyoor-purple/24 bg-black/35 p-4 shadow-[inset_0_1px_0_rgba(255,255,255,.05)]">
-              <label className="text-xs font-black uppercase tracking-[0.16em] text-white/45" htmlFor="recharge-mon">
-                MON Amount
-              </label>
-              <input
-                id="recharge-mon"
-                className="field-control mt-2 text-lg font-black"
-                inputMode="decimal"
-                placeholder="10"
-                value={rechargeMon}
-                onChange={(event) => setRechargeMon(event.target.value)}
-                disabled={recharging}
-              />
-              <div className="mt-3 rounded border border-white/10 bg-white/[0.035] p-3 text-sm font-bold text-white/68">
-                Preview: {rechargeMon || "0"} MON = <span className="text-dyoor-cyan">{rechargeEnergyPreview} Energy</span>
-              </div>
-              <Button
-                className="mt-3 w-full"
-                variant="primary"
-                disabled={!authenticated || !rechargeMonRaw || !treasuryWallet || !rechargeCreditReady || recharging}
-                onClick={() => void rechargeEnergy()}
-              >
-                {recharging ? "Recharging..." : "Recharge Energy"}
-              </Button>
-              <div className="mt-3 rounded border border-white/10 bg-black/30 p-3 text-sm font-bold leading-6 text-white/68">
-                {rechargeStatus}
-                {rechargeTxHash && (
-                  <p className="mt-2">
-                    Payment:{" "}
-                    <a className="text-dyoor-cyan underline" href={`${MONAD_EXPLORER_URL}/tx/${rechargeTxHash}`} target="_blank" rel="noreferrer">
-                      {rechargeTxHash.slice(0, 10)}...{rechargeTxHash.slice(-6)}
-                    </a>
-                  </p>
-                )}
-                {rechargeCreditTxHash && (
-                  <p>
-                    Credit:{" "}
-                    <a className="text-dyoor-cyan underline" href={`${MONAD_EXPLORER_URL}/tx/${rechargeCreditTxHash}`} target="_blank" rel="noreferrer">
-                      {rechargeCreditTxHash.slice(0, 10)}...{rechargeCreditTxHash.slice(-6)}
-                    </a>
-                  </p>
-                )}
-              </div>
-              <div className="mt-3 rounded border border-white/10 bg-black/25 p-3">
-                <label className="text-xs font-black uppercase tracking-[0.16em] text-white/45" htmlFor="recharge-recovery">
-                  Recover Recharge
-                </label>
-                <div className="mt-2 flex flex-col gap-2 md:flex-row">
-                  <input
-                    id="recharge-recovery"
-                    className="min-w-0 flex-1 rounded border border-white/15 bg-black/45 px-3 py-2 text-xs font-bold text-white outline-none focus:border-dyoor-cyan"
-                    placeholder="Paste payment tx hash"
-                    value={rechargeRecoveryTx}
-                    onChange={(event) => setRechargeRecoveryTx(event.target.value)}
-                    disabled={recharging}
-                  />
-                  <Button
-                    className="px-3 py-2 text-xs"
-                    variant="ghost"
-                    disabled={recharging || !rechargeCreditReady || !rechargeRecoveryTx.trim()}
-                    onClick={() => void recoverRechargePayment()}
-                  >
-                    Credit Tx
-                  </Button>
-                </div>
-                <p className="mt-2 text-xs leading-5 text-white/48">
-                  Use this only if MON was sent but spendable Energy did not appear.
-                </p>
-              </div>
-            </div>
-          </div>
-
+        <div className="max-w-3xl">
           <div className="rounded border border-dyoor-purple/30 bg-[radial-gradient(560px_260px_at_80%_0%,rgba(57,255,226,.14),transparent_60%),linear-gradient(135deg,rgba(8,8,24,.88),rgba(24,13,54,.72))] p-5 shadow-[0_0_42px_rgba(57,255,226,.10)] md:p-6">
             <p className="text-xs font-black uppercase tracking-[0.2em] text-dyoor-cyan">Energy Utility</p>
             <h2 className="mt-2 text-3xl font-black uppercase text-white">Lend to a Fren</h2>
@@ -1544,10 +1327,23 @@ export default function AscensionPage() {
                 {lendStatus}
                 {lendTxHash && (
                   <p className="mt-2">
-                    Tx:{" "}
+                    Debit:{" "}
                     <a className="text-dyoor-cyan underline" href={`${MONAD_EXPLORER_URL}/tx/${lendTxHash}`} target="_blank" rel="noreferrer">
                       {lendTxHash.slice(0, 10)}...{lendTxHash.slice(-6)}
                     </a>
+                  </p>
+                )}
+                {lendCreditTxHash && (
+                  <p>
+                    Credit:{" "}
+                    <a className="text-dyoor-cyan underline" href={`${MONAD_EXPLORER_URL}/tx/${lendCreditTxHash}`} target="_blank" rel="noreferrer">
+                      {lendCreditTxHash.slice(0, 10)}...{lendCreditTxHash.slice(-6)}
+                    </a>
+                  </p>
+                )}
+                {lendTransferId && (
+                  <p className="break-all text-xs text-white/45">
+                    Transfer ID: {lendTransferId}
                   </p>
                 )}
               </div>

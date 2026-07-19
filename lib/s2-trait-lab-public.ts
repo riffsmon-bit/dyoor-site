@@ -6,6 +6,9 @@ import {
   S2_REMOVABLE_TRAITS,
   S2_TRAIT_LAB_ENERGY_PER_MON,
   S2_TRAIT_LAB_FLAT_UNLOCK_COST,
+  S2_TRAIT_LAB_BURN_ADDRESS,
+  S2_TRAIT_LAB_MEME_PAYMENT_TOKENS,
+  S2_TRAIT_LAB_MEME_TOKEN_COSTS,
   S2_TRAIT_LAB_MON_COSTS,
   S2_TRAIT_LAB_RECYCLE_REWARDS,
   S2_TRAIT_LAB_SPECIAL_MAX_ACTIVE_SUPPLY,
@@ -64,6 +67,13 @@ function traitLabTreasuryWallet() {
   const address = optionalAddress(value);
   if (!address) throw Object.assign(new Error("Trait Lab treasury wallet is not configured."), { status: 500 });
   return address;
+}
+
+function approvedMemePaymentTokens() {
+  return S2_TRAIT_LAB_MEME_PAYMENT_TOKENS.map((token) => ({
+    ...token,
+    address: ethers.getAddress(token.address),
+  }));
 }
 
 function configuredS2ChainId() {
@@ -466,6 +476,9 @@ export function traitLabPublicConfig() {
     recyclableTraits: S2_RECYCLABLE_TRAITS,
     recycleRewards: S2_TRAIT_LAB_RECYCLE_REWARDS,
     monCosts: S2_TRAIT_LAB_MON_COSTS,
+    memePaymentTokens: approvedMemePaymentTokens(),
+    memeTokenCosts: S2_TRAIT_LAB_MEME_TOKEN_COSTS,
+    burnAddress: ethers.getAddress(S2_TRAIT_LAB_BURN_ADDRESS),
   };
 }
 

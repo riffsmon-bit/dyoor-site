@@ -32,17 +32,25 @@ Reroll replaces an existing filled trait with a new approved trait from the D.Y.
 
 The user does not choose arbitrary metadata. Trait Lab generates a valid result, checks compatibility, shows a before/after preview, and only saves the result after confirmation.
 
+Current pricing uses this conversion:
+
+```txt
+1 MON = 50 Energy
+```
+
+Approved meme-token payments use the same numeric unit price as MON. For example, a 50 MON reroll costs 50 units of the selected approved meme token. Meme-token payments are split 50/50: half to the burn address and half to the D.Y.O.O.R treasury.
+
 Current reroll pricing:
 
-| Trait | Energy | MON |
-| --- | ---: | ---: |
-| Eyes | 500 | 10 |
-| Mouth | 500 | 10 |
-| Hat | 750 | 15 |
-| Clothes | 750 | 15 |
-| Accessories | 1000 | 20 |
-| Accessories 2 | 1000 | 20 |
-| Stickers/Body art | 1000 | 20 |
+| Trait | Energy | MON | Approved Meme Token |
+| --- | ---: | ---: | ---: |
+| Eyes | 2,500 | 50 | 50 |
+| Mouth | 2,500 | 50 | 50 |
+| Hat | 5,000 | 100 | 100 |
+| Clothes | 5,000 | 100 | 100 |
+| Accessories | 7,500 | 150 | 150 |
+| Accessories 2 | 7,500 | 150 | 150 |
+| Stickers/Body art | 7,500 | 150 | 150 |
 
 ## Unlock
 
@@ -54,13 +62,13 @@ Eyes and Mouth are guaranteed traits, so unlock is not shown for those slots.
 
 Current unlock pricing is a flat rate:
 
-| Trait | Energy | MON |
-| --- | ---: | ---: |
-| Clothes | 750 | 15 |
-| Hat | 750 | 15 |
-| Accessories | 750 | 15 |
-| Accessories 2 | 750 | 15 |
-| Stickers/Body art | 750 | 15 |
+| Trait | Energy | MON | Approved Meme Token |
+| --- | ---: | ---: | ---: |
+| Clothes | 2,500 | 50 | 50 |
+| Hat | 2,500 | 50 | 50 |
+| Accessories | 2,500 | 50 | 50 |
+| Accessories 2 | 2,500 | 50 | 50 |
+| Stickers/Body art | 2,500 | 50 | 50 |
 
 ## Recycle
 
@@ -80,6 +88,41 @@ Current recycle rewards:
 | Special | 750 |
 
 Eyes, Mouth, Background, and Droid cannot be recycled.
+
+## Meme Token Payments
+
+Approved meme-token rerolls and unlocks require two wallet transactions:
+
+1. Send 50% of the configured meme-token amount to the treasury.
+2. Send 50% of the configured meme-token amount to the burn address.
+
+Treasury:
+
+```txt
+0x4d540f7d0eb841c839334655c9f88313d750c6d5
+```
+
+Burn address:
+
+```txt
+0x000000000000000000000000000000000000dEaD
+```
+
+Approved meme-token contracts:
+
+```txt
+0x43cF5407BDA1400498b8064d50A7e17528d87777
+0x350035555E10d9AfAF1566AaebfCeD5BA6C27777
+0x81A224F8A62f52BdE942dBF23A56df77A10b7777
+0x21E325B059Cd83d4037C82F0F5998Ba2dF3d7777
+0xFD97581D397622f6E6662917ea3DeEEfB9F57777
+0x42a4aA89864A794dE135B23C6a8D2E05513d7777
+0x0CC9B2e2AcD7BACfF79eb7dB48F5662B622E7777
+```
+
+The server verifies both ERC-20 transfer receipts before it creates the preview. If either transaction is missing, unconfirmed, from the wrong wallet, sent to the wrong address, uses an unapproved token, or has the wrong amount, the roll is rejected.
+
+If the treasury transfer confirms but the burn transfer is rejected or interrupted, Trait Lab remembers the treasury transaction for the same token, trait, action, and payment token so the user can retry the burn transaction without starting over. This is client-side recovery; the server still verifies both on-chain receipts before any metadata preview is created.
 
 ## Compatibility Rules
 
@@ -143,6 +186,7 @@ Refresh failures do not revert a successful Trait Lab update. If OpenSea rate-li
 6. Choose payment method when applicable:
    - Spend Energy.
    - Spend MON.
+   - Spend an approved meme token.
 7. Preview the generated result.
 8. Confirm the change with the connected wallet.
 9. Wait for the new Metadata Version and image to appear.
@@ -155,3 +199,4 @@ Refresh failures do not revert a successful Trait Lab update. If OpenSea rate-li
 - Images can continue using Pinata assets and generated render URLs.
 - Recycle rewards are credited through the Energy Bank.
 - The system tracks trait supply deltas for equipped and burned traits.
+- Meme-token payments require two wallet confirmations because the payment is split between treasury and burn.

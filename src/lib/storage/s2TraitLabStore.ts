@@ -4,6 +4,7 @@ const STORE_NAME = "dyoor-s2-metadata";
 const SUPPLY_LEDGER_KEY = "trait-lab/supply-ledger.json";
 const ROLL_PREFIX = "trait-lab/rolls";
 const MON_PAYMENT_PREFIX = "trait-lab/mon-payments";
+const MEME_PAYMENT_PREFIX = "trait-lab/meme-payments";
 
 const store = createJsonStore(STORE_NAME);
 
@@ -40,6 +41,15 @@ export type TraitLabRollRecord = {
   monPaymentTxHash?: string;
   monPaymentAmountRaw?: string;
   monPaymentBlockNumber?: string;
+  memePaymentTokenAddress?: string;
+  memePaymentTokenSymbol?: string;
+  memePaymentTotalAmountRaw?: string;
+  memePaymentTreasuryAmountRaw?: string;
+  memePaymentBurnAmountRaw?: string;
+  memePaymentTreasuryTxHash?: string;
+  memePaymentBurnTxHash?: string;
+  memePaymentTreasuryBlockNumber?: string;
+  memePaymentBurnBlockNumber?: string;
 };
 
 export type TraitSupplyDelta = {
@@ -93,6 +103,27 @@ export type TraitLabMonPaymentRecord = {
   createdAt: string;
 };
 
+export type TraitLabMemePaymentRecord = {
+  txHash: string;
+  rollId: string;
+  wallet: string;
+  tokenId: string;
+  traitType: string;
+  action: string;
+  tokenAddress: string;
+  tokenSymbol: string;
+  totalAmountRaw: string;
+  treasuryAmountRaw: string;
+  burnAmountRaw: string;
+  treasuryWallet: string;
+  burnAddress: string;
+  treasuryTxHash: string;
+  burnTxHash: string;
+  treasuryBlockNumber: string;
+  burnBlockNumber: string;
+  createdAt: string;
+};
+
 function nowIso() {
   return new Date().toISOString();
 }
@@ -107,6 +138,10 @@ function rollKey(rollId: string) {
 
 function monPaymentKey(txHash: string) {
   return `${MON_PAYMENT_PREFIX}/${txHash.toLowerCase().replace(/[^a-z0-9]/g, "-")}.json`;
+}
+
+function memePaymentKey(txHash: string) {
+  return `${MEME_PAYMENT_PREFIX}/${txHash.toLowerCase().replace(/[^a-z0-9]/g, "-")}.json`;
 }
 
 function emptyLedger(): TraitSupplyLedger {
@@ -164,6 +199,32 @@ export async function claimTraitLabMonPayment(payment: TraitLabMonPaymentRecord)
     createdAt: payment.createdAt || nowIso(),
   };
   await store.setJson(key, next);
+  return { payment: next, deduped: false };
+}
+
+export async function claimTraitLabMemePayment(payment: TraitLabMemePaymentRecord) {
+  const txHashes = Array.from(new Set([payment.treasuryTxHash, payment.burnTxHash].filter(Boolean).map((txHash) => txHash.toLowerCase())));
+  if (!txHashes.length) {
+    throw Object.assign(new Error("Missing meme token payment transaction."), { status: 400 });
+  }
+
+  const existing = await Promise.all(txHashes.map((txHash) => store.getJson<TraitLabMemePaymentRecord | null>(memePaymentKey(txHash), null)));
+  for (const record of existing) {
+    if (record && record.rollId !== payment.rollId) {
+      throw Object.assign(new Error("This meme token transaction has already been used for a Trait Lab roll."), { status: 409 });
+    }
+  }
+  const firstExisting = existing.find(Boolean);
+  if (firstExisting) return { payment: firstExisting, deduped: true };
+
+  const next = {
+    ...payment,
+    txHash: payment.txHash.toLowerCase(),
+    treasuryTxHash: payment.treasuryTxHash.toLowerCase(),
+    burnTxHash: payment.burnTxHash.toLowerCase(),
+    createdAt: payment.createdAt || nowIso(),
+  };
+  await Promise.all(txHashes.map((txHash) => store.setJson(memePaymentKey(txHash), next)));
   return { payment: next, deduped: false };
 }
 
