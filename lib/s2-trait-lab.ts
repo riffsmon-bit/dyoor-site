@@ -38,6 +38,7 @@ import {
   parseTokenId,
   saveRuntimeTraitOverride,
 } from "@/lib/dyoor-s2-metadata.js";
+import { refreshOpenSeaTokenMetadata } from "@/lib/opensea-metadata-refresh";
 import {
   applyTraitSupplyDeltas,
   assertTraitSupplyAvailable,
@@ -1874,6 +1875,7 @@ export async function confirmTraitLabPreview(input: Record<string, unknown>) {
     };
     await saveTraitLabRoll(rollRecord);
     const updated = await buildTokenMetadataAsync(tokenId, config);
+    const openSeaMetadataRefresh = await refreshOpenSeaTokenMetadata({ tokenId });
 
     return {
       ok: true,
@@ -1901,6 +1903,7 @@ export async function confirmTraitLabPreview(input: Record<string, unknown>) {
       supplyEventDeduped: supplyEvent.deduped,
       override: currentOverride,
       metadata: updated.metadata,
+      openSeaMetadataRefresh,
       imageRecomposition: {
         status: "unchanged",
         imageUrl: String((updated.metadata as MetadataJson).image || ""),
@@ -1961,6 +1964,7 @@ export async function confirmTraitLabPreview(input: Record<string, unknown>) {
   };
   await saveTraitLabRoll(rollRecord);
   const updated = await buildTokenMetadataAsync(tokenId, config);
+  const openSeaMetadataRefresh = await refreshOpenSeaTokenMetadata({ tokenId });
 
   return {
     ok: true,
@@ -1988,6 +1992,7 @@ export async function confirmTraitLabPreview(input: Record<string, unknown>) {
     supplyEventDeduped: supplyEvent.deduped,
     override,
     metadata: updated.metadata,
+    openSeaMetadataRefresh,
     imageRecomposition: {
       status: renderedImage.rendered ? "rendered" : "unchanged",
       imageUrl: renderedImage.imageUrl,

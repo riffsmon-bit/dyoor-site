@@ -106,6 +106,11 @@ type PreviewResponse = {
     status?: string;
     todo?: string;
   };
+  openSeaMetadataRefresh?: {
+    status?: "queued" | "skipped" | "failed";
+    note?: string;
+    error?: string;
+  };
   error?: string;
 };
 
@@ -863,7 +868,13 @@ export function TraitLabClient() {
       await refreshConfirmedToken(selectedTokenId, data.metadata || preview.proposedMetadata || metadata);
       setPreview(null);
       await loadEnergy();
-      setStatus(data.action === "recycle" ? "Trait recycled. Energy reward credited." : "Metadata Version updated. Trait supply updated.");
+      const openSeaStatus = data.openSeaMetadataRefresh?.status;
+      const openSeaSuffix = openSeaStatus === "queued"
+        ? " OpenSea refresh queued."
+        : openSeaStatus === "failed"
+          ? " OpenSea refresh needs a retry."
+          : "";
+      setStatus(`${data.action === "recycle" ? "Trait recycled. Energy reward credited." : "Metadata Version updated. Trait supply updated."}${openSeaSuffix}`);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Confirm failed.");
     } finally {
