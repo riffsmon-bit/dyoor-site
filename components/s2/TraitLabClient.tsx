@@ -1229,14 +1229,14 @@ export function TraitLabClient() {
 
                   <div className="overflow-hidden rounded border border-dyoor-magenta/25 bg-dyoor-magenta/10">
                     <div className="flex items-center justify-between gap-3 border-b border-dyoor-magenta/20 px-3 py-2">
-                      <p className="text-xs font-black uppercase tracking-[0.14em] text-dyoor-magenta">Proposed Render + Layer</p>
+                      <p className="text-xs font-black uppercase tracking-[0.14em] text-dyoor-magenta">Proposed Image</p>
                       <span className="text-[0.65rem] font-black uppercase tracking-[0.12em] text-yellow-100">
-                        {previewImageChanged ? "Composed Image Updated" : "Layer Overlay Preview"}
+                        {previewImageChanged ? "Full Render Updated" : "Metadata Only"}
                       </span>
                     </div>
-                    <div className="grid gap-0 md:grid-cols-[minmax(0,1fr)_12rem]">
-                      <LayerPreview fallbackImage={previewBeforeImage} metadata={previewProposedMetadata} title="Proposed D.Y.O.O.R preview" />
-                      <div className="grid content-start gap-2 border-t border-dyoor-magenta/20 p-3 md:border-l md:border-t-0">
+                    <LayerPreview fallbackImage={previewBeforeImage} metadata={previewProposedMetadata} title="Proposed D.Y.O.O.R preview" />
+                    <div className="grid gap-3 border-t border-dyoor-magenta/20 p-3 xl:grid-cols-[11rem_minmax(0,1fr)]">
+                      <div className="grid content-start gap-2">
                         <p className="text-xs font-black uppercase tracking-[0.14em] text-white/40">Rarity</p>
                         <p className="text-lg font-black text-white">{preview.proposedAsset?.rarity || "Unlisted"}</p>
                         {preview.action === "recycle" && preview.rewardLabel ? (
@@ -1268,9 +1268,14 @@ export function TraitLabClient() {
                             {preview.action === "recycle" ? "Reward Tx" : "Roll Tx"}
                           </a>
                         ) : null}
+                      </div>
+                      <div className="grid content-start gap-3">
                         {preview.supplyDeltas?.length ? (
-                          <div className="mt-2 border-t border-white/10 pt-2">
-                            <p className="text-xs font-black uppercase tracking-[0.14em] text-white/40">Supply Impact</p>
+                          <div className="rounded border border-white/10 bg-black/20 p-3">
+                            <p className="text-xs font-black uppercase tracking-[0.14em] text-white/40">Pending Supply Impact</p>
+                            <p className="mt-1 text-[0.68rem] font-bold leading-4 text-white/42">
+                              Trait supply changes are recorded only after Confirm Change.
+                            </p>
                             <div className="mt-2 grid gap-1">
                               {preview.supplyDeltas.map((delta) => (
                                 <div key={`${delta.reason}:${delta.traitType}:${delta.value}`} className="grid grid-cols-[3.25rem_minmax(0,1fr)] gap-2 text-xs font-bold">
@@ -1283,14 +1288,14 @@ export function TraitLabClient() {
                         ) : null}
                         {preview.traitType && preview.action && preview.action !== "remove" && preview.action !== "recycle" ? (
                           <Button
-                            className="mt-2 w-full py-2 text-xs"
+                            className="w-full py-2 text-xs"
                             disabled={Boolean(actionLoading)}
                             variant="secondary"
                             onClick={() => void previewChange(preview.traitType as S2TraitLabTrait, preview.action as S2TraitLabAction, preview.paymentMode || paymentMode)}
                           >
                             {actionLoading === `${preview.action}:${preview.traitType}`
                               ? "Rolling"
-                              : preview.action === "reroll" ? `Reroll Again · ${preview.costLabel || "Cost"}` : `Roll Again · ${preview.costLabel || "Cost"}`}
+                            : preview.action === "reroll" ? `Reroll Again · ${preview.costLabel || "Cost"}` : `Roll Again · ${preview.costLabel || "Cost"}`}
                           </Button>
                         ) : null}
                       </div>
