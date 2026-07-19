@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { encodeFunctionData } from "viem";
 import { Alert, Button, Card, EmptyState, LoadingSkeleton, PageShell, SectionHeader, StatCard } from "@/components/ui/DyoorUi";
 import { WalletButton } from "@/components/wallet/WalletButton";
 import {
@@ -9,12 +10,13 @@ import {
   S2_LOCKED_TRAITS,
   S2_REQUIRED_TRAITS,
   S2_TRAIT_LAB_COSTS,
-  S2_TRAIT_LAB_MON_COSTS,
+  S2_TRAIT_LAB_DROID_BURN_REWARD_ENERGY,
   S2_UNLOCKABLE_TRAITS,
   type S2EditableTrait,
   type S2TraitLabAction,
   type S2TraitLabPaymentMode,
 } from "@/lib/s2-trait-lab-config";
+import { isMonadChainId } from "@/lib/monad";
 import { useWalletService } from "@/providers/WalletServiceProvider";
 
 type MetadataAttribute = {
@@ -100,13 +102,18 @@ type PreviewResponse = {
     status?: string;
     todo?: string;
   };
+  openSeaRefresh?: {
+    queued?: boolean;
+    status?: number;
+    reason?: string;
+  };
   error?: string;
 };
 
 type TraitLabConfigResponse = {
   ok?: boolean;
   treasuryWallet?: string;
-  monTestMode?: boolean;
+  contractAddress?: string;
   chainId?: number;
   chainHex?: string;
   chainName?: string;
@@ -115,11 +122,39 @@ type TraitLabConfigResponse = {
   energyPerMon?: number;
   flatUnlockCostEnergy?: number;
   specialMaxActiveSupply?: number;
+  droidBurnEnabled?: boolean;
+  droidBurnRewardEnergy?: number;
   guaranteedTraits?: readonly string[];
   unlockableTraits?: readonly string[];
-  monCosts?: Record<S2TraitLabAction, Record<string, string>>;
   error?: string;
 };
+
+type BurnedDroidCard = {
+  tokenId: string;
+  wallet: string;
+  burnTxHash: string;
+  rewardEnergy: number;
+  rewardLabel: string;
+  burnedAt: string;
+  name?: string;
+  image?: string;
+  metadataVersion?: string;
+  rewardTxHash?: string;
+};
+
+type BurnedGalleryResponse = {
+  ok?: boolean;
+  items?: BurnedDroidCard[];
+  error?: string;
+};
+
+const S2_DROID_BURN_ABI = [{
+  type: "function",
+  name: "burn",
+  stateMutability: "nonpayable",
+  inputs: [{ name: "tokenId", type: "uint256" }],
+  outputs: [],
+}] as const;
 
 const editableTraits = new Set<string>(S2_EDITABLE_TRAITS);
 const lockedTraits = new Set<string>(S2_LOCKED_TRAITS);
@@ -201,9 +236,8 @@ function actionForTrait(traitType: string, value: unknown): S2TraitLabAction | "
   return "reroll";
 }
 
-function costFor(traitType: string, action: S2TraitLabAction | "", paymentMode: S2TraitLabPaymentMode) {
+function costFor(traitType: string, action: S2TraitLabAction | "") {
   if (!action || !editableTraits.has(traitType)) return null;
-  if (paymentMode === "mon") return `${S2_TRAIT_LAB_MON_COSTS[action][traitType as S2EditableTrait]} MON`;
   return `${S2_TRAIT_LAB_COSTS[action][traitType as S2EditableTrait]} Energy`;
 }
 
@@ -253,38 +287,10 @@ async function fetchJsonWithRetry<T>(url: string, fallbackMessage: string, attem
   throw new Error(lastError || fallbackMessage);
 }
 
-function hexQuantity(value: bigint) {
-  return `0x${value.toString(16)}`;
-}
-
-function parseMonRaw(value: string) {
-  const raw = String(value || "0").trim();
-  if (!/^\d+(\.\d{0,18})?$/.test(raw)) return 0n;
-  const [whole, fraction = ""] = raw.split(".");
-  return BigInt(whole || "0") * 10n ** 18n + BigInt((fraction + "0".repeat(18)).slice(0, 18) || "0");
-}
-
-function slugFile(value: unknown) {
-  return `${String(value ?? "")
-    .trim()
-    .replace(/\.[a-z0-9]+$/i, "")
-    .replace(/&/g, "and")
-    .replace(/[^a-z0-9]+/gi, "-")
-    .replace(/^-+|-+$/g, "")
-    .replace(/-+/g, "-")
-    .toLowerCase()}.png`;
-}
-
 function ipfsUrl(cid: string, pathParts: string[]) {
   const cleanCid = String(cid || "").trim();
   if (!cleanCid) return "";
   return mediaUrl(`ipfs://${cleanCid}/${pathParts.map((part) => encodeURIComponent(part)).join("/")}`);
-}
-
-function localLayerUrl(traitType: string, value: unknown) {
-  if (isEmptyTraitValue(value)) return "";
-  const folder = traitType === "Stickers/Body art" ? "Stickers:Body art" : traitType;
-  return `/dyoor-builder/layers/${encodeURIComponent(folder)}/${encodeURIComponent(String(value).trim())}.png`;
 }
 
 function uniqueStrings(values: string[]) {
@@ -294,18 +300,14 @@ function uniqueStrings(values: string[]) {
 function layerSources(traitType: string, value: unknown) {
   if (isEmptyTraitValue(value)) return [];
   const fullLayerCid = process.env.NEXT_PUBLIC_DYOOR_S2_LAYER_IMAGE_CID || "";
-  const traitItemImageCid = process.env.NEXT_PUBLIC_DYOOR_S2_TRAIT_ASSETS_CID || "bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu";
   const folder = traitType === "Stickers/Body art" ? "Stickers:Body art" : traitType;
   const rawName = String(value).trim();
-  const slug = slugFile(value);
 
   return uniqueStrings([
     ipfsUrl(fullLayerCid, ["layers", folder, `${rawName}.png`]),
     ipfsUrl(fullLayerCid, ["layers", folder, `${rawName}.PNG`]),
     ipfsUrl(fullLayerCid, [folder, `${rawName}.png`]),
     ipfsUrl(fullLayerCid, [folder, `${rawName}.PNG`]),
-    ipfsUrl(traitItemImageCid, [slug]),
-    localLayerUrl(traitType, value),
   ]);
 }
 
@@ -322,11 +324,14 @@ function layerEntries(metadata?: MetadataJson | null) {
 
 function LayerPreview({ fallbackImage, metadata, title }: { fallbackImage?: string; metadata?: MetadataJson | null; title: string }) {
   const layers = layerEntries(metadata);
+  const preferFallback = Boolean(fallbackImage && /\/api\/s2\/trait-lab\/render\//.test(fallbackImage));
+  const useFallbackImage = Boolean(fallbackImage && (preferFallback || !layers.length));
+  const useLayerStack = layers.length > 0 && !useFallbackImage;
   return (
     <div className="aspect-square bg-black/45">
-      {fallbackImage || layers.length ? (
+      {fallbackImage || useLayerStack ? (
         <div className="relative h-full w-full overflow-hidden bg-black/35">
-          {fallbackImage ? (
+          {useFallbackImage ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img alt={title} className="absolute inset-0 h-full w-full object-cover" src={fallbackImage} />
           ) : null}
@@ -363,15 +368,12 @@ function LayerPreview({ fallbackImage, metadata, title }: { fallbackImage?: stri
 
 function RollProgress({
   action,
-  paymentMode,
   traitType,
 }: {
   action?: string;
-  paymentMode?: S2TraitLabPaymentMode;
   traitType?: string;
 }) {
   const actionLabel = action === "unlock" ? "Rolling unlock" : "Rolling reroll";
-  const paymentLabel = paymentMode === "mon" ? "MON transaction" : "Energy spend";
 
   return (
     <div className="mt-5 overflow-hidden rounded border border-dyoor-cyan/30 bg-dyoor-cyan/10">
@@ -394,7 +396,7 @@ function RollProgress({
             </div>
             <div className="rounded border border-white/10 bg-black/30 px-3 py-2">
               <span className="text-white/35">Payment</span>
-              <span className="ml-2 text-dyoor-cyan">{paymentLabel}</span>
+              <span className="ml-2 text-dyoor-cyan">Energy spend</span>
             </div>
           </div>
         </div>
@@ -416,8 +418,10 @@ export function TraitLabClient() {
   const [energy, setEnergy] = useState<EnergyResponse | null>(null);
   const [traitLabConfig, setTraitLabConfig] = useState<TraitLabConfigResponse | null>(null);
   const [preview, setPreview] = useState<PreviewResponse | null>(null);
-  const [paymentMode, setPaymentMode] = useState<S2TraitLabPaymentMode>("energy");
   const [selectedTrait, setSelectedTrait] = useState<S2EditableTrait>("Eyes");
+  const [burnedGallery, setBurnedGallery] = useState<BurnedDroidCard[]>([]);
+  const [burnConfirmText, setBurnConfirmText] = useState("");
+  const [burnedGalleryLoading, setBurnedGalleryLoading] = useState(false);
   const [ownedLoading, setOwnedLoading] = useState(false);
   const [metadataLoading, setMetadataLoading] = useState(false);
   const [energyLoading, setEnergyLoading] = useState(false);
@@ -431,39 +435,37 @@ export function TraitLabClient() {
   const baseDroidDetected = emptySlots.length === S2_EDITABLE_TRAITS.length;
   const selectedImage = mediaUrl(metadata?.image);
   const rows = previewRows(preview?.currentMetadata || metadata, preview?.proposedMetadata || metadata);
-  const monPaymentVisible = true;
   const selectedTraitValue = selectedTraits[selectedTrait];
   const selectedTraitAction = actionForTrait(selectedTrait, selectedTraitValue) as S2TraitLabAction;
-  const selectedTraitMonCost = selectedTraitAction
-    ? traitLabConfig?.monCosts?.[selectedTraitAction]?.[selectedTrait] ?? S2_TRAIT_LAB_MON_COSTS[selectedTraitAction][selectedTrait]
-    : "0";
-  const selectedTraitCost = paymentMode === "mon" && selectedTraitAction ? `${selectedTraitMonCost} MON` : costFor(selectedTrait, selectedTraitAction, paymentMode);
+  const selectedTraitCost = costFor(selectedTrait, selectedTraitAction);
   const selectedTraitIsEmpty = isEmptyTraitValue(selectedTraitValue);
   const selectedTraitGuaranteedEmpty = selectedTraitIsEmpty && guaranteedTraits.has(selectedTrait);
   const selectedTraitLoading = actionLoading === `${selectedTraitAction}:${selectedTrait}`;
-  const rollLoading = Boolean(actionLoading && actionLoading !== "confirm");
+  const rollLoading = Boolean(actionLoading && actionLoading !== "confirm" && actionLoading !== "burn-droid");
+  const burnLoading = actionLoading === "burn-droid";
   const [rollingAction, rollingTraitType] = rollLoading ? actionLoading.split(":") : ["", ""];
+  const droidBurnRewardEnergy = traitLabConfig?.droidBurnRewardEnergy || S2_TRAIT_LAB_DROID_BURN_REWARD_ENERGY;
+  const droidBurnEnabled = traitLabConfig?.droidBurnEnabled !== false;
+  const burnConfirmationPhrase = selectedTokenId ? `BURN DROID #${selectedTokenId}` : "";
+  const burnReady = Boolean(
+    walletAddress
+    && selectedTokenId
+    && metadata
+    && traitLabConfig?.contractAddress
+    && burnConfirmText.trim() === burnConfirmationPhrase,
+  );
   const previewCurrentMetadata = preview?.currentMetadata || null;
   const previewProposedMetadata = preview?.proposedMetadata || null;
   const previewBeforeImage = mediaUrl(previewCurrentMetadata?.image || metadata?.image);
+  const previewProposedImage = mediaUrl(previewProposedMetadata?.image || previewCurrentMetadata?.image || metadata?.image);
   const previewTraitAssetImage = mediaUrl(preview?.proposedAsset?.uri);
   const previewImageChanged = normalizeTraitValue(previewCurrentMetadata?.image) !== normalizeTraitValue(previewProposedMetadata?.image);
-  const paymentOptions = monPaymentVisible
-    ? [
-      { value: "energy" as const, label: "Spend Energy" },
-      { value: "mon" as const, label: "Spend MON" },
-    ]
-    : [{ value: "energy" as const, label: "Spend Energy" }];
 
   useEffect(() => {
     selectedTokenIdRef.current = selectedTokenId;
-  }, [selectedTokenId]);
-
-  useEffect(() => {
-    if (monPaymentVisible || paymentMode !== "mon") return;
-    const timer = window.setTimeout(() => setPaymentMode("energy"), 0);
+    const timer = window.setTimeout(() => setBurnConfirmText(""), 0);
     return () => window.clearTimeout(timer);
-  }, [monPaymentVisible, paymentMode]);
+  }, [selectedTokenId]);
 
   useEffect(() => {
     if (!metadata || selectedTraitAction) return;
@@ -509,6 +511,20 @@ export function TraitLabClient() {
       setEnergyLoading(false);
     }
   }, [walletAddress]);
+
+  const loadBurnedGallery = useCallback(async () => {
+    setBurnedGalleryLoading(true);
+    try {
+      const response = await fetch("/api/s2/trait-lab/burned-droids", { cache: "no-store" });
+      const data = await response.json().catch(() => ({})) as BurnedGalleryResponse;
+      if (!response.ok || data.ok === false) throw new Error(data.error || "Could not load burned Droid gallery.");
+      setBurnedGallery(Array.isArray(data.items) ? data.items : []);
+    } catch {
+      setBurnedGallery([]);
+    } finally {
+      setBurnedGalleryLoading(false);
+    }
+  }, []);
 
   const loadTokenMetadata = useCallback(async (tokenId: string) => {
     if (!tokenId) {
@@ -592,6 +608,13 @@ export function TraitLabClient() {
     return () => window.clearTimeout(timer);
   }, [loadEnergy, loadOwnedTokens]);
 
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      void loadBurnedGallery();
+    }, 0);
+    return () => window.clearTimeout(timer);
+  }, [loadBurnedGallery]);
+
   async function connectWallet() {
     setError("");
     await wallet.connect().catch((err) => setError(err instanceof Error ? err.message : "Wallet connection failed."));
@@ -630,7 +653,7 @@ export function TraitLabClient() {
     if (!traitLabConfig?.chainHex) return;
     const provider = await wallet.getProvider();
     const currentChain = await provider.request({ method: "eth_chainId" }).catch(() => "");
-    if (String(currentChain || "").toLowerCase() === traitLabConfig.chainHex.toLowerCase()) return;
+    if (isMonadChainId(currentChain) || String(currentChain || "").toLowerCase() === traitLabConfig.chainHex.toLowerCase()) return;
 
     try {
       await provider.request({ method: "wallet_switchEthereumChain", params: [{ chainId: traitLabConfig.chainHex }] });
@@ -653,33 +676,15 @@ export function TraitLabClient() {
     for (let attempt = 0; attempt < 45; attempt += 1) {
       const receipt = await provider.request({ method: "eth_getTransactionReceipt", params: [txHash] }).catch(() => null) as { status?: string } | null;
       if (receipt) {
-        if (String(receipt.status || "").toLowerCase() === "0x0") throw new Error("Roll transaction failed on-chain.");
+        if (String(receipt.status || "").toLowerCase() === "0x0") throw new Error("Wallet transaction failed on-chain.");
         return receipt;
       }
       await sleep(1500);
     }
-    throw new Error("Roll transaction is still pending. Wait a moment and try again.");
+    throw new Error("Wallet transaction is still pending. Wait a moment and try again.");
   }
 
-  async function sendTraitLabMonPayment(traitType: S2EditableTrait, action: S2TraitLabAction) {
-    const treasuryWallet = normalizeAddress(traitLabConfig?.treasuryWallet);
-    if (!treasuryWallet) throw new Error("Trait Lab treasury wallet is not configured.");
-    await switchToTraitLabChain();
-
-    const monCost = traitLabConfig?.monCosts?.[action]?.[traitType] ?? S2_TRAIT_LAB_MON_COSTS[action][traitType];
-    const amountRaw = parseMonRaw(monCost);
-    setStatus(`Confirm wallet transaction for this ${action} roll.`);
-    const txHash = await wallet.sendTransaction({
-      from: walletAddress,
-      to: treasuryWallet,
-      value: hexQuantity(amountRaw),
-    });
-    setStatus("Roll transaction sent. Waiting for confirmation.");
-    await waitForTransactionReceipt(txHash);
-    return txHash;
-  }
-
-  async function previewChange(traitType: S2EditableTrait, action: S2TraitLabAction, mode: S2TraitLabPaymentMode = paymentMode) {
+  async function previewChange(traitType: S2EditableTrait, action: S2TraitLabAction) {
     if (!walletAddress) {
       await connectWallet();
       return;
@@ -690,34 +695,24 @@ export function TraitLabClient() {
     setActionLoading(key);
     setPreview(null);
     setError("");
-    setStatus(mode === "mon" ? "Preparing MON roll transaction." : "Spending Energy and generating roll.");
+    setStatus("Spending Energy and generating roll.");
     try {
-      const paymentTxHash = mode === "mon" ? await sendTraitLabMonPayment(traitType, action) : "";
-      let response: Response | null = null;
-      let data = {} as PreviewResponse;
-      for (let attempt = 0; attempt < 4; attempt += 1) {
-        response = await fetch("/api/s2/trait-lab/preview", {
-          method: "POST",
-          headers: { "content-type": "application/json" },
-          body: JSON.stringify({
-            wallet: walletAddress,
-            tokenId: selectedTokenId,
-            traitType,
-            action,
-            paymentMode: mode,
-            ...(paymentTxHash ? { paymentTxHash } : {}),
-          }),
-        });
-        data = await response.json().catch(() => ({})) as PreviewResponse;
-        if (!(response.status === 409 && paymentTxHash)) break;
-        setStatus("Waiting for roll transaction to index.");
-        await sleep(1500);
-      }
-      if (!response) throw new Error("Preview failed.");
+      const response = await fetch("/api/s2/trait-lab/preview", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          wallet: walletAddress,
+          tokenId: selectedTokenId,
+          traitType,
+          action,
+          paymentMode: "energy",
+        }),
+      });
+      const data = await response.json().catch(() => ({})) as PreviewResponse;
       if (!response.ok || data.ok === false) throw new Error(data.error || "Preview failed.");
       setPreview(data);
       setStatus(action === "unlock" ? "Unlock roll ready." : "Reroll ready.");
-      if (data.paymentMode === "energy") await loadEnergy();
+      await loadEnergy();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Preview failed.");
     } finally {
@@ -751,7 +746,9 @@ export function TraitLabClient() {
       await refreshConfirmedToken(selectedTokenId, data.metadata || preview.proposedMetadata || metadata);
       setPreview(null);
       await loadEnergy();
-      setStatus("Metadata Version updated. Trait supply updated.");
+      setStatus(data.openSeaRefresh?.queued
+        ? "Metadata Version updated. OpenSea refresh queued."
+        : "Metadata Version updated. Trait supply updated.");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Confirm failed.");
     } finally {
@@ -759,7 +756,88 @@ export function TraitLabClient() {
     }
   }
 
-  const alertTone = error ? "danger" : actionLoading || ownedLoading || metadataLoading ? "busy" : status.includes("updated") ? "success" : "idle";
+  async function burnSelectedDroid() {
+    if (!walletAddress) {
+      await connectWallet();
+      return;
+    }
+    if (!selectedTokenId || !metadata) {
+      setError("Select a Droid before burning.");
+      return;
+    }
+    if (!traitLabConfig?.contractAddress) {
+      setError("Season 2 contract address is not configured.");
+      return;
+    }
+    if (burnConfirmText.trim() !== burnConfirmationPhrase) {
+      setError(`Type ${burnConfirmationPhrase} to confirm this permanent burn.`);
+      return;
+    }
+
+    const tokenIdBeingBurned = selectedTokenId;
+    setActionLoading("burn-droid");
+    setPreview(null);
+    setError("");
+    try {
+      await switchToTraitLabChain();
+      const activeAddress = normalizeAddress(await wallet.getAddress().catch(() => walletAddress));
+      if (activeAddress !== walletAddress) {
+        throw new Error("Connected wallet changed. Reconnect and try again.");
+      }
+
+      setStatus(`Confirm wallet burn for D.Y.O.O.R #${tokenIdBeingBurned}. This cannot be undone.`);
+      const burnTxHash = await wallet.sendTransaction({
+        from: walletAddress,
+        to: traitLabConfig.contractAddress,
+        data: encodeFunctionData({
+          abi: S2_DROID_BURN_ABI,
+          functionName: "burn",
+          args: [BigInt(tokenIdBeingBurned)],
+        }),
+      });
+      setStatus("Droid burn sent. Waiting for on-chain confirmation.");
+      await waitForTransactionReceipt(burnTxHash);
+
+      setStatus(`Burn confirmed. Crediting ${droidBurnRewardEnergy} Energy.`);
+      const response = await fetch("/api/s2/trait-lab/burn-droid", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          wallet: walletAddress,
+          tokenId: tokenIdBeingBurned,
+          burnTxHash,
+        }),
+      });
+      const data = await response.json().catch(() => ({})) as {
+        ok?: boolean;
+        error?: string;
+        rewardEnergy?: number;
+        rewardTxHash?: string;
+        burnRecord?: BurnedDroidCard;
+      };
+      if (!response.ok || data.ok === false) throw new Error(data.error || "Droid burn reward failed.");
+
+      setOwnedTokenIds((tokenIds) => tokenIds.filter((tokenId) => tokenId !== tokenIdBeingBurned));
+      setTokenCards((cards) => cards.filter((card) => card.tokenId !== tokenIdBeingBurned));
+      setSelectedTokenId("");
+      setMetadata(null);
+      setBurnConfirmText("");
+      await Promise.all([loadEnergy(), loadBurnedGallery()]);
+      setStatus(`D.Y.O.O.R #${tokenIdBeingBurned} burned. ${data.rewardEnergy || droidBurnRewardEnergy} Energy credited.`);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Droid burn failed.");
+    } finally {
+      setActionLoading("");
+    }
+  }
+
+  const alertTone = error
+    ? "danger"
+    : actionLoading || ownedLoading || metadataLoading
+      ? "busy"
+      : /updated|burned|ready/i.test(status)
+        ? "success"
+        : "idle";
 
   return (
     <PageShell size="wide" className="space-y-7">
@@ -869,35 +947,8 @@ export function TraitLabClient() {
 
                 <Alert tone="idle" className="mt-3 py-3">Locked traits cannot be changed.</Alert>
 
-                <div className="mt-3 hidden gap-2 rounded border border-white/10 bg-white/[0.035] p-2 sm:grid sm:grid-cols-2">
-                  <button
-                    type="button"
-                    className={`rounded border px-3 py-2.5 text-xs font-black uppercase tracking-[0.12em] transition ${
-                      paymentMode === "energy"
-                        ? "border-dyoor-cyan bg-dyoor-cyan text-black"
-                        : "border-white/10 bg-black/30 text-white/60 hover:border-dyoor-cyan/40 hover:text-dyoor-cyan"
-                    }`}
-                    onClick={() => setPaymentMode("energy")}
-                  >
-                    Spend Energy
-                  </button>
-                  {monPaymentVisible ? (
-                    <button
-                      type="button"
-                      className={`rounded border px-3 py-2.5 text-xs font-black uppercase tracking-[0.12em] transition ${
-                        paymentMode === "mon"
-                          ? "border-dyoor-magenta bg-dyoor-magenta text-black"
-                          : "border-white/10 bg-black/30 text-white/60 hover:border-dyoor-magenta/60 hover:text-dyoor-magenta"
-                      }`}
-                      onClick={() => setPaymentMode("mon")}
-                    >
-                      Spend MON
-                    </button>
-                  ) : null}
-                </div>
-
                 <div className="mt-3 rounded border border-dyoor-cyan/20 bg-black/30 p-3">
-                  <div className="grid gap-3 lg:grid-cols-[minmax(0,0.72fr)_minmax(0,0.72fr)_minmax(0,1fr)_auto] lg:items-end">
+                  <div className="grid gap-3 lg:grid-cols-[minmax(0,0.75fr)_minmax(0,1fr)_auto] lg:items-end">
                     <label className="grid gap-2">
                       <span className="text-xs font-black uppercase tracking-[0.16em] text-white/45">Trait</span>
                       <select
@@ -910,22 +961,6 @@ export function TraitLabClient() {
                       >
                         {S2_EDITABLE_TRAITS.map((trait) => (
                           <option key={trait} value={trait}>{trait}</option>
-                        ))}
-                      </select>
-                    </label>
-
-                    <label className="grid gap-2">
-                      <span className="text-xs font-black uppercase tracking-[0.16em] text-white/45">Payment</span>
-                      <select
-                        className="field-control min-h-11 py-2.5 text-sm font-black uppercase"
-                        value={paymentMode}
-                        onChange={(event) => {
-                          setPaymentMode(event.target.value as S2TraitLabPaymentMode);
-                          setPreview(null);
-                        }}
-                      >
-                        {paymentOptions.map((option) => (
-                          <option key={option.value} value={option.value}>{option.label}</option>
                         ))}
                       </select>
                     </label>
@@ -953,8 +988,8 @@ export function TraitLabClient() {
                     {selectedTraitGuaranteedEmpty
                       ? "Eyes and Mouth are guaranteed mint traits, so empty values are not unlockable in Trait Lab."
                       : selectedTraitIsEmpty
-                      ? "Rolling spends the selected payment method and creates one approved unlock result."
-                      : "Rolling spends the selected payment method and creates one compatible reroll result."}
+                      ? "Rolling spends Energy and creates one approved unlock result."
+                      : "Rolling spends Energy and creates one compatible reroll result."}
                   </p>
                 </div>
 
@@ -1006,6 +1041,43 @@ export function TraitLabClient() {
                     );
                   })}
                 </div>
+
+                {droidBurnEnabled ? (
+                <div className="mt-4 rounded border border-red-400/35 bg-red-500/10 p-4">
+                  <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(15rem,0.6fr)] xl:items-end">
+                    <div>
+                      <p className="eyebrow text-red-100">Permanent Burn</p>
+                      <h3 className="mt-2 text-xl font-black uppercase text-white">Burn Droid for Energy</h3>
+                      <p className="mt-2 text-sm font-semibold leading-6 text-white/62">
+                        Burning sends the selected NFT to the zero address, removes it from your wallet, and cannot be undone. OpenSea supply and media refresh can take a few minutes after confirmation.
+                      </p>
+                      <div className="mt-3 inline-flex rounded border border-dyoor-cyan/30 bg-dyoor-cyan/10 px-3 py-2 text-xs font-black uppercase tracking-[0.14em] text-dyoor-cyan">
+                        Reward: {droidBurnRewardEnergy.toLocaleString()} Energy
+                      </div>
+                    </div>
+                    <div className="grid gap-2">
+                      <label className="grid gap-2">
+                        <span className="text-xs font-black uppercase tracking-[0.16em] text-white/45">Type To Confirm</span>
+                        <input
+                          className="field-control min-h-11 py-2.5 text-sm font-black uppercase"
+                          disabled={!selectedTokenId || Boolean(actionLoading)}
+                          placeholder={burnConfirmationPhrase || "Select a Droid first"}
+                          value={burnConfirmText}
+                          onChange={(event) => setBurnConfirmText(event.target.value)}
+                        />
+                      </label>
+                      <Button
+                        className="w-full py-2.5"
+                        disabled={!burnReady || Boolean(actionLoading)}
+                        variant="secondary"
+                        onClick={() => void burnSelectedDroid()}
+                      >
+                        {burnLoading ? "Burning" : `Burn Droid + ${droidBurnRewardEnergy.toLocaleString()} Energy`}
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+                ) : null}
               </div>
             </div>
           </Card>
@@ -1018,7 +1090,7 @@ export function TraitLabClient() {
               </div>
               {preview ? (
                 <div className="rounded border border-dyoor-cyan/30 bg-dyoor-cyan/10 px-3 py-2 text-xs font-black uppercase tracking-[0.14em] text-dyoor-cyan">
-                  {preview.paymentMode === "mon" ? "MON Transaction" : "Spend Energy"}: {preview.costLabel || `${preview.costEnergy || 0} Energy`}
+                  Spend Energy: {preview.costLabel || `${preview.costEnergy || 0} Energy`}
                 </div>
               ) : null}
             </div>
@@ -1026,7 +1098,6 @@ export function TraitLabClient() {
             {rollLoading && !preview ? (
               <RollProgress
                 action={rollingAction}
-                paymentMode={paymentMode}
                 traitType={rollingTraitType || selectedTrait}
               />
             ) : !preview ? (
@@ -1065,7 +1136,7 @@ export function TraitLabClient() {
                       </span>
                     </div>
                     <div className="grid gap-0 md:grid-cols-[minmax(0,1fr)_12rem]">
-                      <LayerPreview fallbackImage={previewBeforeImage} metadata={previewProposedMetadata} title="Proposed D.Y.O.O.R preview" />
+                      <LayerPreview fallbackImage={previewProposedImage} metadata={previewProposedMetadata} title="Proposed D.Y.O.O.R preview" />
                       <div className="grid content-start gap-2 border-t border-dyoor-magenta/20 p-3 md:border-l md:border-t-0">
                         <p className="text-xs font-black uppercase tracking-[0.14em] text-white/40">Rarity</p>
                         <p className="text-lg font-black text-white">{preview.proposedAsset?.rarity || "Unlisted"}</p>
@@ -1110,7 +1181,7 @@ export function TraitLabClient() {
                             className="mt-2 w-full py-2 text-xs"
                             disabled={Boolean(actionLoading)}
                             variant="secondary"
-                            onClick={() => void previewChange(preview.traitType as S2EditableTrait, preview.action as S2TraitLabAction, preview.paymentMode || paymentMode)}
+                            onClick={() => void previewChange(preview.traitType as S2EditableTrait, preview.action as S2TraitLabAction)}
                           >
                             {actionLoading === `${preview.action}:${preview.traitType}`
                               ? "Rolling"
@@ -1161,6 +1232,58 @@ export function TraitLabClient() {
           </Card>
         </div>
       </section>
+
+      <Card className="p-5">
+        <div className="flex flex-col justify-between gap-3 md:flex-row md:items-end">
+          <div>
+            <p className="eyebrow text-red-100">Burn Archive</p>
+            <h2 className="mt-2 text-2xl font-black uppercase text-white">Burned Gallery</h2>
+            <p className="mt-2 max-w-3xl text-sm font-semibold leading-6 text-white/58">
+              Permanently burned D.Y.O.O.R Season 2 NFTs appear here after the burn transaction is verified and the Energy reward is credited.
+            </p>
+          </div>
+          <Button variant="secondary" disabled={burnedGalleryLoading} onClick={() => void loadBurnedGallery()}>
+            {burnedGalleryLoading ? "Loading" : "Refresh Gallery"}
+          </Button>
+        </div>
+
+        <div className="mt-5">
+          {burnedGalleryLoading && !burnedGallery.length ? (
+            <LoadingSkeleton lines={4} />
+          ) : burnedGallery.length ? (
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5">
+              {burnedGallery.map((item) => (
+                <a
+                  key={`${item.tokenId}:${item.burnTxHash}`}
+                  className="group overflow-hidden rounded border border-red-300/20 bg-red-500/10 transition hover:border-red-300/45"
+                  href={`${traitLabConfig?.explorerUrl || "https://monadscan.com"}/tx/${item.burnTxHash}`}
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  <div className="relative aspect-square bg-black/50">
+                    {item.image ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img alt={item.name || `Burned D.Y.O.O.R #${item.tokenId}`} className="h-full w-full object-cover grayscale" src={mediaUrl(item.image)} />
+                    ) : (
+                      <div className="grid h-full place-items-center text-xs font-black uppercase tracking-[0.16em] text-white/35">No Image</div>
+                    )}
+                    <div className="absolute inset-0 bg-black/35" />
+                    <div className="absolute inset-x-0 top-1/2 -translate-y-1/2 -rotate-6 border-y border-red-300/45 bg-red-600/70 py-2 text-center text-2xl font-black uppercase tracking-[0.18em] text-red-50 shadow-[0_0_24px_rgba(248,113,113,.35)]">
+                      Wasted
+                    </div>
+                  </div>
+                  <div className="grid gap-1 p-3">
+                    <p className="truncate text-sm font-black text-white">{item.name || `D.Y.O.O.R #${item.tokenId}`}</p>
+                    <p className="text-xs font-bold text-white/45">#{item.tokenId} · {item.rewardLabel || `${droidBurnRewardEnergy.toLocaleString()} Energy`}</p>
+                  </div>
+                </a>
+              ))}
+            </div>
+          ) : (
+            <EmptyState title="No Burned Droids Yet" copy="Burned Droids will appear here after verified burn reward claims." />
+          )}
+        </div>
+      </Card>
     </PageShell>
   );
 }

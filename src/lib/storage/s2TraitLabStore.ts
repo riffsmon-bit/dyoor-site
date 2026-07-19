@@ -2,8 +2,8 @@ import { createJsonStore } from "./fileStore";
 
 const STORE_NAME = "dyoor-s2-metadata";
 const SUPPLY_LEDGER_KEY = "trait-lab/supply-ledger.json";
+const BURNED_DROIDS_KEY = "trait-lab/burned-droids.json";
 const ROLL_PREFIX = "trait-lab/rolls";
-const MON_PAYMENT_PREFIX = "trait-lab/mon-payments";
 
 const store = createJsonStore(STORE_NAME);
 
@@ -31,9 +31,6 @@ export type TraitLabRollRecord = {
   energyDebitDeduped?: boolean;
   energySpendTxHash?: string;
   energySpendBlockNumber?: string;
-  monPaymentTxHash?: string;
-  monPaymentAmountRaw?: string;
-  monPaymentBlockNumber?: string;
 };
 
 export type TraitSupplyDelta = {
@@ -74,17 +71,27 @@ export type TraitSupplyLedger = {
   events: TraitSupplyEvent[];
 };
 
-export type TraitLabMonPaymentRecord = {
-  txHash: string;
-  rollId: string;
-  wallet: string;
+export type BurnedDroidRecord = {
   tokenId: string;
-  traitType: string;
-  action: string;
-  amountRaw: string;
-  treasuryWallet: string;
-  blockNumber: string;
-  createdAt: string;
+  wallet: string;
+  burnTxHash: string;
+  rewardEnergy: number;
+  rewardRaw: string;
+  rewardLabel: string;
+  claim: string;
+  burnedAt: string;
+  name?: string;
+  image?: string;
+  metadataVersion?: string;
+  rewardTxHash?: string;
+  rewardBlockNumber?: string;
+  deduped?: boolean;
+};
+
+export type BurnedDroidGallery = {
+  version: 1;
+  updatedAt: string;
+  items: BurnedDroidRecord[];
 };
 
 function nowIso() {
@@ -99,16 +106,20 @@ function rollKey(rollId: string) {
   return `${ROLL_PREFIX}/${rollId.replace(/[^a-zA-Z0-9:_-]/g, "-")}.json`;
 }
 
-function monPaymentKey(txHash: string) {
-  return `${MON_PAYMENT_PREFIX}/${txHash.toLowerCase().replace(/[^a-z0-9]/g, "-")}.json`;
-}
-
 function emptyLedger(): TraitSupplyLedger {
   return {
     version: 1,
     updatedAt: "",
     items: {},
     events: [],
+  };
+}
+
+function emptyBurnedDroidGallery(): BurnedDroidGallery {
+  return {
+    version: 1,
+    updatedAt: "",
+    items: [],
   };
 }
 
@@ -144,25 +155,38 @@ export async function saveTraitLabRoll(roll: TraitLabRollRecord) {
   return next;
 }
 
-export async function claimTraitLabMonPayment(payment: TraitLabMonPaymentRecord) {
-  const key = monPaymentKey(payment.txHash);
-  const existing = await store.getJson<TraitLabMonPaymentRecord | null>(key, null);
-  if (existing && existing.rollId !== payment.rollId) {
-    throw Object.assign(new Error("This MON transaction has already been used for a Trait Lab roll."), { status: 409 });
-  }
-  if (existing) return { payment: existing, deduped: true };
-
-  const next = {
-    ...payment,
-    txHash: payment.txHash.toLowerCase(),
-    createdAt: payment.createdAt || nowIso(),
-  };
-  await store.setJson(key, next);
-  return { payment: next, deduped: false };
-}
-
 export async function getTraitSupplyLedger() {
   return await store.getJson<TraitSupplyLedger>(SUPPLY_LEDGER_KEY, emptyLedger());
+}
+
+export async function getBurnedDroidGallery() {
+  return await store.getJson<BurnedDroidGallery>(BURNED_DROIDS_KEY, emptyBurnedDroidGallery());
+}
+
+export async function saveBurnedDroidRecord(record: BurnedDroidRecord) {
+  const gallery = await getBurnedDroidGallery();
+  const updatedAt = nowIso();
+  const txHash = record.burnTxHash.toLowerCase();
+  const tokenId = String(record.tokenId);
+  const existing = gallery.items.find((item) => item.tokenId === tokenId || item.burnTxHash.toLowerCase() === txHash);
+  const nextRecord = {
+    ...existing,
+    ...record,
+    tokenId,
+    wallet: record.wallet.toLowerCase(),
+    burnTxHash: txHash,
+    burnedAt: record.burnedAt || updatedAt,
+  };
+  const items = [nextRecord]
+    .concat(gallery.items.filter((item) => item.tokenId !== tokenId && item.burnTxHash.toLowerCase() !== txHash))
+    .sort((a, b) => Date.parse(b.burnedAt || "") - Date.parse(a.burnedAt || ""));
+  const nextGallery: BurnedDroidGallery = {
+    version: 1,
+    updatedAt,
+    items,
+  };
+  await store.setJson(BURNED_DROIDS_KEY, nextGallery);
+  return nextRecord;
 }
 
 export async function getTraitSupplyItem(traitType: string, value: string) {

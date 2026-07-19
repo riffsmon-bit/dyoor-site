@@ -19,7 +19,9 @@ type BuilderRule = {
   message?: string;
 };
 
-export const BUILDER_LAYER_BASE_PATH = "/dyoor-builder/layers";
+const DEFAULT_BUILDER_LAYER_CID = "bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu";
+const DEFAULT_IPFS_GATEWAY = "https://jade-efficient-beaver-697.mypinata.cloud";
+
 export const builderLayerOrder = DYOOR_BUILDER_LAYER_ORDER as BuilderCategory[];
 export const builderTraits = DYOOR_BUILDER_TRAITS as Record<BuilderCategory, string[]>;
 export const builderRandomizer = DYOOR_BUILDER_RANDOMIZER as {
@@ -28,8 +30,28 @@ export const builderRandomizer = DYOOR_BUILDER_RANDOMIZER as {
 };
 const builderRules = DYOOR_BUILDER_RULES as BuilderRule[];
 
-export function traitPath(category: BuilderCategory, file: string) {
-  return `${BUILDER_LAYER_BASE_PATH}/${encodeURIComponent(category)}/${encodeURIComponent(file)}`;
+function layerCid() {
+  return process.env.NEXT_PUBLIC_DYOOR_S2_LAYER_IMAGE_CID || DEFAULT_BUILDER_LAYER_CID;
+}
+
+function layerGateway() {
+  return (process.env.NEXT_PUBLIC_DYOOR_S2_LAYER_GATEWAY || process.env.NEXT_PUBLIC_PINATA_GATEWAY_URL || DEFAULT_IPFS_GATEWAY).replace(/\/+$/, "");
+}
+
+function traitFolder(category: BuilderCategory) {
+  return category === "Stickers/Body art" ? "Stickers:Body art" : category;
+}
+
+function ipfsTraitPath(parts: string[]) {
+  return `${layerGateway()}/ipfs/${layerCid()}/${parts.map((part) => encodeURIComponent(part)).join("/")}`;
+}
+
+export function traitPathCandidates(category: BuilderCategory, file: string) {
+  const folder = traitFolder(category);
+  return [
+    ipfsTraitPath([folder, file]),
+    ipfsTraitPath(["layers", folder, file]),
+  ];
 }
 
 export function fileLabel(file: string) {

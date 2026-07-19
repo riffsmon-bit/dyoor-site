@@ -110,7 +110,7 @@ function isTestnetLikeUrl(value: string) {
 }
 
 function configuredMonadRpcUrl() {
-  for (const name of ["MONAD_RPC_URL", "DYOOR_S2_RPC_URL", "NEXT_PUBLIC_MONAD_RPC_URL", "NEXT_PUBLIC_DYOOR_S2_RPC_URL", "RPC_URL"]) {
+  for (const name of ["DYOOR_S2_RPC_URL", "NEXT_PUBLIC_DYOOR_S2_RPC_URL", "MONAD_RPC_URL", "NEXT_PUBLIC_MONAD_RPC_URL", "RPC_URL"]) {
     const value = readEnv(name);
     if (value && !isTestnetLikeUrl(value)) return value;
   }

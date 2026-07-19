@@ -27,6 +27,7 @@ const nextConfig = {
       "./coverage/**/*",
       "./data/runtime/**/*",
       "./data/snapshots/**/*",
+      "./dyoor-builder/layers/**/*",
       "./lib/seadrop/**/*",
       "./out/**/*",
       "./scripts/**/*",
@@ -67,6 +68,8 @@ const nextConfig = {
     return [
       { source: "/admin-ascension", destination: "/", permanent: false },
       { source: "/admin-ascension.html", destination: "/", permanent: false },
+      { source: "/build-droid", destination: "/blueprint-checker", permanent: false },
+      { source: "/build-droid.html", destination: "/blueprint-checker", permanent: false },
       { source: "/quests", destination: "/", permanent: false },
       { source: "/quests.html", destination: "/", permanent: false },
       { source: "/stake", destination: "/ascension", permanent: false },

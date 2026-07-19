@@ -11,7 +11,7 @@ import {
   S2_TRAIT_LAB_FLAT_UNLOCK_COST,
   S2_TRAIT_LAB_ENERGY_PER_MON,
   S2_TRAIT_LAB_SPECIAL_MAX_ACTIVE_SUPPLY,
-  S2_TRAIT_LAB_MON_COSTS,
+  S2_TRAIT_LAB_DROID_BURN_REWARD_ENERGY,
   S2_TRAIT_LAB_COSTS,
   isS2EditableTrait,
   isS2UnlockableTrait,
@@ -29,13 +29,13 @@ import {
   parseTokenId,
   saveRuntimeTraitOverride,
 } from "@/lib/dyoor-s2-metadata.js";
-import { renderTraitLabImage } from "@/lib/s2-trait-lab-render";
+import { findMissingTraitLabLayers, renderTraitLabImage } from "@/lib/s2-trait-lab-render";
 import {
   applyTraitSupplyDeltas,
   assertTraitSupplyAvailable,
-  claimTraitLabMonPayment,
   getTraitLabRoll,
   getTraitSupplyLedger,
+  saveBurnedDroidRecord,
   saveTraitLabRoll,
   type TraitLabRollRecord,
   type TraitSupplyDelta,
@@ -137,10 +137,13 @@ const ERC721_ABI = [
 ];
 
 const ENERGY_BANK_ABI = [
+  "function creditEnergy(address user,uint256 amount,bytes32 claimTxHash)",
   "function spendEnergy(address user,uint256 amount,bytes32 reason)",
   "function spendableEnergy(address user) view returns (uint256)",
+  "function CREDIT_ROLE() view returns (bytes32)",
   "function SPENDER_ROLE() view returns (bytes32)",
   "function hasRole(bytes32 role,address account) view returns (bool)",
+  "function usedClaimTxHash(bytes32 claimTxHash) view returns (bool)",
 ];
 
 const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
@@ -148,8 +151,10 @@ const DEFAULT_TRAIT_ASSETS_CID = "bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6h
 const PREVIEW_TTL_MS = 5 * 60 * 1000;
 const CONFIRM_WINDOW_MS = 5 * 60 * 1000;
 const TRANSFER_TOPIC = ethers.id("Transfer(address,address,uint256)");
+const BURN_SELECTOR = ethers.id("burn(uint256)").slice(0, 10).toLowerCase();
 const DEFAULT_MONAD_MAINNET_RPC_URL = "https://rpc.monad.xyz";
 const DEFAULT_MONAD_MAINNET_EXPLORER_URL = "https://monadscan.com";
+const DEFAULT_OPENSEA_CHAIN = "monad";
 const DEFAULT_S2_DEPLOYMENT_BLOCK = 87616887;
 const SERVERLESS_LOG_SPAN = 25_000;
 const MIN_OWNED_TOKEN_LOG_SPAN = 10_000;
@@ -202,20 +207,12 @@ function traitLabTreasuryWallet() {
   return address;
 }
 
-function requireTxHash(value: unknown) {
+function requireTransactionHash(value: unknown) {
   const txHash = String(value || "").trim().toLowerCase();
   if (!/^0x[a-f0-9]{64}$/.test(txHash)) {
-    throw Object.assign(new Error("A wallet transaction is required for this roll."), { status: 400 });
+    throw Object.assign(new Error("A wallet transaction hash is required."), { status: 400 });
   }
   return txHash;
-}
-
-function monCostRaw(value: string) {
-  try {
-    return ethers.parseUnits(String(value || "0"), 18);
-  } catch {
-    throw Object.assign(new Error("Invalid MON cost configuration."), { status: 500 });
-  }
 }
 
 function configuredS2ChainId() {
@@ -238,7 +235,7 @@ function firstUsableRpc(names: string[], mainnet: boolean) {
 
 function configuredS2RpcUrl() {
   return firstUsableRpc(
-    ["DYOOR_S2_RPC_URL", "MONAD_RPC_URL", "NEXT_PUBLIC_MONAD_RPC_URL", "NEXT_PUBLIC_DYOOR_S2_RPC_URL", "RPC_URL"],
+    ["DYOOR_S2_RPC_URL", "NEXT_PUBLIC_DYOOR_S2_RPC_URL", "MONAD_RPC_URL", "NEXT_PUBLIC_MONAD_RPC_URL", "RPC_URL"],
     true,
   ) || DEFAULT_MONAD_MAINNET_RPC_URL;
 }
@@ -329,6 +326,10 @@ function weightedOptionOrder(options: TraitOption[]) {
 
 function topicAddress(address: string) {
   return ethers.zeroPadValue(address, 32);
+}
+
+function topicUint256(value: bigint | number | string) {
+  return ethers.zeroPadValue(ethers.toBeHex(BigInt(value)), 32).toLowerCase();
 }
 
 function traitAssetCid() {
@@ -425,35 +426,30 @@ export function traitLabCost(traitType: S2EditableTrait, action: S2TraitLabActio
   };
 }
 
-function monTestModeEnabled() {
-  const raw = readEnv("DYOOR_TRAIT_LAB_ENABLE_MON_TEST", "NEXT_PUBLIC_DYOOR_TRAIT_LAB_ENABLE_MON_TEST");
-  if (/^(0|false|no|off)$/i.test(raw)) return false;
-  if (/^(1|true|yes|on)$/i.test(raw)) return true;
-  return process.env.NODE_ENV !== "production";
+export function traitLabDroidBurnRewardEnergy() {
+  return parsePositiveInt(
+    readEnv("DYOOR_TRAIT_LAB_DROID_BURN_REWARD_ENERGY", "NEXT_PUBLIC_DYOOR_TRAIT_LAB_DROID_BURN_REWARD_ENERGY"),
+    S2_TRAIT_LAB_DROID_BURN_REWARD_ENERGY,
+  );
+}
+
+export function traitLabDroidBurnEnabled() {
+  const configured = readEnv("DYOOR_TRAIT_LAB_ENABLE_DROID_BURN", "NEXT_PUBLIC_DYOOR_TRAIT_LAB_ENABLE_DROID_BURN");
+  if (!configured) return true;
+  return !["0", "false", "no", "off", "disabled"].includes(configured.trim().toLowerCase());
 }
 
 function parsePaymentMode(value: unknown) {
   const paymentMode = String(value || "energy").trim().toLowerCase();
   if (!isS2TraitLabPaymentMode(paymentMode)) {
-    throw Object.assign(new Error("Invalid Trait Lab payment mode."), { status: 400 });
-  }
-  if (paymentMode === "mon" && !monTestModeEnabled()) {
-    throw Object.assign(new Error("MON Trait Lab testing is not enabled."), { status: 403 });
+    throw Object.assign(new Error("Trait Lab currently accepts Energy only."), { status: 403 });
   }
   return paymentMode;
 }
 
 function traitLabPaymentCost(traitType: S2EditableTrait, action: S2TraitLabAction, paymentMode: S2TraitLabPaymentMode) {
   const energyCost = traitLabCost(traitType, action);
-  if (paymentMode === "mon") {
-    const costMon = S2_TRAIT_LAB_MON_COSTS[action][traitType];
-    return {
-      costEnergy: 0,
-      costRaw: "0",
-      costMon,
-      costLabel: `${costMon} MON`,
-    };
-  }
+  void paymentMode;
   return {
     ...energyCost,
     costMon: "0",
@@ -468,7 +464,7 @@ export function traitLabPublicConfig() {
   return {
     ok: true,
     treasuryWallet: traitLabTreasuryWallet(),
-    monTestMode: monTestModeEnabled(),
+    contractAddress: s2ContractAddress(),
     chainId,
     chainHex: chainId > 0 ? `0x${chainId.toString(16)}` : "",
     chainName: safeChainName,
@@ -477,9 +473,10 @@ export function traitLabPublicConfig() {
     energyPerMon: S2_TRAIT_LAB_ENERGY_PER_MON,
     flatUnlockCostEnergy: S2_TRAIT_LAB_FLAT_UNLOCK_COST,
     specialMaxActiveSupply: S2_TRAIT_LAB_SPECIAL_MAX_ACTIVE_SUPPLY,
+    droidBurnEnabled: traitLabDroidBurnEnabled(),
+    droidBurnRewardEnergy: traitLabDroidBurnRewardEnergy(),
     guaranteedTraits: S2_GUARANTEED_TRAITS,
     unlockableTraits: S2_UNLOCKABLE_TRAITS,
-    monCosts: S2_TRAIT_LAB_MON_COSTS,
   };
 }
 
@@ -550,7 +547,7 @@ export function traitRegistry() {
           weight: trait.weight,
           rarity: item?.rarity,
           initialSupply: item?.initialSupply,
-          maxActiveSupply: item?.maxActiveSupply || (traitType === "Special" ? S2_TRAIT_LAB_SPECIAL_MAX_ACTIVE_SUPPLY : undefined),
+          maxActiveSupply: item?.maxActiveSupply,
           burnOnEquip: item?.burnOnEquip,
           assetUri: item?.image || traitAssetUri(traitType, value),
         };
@@ -737,7 +734,7 @@ function validationConflict(traits: Record<string, string>) {
 }
 
 function specialConflictForCategory(specialFile: string, traitType: S2EditableTrait, value: string) {
-  if (traitType === "Special" || isEmptyTraitValue(value)) return "";
+  if (isEmptyTraitValue(value)) return "";
   if (!SPECIAL_WEARABLE_SIDE_EFFECT_TRAITS.has(traitType)) return "";
 
   const normalizedSpecial = normalizeComparable(specialFile);
@@ -752,12 +749,13 @@ function specialConflictForCategory(specialFile: string, traitType: S2EditableTr
 
 function applySpecialSideEffects(traits: Record<string, string>) {
   const next = { ...traits };
-  const special = resolveTraitOption("Special", next.Special);
-  if (!special) return next;
+  const specialValue = next.Special;
+  if (isEmptyTraitValue(specialValue)) return next;
+  const special = resolveTraitOption("Special", specialValue);
+  const specialFile = special?.file || `${titleValue(specialValue)}.png`;
 
   for (const traitType of S2_EDITABLE_TRAITS) {
-    if (traitType === "Special") continue;
-    if (specialConflictForCategory(special.file, traitType, next[traitType])) {
+    if (specialConflictForCategory(specialFile, traitType, next[traitType])) {
       next[traitType] = "None";
     }
   }
@@ -855,7 +853,7 @@ function provider() {
 function energyBankSigner() {
   const privateKey = normalizePrivateKey(readEnv("ENERGY_BANK_OPERATOR_PRIVATE_KEY", "DEPLOYER_PRIVATE_KEY"));
   if (!privateKey) {
-    throw Object.assign(new Error("ENERGY_BANK_OPERATOR_PRIVATE_KEY is required for Energy Trait Lab rolls."), { status: 500 });
+    throw Object.assign(new Error("ENERGY_BANK_OPERATOR_PRIVATE_KEY is required for Trait Lab Energy operations."), { status: 500 });
   }
   return new ethers.Wallet(privateKey, provider());
 }
@@ -898,36 +896,182 @@ async function spendTraitLabEnergy(payload: PreviewPayload) {
   };
 }
 
-async function verifyTraitLabMonPayment({
-  wallet,
-  txHash,
-  expectedAmountRaw,
-}: {
-  wallet: string;
-  txHash: string;
-  expectedAmountRaw: bigint;
-}) {
-  const treasuryWallet = traitLabTreasuryWallet();
-  const rpcProvider = provider();
-  const [tx, receipt] = await Promise.all([
-    rpcProvider.getTransaction(txHash),
-    rpcProvider.getTransactionReceipt(txHash),
-  ]);
-  if (!tx) throw Object.assign(new Error("Roll transaction is not available yet."), { status: 409 });
-  if (!receipt) throw Object.assign(new Error("Roll transaction is not confirmed yet."), { status: 409 });
-  if (receipt.status !== 1) throw Object.assign(new Error("Roll transaction failed on-chain."), { status: 400 });
+function traitLabDroidBurnClaim(wallet: string, tokenId: number, burnTxHash: string, rewardRaw: string) {
+  return ethers.keccak256(ethers.toUtf8Bytes([
+    "trait-lab-droid-burn",
+    String(configuredS2ChainId()),
+    s2ContractAddress().toLowerCase(),
+    wallet,
+    String(tokenId),
+    burnTxHash.toLowerCase(),
+    rewardRaw,
+  ].join(":")));
+}
 
-  const sender = normalizeWallet(tx.from);
-  const recipient = optionalAddress(tx.to).toLowerCase();
-  if (sender !== wallet) throw Object.assign(new Error("Roll transaction sender does not match connected wallet."), { status: 400 });
-  if (recipient !== treasuryWallet.toLowerCase()) throw Object.assign(new Error("Roll transaction recipient does not match Trait Lab treasury."), { status: 400 });
-  if (tx.value < expectedAmountRaw) throw Object.assign(new Error("Roll transaction MON amount is below the required cost."), { status: 400 });
+async function triggerOpenSeaMetadataRefresh(tokenId: number) {
+  const apiKey = readEnv("OPENSEA_API_KEY", "DYOOR_OPENSEA_API_KEY");
+  if (!apiKey) return { queued: false, reason: "missing_api_key" };
+
+  const chain = (readEnv("DYOOR_OPENSEA_CHAIN", "NEXT_PUBLIC_DYOOR_OPENSEA_CHAIN") || DEFAULT_OPENSEA_CHAIN)
+    .trim()
+    .toLowerCase();
+  const url = `https://api.opensea.io/api/v2/chain/${encodeURIComponent(chain)}/contract/${s2ContractAddress()}/nfts/${encodeURIComponent(String(tokenId))}/refresh?ignoreCachedItemUrls=true`;
+  try {
+    const response = await fetch(url, {
+      method: "POST",
+      headers: {
+        accept: "*/*",
+        "x-api-key": apiKey,
+      },
+    });
+    if (!response.ok) {
+      return {
+        queued: false,
+        status: response.status,
+        reason: (await response.text().catch(() => "")).slice(0, 240) || "refresh_failed",
+      };
+    }
+    return { queued: true, status: response.status };
+  } catch (error) {
+    return {
+      queued: false,
+      reason: error instanceof Error ? error.message : "refresh_failed",
+    };
+  }
+}
+
+function hasVerifiedBurnLog(receipt: ethers.TransactionReceipt, wallet: string, tokenId: number) {
+  const expectedFrom = topicAddress(wallet).toLowerCase();
+  const expectedTo = topicAddress(ZERO_ADDRESS).toLowerCase();
+  const expectedTokenId = topicUint256(tokenId);
+
+  return receipt.logs.some((log) => {
+    if (normalizeWallet(log.address) !== s2ContractAddress().toLowerCase()) return false;
+    const topics = log.topics.map((topic) => String(topic || "").toLowerCase());
+    return topics[0] === TRANSFER_TOPIC.toLowerCase()
+      && topics[1] === expectedFrom
+      && topics[2] === expectedTo
+      && topics[3] === expectedTokenId;
+  });
+}
+
+function metadataSnapshot(metadata: MetadataJson | null) {
+  if (!metadata) return {};
+  return {
+    name: metadata.name || "",
+    image: String(metadata.image || ""),
+    metadataVersion: String(traitMapFromMetadata(metadata)["Metadata Version"] || metadataVersion(metadata)),
+  };
+}
+
+export async function claimTraitLabDroidBurnReward(input: Record<string, unknown>) {
+  if (!traitLabDroidBurnEnabled()) {
+    throw Object.assign(new Error("Droid burn rewards are not enabled."), { status: 403 });
+  }
+
+  const wallet = normalizeWallet(input.wallet);
+  if (!wallet) throw Object.assign(new Error("wallet must be a valid address."), { status: 400 });
+
+  const config = await getRuntimeMetadataConfig();
+  const tokenId = parseInputTokenId(input.tokenId, config.maxSupply);
+  const burnTxHash = requireTransactionHash(input.burnTxHash);
+  const rewardEnergy = traitLabDroidBurnRewardEnergy();
+  const rewardRaw = formatTraitLabEnergyRaw(rewardEnergy);
+  const rewardLabel = `${rewardEnergy} Energy`;
+  const claim = traitLabDroidBurnClaim(wallet, tokenId, burnTxHash, rewardRaw);
+  const rpcProvider = provider();
+  const [tx, receipt, metadataResult] = await Promise.all([
+    rpcProvider.getTransaction(burnTxHash),
+    rpcProvider.getTransactionReceipt(burnTxHash),
+    buildTokenMetadataAsync(tokenId, config).then((result) => result.metadata as MetadataJson).catch(() => null),
+  ]);
+
+  if (!tx) throw Object.assign(new Error("Burn transaction is not available yet."), { status: 409 });
+  if (!receipt) throw Object.assign(new Error("Burn transaction is not confirmed yet."), { status: 409 });
+  if (receipt.status !== 1) throw Object.assign(new Error("Burn transaction failed on-chain."), { status: 400 });
+  if (normalizeWallet(tx.from) !== wallet) {
+    throw Object.assign(new Error("Burn transaction sender does not match connected wallet."), { status: 400 });
+  }
+  if (normalizeWallet(tx.to) !== s2ContractAddress().toLowerCase()) {
+    throw Object.assign(new Error("Burn transaction recipient does not match the D.Y.O.O.R Season 2 contract."), { status: 400 });
+  }
+  if (!String(tx.data || "").toLowerCase().startsWith(BURN_SELECTOR)) {
+    throw Object.assign(new Error("Burn transaction does not call burn(uint256)."), { status: 400 });
+  }
+  if (!hasVerifiedBurnLog(receipt, wallet, tokenId)) {
+    throw Object.assign(new Error("Burn transaction did not emit the expected token burn event."), { status: 400 });
+  }
+
+  const signer = energyBankSigner();
+  const signerAddress = await signer.getAddress();
+  const bank = new ethers.Contract(energyBankContract, ENERGY_BANK_ABI, signer);
+  const creditRole = await bank.CREDIT_ROLE();
+  const hasRole = await bank.hasRole(creditRole, signerAddress).then(Boolean);
+  if (!hasRole) {
+    throw Object.assign(new Error("Energy Bank operator is missing CREDIT_ROLE."), { status: 500 });
+  }
+
+  const alreadyCredited = await bank.usedClaimTxHash(claim).then(Boolean);
+  if (alreadyCredited) {
+    const burnRecord = await saveBurnedDroidRecord({
+      tokenId: String(tokenId),
+      wallet,
+      burnTxHash,
+      rewardEnergy,
+      rewardRaw,
+      rewardLabel,
+      claim,
+      burnedAt: new Date().toISOString(),
+      ...metadataSnapshot(metadataResult),
+      deduped: true,
+    });
+    return {
+      ok: true,
+      wallet,
+      tokenId,
+      burnTxHash,
+      rewardEnergy,
+      rewardRaw,
+      rewardLabel,
+      claim,
+      deduped: true,
+      burnRecord,
+    };
+  }
+
+  await bank.creditEnergy.staticCall(wallet, BigInt(rewardRaw), claim);
+  const creditTx = await bank.creditEnergy(wallet, BigInt(rewardRaw), claim, { gasLimit: 160000n });
+  const creditReceipt = await creditTx.wait();
+  if (creditReceipt?.status !== 1) {
+    throw Object.assign(new Error("Energy burn reward transaction failed."), { status: 500 });
+  }
+
+  const burnRecord = await saveBurnedDroidRecord({
+    tokenId: String(tokenId),
+    wallet,
+    burnTxHash,
+    rewardEnergy,
+    rewardRaw,
+    rewardLabel,
+    claim,
+    burnedAt: new Date().toISOString(),
+    ...metadataSnapshot(metadataResult),
+    rewardTxHash: creditTx.hash,
+    rewardBlockNumber: String(creditReceipt.blockNumber || ""),
+  });
 
   return {
-    txHash,
-    treasuryWallet,
-    amountRaw: tx.value.toString(),
-    blockNumber: String(receipt.blockNumber || ""),
+    ok: true,
+    wallet,
+    tokenId,
+    burnTxHash,
+    rewardEnergy,
+    rewardRaw,
+    rewardLabel,
+    claim,
+    rewardTxHash: creditTx.hash,
+    rewardBlockNumber: String(creditReceipt.blockNumber || ""),
+    burnRecord,
   };
 }
 
@@ -1347,30 +1491,27 @@ export async function createTraitLabPreview(input: Record<string, unknown>) {
     version,
     attributes: candidate.proposedAttributes,
   }, tokenId, config);
+  const missingLayers = await findMissingTraitLabLayers(proposedMetadata as MetadataJson);
+  if (missingLayers.length) {
+    throw Object.assign(new Error(`Trait Lab renderer is missing layer assets for ${missingLayers.join(", ")}. Energy was not spent.`), { status: 409 });
+  }
+  const previewImage = await renderTraitLabImage(tokenId, proposedMetadata as MetadataJson, String(input.origin || ""));
+  if (!previewImage.rendered) {
+    throw Object.assign(new Error("Trait Lab renderer could not produce a matching preview image. Energy was not spent."), { status: 409 });
+  }
+  const proposedPreviewMetadata = {
+    ...(proposedMetadata as MetadataJson),
+    image: previewImage.imageUrl,
+    properties: {
+      ...((proposedMetadata as MetadataJson).properties as Record<string, unknown> | undefined),
+      files: [{
+        uri: previewImage.imageUrl,
+        type: "image/png",
+      }],
+    },
+  };
   let energyDebitDeduped = false;
   let energySpend: Awaited<ReturnType<typeof spendTraitLabEnergy>> | null = null;
-  let monPayment: Awaited<ReturnType<typeof verifyTraitLabMonPayment>> | null = null;
-
-  if (paymentMode === "mon") {
-    const txHash = requireTxHash(input.paymentTxHash);
-    monPayment = await verifyTraitLabMonPayment({
-      wallet,
-      txHash,
-      expectedAmountRaw: monCostRaw(costMon),
-    });
-    await claimTraitLabMonPayment({
-      txHash: monPayment.txHash,
-      rollId,
-      wallet,
-      tokenId: String(tokenId),
-      traitType,
-      action,
-      amountRaw: monPayment.amountRaw,
-      treasuryWallet: monPayment.treasuryWallet,
-      blockNumber: monPayment.blockNumber,
-      createdAt: new Date().toISOString(),
-    });
-  }
 
   await saveTraitLabRoll({
     rollId,
@@ -1388,15 +1529,10 @@ export async function createTraitLabPreview(input: Record<string, unknown>) {
     status: "created",
     createdAt: new Date().toISOString(),
     expiresAt: new Date(payload.expiresAt).toISOString(),
-    energyDebitId: paymentMode === "energy" ? energyDebitId : undefined,
-    monPaymentTxHash: monPayment?.txHash,
-    monPaymentAmountRaw: monPayment?.amountRaw,
-    monPaymentBlockNumber: monPayment?.blockNumber,
+    energyDebitId,
   });
 
-  if (paymentMode === "energy") {
-    energySpend = await spendTraitLabEnergy(payload);
-  }
+  energySpend = await spendTraitLabEnergy(payload);
 
   await saveTraitLabRoll({
     rollId,
@@ -1415,13 +1551,10 @@ export async function createTraitLabPreview(input: Record<string, unknown>) {
     createdAt: new Date().toISOString(),
     chargedAt: new Date().toISOString(),
     expiresAt: new Date(payload.expiresAt).toISOString(),
-    energyDebitId: paymentMode === "energy" ? energyDebitId : undefined,
+    energyDebitId,
     energyDebitDeduped,
     energySpendTxHash: energySpend?.txHash,
     energySpendBlockNumber: energySpend?.blockNumber,
-    monPaymentTxHash: monPayment?.txHash,
-    monPaymentAmountRaw: monPayment?.amountRaw,
-    monPaymentBlockNumber: monPayment?.blockNumber,
   });
 
   return {
@@ -1449,24 +1582,25 @@ export async function createTraitLabPreview(input: Record<string, unknown>) {
     },
     rollId,
     rollCharged: true,
-    energyDebitSkipped: paymentMode !== "energy",
+    energyDebitSkipped: false,
     energyDebitDeduped,
-    paymentTxHash: monPayment?.txHash || energySpend?.txHash || "",
-    paymentAmountRaw: monPayment?.amountRaw || (energySpend ? costRaw : ""),
-    paymentBlockNumber: monPayment?.blockNumber || energySpend?.blockNumber || "",
+    paymentTxHash: energySpend?.txHash || "",
+    paymentAmountRaw: energySpend ? costRaw : "",
+    paymentBlockNumber: energySpend?.blockNumber || "",
     supplyDeltas,
     previewId,
     expiresAt: new Date(payload.expiresAt).toISOString(),
     currentMetadata: metadata,
-    proposedMetadata,
+    proposedMetadata: proposedPreviewMetadata,
     confirmation: {
       timestamp,
       nonce,
       message: traitLabMessage(payload, timestamp, nonce),
     },
     imageRecomposition: {
-      status: "preview",
-      note: "Preview shows the proposed layer result. The composed token image is generated after Confirm Change.",
+      status: "rendered-preview",
+      imageUrl: previewImage.imageUrl,
+      note: "Preview image was composed by the server before Energy was spent. Confirm Change publishes the same trait stack.",
     },
   };
 }
@@ -1490,10 +1624,7 @@ export async function confirmTraitLabPreview(input: Record<string, unknown>) {
   if (!paidRoll || paidRoll.previewId !== previewId || paidRoll.status === "created") {
     throw Object.assign(new Error("This roll was not paid or is no longer available."), { status: 402 });
   }
-  if (payload.paymentMode === "mon" && !paidRoll.monPaymentTxHash) {
-    throw Object.assign(new Error("This roll is missing its wallet transaction."), { status: 402 });
-  }
-  if (payload.paymentMode === "energy" && !paidRoll.energyDebitId) {
+  if (!paidRoll.energyDebitId) {
     throw Object.assign(new Error("This roll is missing its Energy debit."), { status: 402 });
   }
 
@@ -1545,16 +1676,23 @@ export async function confirmTraitLabPreview(input: Record<string, unknown>) {
     notes: `Trait Lab ${payload.action} ${payload.traitType}.`,
   };
   const draftMetadata = mergeMetadata(metadata, draftOverride, tokenId, config);
+  const missingLayers = await findMissingTraitLabLayers(draftMetadata as MetadataJson);
+  if (missingLayers.length) {
+    throw Object.assign(new Error(`Trait Lab renderer is missing layer assets for ${missingLayers.join(", ")}. Metadata was not changed.`), { status: 409 });
+  }
   const renderedImage = await renderTraitLabImage(tokenId, draftMetadata as MetadataJson, String(input.origin || ""));
+  if (!renderedImage.rendered) {
+    throw Object.assign(new Error("Trait Lab renderer could not produce a matching image. Metadata was not changed."), { status: 409 });
+  }
   const nextOverride = {
     ...draftOverride,
-    ...(renderedImage.rendered ? { image: renderedImage.imageUrl } : {}),
-    imageRender: renderedImage.rendered ? {
+    image: renderedImage.imageUrl,
+    imageRender: {
       imageId: renderedImage.imageId,
       url: renderedImage.imageUrl,
       rendererVersion: renderedImage.rendererVersion,
       renderedAt: new Date().toISOString(),
-    } : undefined,
+    },
   };
   const override = await saveRuntimeTraitOverride(tokenId, nextOverride);
   const supplyEvent = await applyTraitSupplyDeltas({
@@ -1574,6 +1712,7 @@ export async function confirmTraitLabPreview(input: Record<string, unknown>) {
   };
   await saveTraitLabRoll(rollRecord);
   const updated = await buildTokenMetadataAsync(tokenId, config);
+  const openSeaRefresh = await triggerOpenSeaMetadataRefresh(tokenId);
 
   return {
     ok: true,
@@ -1589,14 +1728,15 @@ export async function confirmTraitLabPreview(input: Record<string, unknown>) {
     rollId: payload.rollId,
     rollCharged: true,
     debitDeduped: Boolean(paidRoll.energyDebitDeduped),
-    energyDebitSkipped: payload.paymentMode !== "energy",
-    paymentTxHash: paidRoll.monPaymentTxHash || paidRoll.energySpendTxHash || "",
-    paymentAmountRaw: paidRoll.monPaymentAmountRaw || (paidRoll.energySpendTxHash ? payload.costRaw : ""),
-    paymentBlockNumber: paidRoll.monPaymentBlockNumber || paidRoll.energySpendBlockNumber || "",
+    energyDebitSkipped: false,
+    paymentTxHash: paidRoll.energySpendTxHash || "",
+    paymentAmountRaw: paidRoll.energySpendTxHash ? payload.costRaw : "",
+    paymentBlockNumber: paidRoll.energySpendBlockNumber || "",
     supplyDeltas,
     supplyEventDeduped: supplyEvent.deduped,
     override,
     metadata: updated.metadata,
+    openSeaRefresh,
     imageRecomposition: {
       status: renderedImage.rendered ? "rendered" : "unchanged",
       imageUrl: renderedImage.imageUrl,

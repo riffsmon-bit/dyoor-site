@@ -1,46 +1,82 @@
 # D.Y.O.O.R Season 2 SeaDrop Setup
 
-This document covers the D.Y.O.O.R Season 2 NFT contract:
+This document covers the current SeaDrop-first Season 2 architecture.
 
-- Contract: `contracts/DYOORSeason2SeaDrop.sol`
+Internal production-readiness documentation. This is not a formal audit.
+
+## Contract
+
+- Source: `contracts/DYOORSeason2SeaDrop.sol`
 - Name: `D.Y.O.O.R`
-- Meaning: `Directive: Yield Opportunity Optimization Robots`
-- Symbol: `DYOOR2`
-- Max supply: `5555`
-- Target chain: Monad
-- Mint paths: `dyoor.xyz` direct mint and OpenSea Primary Drops through SeaDrop
+- Symbol: `DYOOR`
+- Max supply: `3333`
+- Reserved airdrop allocation: `610`
+- Maximum SeaDrop paid-mint allocation: `2723`
+- Temporary deploy metadata base URI: `ipfs://bafybeidz7htb3digthznwvl4ytdpckq2q3d2ytgxtsie5bcp7a4lgtb2sq/`
+- Long-term dynamic metadata base URI: `https://dyoor.xyz/api/metadata/`
 
-## Architecture
+## Current Mint Model
 
-`DYOORSeason2SeaDrop` extends OpenSea's `ERC721SeaDrop`. The contract keeps the SeaDrop mint entrypoint and SeaDrop accounting intact:
+Paid mints are intended to be configured through OpenSea/SeaDrop:
 
-- `mintSeaDrop(address minter, uint256 quantity)` is restricted to allowed SeaDrop addresses.
-- `getMintStats(address minter)` continues to return ERC721A `_numberMinted`, total minted, and max supply.
-- Direct dyoor.xyz mints and SeaDrop mints share the same ERC721A minted count, same total supply, same metadata, and same contract.
+- Presale wallet lists
+- Presale prices
+- Presale start/end times
+- Per-wallet limits
+- Public-sale configuration
+- SeaDrop payout/fee recipient settings where supported
 
-Direct mint phases are built into the DYOOR contract for dyoor.xyz. SeaDrop phases must still be configured on the SeaDrop contract/OpenSea side with matching launch settings.
+The D.Y.O.O.R NFT contract only exposes these mint routes:
 
-## Local Setup
+- Authorized SeaDrop mint: `mintSeaDrop(address minter, uint256 quantity)`
+- Owner airdrop: `airdrop(address[] recipients, uint256[] quantities, bytes32 batchId)`
+- Owner batch airdrop helper: `airdropBatch(bytes32 batchId, uint256 batchIndex, address[] recipients, uint256[] quantities)`
 
-Install Node dependencies if needed:
+The old D.Y.O.O.R direct paid mint phase functions are removed:
 
-```bash
-npm install
+- `teamMint`
+- `ascensionMint`
+- `whitelistMint`
+- `gtdMint`
+- `publicMint`
+- `mintDirect`
+- custom Merkle root setters
+- custom phase timestamp/price setters
+
+SeaDrop's own `updateAllowList` support remains inherited from OpenSea's SeaDrop-compatible interface.
+
+## Reserve Protection
+
+The contract enforces:
+
+```text
+MAX_SUPPLY = 3333
+AIRDROP_RESERVE = 610
+SEADROP_MAX_SUPPLY = 2723
 ```
 
-Install Foundry if it is not already installed:
+SeaDrop cannot mint more than `2723` from this NFT contract, even if OpenSea UI configuration is incorrect.
 
-```bash
-curl -L https://foundry.paradigm.xyz | bash
-foundryup
-```
+The owner airdrop route cannot mint more than `610` total airdropped NFTs.
 
-Build and test:
+## Dependency Notes
+
+- Vendored SeaDrop package: `lib/seadrop`, version `1.0.0`
+- Vendored SeaDrop commit: `8b4792f7067c8d99d2d20026eeac9f80f5c5dfeb`
+- Solidity compiler: `0.8.17`
+- Foundry optimizer: enabled, runs `1`
+- Solidity OpenZeppelin dependency used by Foundry remapping: `4.7.0`
+- Root npm OpenZeppelin package: `5.6.1` for site/Hardhat package context, not the Foundry SeaDrop compile path
+
+Do not mix OpenZeppelin v5 assumptions into this SeaDrop v1 Solidity inheritance tree.
+
+## Build And Test
 
 ```bash
 npm run build:seadrop
 npm run test:seadrop
 npm run gas:seadrop
+npm run coverage:seadrop
 ```
 
 Equivalent raw commands:
@@ -49,366 +85,299 @@ Equivalent raw commands:
 forge build
 forge test --offline
 forge test --offline --gas-report
+forge coverage --report summary
 ```
 
-`--offline` is used for tests after compiler installation to avoid network-backed signature decoding issues during local runs.
+## Monad Testnet Deployment
 
-## Dependencies
+The deployment script is testnet-only and refuses Monad mainnet.
 
-SeaDrop is vendored under:
+Required:
+
+- `PRIVATE_KEY` or `DEPLOYER_PRIVATE_KEY`
+- `MONAD_TESTNET_RPC_URL`
+- `MONAD_TESTNET_DEPLOY_CONFIRMATION=DEPLOY_DYOOR_TESTNET_ONLY`
+- `SEADROP_ADDRESS`
+
+The configured `SEADROP_ADDRESS` must have deployed bytecode on Monad testnet. Do not guess or copy a SeaDrop address from another chain.
+
+Command:
+
+```bash
+MONAD_TESTNET_DEPLOY_CONFIRMATION=DEPLOY_DYOOR_TESTNET_ONLY \
+PRIVATE_KEY=... \
+MONAD_TESTNET_RPC_URL=... \
+SEADROP_ADDRESS=... \
+DYOOR_TREASURY_ADDRESS=... \
+DYOOR_ROYALTY_RECEIVER=... \
+DYOOR_ROYALTY_BPS=... \
+DYOOR_BASE_URI=ipfs://bafybeidz7htb3digthznwvl4ytdpckq2q3d2ytgxtsie5bcp7a4lgtb2sq/ \
+DYOOR_CONTRACT_URI=... \
+npm run deploy:dyoor-s2-seadrop:testnet
+```
+
+The script writes:
 
 ```text
-lib/seadrop
+deployments/dyoor-s2-seadrop.latest.json
 ```
 
-The local SeaDrop README documents SeaDrop 1.0 at:
-
-```text
-0x00005EA00Ac477B1030CE78506496e8C2dE24bf5
-```
-
-The local SeaDrop network table lists Ethereum, Sepolia, Polygon, Arbitrum, Avalanche, Optimism, Base, and other EVM networks. Monad must be verified separately before launch. Do not assume OpenSea Primary Drops on Monad are available until OpenSea/Monad confirms a supported SeaDrop deployment.
-
-## Contract Controls
-
-Owner controls:
-
-- Pause and unpause all mint paths.
-- Update treasury.
-- Update direct mint prices.
-- Update direct mint Merkle roots.
-- Update phase start timestamps.
-- Update base URI.
-- Update contract URI.
-- Emit ERC-4906 metadata update events.
-- Freeze metadata.
-- Withdraw direct mint proceeds to treasury.
-- Update royalty receiver.
-- Update royalty basis points.
-- Register future external system contract addresses.
-- Configure SeaDrop through inherited SeaDrop configuration methods.
-
-Max supply is locked to `5555`. The inherited SeaDrop `setMaxSupply` method is overridden so attempts to change supply to any other value revert.
-
-## Direct Mint Phases
-
-The owner sets four timestamps:
-
-- Team Start
-- Whitelist Start
-- GTD Start
-- Public Start
-
-The active phase is calculated automatically from timestamps:
-
-```text
-Team      active from Team Start until Whitelist Start
-Whitelist active from Whitelist Start until GTD Start
-GTD       active from GTD Start until Public Start
-Public    active from Public Start onward
-```
-
-Direct dyoor.xyz phase defaults:
-
-| Phase | Price | Wallet Limit | Access |
-| --- | ---: | ---: | --- |
-| Team | 0 MON | 10 | Merkle allowlist |
-| Whitelist | 333 MON | 3 | Merkle allowlist |
-| GTD | 333 MON | 2 | Merkle allowlist |
-| Public | 333 MON | Remaining supply | Public |
-
-Direct allowlist leaf format:
-
-```solidity
-keccak256(abi.encodePacked(wallet))
-```
-
-Generate roots from normalized wallet addresses. Onchain address comparison is binary; lowercase is recommended for tooling consistency.
-
-For a small multi-wallet test allowlist, put tester wallets in a local text file
-and generate the direct-mint Merkle root and proofs:
-
-```bash
-npm run generate:s2-allowlist -- /path/to/test-wallets.txt > /path/to/s2-team-allowlist.json
-```
-
-Use the JSON `root` value as the Team phase `merkleRoot` in `setPhaseConfig`.
-Give each tester their wallet-specific `proof` array from the JSON to paste into
-the hidden mint test page. The proof must match the wallet they connect with.
-
-Important: direct mint wallet limits use ERC721A `_numberMinted(wallet)`, so SeaDrop mints and direct mints count together. This prevents minting through OpenSea and then bypassing limits on dyoor.xyz.
-
-## SeaDrop Configuration
-
-The constructor accepts allowed SeaDrop addresses. The deployment script defaults to OpenSea's documented SeaDrop 1.0 address:
-
-```text
-0x00005EA00Ac477B1030CE78506496e8C2dE24bf5
-```
-
-Before deploying to Monad, verify whether Monad testnet/mainnet has an OpenSea-supported SeaDrop deployment. If Monad uses a different SeaDrop address, set:
-
-```bash
-export SEADROP_ADDRESS=<monad-supported-seadrop-address>
-```
-
-SeaDrop configuration is separate from direct mint configuration. Configure SeaDrop with matching launch settings:
-
-- Creator payout address.
-- Allowed fee recipient if fees are restricted.
-- Drop URI.
-- Allowlist root and allowlist URI.
-- Public drop price/start/end/max wallet settings.
-
-SeaDrop allowlist leaves are not the same as the direct DYOOR allowlist leaves. SeaDrop allowlist minting uses OpenSea's `MintParams` format. Generate SeaDrop allowlists with OpenSea-compatible tooling or the OpenSea drop configuration flow.
-
-SeaDrop public mint has `maxTotalMintableByWallet` as a `uint16`. For "unlimited" public mint on a `5555` supply collection, set this to `5555` or another launch-approved cap.
-
-## Environment Variables
-
-Required for testnet deployment:
-
-```bash
-export DEPLOYER_PRIVATE_KEY=0x...
-export MONAD_TESTNET_RPC_URL=https://...
-```
-
-Recommended:
-
-```bash
-export SEADROP_ADDRESS=0x00005EA00Ac477B1030CE78506496e8C2dE24bf5
-export DYOOR_TREASURY_ADDRESS=0x...
-export DYOOR_ROYALTY_RECEIVER=0x...
-export DYOOR_ROYALTY_BPS=500
-export DYOOR_BASE_URI=ipfs://CID/
-export DYOOR_CONTRACT_URI=ipfs://CID/contract.json
-```
-
-Optional direct phase config:
-
-```bash
-export DYOOR_TEAM_START=1780000000
-export DYOOR_WL_START=1780003600
-export DYOOR_GTD_START=1780007200
-export DYOOR_PUBLIC_START=1780010800
-export DYOOR_TEAM_ROOT=0x...
-export DYOOR_WL_ROOT=0x...
-export DYOOR_GTD_ROOT=0x...
-```
-
-Hidden dyoor.xyz mint test page:
-
-```bash
-NEXT_PUBLIC_ENABLE_S2_MINT_TEST=true
-NEXT_PUBLIC_DYOOR_S2_CONTRACT_ADDRESS=0x...
-NEXT_PUBLIC_DYOOR_S2_CHAIN_ID=10143
-NEXT_PUBLIC_DYOOR_S2_CHAIN_NAME="Monad Testnet"
-NEXT_PUBLIC_DYOOR_S2_RPC_URL=https://testnet-rpc.monad.xyz
-NEXT_PUBLIC_DYOOR_S2_EXPLORER_URL=https://testnet.monadscan.com
-NEXT_PUBLIC_DYOOR_S2_START_BLOCK=<deployment-block>
-NEXT_PUBLIC_DYOOR_S2_LOG_CHUNK_SIZE=100
-```
-
-Current Monad testnet deployment:
-
-```text
-Contract: 0xce586aa467f6351bf819dbf134bc69947125cd92
-Transaction: 0xdf99dbd4aca6376d1be2d1cf7e1aee12d1f01d01d94f7aeb42f61bda3c10da09
-Chain ID: 10143
-Deployment block: 42188639
-Explorer: https://testnet.monadscan.com/address/0xce586aa467f6351bf819dbf134bc69947125cd92
-```
-
-Use `42188639` for `NEXT_PUBLIC_DYOOR_S2_START_BLOCK` on the hidden mint
-test page for this deployment.
-
-Use `100` for `NEXT_PUBLIC_DYOOR_S2_LOG_CHUNK_SIZE` with Monad testnet's
-public RPC. Larger `eth_getLogs` block ranges may be rejected by the RPC.
-
-Keep `NEXT_PUBLIC_ENABLE_S2_MINT_TEST=false` unless the internal `/s2-mint-test` route is intentionally being used. The route is not linked from navigation. The page tests the direct dyoor.xyz mint functions. OpenSea Primary Drops must still be tested through OpenSea/SeaDrop.
-
-Never commit private keys or secret RPC credentials.
-
-## Deploy To Monad Testnet
+## MonadScan Verification
 
 Dry run:
 
 ```bash
-forge script script/DeployDYOORSeason2SeaDrop.s.sol --rpc-url $MONAD_TESTNET_RPC_URL -vvvv
+DYOOR_S2_CONTRACT_ADDRESS=... \
+SEADROP_ADDRESS=... \
+MONAD_TESTNET_RPC_URL=... \
+MONADSCAN_API_KEY=... \
+CHAIN_ID=10143 \
+npm run verify:dyoor-s2
 ```
 
-Broadcast:
+Execute:
 
 ```bash
-npm run deploy:dyoor-s2-seadrop:testnet
+DYOOR_S2_CONTRACT_ADDRESS=... \
+SEADROP_ADDRESS=... \
+MONAD_TESTNET_RPC_URL=... \
+MONADSCAN_API_KEY=... \
+CHAIN_ID=10143 \
+EXECUTE_VERIFY=1 \
+npm run verify:dyoor-s2
 ```
 
-If the explorer does not support automatic verification with the default Foundry verifier, use the explorer's recommended command. A typical Blockscout-style command is:
+## Post-Deployment Validation
 
 ```bash
-forge verify-contract \
-  --chain-id <monad-testnet-chain-id> \
-  --verifier blockscout \
-  --verifier-url <explorer-api-url> \
-  <deployed-contract-address> \
-  contracts/DYOORSeason2SeaDrop.sol:DYOORSeason2SeaDrop
+DYOOR_S2_CONTRACT_ADDRESS=... \
+MONAD_TESTNET_RPC_URL=... \
+npm run validate:s2-testnet
 ```
 
-Use the exact chain ID and verifier URL from current Monad documentation.
+This validates:
 
-## Configure Metadata
+- Name and symbol
+- Owner and pending owner
+- Supply constants
+- SeaDrop cap
+- Airdrop reserve
+- Authorized SeaDrop addresses
+- Pause state
+- Metadata URIs
+- Royalties
+- Absence of removed direct mint routes
 
-Base URI:
+## Controlled SeaDrop Test Mint
 
-```solidity
-setBaseURI("ipfs://CID/")
+The helper defaults to dry-run/prepare mode.
+
+```bash
+DYOOR_S2_CONTRACT_ADDRESS=... \
+SEADROP_ADDRESS=... \
+SEADROP_FEE_RECIPIENT=... \
+MONAD_TESTNET_RPC_URL=... \
+TEST_MINTER_PRIVATE_KEY=... \
+TEST_MINT_QUANTITY=1 \
+TEST_MINT_VALUE_WEI=0 \
+npm run test:s2-seadrop-mint
 ```
 
-With a trailing slash, token `1` resolves as:
+To send one controlled testnet transaction only after owner approval:
+
+```bash
+EXECUTE_TEST_MINT=1 \
+TEST_MINT_CONFIRMATION=MINT_ONE_DYOOR_TESTNET \
+...same env as above... \
+npm run test:s2-seadrop-mint
+```
+
+Do not use this script on Monad mainnet.
+
+## Monad Mainnet Deployment Experiment
+
+The mainnet path exists only for the controlled OpenSea attachment experiment. It is irreversible and should not be used as a casual test.
+
+The local SeaDrop 1.0 docs list the canonical SeaDrop address:
 
 ```text
-ipfs://CID/1
+0x00005EA00Ac477B1030CE78506496e8C2dE24bf5
 ```
 
-Without a trailing slash, every token returns the same URI. This is useful for unrevealed metadata.
+Monad is not listed in that SeaDrop support table. On 2026-07-14, `eth_getCode` against `https://rpc.monad.xyz` confirmed that this canonical address has deployed bytecode on Monad mainnet chain `143`. That means it is technically usable as the authorized SeaDrop address for deployment, but OpenSea Studio Drop attachment/configuration still must be verified manually.
 
-Contract URI:
+The mainnet deploy script enforces bytecode presence and refuses all chains except Monad mainnet.
 
-```solidity
-setContractURI("ipfs://CID/contract.json")
-```
-
-Contract metadata should include OpenSea-compatible fields such as:
-
-```json
-{
-  "name": "D.Y.O.O.R",
-  "description": "Directive: Yield Opportunity Optimization Robots",
-  "image": "ipfs://CID/collection.png",
-  "external_link": "https://dyoor.xyz",
-  "seller_fee_basis_points": 500,
-  "fee_recipient": "0x..."
-}
-```
-
-Emit metadata refresh events:
-
-```solidity
-emitBatchMetadataUpdate(1, 5555)
-```
-
-Freeze metadata only after final URIs are confirmed:
-
-```solidity
-freezeMetadata()
-```
-
-After freezing, `setBaseURI`, `setContractURI`, and `setProvenanceHash` revert.
-
-## Hidden Mint Test Page
-
-Route:
+Recommended temporary base URI while the D.Y.O.O.R dynamic API is not ready:
 
 ```text
-/s2-mint-test
+ipfs://bafybeidz7htb3digthznwvl4ytdpckq2q3d2ytgxtsie5bcp7a4lgtb2sq/
 ```
 
-The route returns 404 unless:
+This resolves as extensionless token metadata, for example token `1` resolves to:
+
+```text
+ipfs://bafybeidz7htb3digthznwvl4ytdpckq2q3d2ytgxtsie5bcp7a4lgtb2sq/1
+```
+
+Dry run first:
 
 ```bash
-NEXT_PUBLIC_ENABLE_S2_MINT_TEST=true
+MONAD_MAINNET_DEPLOY_CONFIRMATION=DEPLOY_DYOOR_MAINNET_OPENSEA_EXPERIMENT \
+PRIVATE_KEY=... \
+MONAD_MAINNET_RPC_URL=https://rpc.monad.xyz \
+SEADROP_ADDRESS=... \
+DYOOR_TREASURY_ADDRESS=0x4d540f7d0eb841c839334655c9f88313d750c6d5 \
+DYOOR_ROYALTY_RECEIVER=... \
+DYOOR_ROYALTY_BPS=... \
+DYOOR_BASE_URI=ipfs://bafybeidz7htb3digthznwvl4ytdpckq2q3d2ytgxtsie5bcp7a4lgtb2sq/ \
+DYOOR_CONTRACT_URI=... \
+npm run simulate:dyoor-s2-seadrop:mainnet
 ```
 
-Use it after deploying the contract to Monad testnet:
+Broadcast only after reviewing the dry-run output:
 
-1. Set `NEXT_PUBLIC_DYOOR_S2_CONTRACT_ADDRESS` to the deployed testnet contract.
-2. Set `NEXT_PUBLIC_DYOOR_S2_START_BLOCK` to the deployment block so NFT previews do not scan unnecessary logs.
-3. Redeploy Netlify or restart the local dev server.
-4. Connect a wallet.
-5. Switch to Monad testnet from the page prompt.
-6. Verify active phase, mint price, wallet minted count, total minted, and remaining supply.
-7. Paste Team/WL/GTD Merkle proofs when testing allowlist phases.
-8. Mint through Team, Whitelist, GTD, and Public direct paths as each phase becomes active.
-9. Confirm transaction hash links open on the configured explorer.
-10. Refresh NFT preview and confirm token image, token ID, and attributes load from `tokenURI`.
-
-For direct Team/WL/GTD allowlist testing, proof entries can be pasted one per line, comma-separated, or as a JSON array of `bytes32` strings. The page displays the connected wallet leaf using the contract's direct allowlist format:
-
-```solidity
-keccak256(abi.encodePacked(wallet))
+```bash
+MONAD_MAINNET_DEPLOY_CONFIRMATION=DEPLOY_DYOOR_MAINNET_OPENSEA_EXPERIMENT \
+PRIVATE_KEY=... \
+MONAD_MAINNET_RPC_URL=https://rpc.monad.xyz \
+SEADROP_ADDRESS=... \
+DYOOR_TREASURY_ADDRESS=0x4d540f7d0eb841c839334655c9f88313d750c6d5 \
+DYOOR_ROYALTY_RECEIVER=... \
+DYOOR_ROYALTY_BPS=... \
+DYOOR_BASE_URI=ipfs://bafybeidz7htb3digthznwvl4ytdpckq2q3d2ytgxtsie5bcp7a4lgtb2sq/ \
+DYOOR_CONTRACT_URI=... \
+npm run deploy:dyoor-s2-seadrop:mainnet
 ```
 
-The NFT preview reconstructs wallet ownership from `Transfer` logs because ERC721A/SeaDrop does not expose enumerable wallet token lists by default. Use the deployment block for `NEXT_PUBLIC_DYOOR_S2_START_BLOCK` to keep this accurate and fast.
+Do not call `freezeMetadata`. The owner can switch to `https://dyoor.xyz/api/metadata/` later with `setBaseURI` after the dynamic metadata API is ready.
 
-## Testnet Checklist
+## OpenSea Attachment Status
 
-Before mainnet, complete this checklist on Monad testnet:
+The OpenSea custom-contract / manually deployed SeaDrop-compatible path on Monad must be tested after a fresh testnet deployment.
 
-- Deploy contract with one allowed SeaDrop address.
-- Confirm `name`, `symbol`, and `maxSupply`.
-- Confirm owner wallet.
-- Configure treasury.
-- Configure royalties.
-- Configure base URI and contract URI.
-- Configure direct phase timestamps.
-- Configure direct Merkle roots.
-- Configure SeaDrop/OpenSea drop settings with matching prices and limits.
-- Team direct mint succeeds for allowlisted wallet and fails for non-allowlisted wallet.
-- Whitelist direct mint costs `333 MON` and limit is `3`.
-- GTD direct mint costs `333 MON` and limit is `2`.
-- Public direct mint costs `333 MON`.
-- SeaDrop mint succeeds from allowed SeaDrop and fails from any other address.
-- Direct mint and SeaDrop mint increase the same total supply.
-- `getMintStats(wallet)` reflects both mint paths.
-- `/s2-mint-test` is enabled only on an internal test deploy.
-- `/s2-mint-test` wallet connect, wrong-network state, direct mint submission, failed mint errors, explorer links, and NFT metadata preview all work.
-- Pause blocks direct mint and SeaDrop mint.
-- Withdraw sends direct mint proceeds to treasury.
-- Royalty info returns expected receiver and amount.
-- Token metadata renders in wallets/OpenSea.
-- OpenSea indexes the same contract and same collection.
-- Metadata refresh works.
-- Metadata is frozen only after final review.
+Until the owner confirms the Drop URL, the website should show:
 
-## Monad Mainnet Checklist
+```text
+OpenSea Drop configuration pending
+```
 
-Do not deploy mainnet until testnet passes.
+Do not claim OpenSea Drop configuration works merely because the collection indexes for secondary trading.
 
-Mainnet readiness:
+## Controlled Monad Mainnet Deployment
 
-- Confirm the exact OpenSea-supported SeaDrop address on Monad mainnet.
-- Confirm chain ID, RPC URL, explorer verifier, and gas settings.
-- Confirm treasury is a secure wallet or multisig.
-- Confirm owner wallet operational security.
-- Confirm all allowlist roots from final wallet lists.
-- Confirm public start time and supply plan.
-- Confirm metadata/IPFS pinning.
-- Confirm royalty receiver and basis points.
-- Run `forge test --offline`.
-- Run `forge test --offline --gas-report`.
-- Run a dry-run deployment script.
-- Save deployment artifact, constructor args, and transaction hash.
+Deployment date: 2026-07-14
 
-## Known SeaDrop Limitations
+This deployment was executed as a controlled OpenSea attachment experiment, not as confirmation that the public mint is live.
 
-- OpenSea Primary Drops require an OpenSea-supported SeaDrop deployment on the target chain.
-- The documented SeaDrop 1.0 address is listed by OpenSea for several EVM networks, but Monad support must be verified before launch.
-- SeaDrop handles payment and payout for SeaDrop mints. Direct dyoor.xyz mints send native MON to this NFT contract and are withdrawn through `withdrawTreasury`.
-- Direct allowlist leaves and SeaDrop allowlist leaves use different formats.
-- "Unlimited" public mint in SeaDrop should be represented by a practical cap such as total max supply.
+```text
+Contract: 0x349D8eb480c92cF75371fbA5C6344A4d11b9103A
+Deployer / owner: 0xC7f55cE6A7dF9A79cc4A643a5081230F890c7AA6
+SeaDrop: 0x00005EA00Ac477B1030CE78506496e8C2dE24bf5
+Treasury: 0x4D540f7D0Eb841c839334655C9f88313D750c6d5
+Royalty receiver: 0x4D540f7D0Eb841c839334655C9f88313D750c6d5
+Royalty bps: 500
+Base URI: ipfs://bafybeidz7htb3digthznwvl4ytdpckq2q3d2ytgxtsie5bcp7a4lgtb2sq/
+Contract URI: not set
+```
 
-## Recommended Launch Sequence
+Transactions:
 
-1. Finalize metadata and contract URI.
-2. Generate direct Team/WL/GTD Merkle roots.
-3. Generate SeaDrop/OpenSea allowlist configuration.
-4. Deploy to Monad testnet.
-5. Run all direct mint tests with real wallets.
-6. Configure OpenSea Primary Drop on the test deployment if available.
-7. Verify OpenSea mints and dyoor.xyz mints share total supply.
-8. Verify wallet limits cannot be bypassed across mint paths.
-9. Verify treasury withdrawal.
-10. Verify royalties.
-11. Deploy to Monad mainnet only after testnet and manual checks pass.
-12. Configure OpenSea Primary Drop on mainnet.
-13. Run a small owner-supervised smoke test before public launch.
+```text
+Deploy: 0x4bf48a20f598ffeb3e5bbd655ace2660129f0bc6624d4e685cc4623daead6d79
+setTreasury: 0xabd2b53649406a621dfeafbad1f975e0e51e8f297f8e434b48c19f0209525d24
+setRoyaltyInfo: 0x63c8c120a17c146a912572de77ed7da4cb4eea9e1d7c3079c80e7a0c3e6ae57c
+setBaseURI: 0xc806cff5c724d14c8916dcb1d17b62a5138920f32f85cf19e0d5ac0dcbfa21ec
+```
+
+Read-only validation after deployment confirmed:
+
+- chain ID `143`
+- name `D.Y.O.O.R`
+- symbol `DYOOR`
+- max supply `3333`
+- airdrop reserve `610`
+- SeaDrop cap `2723`
+- total supply `0`
+- authorized SeaDrop has bytecode and is allowed
+- Pinata base URI is set
+- mint pause and airdrop pause are both false
+
+Remaining steps:
+
+- Verify source on MonadScan.
+- Set contract URI if collection-level metadata is ready.
+- Open OpenSea Studio with the owner wallet and test whether this manually deployed contract can be configured as a Drop.
+- Do not publish a real sale schedule until OpenSea Drop controls are confirmed.
+
+## Can Users Mint Directly On OpenSea?
+
+That is the intended production path for paid mints after this refactor, but it is not confirmed until the controlled Monad testnet experiment is complete.
+
+OpenSea documentation says SeaDrop is the protocol for primary drops, including public drops and presales/allowlists, and says custom contracts can extend `ERC721SeaDrop` when project-specific functionality is required. The same documentation warns not to modify minting functionality if the goal is a seamless OpenSea minting experience.
+
+D.Y.O.O.R now follows that model as closely as possible:
+
+- OpenSea/SeaDrop should manage public sale, presale wallet lists, pricing, schedules, per-wallet limits, and payout settings where supported.
+- The D.Y.O.O.R contract keeps only a minimal `mintSeaDrop(address,uint256)` override for local pause, authorized-SeaDrop, max-supply, and 610-token reserve enforcement.
+- D.Y.O.O.R custom Merkle roots and direct paid mint routes are removed from the runtime NFT contract and website.
+
+The unresolved question is operational, not architectural: we still need to verify whether OpenSea Studio on Monad exposes controls for attaching/configuring this manually deployed custom SeaDrop-compatible contract as a Drop. Treat the possible outcomes as:
+
+- custom contract can be fully attached and configured through OpenSea UI
+- contract indexes as a collection but cannot be configured as a Drop
+- OpenSea requires manual creator-support onboarding
+- Monad custom SeaDrop contracts are not currently supported
+- result is inconclusive
+
+References:
+
+- `https://docs.opensea.io/docs/seadrop`
+- `https://docs.opensea.io/docs/deploying-a-seadrop-compatible-contract`
+- `https://docs.opensea.io/docs/create-a-drop`
+
+## Wallet List Exports
+
+Historical wallet source files remain off-chain. The current helper exports OpenSea-compatible CSV options:
+
+```bash
+npm run export:opensea-wallet-list -- --input DYOOR_WL_Comma_Separated_Merged_Deduped_v3.txt --stage regular-wl --limit 3
+```
+
+Outputs:
+
+```text
+wallet-list-exports/opensea/regular-wl-addresses.csv
+wallet-list-exports/opensea/regular-wl-with-limit.csv
+wallet-list-exports/opensea/regular-wl-manifest.json
+wallet-list-exports/opensea/regular-wl-validation.json
+```
+
+OpenSea's exact upload column expectations must be confirmed manually before final upload.
+
+## Airdrop
+
+Do not execute the real 610-NFT airdrop during testnet setup.
+
+Dry run:
+
+```bash
+npm run dry-run:s2-airdrop -- --input dyoor-s2-ascended-airdrop-with-treasury.csv --batch-size 25
+```
+
+Admin UI:
+
+```text
+/admin/airdrop
+```
+
+The connected owner wallet signs transactions. No owner private key is stored in the site or Netlify.
+
+## Hard Stops
+
+- Do not deploy to Monad mainnet from this task.
+- Do not execute the real 610-NFT airdrop.
+- Do not call `freezeMetadata`.
+- Do not call `renounceOwnership`.
+- Do not guess SeaDrop addresses.
+- Do not re-enable D.Y.O.O.R custom Merkle/direct paid mint routes.

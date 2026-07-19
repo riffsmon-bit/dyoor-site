@@ -19,7 +19,10 @@ export async function POST(request: Request) {
     const body = await request.json().catch(() => ({})) as Record<string, unknown>;
     const wallet = normalizeWallet(body.wallet);
     assertTraitLabRateLimit(`preview:${wallet || "invalid"}:${clientIp(request)}`, 12, 60_000);
-    return json(200, await createTraitLabPreview(body));
+    return json(200, await createTraitLabPreview({
+      ...body,
+      origin: new URL(request.url).origin,
+    }));
   } catch (error: any) {
     return json(Number(error?.status || 500), { ok: false, error: error?.message || "Trait Lab preview failed." });
   }

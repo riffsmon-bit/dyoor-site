@@ -6,94 +6,80 @@ import { ERC721SeaDrop } from "seadrop/src/ERC721SeaDrop.sol";
 import {
     ISeaDropTokenContractMetadata
 } from "seadrop/src/interfaces/ISeaDropTokenContractMetadata.sol";
-import { MerkleProof } from "openzeppelin-contracts/utils/cryptography/MerkleProof.sol";
 
 /**
  * @title DYOORSeason2SeaDrop
- * @notice Official D.Y.O.O.R Season 2 NFT contract.
- * @dev Extends OpenSea's ERC721SeaDrop so dyoor.xyz and OpenSea Primary Drops
- *      mint the same collection from the same supply. Direct dyoor.xyz minting
- *      uses the same ERC721A minted-count accounting that SeaDrop reads through
- *      getMintStats(), which prevents wallet-limit bypasses across mint paths.
+ * @notice D.Y.O.O.R Season 2 custom SeaDrop-compatible NFT contract.
+ * @dev Paid mint schedules, presales, allowlists, wallet limits, and primary
+ *      sale configuration are intended to live in OpenSea/SeaDrop. This
+ *      contract keeps D.Y.O.O.R-specific reserve, airdrop, mutable metadata,
+ *      ERC-4906, royalty, treasury, and ownership controls.
  */
 contract DYOORSeason2SeaDrop is ERC721SeaDrop {
-    enum MintPhase {
-        None,
-        Team,
-        Whitelist,
-        GTD,
-        Public
-    }
-
-    struct DirectPhaseConfig {
-        uint64 startTime;
-        uint80 price;
-        uint16 walletLimit;
-        bytes32 merkleRoot;
-    }
-
-    uint256 public constant MAX_SUPPLY = 5_555;
-    uint80 public constant DEFAULT_PAID_PRICE = 333 ether;
+    uint256 public constant MAX_SUPPLY = 3_333;
+    uint256 public constant AIRDROP_RESERVE = 610;
+    uint256 public constant SEADROP_MAX_SUPPLY = MAX_SUPPLY - AIRDROP_RESERVE;
     uint96 public constant DEFAULT_ROYALTY_BPS = 500;
+    string public constant FREEZE_METADATA_CONFIRMATION =
+        "I_UNDERSTAND_METADATA_FREEZE_IS_IRREVERSIBLE";
     string public constant COLLECTION_MEANING = "Directive: Yield Opportunity Optimization Robots";
-    address public constant DOCUMENTED_SEADROP_1_0 = 0x00005EA00Ac477B1030CE78506496e8C2dE24bf5;
 
     address public treasury;
+    address public metadataManager;
     bool public mintPaused;
+    bool public airdropPaused;
     bool public metadataFrozen;
+    uint256 public totalSeaDropMinted;
+    uint256 public totalAirdropped;
 
-    mapping(MintPhase => DirectPhaseConfig) private _phaseConfigs;
-    mapping(MintPhase => mapping(address => uint256)) public directMintedByPhase;
     mapping(bytes32 => address) public externalSystems;
+    mapping(bytes32 => bool) public airdropBatchExecuted;
 
     error InvalidSeaDropAddress();
     error InvalidTreasury();
-    error InvalidPhase();
-    error InvalidSchedule();
-    error InvalidWalletLimit();
     error MintPaused();
-    error MintInactive();
     error ZeroQuantity();
-    error IncorrectPayment(uint256 expected, uint256 received);
-    error AllowlistProofInvalid();
-    error WalletLimitExceeded(uint256 attempted, uint256 limit);
+    error InvalidQuantity();
+    error MaxSupplyExceeded(uint256 attempted, uint256 maxSupply);
+    error SeaDropMintCapExceeded(uint256 attempted, uint256 maxSupply);
+    error AirdropReserveExceeded(uint256 attempted, uint256 reserve);
     error MaxSupplyLocked(uint256 attempted, uint256 locked);
     error MetadataIsFrozen();
     error MetadataAlreadyFrozen();
+    error InvalidMetadataFreezeConfirmation();
     error WithdrawFailed();
     error NoTreasuryBalance();
+    error UnauthorizedSeaDrop();
+    error InvalidRecipient();
+    error InvalidArrayLength();
+    error EmptyAirdropBatch();
+    error AirdropPaused();
+    error AirdropBatchAlreadyExecuted(bytes32 batchId);
+    error InvalidBatchId();
+    error InvalidMetadataRange();
+    error RenounceOwnershipDisabled();
 
     event TreasuryUpdated(address indexed previousTreasury, address indexed newTreasury);
+    event MetadataManagerUpdated(address indexed previousManager, address indexed newManager);
     event MintPausedUpdated(bool paused);
-    event PhaseScheduleUpdated(
-        uint64 teamStart, uint64 whitelistStart, uint64 gtdStart, uint64 publicStart
-    );
-    event PhaseConfigUpdated(
-        MintPhase indexed phase,
-        uint64 startTime,
-        uint80 price,
-        uint16 walletLimit,
-        bytes32 merkleRoot
-    );
-    event DirectMint(
-        address indexed minter, MintPhase indexed phase, uint256 quantity, uint256 paid
-    );
+    event AirdropPausedUpdated(bool paused);
     event MetadataFrozen();
     event TreasuryWithdrawn(address indexed treasury, uint256 amount);
     event ExternalSystemUpdated(bytes32 indexed systemId, address indexed systemAddress);
+    event AirdropBatchExecuted(
+        bytes32 indexed batchId,
+        uint256 indexed batchIndex,
+        uint256 recipientCount,
+        uint256 quantityMinted,
+        uint256 firstTokenId,
+        uint256 lastTokenId
+    );
+    event MetadataUpdate(uint256 _tokenId);
 
-    constructor(string memory name_, string memory symbol_, address[] memory allowedSeaDrop)
-        ERC721SeaDrop(name_, symbol_, allowedSeaDrop)
+    constructor(string memory name_, string memory symbol_, address[] memory allowedSeaDrop_)
+        ERC721SeaDrop(name_, symbol_, allowedSeaDrop_)
     {
-        uint256 seaDropCount = allowedSeaDrop.length;
-        if (seaDropCount == 0) revert InvalidSeaDropAddress();
-
-        for (uint256 i = 0; i < seaDropCount;) {
-            if (allowedSeaDrop[i] == address(0)) revert InvalidSeaDropAddress();
-            unchecked {
-                ++i;
-            }
-        }
+        _validateSeaDrops(allowedSeaDrop_, true);
 
         treasury = msg.sender;
 
@@ -104,96 +90,35 @@ contract DYOORSeason2SeaDrop is ERC721SeaDrop {
             royaltyAddress: msg.sender, royaltyBps: DEFAULT_ROYALTY_BPS
         });
         emit RoyaltyInfoUpdated(msg.sender, DEFAULT_ROYALTY_BPS);
-
-        _phaseConfigs[MintPhase.Team] =
-            DirectPhaseConfig({ startTime: 0, price: 0, walletLimit: 10, merkleRoot: bytes32(0) });
-        _phaseConfigs[MintPhase.Whitelist] = DirectPhaseConfig({
-            startTime: 0, price: DEFAULT_PAID_PRICE, walletLimit: 3, merkleRoot: bytes32(0)
-        });
-        _phaseConfigs[MintPhase.GTD] = DirectPhaseConfig({
-            startTime: 0, price: DEFAULT_PAID_PRICE, walletLimit: 2, merkleRoot: bytes32(0)
-        });
-        _phaseConfigs[MintPhase.Public] = DirectPhaseConfig({
-            startTime: 0, price: DEFAULT_PAID_PRICE, walletLimit: 0, merkleRoot: bytes32(0)
-        });
     }
 
     receive() external payable { }
 
-    function mintDirect(uint256 quantity, bytes32[] calldata proof) external payable nonReentrant {
-        _mintDirect(activePhase(), quantity, proof);
-    }
-
-    function teamMint(uint256 quantity, bytes32[] calldata proof) external payable nonReentrant {
-        _mintDirect(MintPhase.Team, quantity, proof);
-    }
-
-    function whitelistMint(uint256 quantity, bytes32[] calldata proof)
-        external
-        payable
-        nonReentrant
-    {
-        _mintDirect(MintPhase.Whitelist, quantity, proof);
-    }
-
-    function gtdMint(uint256 quantity, bytes32[] calldata proof) external payable nonReentrant {
-        _mintDirect(MintPhase.GTD, quantity, proof);
-    }
-
-    function publicMint(uint256 quantity) external payable nonReentrant {
-        bytes32[] memory emptyProof = new bytes32[](0);
-        _mintDirect(MintPhase.Public, quantity, emptyProof);
-    }
-
     /**
-     * @notice SeaDrop mint entrypoint. Same signature and accounting as the
-     *         OpenSea base contract, with the DYOOR pause gate added.
+     * @notice SeaDrop mint entrypoint.
+     * @dev This intentionally keeps the official SeaDrop entrypoint, with the
+     *      minimum local checks D.Y.O.O.R needs for pause and reserve safety.
+     *      SeaDrop still manages presale/public schedules, prices, proofs,
+     *      fee recipients, and wallet limits.
      */
     function mintSeaDrop(address minter, uint256 quantity) external override nonReentrant {
         if (mintPaused) revert MintPaused();
+        if (_allowedSeaDrop[msg.sender] != true) revert UnauthorizedSeaDrop();
+        if (minter == address(0)) revert InvalidRecipient();
+        if (quantity == 0) revert InvalidQuantity();
 
-        _onlyAllowedSeaDrop(msg.sender);
+        uint256 newSeaDropTotal = totalSeaDropMinted + quantity;
+        if (newSeaDropTotal > SEADROP_MAX_SUPPLY) {
+            revert SeaDropMintCapExceeded(newSeaDropTotal, SEADROP_MAX_SUPPLY);
+        }
 
         uint256 newTotal = _totalMinted() + quantity;
-        if (newTotal > maxSupply()) {
-            revert MintQuantityExceedsMaxSupply(newTotal, maxSupply());
+        if (newTotal > MAX_SUPPLY) {
+            revert MintQuantityExceedsMaxSupply(newTotal, MAX_SUPPLY);
         }
 
+        totalSeaDropMinted = newSeaDropTotal;
         _safeMint(minter, quantity);
-    }
-
-    function activePhase() public view returns (MintPhase) {
-        if (
-            _phaseConfigs[MintPhase.Public].startTime != 0
-                && block.timestamp >= _phaseConfigs[MintPhase.Public].startTime
-        ) {
-            return MintPhase.Public;
-        }
-        if (
-            _phaseConfigs[MintPhase.GTD].startTime != 0
-                && block.timestamp >= _phaseConfigs[MintPhase.GTD].startTime
-        ) {
-            return MintPhase.GTD;
-        }
-        if (
-            _phaseConfigs[MintPhase.Whitelist].startTime != 0
-                && block.timestamp >= _phaseConfigs[MintPhase.Whitelist].startTime
-        ) {
-            return MintPhase.Whitelist;
-        }
-        if (
-            _phaseConfigs[MintPhase.Team].startTime != 0
-                && block.timestamp >= _phaseConfigs[MintPhase.Team].startTime
-        ) {
-            return MintPhase.Team;
-        }
-
-        return MintPhase.None;
-    }
-
-    function phaseConfig(MintPhase phase) external view returns (DirectPhaseConfig memory) {
-        if (phase == MintPhase.None) revert InvalidPhase();
-        return _phaseConfigs[phase];
     }
 
     function totalMinted() external view returns (uint256) {
@@ -204,13 +129,31 @@ contract DYOORSeason2SeaDrop is ERC721SeaDrop {
         return _numberMinted(wallet);
     }
 
-    function allowlistLeaf(address wallet) public pure returns (bytes32) {
-        return keccak256(abi.encodePacked(wallet));
+    function paused() external view returns (bool) {
+        return mintPaused;
     }
 
-    function setMintPaused(bool paused) external onlyOwner {
-        mintPaused = paused;
-        emit MintPausedUpdated(paused);
+    function remainingSeaDropSupply() external view returns (uint256) {
+        return SEADROP_MAX_SUPPLY - totalSeaDropMinted;
+    }
+
+    function remainingAirdropReserve() external view returns (uint256) {
+        return AIRDROP_RESERVE - totalAirdropped;
+    }
+
+    function setMintPaused(bool isPaused) external onlyOwner {
+        mintPaused = isPaused;
+        emit MintPausedUpdated(isPaused);
+    }
+
+    function pause() external onlyOwner {
+        mintPaused = true;
+        emit MintPausedUpdated(true);
+    }
+
+    function unpause() external onlyOwner {
+        mintPaused = false;
+        emit MintPausedUpdated(false);
     }
 
     function pauseMint() external onlyOwner {
@@ -223,6 +166,23 @@ contract DYOORSeason2SeaDrop is ERC721SeaDrop {
         emit MintPausedUpdated(false);
     }
 
+    function setAirdropPaused(bool isPaused) external onlyOwner {
+        airdropPaused = isPaused;
+        emit AirdropPausedUpdated(isPaused);
+    }
+
+    function pendingOwner() external view returns (address) {
+        return potentialOwner;
+    }
+
+    function allowedSeaDrop(address seaDrop) external view returns (bool) {
+        return _allowedSeaDrop[seaDrop];
+    }
+
+    function allowedSeaDrops() external view returns (address[] memory) {
+        return _enumeratedAllowedSeaDrop;
+    }
+
     function setTreasury(address newTreasury) external onlyOwner {
         if (newTreasury == address(0)) revert InvalidTreasury();
         address oldTreasury = treasury;
@@ -230,123 +190,10 @@ contract DYOORSeason2SeaDrop is ERC721SeaDrop {
         emit TreasuryUpdated(oldTreasury, newTreasury);
     }
 
-    function setPhaseStartTimes(
-        uint64 teamStart,
-        uint64 whitelistStart,
-        uint64 gtdStart,
-        uint64 publicStart
-    ) external onlyOwner {
-        _validateSchedule(teamStart, whitelistStart, gtdStart, publicStart);
-
-        _phaseConfigs[MintPhase.Team].startTime = teamStart;
-        _phaseConfigs[MintPhase.Whitelist].startTime = whitelistStart;
-        _phaseConfigs[MintPhase.GTD].startTime = gtdStart;
-        _phaseConfigs[MintPhase.Public].startTime = publicStart;
-
-        emit PhaseScheduleUpdated(teamStart, whitelistStart, gtdStart, publicStart);
-    }
-
-    function setPhaseConfig(
-        MintPhase phase,
-        uint64 startTime,
-        uint80 price,
-        uint16 walletLimit,
-        bytes32 merkleRoot
-    ) external onlyOwner {
-        if (phase == MintPhase.None) revert InvalidPhase();
-        if (phase != MintPhase.Public && walletLimit == 0) {
-            revert InvalidWalletLimit();
-        }
-
-        uint64 teamStart = _phaseConfigs[MintPhase.Team].startTime;
-        uint64 whitelistStart = _phaseConfigs[MintPhase.Whitelist].startTime;
-        uint64 gtdStart = _phaseConfigs[MintPhase.GTD].startTime;
-        uint64 publicStart = _phaseConfigs[MintPhase.Public].startTime;
-
-        if (phase == MintPhase.Team) teamStart = startTime;
-        if (phase == MintPhase.Whitelist) whitelistStart = startTime;
-        if (phase == MintPhase.GTD) gtdStart = startTime;
-        if (phase == MintPhase.Public) publicStart = startTime;
-
-        _validateSchedule(teamStart, whitelistStart, gtdStart, publicStart);
-
-        _phaseConfigs[phase] = DirectPhaseConfig({
-            startTime: startTime, price: price, walletLimit: walletLimit, merkleRoot: merkleRoot
-        });
-
-        emit PhaseConfigUpdated(phase, startTime, price, walletLimit, merkleRoot);
-    }
-
-    function updatePrices(
-        uint80 teamPrice,
-        uint80 whitelistPrice,
-        uint80 gtdPrice,
-        uint80 publicPrice
-    ) external onlyOwner {
-        _phaseConfigs[MintPhase.Team].price = teamPrice;
-        _phaseConfigs[MintPhase.Whitelist].price = whitelistPrice;
-        _phaseConfigs[MintPhase.GTD].price = gtdPrice;
-        _phaseConfigs[MintPhase.Public].price = publicPrice;
-
-        emit PhaseConfigUpdated(
-            MintPhase.Team,
-            _phaseConfigs[MintPhase.Team].startTime,
-            teamPrice,
-            _phaseConfigs[MintPhase.Team].walletLimit,
-            _phaseConfigs[MintPhase.Team].merkleRoot
-        );
-        emit PhaseConfigUpdated(
-            MintPhase.Whitelist,
-            _phaseConfigs[MintPhase.Whitelist].startTime,
-            whitelistPrice,
-            _phaseConfigs[MintPhase.Whitelist].walletLimit,
-            _phaseConfigs[MintPhase.Whitelist].merkleRoot
-        );
-        emit PhaseConfigUpdated(
-            MintPhase.GTD,
-            _phaseConfigs[MintPhase.GTD].startTime,
-            gtdPrice,
-            _phaseConfigs[MintPhase.GTD].walletLimit,
-            _phaseConfigs[MintPhase.GTD].merkleRoot
-        );
-        emit PhaseConfigUpdated(
-            MintPhase.Public,
-            _phaseConfigs[MintPhase.Public].startTime,
-            publicPrice,
-            _phaseConfigs[MintPhase.Public].walletLimit,
-            _phaseConfigs[MintPhase.Public].merkleRoot
-        );
-    }
-
-    function updateMerkleRoots(bytes32 teamRoot, bytes32 whitelistRoot, bytes32 gtdRoot)
-        external
-        onlyOwner
-    {
-        _phaseConfigs[MintPhase.Team].merkleRoot = teamRoot;
-        _phaseConfigs[MintPhase.Whitelist].merkleRoot = whitelistRoot;
-        _phaseConfigs[MintPhase.GTD].merkleRoot = gtdRoot;
-
-        emit PhaseConfigUpdated(
-            MintPhase.Team,
-            _phaseConfigs[MintPhase.Team].startTime,
-            _phaseConfigs[MintPhase.Team].price,
-            _phaseConfigs[MintPhase.Team].walletLimit,
-            teamRoot
-        );
-        emit PhaseConfigUpdated(
-            MintPhase.Whitelist,
-            _phaseConfigs[MintPhase.Whitelist].startTime,
-            _phaseConfigs[MintPhase.Whitelist].price,
-            _phaseConfigs[MintPhase.Whitelist].walletLimit,
-            whitelistRoot
-        );
-        emit PhaseConfigUpdated(
-            MintPhase.GTD,
-            _phaseConfigs[MintPhase.GTD].startTime,
-            _phaseConfigs[MintPhase.GTD].price,
-            _phaseConfigs[MintPhase.GTD].walletLimit,
-            gtdRoot
-        );
+    function setMetadataManager(address newManager) external onlyOwner {
+        address oldManager = metadataManager;
+        metadataManager = newManager;
+        emit MetadataManagerUpdated(oldManager, newManager);
     }
 
     function setBaseURI(string calldata newBaseURI)
@@ -378,8 +225,15 @@ contract DYOORSeason2SeaDrop is ERC721SeaDrop {
         external
         override(ERC721ContractMetadata)
     {
-        _onlyOwnerOrSelf();
+        _onlyOwnerOrMetadataManager();
+        if (!_isValidMetadataRange(fromTokenId, toTokenId)) revert InvalidMetadataRange();
         emit BatchMetadataUpdate(fromTokenId, toTokenId);
+    }
+
+    function emitMetadataUpdate(uint256 tokenId) external {
+        _onlyOwnerOrMetadataManager();
+        if (!_isMintedToken(tokenId)) revert InvalidMetadataRange();
+        emit MetadataUpdate(tokenId);
     }
 
     function setMaxSupply(uint256 newMaxSupply)
@@ -425,7 +279,15 @@ contract DYOORSeason2SeaDrop is ERC721SeaDrop {
     }
 
     function freezeMetadata() external onlyOwner {
+        revert InvalidMetadataFreezeConfirmation();
+    }
+
+    function freezeMetadata(string calldata confirmation) external onlyOwner {
         if (metadataFrozen) revert MetadataAlreadyFrozen();
+        if (keccak256(bytes(confirmation)) != keccak256(bytes(FREEZE_METADATA_CONFIRMATION))) {
+            revert InvalidMetadataFreezeConfirmation();
+        }
+
         metadataFrozen = true;
         emit MetadataFrozen();
     }
@@ -446,52 +308,94 @@ contract DYOORSeason2SeaDrop is ERC721SeaDrop {
         emit ExternalSystemUpdated(systemId, systemAddress);
     }
 
-    function _mintDirect(MintPhase phase, uint256 quantity, bytes32[] memory proof) internal {
-        if (mintPaused) revert MintPaused();
-        if (phase == MintPhase.None) revert MintInactive();
-        if (quantity == 0) revert ZeroQuantity();
-        if (phase != activePhase()) revert MintInactive();
-
-        DirectPhaseConfig memory config = _phaseConfigs[phase];
-        uint256 expected = uint256(config.price) * quantity;
-        if (msg.value != expected) revert IncorrectPayment(expected, msg.value);
-
-        uint256 newTotal = _totalMinted() + quantity;
-        if (newTotal > MAX_SUPPLY) {
-            revert MintQuantityExceedsMaxSupply(newTotal, MAX_SUPPLY);
-        }
-
-        if (phase != MintPhase.Public) {
-            if (!MerkleProof.verify(proof, config.merkleRoot, allowlistLeaf(msg.sender))) {
-                revert AllowlistProofInvalid();
-            }
-
-            uint256 attempted = _numberMinted(msg.sender) + quantity;
-            if (attempted > config.walletLimit) {
-                revert WalletLimitExceeded(attempted, config.walletLimit);
-            }
-        }
-
-        directMintedByPhase[phase][msg.sender] += quantity;
-        _safeMint(msg.sender, quantity);
-
-        emit DirectMint(msg.sender, phase, quantity, msg.value);
+    function updateAllowedSeaDrop(address[] calldata allowedSeaDrop_) external override onlyOwner {
+        _validateSeaDrops(allowedSeaDrop_, false);
+        _updateAllowedSeaDrop(allowedSeaDrop_);
     }
 
-    function _validateSchedule(
-        uint64 teamStart,
-        uint64 whitelistStart,
-        uint64 gtdStart,
-        uint64 publicStart
-    ) private pure {
-        if (teamStart != 0 && whitelistStart != 0 && teamStart > whitelistStart) {
-            revert InvalidSchedule();
+    function airdrop(address[] calldata recipients, uint256[] calldata quantities, bytes32 batchId)
+        external
+        onlyOwner
+        nonReentrant
+    {
+        _airdrop(batchId, 0, recipients, quantities);
+    }
+
+    function airdropBatch(
+        bytes32 batchId,
+        uint256 batchIndex,
+        address[] calldata recipients,
+        uint256[] calldata quantities
+    ) external onlyOwner nonReentrant {
+        _airdrop(batchId, batchIndex, recipients, quantities);
+    }
+
+    function renounceOwnership() public override onlyOwner {
+        revert RenounceOwnershipDisabled();
+    }
+
+    function _airdrop(
+        bytes32 batchId,
+        uint256 batchIndex,
+        address[] calldata recipients,
+        uint256[] calldata quantities
+    ) private {
+        if (mintPaused || airdropPaused) revert AirdropPaused();
+        if (batchId == bytes32(0)) revert InvalidBatchId();
+        if (airdropBatchExecuted[batchId]) revert AirdropBatchAlreadyExecuted(batchId);
+
+        uint256 length = recipients.length;
+        if (length == 0) revert EmptyAirdropBatch();
+        if (length != quantities.length) revert InvalidArrayLength();
+
+        uint256 totalQuantity;
+        for (uint256 i = 0; i < length;) {
+            if (recipients[i] == address(0)) revert InvalidRecipient();
+            uint256 quantity = quantities[i];
+            if (quantity == 0) revert InvalidQuantity();
+            totalQuantity += quantity;
+            unchecked {
+                ++i;
+            }
         }
-        if (whitelistStart != 0 && gtdStart != 0 && whitelistStart > gtdStart) {
-            revert InvalidSchedule();
+
+        uint256 newAirdroppedTotal = totalAirdropped + totalQuantity;
+        if (newAirdroppedTotal > AIRDROP_RESERVE) {
+            revert AirdropReserveExceeded(newAirdroppedTotal, AIRDROP_RESERVE);
         }
-        if (gtdStart != 0 && publicStart != 0 && gtdStart > publicStart) {
-            revert InvalidSchedule();
+
+        uint256 firstTokenId = _nextTokenId();
+        uint256 newTotal = _totalMinted() + totalQuantity;
+        if (newTotal > MAX_SUPPLY) revert MaxSupplyExceeded(newTotal, MAX_SUPPLY);
+
+        airdropBatchExecuted[batchId] = true;
+        totalAirdropped = newAirdroppedTotal;
+
+        for (uint256 i = 0; i < length;) {
+            _safeMint(recipients[i], quantities[i]);
+            unchecked {
+                ++i;
+            }
+        }
+
+        emit AirdropBatchExecuted(
+            batchId,
+            batchIndex,
+            length,
+            totalQuantity,
+            firstTokenId,
+            firstTokenId + totalQuantity - 1
+        );
+    }
+
+    function _validateSeaDrops(address[] memory seaDrops, bool requireNonEmpty) private pure {
+        uint256 seaDropCount = seaDrops.length;
+        if (requireNonEmpty && seaDropCount == 0) revert InvalidSeaDropAddress();
+        for (uint256 i = 0; i < seaDropCount;) {
+            if (seaDrops[i] == address(0)) revert InvalidSeaDropAddress();
+            unchecked {
+                ++i;
+            }
         }
     }
 
@@ -505,5 +409,21 @@ contract DYOORSeason2SeaDrop is ERC721SeaDrop {
         });
 
         emit RoyaltyInfoUpdated(receiver, basisPoints);
+    }
+
+    function _onlyOwnerOrMetadataManager() private view {
+        if (msg.sender != owner() && msg.sender != metadataManager) revert OnlyOwner();
+    }
+
+    function _isMintedToken(uint256 tokenId) private view returns (bool) {
+        return tokenId >= _startTokenId() && tokenId < _nextTokenId();
+    }
+
+    function _isValidMetadataRange(uint256 fromTokenId, uint256 toTokenId)
+        private
+        view
+        returns (bool)
+    {
+        return fromTokenId <= toTokenId && _isMintedToken(fromTokenId) && _isMintedToken(toTokenId);
     }
 }

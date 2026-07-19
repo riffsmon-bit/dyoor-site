@@ -46,7 +46,7 @@ function isTestnetLikeUrl(value: string) {
 }
 
 function mainnetRpcUrl() {
-  for (const name of ["DYOOR_S2_RPC_URL", "MONAD_RPC_URL", "NEXT_PUBLIC_MONAD_RPC_URL", "NEXT_PUBLIC_DYOOR_S2_RPC_URL", "RPC_URL"]) {
+  for (const name of ["DYOOR_S2_RPC_URL", "NEXT_PUBLIC_DYOOR_S2_RPC_URL", "MONAD_RPC_URL", "NEXT_PUBLIC_MONAD_RPC_URL", "RPC_URL"]) {
     const value = readEnv(name);
     if (value && !isTestnetLikeUrl(value)) return value;
   }

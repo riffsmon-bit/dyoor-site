@@ -4,7 +4,7 @@ import { usePrivy } from "@privy-io/react-auth";
 import { BrowserProvider } from "ethers";
 import { createContext, ReactNode, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import { useActivePrivyWallet } from "@/hooks/useActivePrivyWallet";
-import { MONAD_CHAIN_HEX, MONAD_CHAIN_ID, MONAD_EXPLORER_URL, MONAD_RPC_URL } from "@/lib/monad";
+import { isMonadChainId, MONAD_CHAIN_HEX, MONAD_CHAIN_ID, MONAD_EXPLORER_URL, MONAD_RPC_URL } from "@/lib/monad";
 
 export type Eip1193Provider = {
   request: (args: { method: string; params?: unknown[] }) => Promise<unknown>;
@@ -146,7 +146,7 @@ function useInjectedWallet() {
       }
       setAddress(nextAddress);
       const chainId = await active.request({ method: "eth_chainId" }).catch(() => "");
-      setWrongNetwork(String(chainId || "").toLowerCase() !== MONAD_CHAIN_HEX);
+      setWrongNetwork(!isMonadChainId(chainId));
     } catch {
       setAddress("");
     }
@@ -199,7 +199,7 @@ function useInjectedWallet() {
       if (!nextAddress) throw new Error("Wallet did not return an account.");
       setAddress(nextAddress);
       const chainId = await active.request({ method: "eth_chainId" }).catch(() => "");
-      if (String(chainId || "").toLowerCase() !== MONAD_CHAIN_HEX) await switchChain();
+      if (!isMonadChainId(chainId)) await switchChain();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Wallet connection failed.");
       throw err;
@@ -329,7 +329,7 @@ function PrivyFirstWalletServiceProvider({ children }: { children: ReactNode }) 
       try {
         const provider = await getProvider();
         const chainId = await provider.request({ method: "eth_chainId" });
-        if (active) setWrongNetwork(String(chainId || "").toLowerCase() !== MONAD_CHAIN_HEX);
+        if (active) setWrongNetwork(!isMonadChainId(chainId));
       } catch {
         if (active) setWrongNetwork(false);
       }

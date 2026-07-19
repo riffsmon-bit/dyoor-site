@@ -10,7 +10,7 @@ import {
   type BlueprintTrait,
   type BlueprintTraits,
 } from "@/lib/ascension/blueprint";
-import { builderLayerOrder, traitPath, type BuilderCategory, type BuilderSelection } from "@/lib/dyoor-builder";
+import { builderLayerOrder, traitPathCandidates, type BuilderCategory, type BuilderSelection } from "@/lib/dyoor-builder";
 import { Alert, Button, Card, EmptyState, LoadingSkeleton, PageShell, SectionHeader } from "@/components/ui/DyoorUi";
 import { useWalletService } from "@/providers/WalletServiceProvider";
 
@@ -175,7 +175,21 @@ function SavedBlueprintPreview({ blueprint }: { blueprint: SavedBlueprint }) {
         <img
           className="absolute inset-0 h-full w-full object-contain"
           key={`${layer.category}-${layer.file}`}
-          src={traitPath(layer.category, layer.file)}
+          data-next-source-index="1"
+          data-sources={JSON.stringify(traitPathCandidates(layer.category, layer.file))}
+          onError={(event) => {
+            const img = event.currentTarget;
+            const sources = JSON.parse(img.dataset.sources || "[]") as string[];
+            const nextIndex = Number(img.dataset.nextSourceIndex || "1");
+            const nextSource = sources[nextIndex];
+            if (nextSource) {
+              img.dataset.nextSourceIndex = String(nextIndex + 1);
+              img.src = nextSource;
+              return;
+            }
+            img.style.display = "none";
+          }}
+          src={traitPathCandidates(layer.category, layer.file)[0]}
           alt=""
         />
       ))}

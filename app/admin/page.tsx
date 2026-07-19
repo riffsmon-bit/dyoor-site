@@ -7,7 +7,7 @@ import { Alert, Button, Card, EmptyState, LoadingSkeleton, PageShell, SectionHea
 import { WalletButton } from "@/components/wallet/WalletButton";
 import { adminMessage } from "@/lib/adminMessage";
 import type { AdminAction } from "@/lib/adminMessage";
-import { MONAD_CHAIN_HEX } from "@/lib/monad";
+import { isMonadChainId } from "@/lib/monad";
 import { useWalletService } from "@/providers/WalletServiceProvider";
 
 type Eip1193Provider = {
@@ -1204,9 +1204,9 @@ export default function AdminPage() {
               <WalletButton />
             </div>
           </div>
-          <div className={`rounded border p-3 ${currentChainId && currentChainId.toLowerCase() !== MONAD_CHAIN_HEX ? "border-yellow-300/25 bg-yellow-300/10" : "border-dyoor-purple/25 bg-black/30"}`}>
+          <div className={`rounded border p-3 ${currentChainId && !isMonadChainId(currentChainId) ? "border-yellow-300/25 bg-yellow-300/10" : "border-dyoor-purple/25 bg-black/30"}`}>
             <p className="text-[0.66rem] font-black uppercase tracking-[0.14em] text-white/40">Current Network</p>
-            <p className="mt-2 text-sm font-black uppercase text-white">{currentChainId ? currentChainId.toLowerCase() === MONAD_CHAIN_HEX ? "Monad" : currentChainId : "-"}</p>
+            <p className="mt-2 text-sm font-black uppercase text-white">{currentChainId ? isMonadChainId(currentChainId) ? "Monad" : currentChainId : "-"}</p>
           </div>
           <div className="rounded border border-dyoor-purple/25 bg-black/30 p-3">
             <p className="text-[0.66rem] font-black uppercase tracking-[0.14em] text-white/40">Last Verified</p>

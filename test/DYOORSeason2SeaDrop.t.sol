@@ -3,316 +3,556 @@ pragma solidity 0.8.17;
 
 import { Test } from "forge-std/Test.sol";
 import { DYOORSeason2SeaDrop } from "../contracts/DYOORSeason2SeaDrop.sol";
-import { IERC721Receiver } from "openzeppelin-contracts/token/ERC721/IERC721Receiver.sol";
+import {
+    ISeaDropTokenContractMetadata
+} from "seadrop/src/interfaces/ISeaDropTokenContractMetadata.sol";
 
 contract DYOORSeason2SeaDropTest is Test {
     DYOORSeason2SeaDrop internal token;
 
     address internal owner = address(this);
     address internal seaDrop = address(0x5EA0);
+    address internal oldSeaDrop = address(0x05EA);
     address internal user = address(0xA11CE);
     address internal otherUser = address(0xB0B);
+    address internal metadataManager = address(0xBEEF);
     address internal treasury = address(0x7E45);
     address internal royaltyReceiver = address(0xA77);
 
-    uint64 internal constant TEAM_START = 100;
-    uint64 internal constant WL_START = 200;
-    uint64 internal constant GTD_START = 300;
-    uint64 internal constant PUBLIC_START = 400;
+    event AirdropBatchExecuted(
+        bytes32 indexed batchId,
+        uint256 indexed batchIndex,
+        uint256 recipientCount,
+        uint256 quantityMinted,
+        uint256 firstTokenId,
+        uint256 lastTokenId
+    );
+    event MetadataUpdate(uint256 _tokenId);
+    event BatchMetadataUpdate(uint256 _fromTokenId, uint256 _toTokenId);
+    event MetadataManagerUpdated(address indexed previousManager, address indexed newManager);
 
     function setUp() public {
         address[] memory seaDrops = new address[](1);
         seaDrops[0] = seaDrop;
 
-        token = new DYOORSeason2SeaDrop("D.Y.O.O.R", "DYOOR2", seaDrops);
-        token.setPhaseStartTimes(TEAM_START, WL_START, GTD_START, PUBLIC_START);
-        token.updateMerkleRoots(
-            token.allowlistLeaf(user), token.allowlistLeaf(user), token.allowlistLeaf(user)
-        );
-
-        vm.deal(user, 10_000 ether);
-        vm.deal(otherUser, 10_000 ether);
+        token = new DYOORSeason2SeaDrop("D.Y.O.O.R", "DYOOR", seaDrops);
+        vm.deal(address(token), 3 ether);
+        vm.deal(user, 1_000_000 ether);
+        vm.deal(otherUser, 1_000_000 ether);
     }
 
-    function testDeploymentDefaults() public view {
+    function testConstructorValues() public view {
         assertEq(token.name(), "D.Y.O.O.R");
-        assertEq(token.symbol(), "DYOOR2");
-        assertEq(token.maxSupply(), 5_555);
+        assertEq(token.symbol(), "DYOOR");
+        assertEq(token.MAX_SUPPLY(), 3_333);
+        assertEq(token.AIRDROP_RESERVE(), 610);
+        assertEq(token.SEADROP_MAX_SUPPLY(), 2_723);
+        assertEq(token.maxSupply(), 3_333);
+        assertEq(token.totalMinted(), 0);
+        assertEq(token.totalSupply(), 0);
+        assertEq(token.totalSeaDropMinted(), 0);
+        assertEq(token.totalAirdropped(), 0);
         assertEq(token.treasury(), owner);
         assertEq(token.royaltyAddress(), owner);
         assertEq(token.royaltyBasisPoints(), 500);
-        assertEq(token.DOCUMENTED_SEADROP_1_0(), 0x00005EA00Ac477B1030CE78506496e8C2dE24bf5);
+        assertEq(token.pendingOwner(), address(0));
+        assertFalse(token.paused());
+        assertFalse(token.airdropPaused());
+        assertTrue(token.allowedSeaDrop(seaDrop));
+        assertEq(token.allowedSeaDrops().length, 1);
     }
 
-    function testTimestampProgression() public {
-        vm.warp(TEAM_START - 1);
-        assertEq(uint256(token.activePhase()), uint256(DYOORSeason2SeaDrop.MintPhase.None));
-
-        vm.warp(TEAM_START);
-        assertEq(uint256(token.activePhase()), uint256(DYOORSeason2SeaDrop.MintPhase.Team));
-
-        vm.warp(WL_START);
-        assertEq(uint256(token.activePhase()), uint256(DYOORSeason2SeaDrop.MintPhase.Whitelist));
-
-        vm.warp(GTD_START);
-        assertEq(uint256(token.activePhase()), uint256(DYOORSeason2SeaDrop.MintPhase.GTD));
-
-        vm.warp(PUBLIC_START);
-        assertEq(uint256(token.activePhase()), uint256(DYOORSeason2SeaDrop.MintPhase.Public));
-    }
-
-    function testTeamMintIsFreeAndAllowlisted() public {
-        vm.warp(TEAM_START);
-
-        vm.prank(user);
-        token.teamMint(10, _emptyProof());
-
-        assertEq(token.balanceOf(user), 10);
-        assertEq(token.totalMinted(), 10);
-        assertEq(token.directMintedByPhase(DYOORSeason2SeaDrop.MintPhase.Team, user), 10);
-    }
-
-    function testTeamMintRejectsNonAllowlistedWallet() public {
-        vm.warp(TEAM_START);
-
-        vm.prank(otherUser);
-        vm.expectRevert(DYOORSeason2SeaDrop.AllowlistProofInvalid.selector);
-        token.teamMint(1, _emptyProof());
-    }
-
-    function testWhitelistMintRequiresExactPaymentAndLimit() public {
-        vm.warp(WL_START);
-
-        vm.prank(user);
-        vm.expectRevert(
-            abi.encodeWithSelector(
-                DYOORSeason2SeaDrop.IncorrectPayment.selector, 333 ether, 332 ether
-            )
-        );
-        token.whitelistMint{ value: 332 ether }(1, _emptyProof());
-
-        vm.prank(user);
-        token.whitelistMint{ value: 999 ether }(3, _emptyProof());
-
-        assertEq(token.balanceOf(user), 3);
-
-        vm.prank(user);
-        vm.expectRevert(
-            abi.encodeWithSelector(DYOORSeason2SeaDrop.WalletLimitExceeded.selector, 4, 3)
-        );
-        token.whitelistMint{ value: 333 ether }(1, _emptyProof());
-    }
-
-    function testGTDMintLimitIsTwo() public {
-        vm.warp(GTD_START);
-
-        vm.prank(user);
-        token.gtdMint{ value: 666 ether }(2, _emptyProof());
-
-        vm.prank(user);
-        vm.expectRevert(
-            abi.encodeWithSelector(DYOORSeason2SeaDrop.WalletLimitExceeded.selector, 3, 2)
-        );
-        token.gtdMint{ value: 333 ether }(1, _emptyProof());
-    }
-
-    function testPublicMintUsesRemainingSupplyWithoutAllowlist() public {
-        vm.warp(PUBLIC_START);
-
-        vm.prank(otherUser);
-        token.publicMint{ value: 1_665 ether }(5);
-
-        assertEq(token.balanceOf(otherUser), 5);
-        assertEq(token.totalMinted(), 5);
-    }
-
-    function testMintDirectUsesActivePhase() public {
-        vm.warp(WL_START);
-
-        vm.prank(user);
-        token.mintDirect{ value: 333 ether }(1, _emptyProof());
-
-        assertEq(token.ownerOf(1), user);
-        assertEq(token.directMintedByPhase(DYOORSeason2SeaDrop.MintPhase.Whitelist, user), 1);
-    }
-
-    function testPhaseSpecificMintRevertsOutsideItsWindow() public {
-        vm.warp(WL_START);
-
-        vm.prank(user);
-        vm.expectRevert(DYOORSeason2SeaDrop.MintInactive.selector);
-        token.teamMint(1, _emptyProof());
-    }
-
-    function testSeaDropMintOnlyAllowedAddress() public {
+    function testAuthorizedSeaDropCanMint() public {
         vm.prank(seaDrop);
         token.mintSeaDrop(user, 2);
 
         assertEq(token.balanceOf(user), 2);
+        assertEq(token.ownerOf(1), user);
+        assertEq(token.ownerOf(2), user);
+        assertEq(token.totalSupply(), 2);
         assertEq(token.totalMinted(), 2);
+        assertEq(token.totalSeaDropMinted(), 2);
+        assertEq(token.remainingSeaDropSupply(), token.SEADROP_MAX_SUPPLY() - 2);
+    }
 
-        vm.expectRevert();
+    function testUnauthorizedSeaDropCannotMint() public {
+        vm.expectRevert(DYOORSeason2SeaDrop.UnauthorizedSeaDrop.selector);
         token.mintSeaDrop(user, 1);
     }
 
-    function testDirectAndSeaDropShareSupplyAndMintStats() public {
-        vm.warp(WL_START);
+    function testSeaDropRejectsInvalidMintInputs() public {
+        vm.prank(seaDrop);
+        vm.expectRevert(DYOORSeason2SeaDrop.InvalidRecipient.selector);
+        token.mintSeaDrop(address(0), 1);
 
-        vm.prank(user);
-        token.whitelistMint{ value: 333 ether }(1, _emptyProof());
+        vm.prank(seaDrop);
+        vm.expectRevert(DYOORSeason2SeaDrop.InvalidQuantity.selector);
+        token.mintSeaDrop(user, 0);
+    }
 
+    function testSeaDropCannotExceedPaidMintAllocation() public {
+        uint256 seaDropMaxSupply = token.SEADROP_MAX_SUPPLY();
+
+        vm.prank(seaDrop);
+        token.mintSeaDrop(user, seaDropMaxSupply);
+
+        vm.prank(seaDrop);
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                DYOORSeason2SeaDrop.SeaDropMintCapExceeded.selector,
+                seaDropMaxSupply + 1,
+                seaDropMaxSupply
+            )
+        );
+        token.mintSeaDrop(otherUser, 1);
+    }
+
+    function testSeaDropCannotConsumeReservedSupply() public {
+        uint256 seaDropMaxSupply = token.SEADROP_MAX_SUPPLY();
+        uint256 airdropReserve = token.AIRDROP_RESERVE();
+
+        vm.prank(seaDrop);
+        token.mintSeaDrop(user, seaDropMaxSupply);
+
+        assertEq(token.totalSupply(), seaDropMaxSupply);
+        assertEq(token.maxSupply() - token.totalSupply(), airdropReserve);
+    }
+
+    function testAirdropCanMintReservedAllocation() public {
+        address[] memory recipients = new address[](2);
+        recipients[0] = user;
+        recipients[1] = otherUser;
+        uint256[] memory quantities = new uint256[](2);
+        quantities[0] = 300;
+        quantities[1] = 310;
+        bytes32 batchId = keccak256("reserved-airdrop");
+
+        vm.expectEmit(true, true, false, true);
+        emit AirdropBatchExecuted(batchId, 7, 2, 610, 1, 610);
+        token.airdropBatch(batchId, 7, recipients, quantities);
+
+        assertEq(token.balanceOf(user), 300);
+        assertEq(token.balanceOf(otherUser), 310);
+        assertEq(token.totalAirdropped(), 610);
+        assertEq(token.remainingAirdropReserve(), 0);
+        assertTrue(token.airdropBatchExecuted(batchId));
+    }
+
+    function testAirdropCannotExceedReservedAllocation() public {
+        address[] memory recipients = new address[](1);
+        recipients[0] = user;
+        uint256[] memory quantities = new uint256[](1);
+        quantities[0] = 611;
+
+        vm.expectRevert(
+            abi.encodeWithSelector(DYOORSeason2SeaDrop.AirdropReserveExceeded.selector, 611, 610)
+        );
+        token.airdrop(recipients, quantities, keccak256("too-many"));
+    }
+
+    function testCombinedRoutesCannotExceedMaxSupply() public {
+        uint256 seaDropMaxSupply = token.SEADROP_MAX_SUPPLY();
+        uint256 airdropReserve = token.AIRDROP_RESERVE();
+
+        vm.prank(seaDrop);
+        token.mintSeaDrop(user, seaDropMaxSupply);
+
+        address[] memory recipients = new address[](1);
+        recipients[0] = otherUser;
+        uint256[] memory quantities = new uint256[](1);
+        quantities[0] = airdropReserve;
+        token.airdrop(recipients, quantities, keccak256("reserve"));
+
+        assertEq(token.totalSupply(), token.MAX_SUPPLY());
+
+        address[] memory moreRecipients = new address[](1);
+        moreRecipients[0] = address(0xCAFE);
+        uint256[] memory moreQuantities = new uint256[](1);
+        moreQuantities[0] = 1;
+
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                DYOORSeason2SeaDrop.AirdropReserveExceeded.selector,
+                airdropReserve + 1,
+                airdropReserve
+            )
+        );
+        token.airdrop(moreRecipients, moreQuantities, keccak256("overflow"));
+    }
+
+    function testTokenIdsRemainSequentialAcrossRoutes() public {
         vm.prank(seaDrop);
         token.mintSeaDrop(user, 2);
 
-        (uint256 minterMinted, uint256 totalSupply, uint256 maxSupply) = token.getMintStats(user);
+        address[] memory recipients = new address[](2);
+        recipients[0] = user;
+        recipients[1] = otherUser;
+        uint256[] memory quantities = new uint256[](2);
+        quantities[0] = 1;
+        quantities[1] = 2;
+        token.airdrop(recipients, quantities, keccak256("batch"));
 
-        assertEq(minterMinted, 3);
-        assertEq(totalSupply, 3);
-        assertEq(maxSupply, 5_555);
+        assertEq(token.ownerOf(1), user);
+        assertEq(token.ownerOf(2), user);
+        assertEq(token.ownerOf(3), user);
+        assertEq(token.ownerOf(4), otherUser);
+        assertEq(token.ownerOf(5), otherUser);
     }
 
-    function testDirectMintLimitIncludesSeaDropMints() public {
-        vm.prank(seaDrop);
-        token.mintSeaDrop(user, 9);
+    function testDuplicateBatchIdFails() public {
+        address[] memory recipients = new address[](1);
+        recipients[0] = user;
+        uint256[] memory quantities = new uint256[](1);
+        quantities[0] = 1;
+        bytes32 batchId = keccak256("same-batch");
 
-        vm.warp(TEAM_START);
-        vm.prank(user);
+        token.airdrop(recipients, quantities, batchId);
+
         vm.expectRevert(
-            abi.encodeWithSelector(DYOORSeason2SeaDrop.WalletLimitExceeded.selector, 11, 10)
+            abi.encodeWithSelector(
+                DYOORSeason2SeaDrop.AirdropBatchAlreadyExecuted.selector, batchId
+            )
         );
-        token.teamMint(2, _emptyProof());
+        token.airdrop(recipients, quantities, batchId);
     }
 
-    function testPauseBlocksDirectAndSeaDropMint() public {
-        token.pauseMint();
+    function testSameRecipientCanReceiveDifferentBatches() public {
+        address[] memory recipients = new address[](1);
+        recipients[0] = user;
+        uint256[] memory quantities = new uint256[](1);
+        quantities[0] = 2;
 
-        vm.warp(PUBLIC_START);
+        token.airdrop(recipients, quantities, keccak256("batch-a"));
+        token.airdrop(recipients, quantities, keccak256("batch-b"));
+
+        assertEq(token.balanceOf(user), 4);
+        assertEq(token.totalAirdropped(), 4);
+    }
+
+    function testNonOwnerAirdropFails() public {
+        address[] memory recipients = new address[](1);
+        recipients[0] = user;
+        uint256[] memory quantities = new uint256[](1);
+        quantities[0] = 1;
+
         vm.prank(user);
-        vm.expectRevert(DYOORSeason2SeaDrop.MintPaused.selector);
-        token.publicMint{ value: 333 ether }(1);
-
-        vm.prank(seaDrop);
-        vm.expectRevert(DYOORSeason2SeaDrop.MintPaused.selector);
-        token.mintSeaDrop(user, 1);
-
-        token.unpauseMint();
-        vm.prank(seaDrop);
-        token.mintSeaDrop(user, 1);
-        assertEq(token.balanceOf(user), 1);
-    }
-
-    function testMaxSupplyCannotBeChangedAndCannotBeExceeded() public {
-        vm.expectRevert(
-            abi.encodeWithSelector(DYOORSeason2SeaDrop.MaxSupplyLocked.selector, 5_556, 5_555)
-        );
-        token.setMaxSupply(5_556);
-
-        token.setMaxSupply(5_555);
-
-        vm.prank(seaDrop);
-        token.mintSeaDrop(user, 5_555);
-
-        vm.prank(seaDrop);
         vm.expectRevert();
-        token.mintSeaDrop(user, 1);
+        token.airdrop(recipients, quantities, keccak256("not-owner"));
     }
 
-    function testMetadataBaseContractURIAndFreeze() public {
-        token.setBaseURI("ipfs://base/");
-        token.setContractURI("ipfs://contract.json");
+    function testAirdropValidation() public {
+        address[] memory recipients = new address[](0);
+        uint256[] memory quantities = new uint256[](0);
+        vm.expectRevert(DYOORSeason2SeaDrop.EmptyAirdropBatch.selector);
+        token.airdrop(recipients, quantities, keccak256("empty"));
+
+        recipients = new address[](1);
+        recipients[0] = user;
+        quantities = new uint256[](2);
+        quantities[0] = 1;
+        quantities[1] = 1;
+        vm.expectRevert(DYOORSeason2SeaDrop.InvalidArrayLength.selector);
+        token.airdrop(recipients, quantities, keccak256("mismatch"));
+
+        recipients = new address[](1);
+        recipients[0] = address(0);
+        quantities = new uint256[](1);
+        quantities[0] = 1;
+        vm.expectRevert(DYOORSeason2SeaDrop.InvalidRecipient.selector);
+        token.airdrop(recipients, quantities, keccak256("zero-recipient"));
+
+        recipients[0] = user;
+        quantities[0] = 0;
+        vm.expectRevert(DYOORSeason2SeaDrop.InvalidQuantity.selector);
+        token.airdrop(recipients, quantities, keccak256("zero-quantity"));
+
+        quantities[0] = 1;
+        vm.expectRevert(DYOORSeason2SeaDrop.InvalidBatchId.selector);
+        token.airdrop(recipients, quantities, bytes32(0));
+    }
+
+    function testPauseBlocksMintCreationButNotTransfers() public {
+        vm.prank(seaDrop);
+        token.mintSeaDrop(user, 1);
+
+        token.pause();
+
+        vm.prank(seaDrop);
+        vm.expectRevert(DYOORSeason2SeaDrop.MintPaused.selector);
+        token.mintSeaDrop(user, 1);
+
+        address[] memory recipients = new address[](1);
+        recipients[0] = user;
+        uint256[] memory quantities = new uint256[](1);
+        quantities[0] = 1;
+        vm.expectRevert(DYOORSeason2SeaDrop.AirdropPaused.selector);
+        token.airdrop(recipients, quantities, keccak256("paused-airdrop"));
+
+        vm.prank(user);
+        token.transferFrom(user, otherUser, 1);
+
+        assertEq(token.ownerOf(1), otherUser);
+    }
+
+    function testAirdropPauseBlocksOnlyAirdrop() public {
+        token.setAirdropPaused(true);
+
+        address[] memory recipients = new address[](1);
+        recipients[0] = user;
+        uint256[] memory quantities = new uint256[](1);
+        quantities[0] = 1;
+        vm.expectRevert(DYOORSeason2SeaDrop.AirdropPaused.selector);
+        token.airdrop(recipients, quantities, keccak256("airdrop-paused"));
+
+        vm.prank(seaDrop);
+        token.mintSeaDrop(user, 1);
+        assertEq(token.ownerOf(1), user);
+    }
+
+    function testMetadataManagerPermissions() public {
+        vm.prank(seaDrop);
+        token.mintSeaDrop(user, 1);
+
+        vm.expectEmit(true, true, false, true);
+        emit MetadataManagerUpdated(address(0), metadataManager);
+        token.setMetadataManager(metadataManager);
+
+        vm.prank(metadataManager);
+        vm.expectEmit(false, false, false, true);
+        emit MetadataUpdate(1);
+        token.emitMetadataUpdate(1);
+
+        vm.prank(metadataManager);
+        vm.expectEmit(false, false, false, true);
+        emit BatchMetadataUpdate(1, 1);
+        token.emitBatchMetadataUpdate(1, 1);
+
+        vm.prank(metadataManager);
+        vm.expectRevert();
+        token.setTreasury(metadataManager);
+
+        vm.prank(metadataManager);
+        vm.expectRevert();
+        token.airdrop(_singleRecipient(user), _singleQuantity(1), keccak256("manager-airdrop"));
+    }
+
+    function testMetadataRangeValidation() public {
+        vm.expectRevert(DYOORSeason2SeaDrop.InvalidMetadataRange.selector);
+        token.emitMetadataUpdate(1);
 
         vm.prank(seaDrop);
         token.mintSeaDrop(user, 1);
 
-        assertEq(token.tokenURI(1), "ipfs://base/1");
-        assertEq(token.contractURI(), "ipfs://contract.json");
-
-        token.freezeMetadata();
-
-        vm.expectRevert(DYOORSeason2SeaDrop.MetadataIsFrozen.selector);
-        token.setBaseURI("ipfs://new/");
-
-        vm.expectRevert(DYOORSeason2SeaDrop.MetadataIsFrozen.selector);
-        token.setContractURI("ipfs://new-contract.json");
+        vm.expectRevert(DYOORSeason2SeaDrop.InvalidMetadataRange.selector);
+        token.emitBatchMetadataUpdate(2, 1);
     }
 
-    function testRoyaltyUpdates() public {
-        token.updateRoyaltyReceiver(royaltyReceiver);
-        token.updateRoyaltyPercentage(750);
+    function testBaseUriTokenUriAndContractUri() public {
+        token.setBaseURI("https://dyoor.xyz/api/metadata/");
+        token.setContractURI("https://dyoor.xyz/api/collection/dyoor-s2.json");
+
+        vm.prank(seaDrop);
+        token.mintSeaDrop(user, 1);
+
+        assertEq(token.tokenURI(1), "https://dyoor.xyz/api/metadata/1");
+        assertEq(token.contractURI(), "https://dyoor.xyz/api/collection/dyoor-s2.json");
+    }
+
+    function testSetBaseUriEmitsBatchMetadataUpdateAfterMint() public {
+        vm.prank(seaDrop);
+        token.mintSeaDrop(user, 2);
+
+        vm.expectEmit(false, false, false, true);
+        emit BatchMetadataUpdate(1, 2);
+        token.setBaseURI("https://dyoor.xyz/api/metadata/");
+    }
+
+    function testRoyaltyAndTreasuryControls() public {
+        token.setTreasury(treasury);
+        token.setRoyaltyInfo(
+            ISeaDropTokenContractMetadata.RoyaltyInfo({
+                royaltyAddress: royaltyReceiver, royaltyBps: 750
+            })
+        );
 
         (address receiver, uint256 amount) = token.royaltyInfo(1, 10 ether);
         assertEq(receiver, royaltyReceiver);
         assertEq(amount, 0.75 ether);
 
+        uint256 beforeBalance = treasury.balance;
+        uint256 withdrawn = token.withdrawTreasury();
+        assertEq(withdrawn, 3 ether);
+        assertEq(treasury.balance, beforeBalance + 3 ether);
+    }
+
+    function testUnauthorizedRoyaltyAndTreasuryUpdatesFail() public {
+        vm.prank(user);
+        vm.expectRevert();
+        token.updateRoyaltyReceiver(user);
+
+        vm.prank(user);
+        vm.expectRevert();
+        token.setTreasury(user);
+
+        vm.expectRevert();
+        token.setTreasury(address(0));
+
+        vm.expectRevert();
+        token.updateRoyaltyReceiver(address(0));
+
         vm.expectRevert();
         token.updateRoyaltyPercentage(10_001);
     }
 
-    function testWithdrawTreasury() public {
-        token.setTreasury(treasury);
+    function testAllowedSeaDropCanBeUpdated() public {
+        address[] memory seaDrops = new address[](2);
+        seaDrops[0] = seaDrop;
+        seaDrops[1] = oldSeaDrop;
+        token.updateAllowedSeaDrop(seaDrops);
 
-        vm.warp(PUBLIC_START);
+        vm.prank(oldSeaDrop);
+        token.mintSeaDrop(user, 1);
+
+        address[] memory nextSeaDrops = new address[](1);
+        nextSeaDrops[0] = seaDrop;
+        token.updateAllowedSeaDrop(nextSeaDrops);
+
+        vm.prank(oldSeaDrop);
+        vm.expectRevert(DYOORSeason2SeaDrop.UnauthorizedSeaDrop.selector);
+        token.mintSeaDrop(user, 1);
+    }
+
+    function testInvalidSeaDropConfigurationFails() public {
+        address[] memory empty = new address[](0);
+        vm.expectRevert(DYOORSeason2SeaDrop.InvalidSeaDropAddress.selector);
+        new DYOORSeason2SeaDrop("D.Y.O.O.R", "DYOOR", empty);
+
+        address[] memory invalid = new address[](1);
+        invalid[0] = address(0);
+        vm.expectRevert(DYOORSeason2SeaDrop.InvalidSeaDropAddress.selector);
+        token.updateAllowedSeaDrop(invalid);
+    }
+
+    function testOwnershipTransferAndRenounceBlocked() public {
+        token.transferOwnership(user);
+        assertEq(token.pendingOwner(), user);
+
         vm.prank(user);
-        token.publicMint{ value: 666 ether }(2);
+        token.acceptOwnership();
+        assertEq(token.owner(), user);
 
-        uint256 beforeBalance = treasury.balance;
-        uint256 withdrawn = token.withdrawTreasury();
+        vm.prank(user);
+        token.transferOwnership(otherUser);
+        assertEq(token.pendingOwner(), otherUser);
 
-        assertEq(withdrawn, 666 ether);
-        assertEq(treasury.balance - beforeBalance, 666 ether);
-        assertEq(address(token).balance, 0);
+        vm.prank(user);
+        token.cancelOwnershipTransfer();
+        assertEq(token.pendingOwner(), address(0));
+
+        vm.prank(user);
+        vm.expectRevert(DYOORSeason2SeaDrop.RenounceOwnershipDisabled.selector);
+        token.renounceOwnership();
     }
 
-    function testInvalidScheduleReverts() public {
-        vm.expectRevert(DYOORSeason2SeaDrop.InvalidSchedule.selector);
-        token.setPhaseStartTimes(300, 200, 400, 500);
+    function testMaxSupplyIsLocked() public {
+        uint256 maxSupply = token.MAX_SUPPLY();
+        token.setMaxSupply(maxSupply);
+
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                DYOORSeason2SeaDrop.MaxSupplyLocked.selector, maxSupply + 1, maxSupply
+            )
+        );
+        token.setMaxSupply(maxSupply + 1);
     }
 
-    function testReentrantReceiverCannotMintAgainInCallback() public {
-        ReentrantPublicMinter attacker = new ReentrantPublicMinter(token);
-        vm.deal(address(attacker), 1_000 ether);
+    function testFreezeMetadataRequiresExplicitConfirmation() public {
+        vm.expectRevert(DYOORSeason2SeaDrop.InvalidMetadataFreezeConfirmation.selector);
+        token.freezeMetadata();
 
-        vm.warp(PUBLIC_START);
-        vm.expectRevert();
-        attacker.attack{ value: 666 ether }();
+        vm.expectRevert(DYOORSeason2SeaDrop.InvalidMetadataFreezeConfirmation.selector);
+        token.freezeMetadata("wrong");
     }
 
-    function testFutureSystemHookCanBeRegistered() public {
-        bytes32 systemId = keccak256("DYOOR_BLUEPRINT_SYSTEM");
-        token.setExternalSystem(systemId, address(0xB10E));
-
-        assertEq(token.externalSystems(systemId), address(0xB10E));
+    function testSupportsInterfaces() public view {
+        assertTrue(token.supportsInterface(0x80ac58cd)); // ERC721
+        assertTrue(token.supportsInterface(0x5b5e139f)); // ERC721Metadata
+        assertTrue(token.supportsInterface(0x2a55205a)); // ERC2981
+        assertTrue(token.supportsInterface(0x49064906)); // ERC4906
     }
 
-    function _emptyProof() private pure returns (bytes32[] memory proof) {
-        proof = new bytes32[](0);
-    }
-}
+    function testBurnDoesNotReopenSupply() public {
+        vm.prank(seaDrop);
+        token.mintSeaDrop(user, 1);
 
-contract ReentrantPublicMinter is IERC721Receiver {
-    DYOORSeason2SeaDrop internal immutable TOKEN;
-    bool internal reentered;
+        vm.prank(user);
+        token.burn(1);
 
-    constructor(DYOORSeason2SeaDrop token_) {
-        TOKEN = token_;
-    }
-
-    function attack() external payable {
-        TOKEN.publicMint{ value: 333 ether }(1);
+        assertEq(token.totalSupply(), 0);
+        assertEq(token.totalMinted(), 1);
+        assertEq(token.totalSeaDropMinted(), 1);
     }
 
-    function onERC721Received(address, address, uint256, bytes calldata)
-        external
-        override
-        returns (bytes4)
+    function testRemovedDirectMintRoutesAreAbsent() public {
+        _assertFunctionMissing(
+            "mintDirect(uint256,bytes32[])", abi.encode(uint256(1), new bytes32[](0))
+        );
+        _assertFunctionMissing(
+            "teamMint(uint256,bytes32[])", abi.encode(uint256(1), new bytes32[](0))
+        );
+        _assertFunctionMissing(
+            "ascensionMint(uint256,bytes32[])", abi.encode(uint256(1), new bytes32[](0))
+        );
+        _assertFunctionMissing(
+            "gtdMint(uint256,bytes32[])", abi.encode(uint256(1), new bytes32[](0))
+        );
+        _assertFunctionMissing("publicMint(uint256)", abi.encode(uint256(1)));
+        _assertFunctionMissing(
+            "setPhaseStartTimes(uint64,uint64,uint64,uint64,uint64)",
+            abi.encode(uint64(1), uint64(2), uint64(3), uint64(4), uint64(5))
+        );
+        _assertFunctionMissing(
+            "updateMerkleRoots(bytes32,bytes32,bytes32,bytes32)",
+            abi.encode(bytes32(0), bytes32(0), bytes32(0), bytes32(0))
+        );
+    }
+
+    function testFuzzSeaDropQuantity(uint16 quantity) public {
+        quantity = uint16(bound(quantity, 1, token.SEADROP_MAX_SUPPLY()));
+
+        vm.prank(seaDrop);
+        token.mintSeaDrop(user, quantity);
+
+        assertEq(token.totalSeaDropMinted(), quantity);
+        assertEq(token.totalSupply(), quantity);
+    }
+
+    function testFuzzAirdropQuantity(uint16 quantity) public {
+        quantity = uint16(bound(quantity, 1, token.AIRDROP_RESERVE()));
+
+        token.airdrop(_singleRecipient(user), _singleQuantity(quantity), keccak256("fuzz-airdrop"));
+
+        assertEq(token.totalAirdropped(), quantity);
+        assertEq(token.totalSupply(), quantity);
+    }
+
+    function _singleRecipient(address recipient)
+        internal
+        pure
+        returns (address[] memory recipients)
     {
-        if (!reentered) {
-            reentered = true;
-            TOKEN.publicMint{ value: 333 ether }(1);
-        }
-
-        return IERC721Receiver.onERC721Received.selector;
+        recipients = new address[](1);
+        recipients[0] = recipient;
     }
 
-    receive() external payable { }
+    function _singleQuantity(uint256 quantity) internal pure returns (uint256[] memory quantities) {
+        quantities = new uint256[](1);
+        quantities[0] = quantity;
+    }
+
+    function _assertFunctionMissing(string memory signature, bytes memory args) internal {
+        (bool ok,) =
+            address(token).call(abi.encodePacked(bytes4(keccak256(bytes(signature))), args));
+        assertFalse(ok);
+    }
 }

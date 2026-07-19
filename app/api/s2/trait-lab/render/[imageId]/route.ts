@@ -10,7 +10,7 @@ type RenderContext = {
 export async function GET(_request: Request, context: RenderContext) {
   const params = await context.params;
   const imageId = String(params.imageId || "").trim();
-  const png = imageId ? await readRenderedTraitImage(imageId) : null;
+  const png = imageId ? await readRenderedTraitImage(imageId).catch(() => null) : null;
 
   if (!png) {
     return new Response("Not found", {

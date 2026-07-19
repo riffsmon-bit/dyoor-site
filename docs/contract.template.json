@@ -1,0 +1,9 @@
+{
+  "name": "D.Y.O.O.R",
+  "description": "PLACEHOLDER_DESCRIPTION",
+  "image": "ipfs://PLACEHOLDER_COLLECTION_IMAGE_CID",
+  "banner_image": "ipfs://PLACEHOLDER_BANNER_CID",
+  "external_link": "https://dyoor.xyz",
+  "seller_fee_basis_points": "PLACEHOLDER_BPS",
+  "fee_recipient": "PLACEHOLDER_TREASURY_ADDRESS"
+}

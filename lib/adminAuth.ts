@@ -1,5 +1,5 @@
 import { ethers } from "ethers";
-import { adminMessage, type AdminAction } from "@/lib/adminMessage";
+import { adminAirdropMessage, adminMessage, type AdminAction } from "@/lib/adminMessage";
 
 const ADMIN_WINDOW_MS = 5 * 60 * 1000;
 
@@ -77,5 +77,55 @@ export async function verifyAdmin(body: Record<string, unknown>, action: AdminAc
   }
 
   if (options.consumeNonce !== false) markNonce(owner, action, nonce, now, windowMs);
+  return owner;
+}
+
+export async function verifyAdminAirdrop(body: Record<string, unknown>, options: { consumeNonce?: boolean; windowMs?: number } = {}) {
+  const owner = adminOwnerWallet();
+  if (!owner) throw Object.assign(new Error("Admin owner wallet is not configured."), { status: 500 });
+
+  const signedWallet = String(body.wallet || "").trim();
+  const wallet = normalizeAdminAddress(signedWallet);
+  const chainId = String(body.chainId || "");
+  const contractAddress = normalizeAdminAddress(body.contractAddress);
+  const timestamp = String(body.timestamp || body.issuedAt || "");
+  const expiresAt = String(body.expiresAt || "");
+  const nonce = String(body.nonce || "");
+  const signature = String(body.signature || "");
+  const now = Date.now();
+  const windowMs = options.windowMs || ADMIN_WINDOW_MS;
+
+  if (!wallet) throw Object.assign(new Error("Missing wallet."), { status: 400 });
+  if (wallet.toLowerCase() !== owner.toLowerCase()) throw Object.assign(new Error("Not authorized."), { status: 403 });
+  if (!chainId || !/^\d+$/.test(chainId)) throw Object.assign(new Error("Missing chain ID."), { status: 400 });
+  if (!contractAddress) throw Object.assign(new Error("Missing contract address."), { status: 400 });
+  if (!/^\d+$/.test(timestamp) || Math.abs(now - Number(timestamp)) > windowMs) {
+    throw Object.assign(new Error("Admin signature expired. Sign again."), { status: 401 });
+  }
+  if (!/^\d+$/.test(expiresAt) || Number(expiresAt) <= now) {
+    throw Object.assign(new Error("Admin airdrop authorization expired. Sign again."), { status: 401 });
+  }
+  if (!nonce || nonce.length < 8 || !signature) {
+    throw Object.assign(new Error("Missing admin signature."), { status: 400 });
+  }
+
+  let recovered = "";
+  try {
+    recovered = normalizeAdminAddress(ethers.verifyMessage(adminAirdropMessage({
+      chainId,
+      contractAddress,
+      expiresAt,
+      nonce,
+      timestamp,
+      wallet: signedWallet,
+    }), signature));
+  } catch {
+    recovered = "";
+  }
+  if (recovered.toLowerCase() !== owner.toLowerCase()) {
+    throw Object.assign(new Error("Admin signature does not match owner wallet."), { status: 401 });
+  }
+
+  if (options.consumeNonce !== false) markNonce(owner, "airdrop", nonce, now, Math.min(windowMs, Number(expiresAt) - now));
   return owner;
 }
