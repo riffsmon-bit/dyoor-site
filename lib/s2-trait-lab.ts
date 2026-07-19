@@ -816,6 +816,10 @@ function isBlockedBandannaMouth(value: unknown) {
     || normalized.includes("toothpick");
 }
 
+function hasBandannaAccessory(traits: Record<string, string>) {
+  return isBandanna(traits.Accessories) || isBandanna(traits["Accessories 2"]);
+}
+
 function explicitCompatibilityConflict(traits: Record<string, string>) {
   if (!isEmptyTraitValue(traits.Accessories)
     && !isEmptyTraitValue(traits["Accessories 2"])
@@ -823,7 +827,11 @@ function explicitCompatibilityConflict(traits: Record<string, string>) {
     return "Accessories and Accessories 2 cannot use the same trait.";
   }
 
-  if ((isBandanna(traits.Accessories) || isBandanna(traits["Accessories 2"])) && isBlockedBandannaMouth(traits.Mouth)) {
+  if (hasBandannaAccessory(traits) && !isEmptyTraitValue(traits.Hat)) {
+    return "Bandanna cannot be combined with Hat.";
+  }
+
+  if (hasBandannaAccessory(traits) && isBlockedBandannaMouth(traits.Mouth)) {
     return "Bandanna cannot be combined with this mouth trait.";
   }
   return "";
@@ -894,6 +902,27 @@ function applySpecialSideEffects(traits: Record<string, string>) {
   }
 
   return next;
+}
+
+function applyHeadwearSideEffects(traits: Record<string, string>, changedTraitType: S2TraitLabTrait) {
+  const next = { ...traits };
+
+  if (changedTraitType === "Hat" && !isEmptyTraitValue(next.Hat)) {
+    if (isBandanna(next.Accessories)) next.Accessories = "None";
+    if (isBandanna(next["Accessories 2"])) next["Accessories 2"] = "None";
+  }
+
+  if ((changedTraitType === "Accessories" || changedTraitType === "Accessories 2")
+    && isBandanna(next[changedTraitType])
+    && !isEmptyTraitValue(next.Hat)) {
+    next.Hat = "None";
+  }
+
+  return next;
+}
+
+function applyTraitSideEffects(traits: Record<string, string>, changedTraitType: S2TraitLabTrait) {
+  return applySpecialSideEffects(applyHeadwearSideEffects(traits, changedTraitType));
 }
 
 function proposedAttributePatch(previous: Record<string, string>, next: Record<string, string>, traitType: S2EditableTrait) {
@@ -974,7 +1003,7 @@ function generateCandidate(
       ...traits,
       [traitType]: option.value,
     };
-    const next = applySpecialSideEffects(changed);
+    const next = applyTraitSideEffects(changed, traitType);
     const conflict = validationConflict(next);
     if (!conflict) {
       return {

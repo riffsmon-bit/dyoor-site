@@ -91,6 +91,7 @@ Current important rules:
 - Special traits are not available for new unlocks or rerolls.
 - Special cleanup, when supported, may clear wearable layers but must not clear Background or Droid.
 - Bandanna cannot combine with conflicting mouth items such as Ahhh tongue, gold bar, joint, cigar, cigarette, Ahhh flame, or toothpick.
+- Bandanna/Bandana accessory layers cannot combine with Hat. If a Hat is added, the Bandanna accessory slot is cleared; if a Bandanna accessory is added, the Hat slot is cleared.
 - Accessories and Accessories 2 cannot equip the same visible trait at the same time.
 - Every result must come from the approved trait registry or approved asset list.
 

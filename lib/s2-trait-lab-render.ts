@@ -266,6 +266,18 @@ export function renderedTraitImageUrl(imageId: string, origin = "") {
   return base ? `${base}${pathName}` : pathName;
 }
 
+export function traitRenderImageId(tokenId: number, metadata: MetadataJson) {
+  const traits = traitMapFromMetadata(metadata as any);
+  const version = metadataVersion(metadata as any);
+  const fingerprint = crypto.createHash("sha256").update(JSON.stringify({
+    renderer: RENDER_PIPELINE_VERSION,
+    tokenId,
+    version,
+    traits,
+  })).digest("hex").slice(0, 16);
+  return `${tokenId}-v${version}-${RENDER_PIPELINE_VERSION}-${fingerprint}`;
+}
+
 function canonicalRenderBaseUrl(origin = "") {
   const configured = readEnv("DYOOR_TRAIT_LAB_RENDER_BASE_URL", "DYOOR_SITE_URL", "NEXT_PUBLIC_SITE_URL");
   const base = String(configured || origin || "").replace(/\/+$/, "");
@@ -345,14 +357,7 @@ export async function renderTraitLabImage(
     };
   }
 
-  const version = metadataVersion(metadata as any);
-  const fingerprint = crypto.createHash("sha256").update(JSON.stringify({
-    renderer: RENDER_PIPELINE_VERSION,
-    tokenId,
-    version,
-    traits,
-  })).digest("hex").slice(0, 16);
-  const imageId = `${tokenId}-v${version}-${RENDER_PIPELINE_VERSION}-${fingerprint}`;
+  const imageId = traitRenderImageId(tokenId, metadata);
   const png = await sharp({
     create: {
       width: size,

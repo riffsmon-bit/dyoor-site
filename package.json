@@ -24,6 +24,7 @@
     "generate:s2-allowlist": "node scripts/generate-s2-direct-allowlist.js",
     "upload:pinata": "node scripts/upload-pinata-folder.js",
     "validate:metadata": "node scripts/validate-dyoor-s2-metadata.js",
+    "opensea:refresh": "node scripts/refresh-opensea-metadata.js",
     "validate:energy": "node scripts/validate-energy-accounting.js",
     "compile:contracts": "hardhat compile",
     "test:contracts": "hardhat compile && node --test test/*.test.js",

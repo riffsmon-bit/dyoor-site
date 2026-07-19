@@ -5,7 +5,8 @@ import {
   parseTokenId,
   saveRuntimeTraitOverride,
 } from "@/lib/dyoor-s2-metadata.js";
-import { RENDER_PIPELINE_VERSION, renderTraitLabImage } from "@/lib/s2-trait-lab-render";
+import { refreshOpenSeaTokenMetadata } from "@/lib/opensea-metadata-refresh";
+import { RENDER_PIPELINE_VERSION, renderTraitLabImage, traitRenderImageId } from "@/lib/s2-trait-lab-render";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -44,9 +45,11 @@ export async function GET(_request: Request, context: MetadataRouteContext) {
   const staleRenderer = Boolean(override?.imageRender?.rendererVersion)
     ? override?.imageRender?.rendererVersion !== RENDER_PIPELINE_VERSION
     : Boolean(override?.imageRender);
+  const staleTraitRender = Boolean(override?.imageRender?.imageId)
+    && override?.imageRender?.imageId !== traitRenderImageId(tokenId, metadata as any);
   const shouldRenderOverrideImage = Boolean(
     override?.attributes
-      && (!override.image || legacyRenderId || externalRenderUrl || overrideImageIsStaticBase || metadataImageIsStaticBase || staleRenderer || /image recomposition TODO/i.test(String(override.notes || "")))
+      && (!override.image || legacyRenderId || externalRenderUrl || overrideImageIsStaticBase || metadataImageIsStaticBase || staleRenderer || staleTraitRender || /image recomposition TODO/i.test(String(override.notes || "")))
       && !result.usedFallback,
   );
   if (shouldRenderOverrideImage) {
@@ -72,6 +75,7 @@ export async function GET(_request: Request, context: MetadataRouteContext) {
         notes: String(override.notes || "").replace(/;?\s*image recomposition TODO\.?/i, "").trim() || override.notes,
       });
       metadata = (await buildTokenMetadataAsync(tokenId, config)).metadata;
+      await refreshOpenSeaTokenMetadata({ tokenId });
     } else if (staleRenderer || externalRenderUrl || legacyRenderId) {
       const nextOverride = { ...override };
       delete nextOverride.image;
