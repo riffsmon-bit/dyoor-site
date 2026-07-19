@@ -38,19 +38,19 @@ Current pricing uses this conversion:
 1 MON = 50 Energy
 ```
 
-Approved meme-token payments use the same numeric unit price as MON. For example, a 50 MON reroll costs 50 units of the selected approved meme token. Meme-token payments are split 50/50: half to the burn address and half to the D.Y.O.O.R treasury.
+Approved meme-token payments use the same numeric unit price as MON. For example, a 2 MON reroll costs 2 units of the selected approved meme token. Meme-token payments are split 50/50: half to the burn address and half to the D.Y.O.O.R treasury.
 
 Current reroll pricing:
 
 | Trait | Energy | MON | Approved Meme Token |
 | --- | ---: | ---: | ---: |
-| Eyes | 2,500 | 50 | 50 |
-| Mouth | 2,500 | 50 | 50 |
-| Hat | 5,000 | 100 | 100 |
-| Clothes | 5,000 | 100 | 100 |
-| Accessories | 7,500 | 150 | 150 |
-| Accessories 2 | 7,500 | 150 | 150 |
-| Stickers/Body art | 7,500 | 150 | 150 |
+| Eyes | 100 | 2 | 2 |
+| Mouth | 100 | 2 | 2 |
+| Hat | 200 | 4 | 4 |
+| Clothes | 200 | 4 | 4 |
+| Accessories | 300 | 6 | 6 |
+| Accessories 2 | 300 | 6 | 6 |
+| Stickers/Body art | 300 | 6 | 6 |
 
 ## Unlock
 
@@ -64,11 +64,11 @@ Current unlock pricing is a flat rate:
 
 | Trait | Energy | MON | Approved Meme Token |
 | --- | ---: | ---: | ---: |
-| Clothes | 2,500 | 50 | 50 |
-| Hat | 2,500 | 50 | 50 |
-| Accessories | 2,500 | 50 | 50 |
-| Accessories 2 | 2,500 | 50 | 50 |
-| Stickers/Body art | 2,500 | 50 | 50 |
+| Clothes | 100 | 2 | 2 |
+| Hat | 100 | 2 | 2 |
+| Accessories | 100 | 2 | 2 |
+| Accessories 2 | 100 | 2 | 2 |
+| Stickers/Body art | 100 | 2 | 2 |
 
 ## Recycle
 
@@ -80,12 +80,12 @@ Current recycle rewards:
 
 | Trait | Energy Reward |
 | --- | ---: |
-| Clothes | 250 |
-| Hat | 250 |
-| Accessories | 250 |
-| Accessories 2 | 250 |
-| Stickers/Body art | 250 |
-| Special | 750 |
+| Clothes | 50 |
+| Hat | 50 |
+| Accessories | 50 |
+| Accessories 2 | 50 |
+| Stickers/Body art | 50 |
+| Special | 150 |
 
 Eyes, Mouth, Background, and Droid cannot be recycled.
 

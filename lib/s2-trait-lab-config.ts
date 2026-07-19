@@ -67,7 +67,7 @@ export type S2TraitLabAction = "reroll" | "unlock" | "remove" | "recycle";
 export type S2TraitLabPaymentMode = "energy" | "mon" | "meme";
 
 export const S2_TRAIT_LAB_ENERGY_PER_MON = 50;
-export const S2_TRAIT_LAB_FLAT_UNLOCK_COST = 2500;
+export const S2_TRAIT_LAB_FLAT_UNLOCK_COST = 100;
 export const S2_TRAIT_LAB_SPECIAL_MAX_ACTIVE_SUPPLY = 10;
 export const S2_TRAIT_LAB_TOKEN_COOLDOWN_MS = 10 * 60 * 1000;
 export const S2_TRAIT_LAB_BURN_ADDRESS = "0x000000000000000000000000000000000000dEaD";
@@ -81,23 +81,23 @@ export const S2_TRAIT_LAB_MEME_PAYMENT_TOKENS = [
   { label: "Meme Token 7", symbol: "MEME7", address: "0x0CC9B2e2AcD7BACfF79eb7dB48F5662B622E7777" },
 ] as const;
 export const S2_TRAIT_LAB_RECYCLE_REWARDS: Partial<Record<S2TraitLabTrait, number>> = {
-  Hat: 250,
-  Clothes: 250,
-  Special: 750,
-  Accessories: 250,
-  "Accessories 2": 250,
-  "Stickers/Body art": 250,
+  Hat: 50,
+  Clothes: 50,
+  Special: 150,
+  Accessories: 50,
+  "Accessories 2": 50,
+  "Stickers/Body art": 50,
 };
 
 export const S2_TRAIT_LAB_COSTS: Record<S2TraitLabAction, Partial<Record<S2TraitLabTrait, number>>> = {
   reroll: {
-    Eyes: 2500,
-    Mouth: 2500,
-    Hat: 5000,
-    Clothes: 5000,
-    Accessories: 7500,
-    "Accessories 2": 7500,
-    "Stickers/Body art": 7500,
+    Eyes: 100,
+    Mouth: 100,
+    Hat: 200,
+    Clothes: 200,
+    Accessories: 300,
+    "Accessories 2": 300,
+    "Stickers/Body art": 300,
   },
   unlock: {
     Eyes: 0,
