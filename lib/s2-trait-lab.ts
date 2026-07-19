@@ -640,7 +640,7 @@ function renderFailureMessage(renderedImage: TraitLabImageRenderResult) {
     ? renderedImage.missingLayers.map((value: unknown) => String(value || "").trim()).filter(Boolean)
     : [];
   const suffix = missingLayers.length ? ` Missing layer assets: ${missingLayers.join(", ")}.` : "";
-  return `Trait image composition failed, so metadata was not changed.${suffix}`;
+  return `Trait image composition failed, so metadata was not changed. Refresh the token and try again.${suffix}`;
 }
 
 async function assertTraitLabMetadataCanRender(tokenId: number, metadata: MetadataJson, origin = "") {

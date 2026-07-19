@@ -1,4 +1,6 @@
 import assert from "node:assert/strict";
+import crypto from "node:crypto";
+import fs from "node:fs";
 import { test } from "node:test";
 import {
   mergeMetadata,
@@ -145,4 +147,26 @@ test("Hat overrides clear existing Bandanna accessory layers", () => {
   assert.equal(traits.Background, "Eye Sea U-Project M.A.D.");
   assert.equal(traits.Droid, "Lime Green");
   assert.equal(traits["Metadata Version"], "2");
+});
+
+test("category-specific bundled layers protect flat trait asset name collisions", () => {
+  const requiredCollisionLayers = [
+    "data/dyoor-s2-base-layers/Clothes/Tech Bro.png",
+    "data/dyoor-s2-base-layers/Hat/Tech bro.png",
+    "data/dyoor-s2-base-layers/Clothes/Luffy.png",
+    "data/dyoor-s2-base-layers/Hat/Luffy.png",
+  ];
+
+  for (const filePath of requiredCollisionLayers) {
+    assert.ok(fs.existsSync(filePath), `${filePath} is required for category-specific rendering`);
+  }
+
+  const techBroClothes = crypto.createHash("sha256")
+    .update(fs.readFileSync("data/dyoor-s2-base-layers/Clothes/Tech Bro.png"))
+    .digest("hex");
+  const techBroHat = crypto.createHash("sha256")
+    .update(fs.readFileSync("data/dyoor-s2-base-layers/Hat/Tech bro.png"))
+    .digest("hex");
+
+  assert.notEqual(techBroClothes, techBroHat);
 });

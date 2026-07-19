@@ -296,6 +296,14 @@ function sleep(ms: number) {
   return new Promise((resolve) => window.setTimeout(resolve, ms));
 }
 
+function traitLabErrorMessage(error: unknown, fallback: string) {
+  const message = error instanceof Error ? error.message : fallback;
+  if (/Trait image composition failed/i.test(message)) {
+    return `Image render safety check blocked this change. ${message}`;
+  }
+  return message || fallback;
+}
+
 async function fetchJsonWithRetry<T>(url: string, fallbackMessage: string, attempts = 3): Promise<T> {
   let lastError = "";
   for (let attempt = 0; attempt < attempts; attempt += 1) {
@@ -836,7 +844,7 @@ export function TraitLabClient() {
             : "Reroll ready.");
       if (data.paymentMode === "energy") await loadEnergy();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Preview failed.");
+      setError(traitLabErrorMessage(err, "Preview failed."));
     } finally {
       setActionLoading("");
     }
@@ -876,7 +884,7 @@ export function TraitLabClient() {
           : "";
       setStatus(`${data.action === "recycle" ? "Trait recycled. Energy reward credited." : "Metadata Version updated. Trait supply updated."}${openSeaSuffix}`);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Confirm failed.");
+      setError(traitLabErrorMessage(err, "Confirm failed."));
     } finally {
       setActionLoading("");
     }

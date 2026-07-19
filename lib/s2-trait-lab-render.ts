@@ -27,7 +27,7 @@ const IMAGE_PREFIX = "trait-lab/images";
 const BUNDLED_BASE_LAYER_DIR = "data/dyoor-s2-base-layers";
 const DEFAULT_RENDER_SIZE = 1024;
 const DEFAULT_SITE_URL = "https://dyoor.netlify.app";
-export const RENDER_PIPELINE_VERSION = "trait-assets-v4";
+export const RENDER_PIPELINE_VERSION = "trait-assets-v5";
 
 const REQUIRED_RENDER_BASE_LAYERS = new Set(["Background", "Droid"]);
 
