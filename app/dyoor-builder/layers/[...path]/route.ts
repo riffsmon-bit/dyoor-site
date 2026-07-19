@@ -1,8 +1,11 @@
 import traitItemMetadataJson from "@/data/dyoor-s2-trait-item-metadata.json";
+import fs from "node:fs/promises";
+import path from "node:path";
 import { NextResponse } from "next/server";
 
 const DEFAULT_TRAIT_ASSETS_CID = "bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu";
 const DEFAULT_PINATA_GATEWAY = "https://jade-efficient-beaver-697.mypinata.cloud";
+const BUNDLED_BASE_LAYER_DIR = "data/dyoor-s2-base-layers";
 
 type TraitItemMetadata = {
   slot?: string;
@@ -55,6 +58,42 @@ function traitSlotFromRoute(value: string) {
   return value === "Stickers:Body art" ? "Stickers/Body art" : value;
 }
 
+function contentTypeFor(filePath: string) {
+  const ext = path.extname(filePath).toLowerCase();
+  if (ext === ".webp") return "image/webp";
+  if (ext === ".jpg" || ext === ".jpeg") return "image/jpeg";
+  return "image/png";
+}
+
+async function bundledLayer(traitType: string, value: string) {
+  const root = path.resolve(process.cwd(), BUNDLED_BASE_LAYER_DIR);
+  const folder = traitType === "Stickers/Body art" ? "Stickers:Body art" : traitType;
+  const rawName = String(value || "").trim().replace(/\.[a-z0-9]+$/i, "");
+  const directory = path.join(root, folder);
+  const candidateNames = [`${rawName}.png`, `${rawName}.PNG`, `${rawName}.webp`, `${rawName}.WEBP`, rawName];
+
+  for (const candidateName of candidateNames) {
+    const filePath = path.normalize(path.join(directory, candidateName));
+    if (!filePath.startsWith(root)) continue;
+    try {
+      const body = await fs.readFile(filePath);
+      return { body, filePath };
+    } catch {}
+  }
+
+  try {
+    const entries = await fs.readdir(directory);
+    const match = entries.find((entry) => normalizeComparable(entry) === normalizeComparable(rawName));
+    if (match) {
+      const filePath = path.join(directory, match);
+      const body = await fs.readFile(filePath);
+      return { body, filePath };
+    }
+  } catch {}
+
+  return null;
+}
+
 function traitItemAssetUrl(traitType: string, value: string) {
   const entries = traitItemMetadataJson as Record<string, TraitItemMetadata>;
   const direct = entries[`${traitType}::${value}`];
@@ -82,6 +121,17 @@ export async function GET(_request: Request, context: { params: Promise<{ path: 
     .trim()
     .replace(/\.[a-z0-9]+$/i, "");
   if (!traitType || !value) return new NextResponse("Not found", { status: 404 });
+
+  const local = await bundledLayer(traitType, value);
+  if (local) {
+    return new NextResponse(new Uint8Array(local.body), {
+      status: 200,
+      headers: {
+        "cache-control": "public, max-age=31536000, immutable",
+        "content-type": contentTypeFor(local.filePath),
+      },
+    });
+  }
 
   const url = traitItemAssetUrl(traitType, value);
   return NextResponse.redirect(url, {

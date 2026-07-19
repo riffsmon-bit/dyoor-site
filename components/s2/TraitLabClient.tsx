@@ -370,12 +370,12 @@ function layerSources(traitType: string, value: unknown) {
   const slug = slugFile(value);
 
   return uniqueStrings([
+    localLayerUrl(traitType, value),
     ipfsUrl(fullLayerCid, ["layers", folder, `${rawName}.png`]),
     ipfsUrl(fullLayerCid, ["layers", folder, `${rawName}.PNG`]),
     ipfsUrl(fullLayerCid, [folder, `${rawName}.png`]),
     ipfsUrl(fullLayerCid, [folder, `${rawName}.PNG`]),
     ipfsUrl(traitItemImageCid, [slug]),
-    localLayerUrl(traitType, value),
   ]);
 }
 
