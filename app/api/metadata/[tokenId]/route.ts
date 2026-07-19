@@ -47,6 +47,8 @@ export async function GET(_request: Request, context: MetadataRouteContext) {
     : Boolean(override?.imageRender);
   const staleTraitRender = Boolean(override?.imageRender?.imageId)
     && override?.imageRender?.imageId !== traitRenderImageId(tokenId, metadata as any);
+  const reconciledAttributes = reconciledOverrideAttributes(override?.attributes, metadata);
+  const overrideAttributesNeedReconciliation = !overrideAttributesMatch(override?.attributes, reconciledAttributes);
   const shouldRenderOverrideImage = Boolean(
     override?.attributes
       && (!override.image || legacyRenderId || externalRenderUrl || overrideImageIsStaticBase || metadataImageIsStaticBase || staleRenderer || staleTraitRender || /image recomposition TODO/i.test(String(override.notes || "")))
@@ -65,6 +67,7 @@ export async function GET(_request: Request, context: MetadataRouteContext) {
     if (rendered.rendered) {
       await saveRuntimeTraitOverride(tokenId, {
         ...override,
+        attributes: reconciledAttributes,
         image: rendered.imageUrl,
         imageRender: {
           imageId: rendered.imageId,
@@ -88,6 +91,14 @@ export async function GET(_request: Request, context: MetadataRouteContext) {
       });
       metadata = (await buildTokenMetadataAsync(tokenId, config)).metadata;
     }
+  } else if (overrideAttributesNeedReconciliation) {
+    await saveRuntimeTraitOverride(tokenId, {
+      ...override,
+      attributes: reconciledAttributes,
+      updatedAt: new Date().toISOString(),
+    });
+    metadata = (await buildTokenMetadataAsync(tokenId, config)).metadata;
+    await refreshOpenSeaTokenMetadata({ tokenId });
   }
 
   metadata = normalizeMetadataUrls(metadata, requestOrigin);
@@ -163,6 +174,54 @@ function isEmptyTraitValue(value: unknown) {
     || normalized === "n a"
     || normalized === "na"
     || normalized === "unknown";
+}
+
+function isBandannaTraitValue(value: unknown) {
+  const normalized = normalizeComparableTraitValue(value);
+  return normalized.includes("bandana") || normalized.includes("bandanna");
+}
+
+function traitValueFromMetadata(metadata: any, traitType: string) {
+  const attributes = Array.isArray(metadata?.attributes) ? metadata.attributes : [];
+  const attribute = attributes.find((entry: any) => entry?.trait_type === traitType);
+  return attribute?.value;
+}
+
+function reconciledOverrideAttributes(attributes: unknown, metadata: any) {
+  if (!attributes || typeof attributes !== "object" || Array.isArray(attributes)) return attributes;
+
+  const next = { ...(attributes as Record<string, unknown>) };
+  const changedHat = Object.hasOwn(next, "Hat") && !isEmptyTraitValue(next.Hat);
+  const changedBandannaAccessory = (Object.hasOwn(next, "Accessories") && isBandannaTraitValue(next.Accessories))
+    || (Object.hasOwn(next, "Accessories 2") && isBandannaTraitValue(next["Accessories 2"]));
+
+  if (changedHat) {
+    if (isEmptyTraitValue(traitValueFromMetadata(metadata, "Accessories"))) next.Accessories = "None";
+    if (isEmptyTraitValue(traitValueFromMetadata(metadata, "Accessories 2"))) next["Accessories 2"] = "None";
+  }
+
+  if (changedBandannaAccessory && isEmptyTraitValue(traitValueFromMetadata(metadata, "Hat"))) {
+    next.Hat = "None";
+  }
+
+  return next;
+}
+
+function overrideAttributesMatch(left: unknown, right: unknown) {
+  if (left === right) return true;
+  if (!left || typeof left !== "object" || Array.isArray(left)) return left === right;
+  if (!right || typeof right !== "object" || Array.isArray(right)) return false;
+
+  const leftEntries = Object.entries(left as Record<string, unknown>);
+  const rightEntries = Object.entries(right as Record<string, unknown>);
+  if (leftEntries.length !== rightEntries.length) return false;
+
+  for (const [key, value] of leftEntries) {
+    if (!Object.hasOwn(right as Record<string, unknown>, key)) return false;
+    if (String((right as Record<string, unknown>)[key] ?? "") !== String(value ?? "")) return false;
+  }
+
+  return true;
 }
 
 function initialDnaTraitMap(metadata: any) {
