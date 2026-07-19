@@ -68,7 +68,18 @@ type ParsedMetadataFile = {
   warnings: string[];
 };
 
-const REQUIRED_TRAITS = ["Background", "Droid", "Eyes", "Clothes", "Mouth", "Hat", "Special", "Accessories"];
+const REQUIRED_TRAITS = [
+  "Background",
+  "Droid",
+  "Eyes",
+  "Clothes",
+  "Mouth",
+  "Hat",
+  "Special",
+  "Accessories",
+  "Accessories 2",
+  "Stickers/Body art",
+];
 const UPLOAD_BATCH_SIZE = 100;
 const DEFAULT_IMAGE_CID = "bafybeifz4gwsvqbypeki3wwwmmvng2z2lusqjndevfqemzibisk266vepq";
 

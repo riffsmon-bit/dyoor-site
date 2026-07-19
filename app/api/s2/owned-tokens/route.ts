@@ -1,6 +1,6 @@
 import { getRuntimeMetadataConfig } from "@/lib/dyoor-s2-metadata.js";
 import { dyoorS2Contract } from "@/lib/contracts/addresses";
-import { assertTraitLabRateLimit, normalizeWallet, ownedS2TokenIds } from "@/lib/s2-trait-lab";
+import { assertTraitLabRateLimit, normalizeWallet, ownedS2TokenIds } from "@/lib/s2-trait-lab-public";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -33,7 +33,7 @@ export async function GET(request: Request) {
       contractAddress: dyoorS2Contract,
       tokenIds,
       count: tokenIds.length,
-      contractBaseUri: "https://dyoor.xyz/api/metadata/",
+      contractBaseUri: "https://dyoor.netlify.app/api/metadata/",
     });
   } catch (error: any) {
     return json(Number(error?.status || 500), { ok: false, error: error?.message || "Could not load owned Season 2 tokens." });

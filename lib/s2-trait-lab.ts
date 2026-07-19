@@ -7,17 +7,26 @@ import { builderTraits, fileLabel, ruleConflict, type BuilderCategory, type Buil
 import {
   S2_EDITABLE_TRAITS,
   S2_GUARANTEED_TRAITS,
+  S2_RECYCLABLE_TRAITS,
+  S2_TRAIT_LAB_TRAITS,
   S2_UNLOCKABLE_TRAITS,
+  S2_REMOVABLE_TRAITS,
   S2_TRAIT_LAB_FLAT_UNLOCK_COST,
   S2_TRAIT_LAB_ENERGY_PER_MON,
   S2_TRAIT_LAB_SPECIAL_MAX_ACTIVE_SUPPLY,
+  S2_TRAIT_LAB_TOKEN_COOLDOWN_MS,
+  S2_TRAIT_LAB_RECYCLE_REWARDS,
   S2_TRAIT_LAB_MON_COSTS,
   S2_TRAIT_LAB_COSTS,
   isS2EditableTrait,
   isS2UnlockableTrait,
+  isS2RemovableTrait,
+  isS2RecyclableTrait,
+  isS2TraitLabTrait,
   isS2TraitLabAction,
   isS2TraitLabPaymentMode,
   type S2EditableTrait,
+  type S2TraitLabTrait,
   type S2TraitLabAction,
   type S2TraitLabPaymentMode,
 } from "@/lib/s2-trait-lab-config";
@@ -29,7 +38,7 @@ import {
   parseTokenId,
   saveRuntimeTraitOverride,
 } from "@/lib/dyoor-s2-metadata.js";
-import { renderTraitLabImage } from "@/lib/s2-trait-lab-render";
+import { refreshOpenSeaTokenMetadata } from "@/lib/opensea-metadata-refresh";
 import {
   applyTraitSupplyDeltas,
   assertTraitSupplyAvailable,
@@ -55,8 +64,17 @@ type MetadataJson = {
   [key: string]: unknown;
 };
 
+type TraitLabImageRenderResult = {
+  imageId?: string;
+  imageUrl?: string;
+  rendererVersion?: string;
+  rendered?: boolean;
+  missingLayers?: string[];
+  missingRequiredLayers?: string[];
+};
+
 type TraitOption = {
-  traitType: S2EditableTrait;
+  traitType: S2TraitLabTrait;
   file: string;
   value: string;
   assetUri: string;
@@ -110,7 +128,7 @@ type PreviewPayload = {
   rollId: string;
   wallet: string;
   tokenId: number;
-  traitType: S2EditableTrait;
+  traitType: S2TraitLabTrait;
   action: S2TraitLabAction;
   paymentMode: S2TraitLabPaymentMode;
   previousValue: string;
@@ -120,10 +138,24 @@ type PreviewPayload = {
   costRaw: string;
   costMon: string;
   costLabel: string;
+  rewardEnergy?: number;
+  rewardRaw?: string;
+  rewardLabel?: string;
+  recycleCreditClaim?: string;
   assetUri: string;
   metadataVersion: number;
   expiresAt: number;
   nonce: string;
+};
+
+type TraitLabPaymentCost = {
+  costEnergy: number;
+  costRaw: string;
+  costMon: string;
+  costLabel: string;
+  rewardEnergy?: number;
+  rewardRaw?: string;
+  rewardLabel?: string;
 };
 
 const ERC721_ABI = [
@@ -138,8 +170,11 @@ const ERC721_ABI = [
 
 const ENERGY_BANK_ABI = [
   "function spendEnergy(address user,uint256 amount,bytes32 reason)",
+  "function creditEnergy(address user,uint256 amount,bytes32 claimTxHash)",
+  "function usedClaimTxHash(bytes32 claimTxHash) view returns (bool)",
   "function spendableEnergy(address user) view returns (uint256)",
   "function SPENDER_ROLE() view returns (bytes32)",
+  "function CREDIT_ROLE() view returns (bytes32)",
   "function hasRole(bytes32 role,address account) view returns (bool)",
 ];
 
@@ -153,7 +188,7 @@ const DEFAULT_MONAD_MAINNET_EXPLORER_URL = "https://monadscan.com";
 const DEFAULT_S2_DEPLOYMENT_BLOCK = 87616887;
 const SERVERLESS_LOG_SPAN = 25_000;
 const MIN_OWNED_TOKEN_LOG_SPAN = 10_000;
-const OWNED_TOKEN_CACHE_VERSION = "s2-owned-v8";
+const OWNED_TOKEN_CACHE_VERSION = "s2-owned-v9";
 const DEFAULT_OWNER_OF_CONCURRENCY = 8;
 const ALCHEMY_TRANSFER_PAGE_SIZE = "0x3e8";
 const CLOTHES_ALLOWED_SPECIALS = new Set([
@@ -421,11 +456,26 @@ export function formatTraitLabEnergyRaw(value: number) {
   return ethers.parseUnits(String(value), 18).toString();
 }
 
-export function traitLabCost(traitType: S2EditableTrait, action: S2TraitLabAction) {
+export function traitLabCost(traitType: S2TraitLabTrait, action: S2TraitLabAction) {
   const costEnergy = S2_TRAIT_LAB_COSTS[action][traitType];
+  if (typeof costEnergy !== "number") {
+    throw Object.assign(new Error(`${traitType} does not support Trait Lab ${action}.`), { status: 400 });
+  }
   return {
     costEnergy,
     costRaw: formatTraitLabEnergyRaw(costEnergy),
+  };
+}
+
+export function traitLabRecycleReward(traitType: S2TraitLabTrait) {
+  const rewardEnergy = S2_TRAIT_LAB_RECYCLE_REWARDS[traitType];
+  if (typeof rewardEnergy !== "number" || rewardEnergy <= 0 || !isS2RecyclableTrait(traitType)) {
+    throw Object.assign(new Error(`${traitType} cannot be recycled in Trait Lab.`), { status: 400 });
+  }
+  return {
+    rewardEnergy,
+    rewardRaw: formatTraitLabEnergyRaw(rewardEnergy),
+    rewardLabel: `${rewardEnergy} Energy`,
   };
 }
 
@@ -447,10 +497,24 @@ function parsePaymentMode(value: unknown) {
   return paymentMode;
 }
 
-function traitLabPaymentCost(traitType: S2EditableTrait, action: S2TraitLabAction, paymentMode: S2TraitLabPaymentMode) {
+function traitLabPaymentCost(traitType: S2TraitLabTrait, action: S2TraitLabAction, paymentMode: S2TraitLabPaymentMode): TraitLabPaymentCost {
+  if (action === "recycle") {
+    const reward = traitLabRecycleReward(traitType);
+    return {
+      costEnergy: 0,
+      costRaw: "0",
+      costMon: "0",
+      costLabel: `Earn ${reward.rewardLabel}`,
+      ...reward,
+    };
+  }
+
   const energyCost = traitLabCost(traitType, action);
   if (paymentMode === "mon") {
     const costMon = S2_TRAIT_LAB_MON_COSTS[action][traitType];
+    if (typeof costMon !== "string") {
+      throw Object.assign(new Error(`${traitType} does not support Trait Lab ${action}.`), { status: 400 });
+    }
     return {
       costEnergy: 0,
       costRaw: "0",
@@ -463,6 +527,36 @@ function traitLabPaymentCost(traitType: S2EditableTrait, action: S2TraitLabActio
     costMon: "0",
     costLabel: `${energyCost.costEnergy} Energy`,
   };
+}
+
+function traitLabTokenCooldownMs() {
+  const raw = readEnv("DYOOR_TRAIT_LAB_TOKEN_COOLDOWN_MS", "NEXT_PUBLIC_DYOOR_TRAIT_LAB_TOKEN_COOLDOWN_MS");
+  if (!raw) return S2_TRAIT_LAB_TOKEN_COOLDOWN_MS;
+  const parsed = Number(raw);
+  return Number.isFinite(parsed) && parsed >= 0 ? Math.floor(parsed) : S2_TRAIT_LAB_TOKEN_COOLDOWN_MS;
+}
+
+function formatCooldown(ms: number) {
+  const seconds = Math.max(1, Math.ceil(ms / 1000));
+  if (seconds < 60) return `${seconds} second${seconds === 1 ? "" : "s"}`;
+  const minutes = Math.ceil(seconds / 60);
+  return `${minutes} minute${minutes === 1 ? "" : "s"}`;
+}
+
+function assertTokenCooldownComplete(override: { updatedAt?: unknown } | null | undefined) {
+  const cooldownMs = traitLabTokenCooldownMs();
+  if (cooldownMs <= 0 || !override?.updatedAt) return;
+
+  const updatedAt = Date.parse(String(override.updatedAt));
+  if (!Number.isFinite(updatedAt)) return;
+
+  const remainingMs = updatedAt + cooldownMs - Date.now();
+  if (remainingMs > 0) {
+    throw Object.assign(new Error(`This Droid was just updated. Wait ${formatCooldown(remainingMs)} before rolling again so marketplaces can index the latest metadata.`), {
+      status: 429,
+      retryAfterSeconds: Math.ceil(remainingMs / 1000),
+    });
+  }
 }
 
 export function traitLabPublicConfig() {
@@ -481,8 +575,12 @@ export function traitLabPublicConfig() {
     energyPerMon: S2_TRAIT_LAB_ENERGY_PER_MON,
     flatUnlockCostEnergy: S2_TRAIT_LAB_FLAT_UNLOCK_COST,
     specialMaxActiveSupply: S2_TRAIT_LAB_SPECIAL_MAX_ACTIVE_SUPPLY,
+    tokenCooldownMs: traitLabTokenCooldownMs(),
     guaranteedTraits: S2_GUARANTEED_TRAITS,
     unlockableTraits: S2_UNLOCKABLE_TRAITS,
+    removableTraits: S2_REMOVABLE_TRAITS,
+    recyclableTraits: S2_RECYCLABLE_TRAITS,
+    recycleRewards: S2_TRAIT_LAB_RECYCLE_REWARDS,
     monCosts: S2_TRAIT_LAB_MON_COSTS,
   };
 }
@@ -501,7 +599,7 @@ export function assertTraitLabRateLimit(key: string, limit = 20, windowMs = 60_0
 }
 
 export function traitLabMessage(payload: PreviewPayload, timestamp: string, nonce: string) {
-  return [
+  const lines = [
     "DYOOR Trait Lab",
     `Wallet: ${payload.wallet}`,
     `Token ID: ${payload.tokenId}`,
@@ -511,15 +609,45 @@ export function traitLabMessage(payload: PreviewPayload, timestamp: string, nonc
     `Value: ${payload.proposedValue}`,
     `Cost: ${payload.costLabel}`,
     `CostRaw: ${payload.costRaw}`,
-    `Preview ID: ${encodePreview(payload)}`,
-    `Timestamp: ${timestamp}`,
-    `Nonce: ${nonce}`,
-  ].join("\n");
+  ];
+  if (payload.rewardLabel) {
+    lines.push(`Reward: ${payload.rewardLabel}`);
+    lines.push(`RewardRaw: ${payload.rewardRaw || "0"}`);
+  }
+  lines.push(`Preview ID: ${encodePreview(payload)}`);
+  lines.push(`Timestamp: ${timestamp}`);
+  lines.push(`Nonce: ${nonce}`);
+  return lines.join("\n");
 }
 
 export function confirmationMessageFromPreviewId(previewId: string, timestamp: string, nonce: string) {
   const payload = decodePreview(previewId);
   return traitLabMessage(payload, timestamp, nonce);
+}
+
+async function renderTraitLabImageRuntime(
+  tokenId: number,
+  metadata: MetadataJson,
+  origin = "",
+  options: { baseImageUrl?: string; overlayTraitTypes?: string[]; dryRun?: boolean } = {},
+) {
+  const { renderTraitLabImage } = await import("@/lib/s2-trait-lab-render");
+  return renderTraitLabImage(tokenId, metadata, origin, options);
+}
+
+function renderFailureMessage(renderedImage: TraitLabImageRenderResult) {
+  const missingLayers = Array.isArray(renderedImage?.missingLayers)
+    ? renderedImage.missingLayers.map((value: unknown) => String(value || "").trim()).filter(Boolean)
+    : [];
+  const suffix = missingLayers.length ? ` Missing layer assets: ${missingLayers.join(", ")}.` : "";
+  return `Trait image composition failed, so metadata was not changed.${suffix}`;
+}
+
+async function assertTraitLabMetadataCanRender(tokenId: number, metadata: MetadataJson, origin = "") {
+  const renderedImage = await renderTraitLabImageRuntime(tokenId, metadata, origin, { dryRun: true });
+  if (!renderedImage.rendered) {
+    throw Object.assign(new Error(renderFailureMessage(renderedImage)), { status: 503 });
+  }
 }
 
 export function traitMapFromMetadata(metadata: MetadataJson) {
@@ -538,7 +666,7 @@ export function metadataVersion(metadata: MetadataJson) {
 }
 
 export function traitRegistry() {
-  return S2_EDITABLE_TRAITS.reduce<Record<S2EditableTrait, TraitOption[]>>((acc, traitType) => {
+  return S2_TRAIT_LAB_TRAITS.reduce<Record<S2TraitLabTrait, TraitOption[]>>((acc, traitType) => {
     const catalogTraits = traitCatalog()?.traits?.[traitType] || [];
     const fromCatalog: TraitOption[] = catalogTraits
       .filter((trait) => trait?.selectable !== false && trait?.mutable !== false && !isEmptyTraitValue(trait.name))
@@ -575,15 +703,15 @@ export function traitRegistry() {
       return true;
     });
     return acc;
-  }, {} as Record<S2EditableTrait, TraitOption[]>);
+  }, {} as Record<S2TraitLabTrait, TraitOption[]>);
 }
 
-function optionsForTrait(traitType: S2EditableTrait) {
+function optionsForTrait(traitType: S2TraitLabTrait) {
   return traitRegistry()[traitType] || [];
 }
 
 function resolveTraitOption(traitType: string, value: unknown) {
-  if (!isS2EditableTrait(traitType) || isEmptyTraitValue(value)) return null;
+  if (!isS2TraitLabTrait(traitType) || isEmptyTraitValue(value)) return null;
   const normalized = normalizeComparable(value);
   return optionsForTrait(traitType).find((option) => {
     return normalizeComparable(option.value) === normalized || normalizeComparable(option.file) === normalized;
@@ -620,7 +748,7 @@ function isOptionSupplyAvailable(option: TraitOption, supplyLedger?: TraitSupply
 }
 
 function supplyDeltaForTrait(traitType: string, value: string, delta: number, reason: TraitSupplyDelta["reason"]): TraitSupplyDelta | null {
-  if (!isS2EditableTrait(traitType) || isEmptyTraitValue(value)) return null;
+  if (!isS2TraitLabTrait(traitType) || isEmptyTraitValue(value)) return null;
   const option = resolveTraitOption(traitType, value);
   return {
     traitType,
@@ -636,7 +764,7 @@ function supplyDeltasForPatch(currentTraits: Record<string, string>, proposedAtt
   const deltas: TraitSupplyDelta[] = [];
 
   for (const [traitType, nextValue] of Object.entries(proposedAttributes)) {
-    if (!isS2EditableTrait(traitType)) continue;
+    if (!isS2TraitLabTrait(traitType)) continue;
     const currentValue = currentTraits[traitType];
     if (valuesMatch(currentValue, nextValue)) continue;
 
@@ -688,6 +816,10 @@ function isBlockedBandannaMouth(value: unknown) {
     || normalized.includes("toothpick");
 }
 
+function hasBandannaAccessory(traits: Record<string, string>) {
+  return isBandanna(traits.Accessories) || isBandanna(traits["Accessories 2"]);
+}
+
 function explicitCompatibilityConflict(traits: Record<string, string>) {
   if (!isEmptyTraitValue(traits.Accessories)
     && !isEmptyTraitValue(traits["Accessories 2"])
@@ -695,7 +827,11 @@ function explicitCompatibilityConflict(traits: Record<string, string>) {
     return "Accessories and Accessories 2 cannot use the same trait.";
   }
 
-  if ((isBandanna(traits.Accessories) || isBandanna(traits["Accessories 2"])) && isBlockedBandannaMouth(traits.Mouth)) {
+  if (hasBandannaAccessory(traits) && !isEmptyTraitValue(traits.Hat)) {
+    return "Bandanna cannot be combined with Hat.";
+  }
+
+  if (hasBandannaAccessory(traits) && isBlockedBandannaMouth(traits.Mouth)) {
     return "Bandanna cannot be combined with this mouth trait.";
   }
   return "";
@@ -768,6 +904,53 @@ function applySpecialSideEffects(traits: Record<string, string>) {
   return next;
 }
 
+function applyHeadwearSideEffects(traits: Record<string, string>, changedTraitType: S2TraitLabTrait) {
+  const next = { ...traits };
+
+  if (changedTraitType === "Hat" && !isEmptyTraitValue(next.Hat)) {
+    if (isBandanna(next.Accessories)) next.Accessories = "None";
+    if (isBandanna(next["Accessories 2"])) next["Accessories 2"] = "None";
+  }
+
+  if ((changedTraitType === "Accessories" || changedTraitType === "Accessories 2")
+    && isBandanna(next[changedTraitType])
+    && !isEmptyTraitValue(next.Hat)) {
+    next.Hat = "None";
+  }
+
+  return next;
+}
+
+function applyTraitSideEffects(traits: Record<string, string>, changedTraitType: S2TraitLabTrait) {
+  return applySpecialSideEffects(applyHeadwearSideEffects(traits, changedTraitType));
+}
+
+function repairMouthAfterFaceCoverRemoval(
+  previousTraits: Record<string, string>,
+  nextTraits: Record<string, string>,
+  changedTraitType: S2TraitLabTrait,
+  supplyLedger?: TraitSupplyLedger,
+) {
+  if (changedTraitType !== "Hat") return nextTraits;
+  if (!hasBandannaAccessory(previousTraits) || hasBandannaAccessory(nextTraits)) return nextTraits;
+  if (isEmptyTraitValue(nextTraits.Hat)) return nextTraits;
+  if (!isEmptyTraitValue(previousTraits.Mouth) || !isEmptyTraitValue(nextTraits.Mouth)) return nextTraits;
+
+  const candidates = weightedOptionOrder(optionsForTrait("Mouth").filter((option) => (
+    !isEmptyTraitValue(option.value) && isOptionSupplyAvailable(option, supplyLedger)
+  )));
+
+  for (const option of candidates) {
+    const repaired = {
+      ...nextTraits,
+      Mouth: option.value,
+    };
+    if (!validationConflict(repaired)) return repaired;
+  }
+
+  return null;
+}
+
 function proposedAttributePatch(previous: Record<string, string>, next: Record<string, string>, traitType: S2EditableTrait) {
   const patch: Record<string, string> = { [traitType]: next[traitType] };
   for (const editable of S2_EDITABLE_TRAITS) {
@@ -777,10 +960,25 @@ function proposedAttributePatch(previous: Record<string, string>, next: Record<s
   return patch;
 }
 
-function assertValidRequestedChange(traits: Record<string, string>, traitType: S2EditableTrait, action: S2TraitLabAction) {
+function assertValidRequestedChange(traits: Record<string, string>, traitType: S2TraitLabTrait, action: S2TraitLabAction) {
   const currentValue = traits[traitType];
+  if (action === "remove" && !isS2RemovableTrait(traitType)) {
+    throw Object.assign(new Error(`${traitType} cannot be removed in Trait Lab.`), { status: 400 });
+  }
+  if (action === "remove" && isEmptyTraitValue(currentValue)) {
+    throw Object.assign(new Error(`${traitType} is already empty.`), { status: 400 });
+  }
+  if (action === "recycle" && !isS2RecyclableTrait(traitType)) {
+    throw Object.assign(new Error(`${traitType} cannot be recycled in Trait Lab.`), { status: 400 });
+  }
+  if (action === "recycle" && isEmptyTraitValue(currentValue)) {
+    throw Object.assign(new Error(`${traitType} is already empty and cannot be recycled.`), { status: 400 });
+  }
   if (action === "unlock" && !isS2UnlockableTrait(traitType)) {
     throw Object.assign(new Error(`${traitType} is guaranteed and cannot be unlocked.`), { status: 400 });
+  }
+  if ((action === "unlock" || action === "reroll") && !isS2EditableTrait(traitType)) {
+    throw Object.assign(new Error(`${traitType} cannot be rerolled or unlocked in Trait Lab.`), { status: 400 });
   }
   if (action === "unlock" && !isEmptyTraitValue(currentValue)) {
     throw Object.assign(new Error(`${traitType} already has a trait. Use reroll instead.`), { status: 400 });
@@ -792,13 +990,36 @@ function assertValidRequestedChange(traits: Record<string, string>, traitType: S
 
 function generateCandidate(
   traits: Record<string, string>,
-  traitType: S2EditableTrait,
+  traitType: S2TraitLabTrait,
   action: S2TraitLabAction,
   supplyLedger?: TraitSupplyLedger,
 ) {
   assertValidRequestedChange(traits, traitType, action);
 
   const currentValue = traits[traitType];
+  if (action === "remove" || action === "recycle") {
+    return {
+      option: {
+        traitType,
+        file: "",
+        value: "None",
+        assetUri: "",
+        rarity: action === "recycle" ? "Recycled" : "Removed",
+      },
+      nextTraits: {
+        ...traits,
+        [traitType]: "None",
+      },
+      proposedAttributes: {
+        [traitType]: "None",
+      },
+    };
+  }
+
+  if (!isS2EditableTrait(traitType)) {
+    throw Object.assign(new Error(`${traitType} cannot be rerolled or unlocked in Trait Lab.`), { status: 400 });
+  }
+
   const candidates = weightedOptionOrder(optionsForTrait(traitType).filter((option) => {
     return isOptionSupplyAvailable(option, supplyLedger) && (action === "unlock" || !valuesMatch(option.value, currentValue));
   }));
@@ -808,7 +1029,9 @@ function generateCandidate(
       ...traits,
       [traitType]: option.value,
     };
-    const next = applySpecialSideEffects(changed);
+    const sideEffectTraits = applyTraitSideEffects(changed, traitType);
+    const next = repairMouthAfterFaceCoverRemoval(traits, sideEffectTraits, traitType, supplyLedger);
+    if (!next) continue;
     const conflict = validationConflict(next);
     if (!conflict) {
       return {
@@ -827,16 +1050,36 @@ function generateCandidate(
 
 function validateProposedPatch(currentTraits: Record<string, string>, payload: PreviewPayload) {
   const changedValue = payload.proposedAttributes[payload.traitType];
-  const approved = optionsForTrait(payload.traitType).some((option) => valuesMatch(option.value, changedValue));
-  if (!approved || !valuesMatch(changedValue, payload.proposedValue)) {
+  if (payload.action === "remove" || payload.action === "recycle") {
+    const validTrait = payload.action === "recycle"
+      ? isS2RecyclableTrait(payload.traitType)
+      : isS2RemovableTrait(payload.traitType);
+    if (!validTrait) {
+      throw Object.assign(new Error("Preview contains a non-removable trait update."), { status: 400 });
+    }
+    if (!isEmptyTraitValue(changedValue) || !isEmptyTraitValue(payload.proposedValue)) {
+      throw Object.assign(new Error("Remove and recycle previews may only clear a trait to None."), { status: 400 });
+    }
+  } else if (!isS2EditableTrait(payload.traitType)) {
+    throw Object.assign(new Error("Preview contains a trait that cannot be rerolled or unlocked."), { status: 400 });
+  } else {
+    const approved = optionsForTrait(payload.traitType).some((option) => valuesMatch(option.value, changedValue));
+    if (!approved || !valuesMatch(changedValue, payload.proposedValue)) {
+      throw Object.assign(new Error("Preview contains an unapproved trait result."), { status: 400 });
+    }
+  }
+
+  if (!valuesMatch(changedValue, payload.proposedValue)) {
     throw Object.assign(new Error("Preview contains an unapproved trait result."), { status: 400 });
   }
 
   for (const [traitType, value] of Object.entries(payload.proposedAttributes)) {
-    if (!isS2EditableTrait(traitType)) {
+    if (!isS2TraitLabTrait(traitType)) {
       throw Object.assign(new Error("Preview contains a locked or invalid trait update."), { status: 400 });
     }
-    if (traitType !== payload.traitType && !isEmptyTraitValue(value)) {
+    if (traitType !== payload.traitType
+      && !isEmptyTraitValue(value)
+      && !isApprovedMouthRepairSideEffect(currentTraits, payload, traitType, String(value))) {
       throw Object.assign(new Error("Preview contains an unexpected side-effect trait value."), { status: 400 });
     }
   }
@@ -845,6 +1088,33 @@ function validateProposedPatch(currentTraits: Record<string, string>, payload: P
   const conflict = validationConflict(nextTraits);
   if (conflict) throw Object.assign(new Error(conflict), { status: 409 });
   return nextTraits;
+}
+
+function isApprovedMouthRepairSideEffect(
+  currentTraits: Record<string, string>,
+  payload: PreviewPayload,
+  traitType: string,
+  value: string,
+) {
+  if (traitType !== "Mouth") return false;
+  if (payload.traitType !== "Hat") return false;
+  if (payload.action !== "reroll" && payload.action !== "unlock") return false;
+  if (!hasBandannaAccessory(currentTraits)) return false;
+  if (!isEmptyTraitValue(currentTraits.Mouth)) return false;
+
+  const nextTraits = { ...currentTraits, ...payload.proposedAttributes };
+  if (hasBandannaAccessory(nextTraits) || isEmptyTraitValue(nextTraits.Hat)) return false;
+  if (isEmptyTraitValue(nextTraits.Mouth)) return false;
+  if (validationConflict(nextTraits)) return false;
+  return optionsForTrait("Mouth").some((option) => valuesMatch(option.value, value));
+}
+
+function proposedPatchAlreadyApplied(currentTraits: Record<string, string>, payload: PreviewPayload) {
+  return Object.entries(payload.proposedAttributes || {}).every(([traitType, value]) => valuesMatch(currentTraits[traitType], value));
+}
+
+function supplyDeltasForPayload(payload: PreviewPayload) {
+  return supplyDeltasForPatch({ [payload.traitType]: payload.previousValue }, payload.proposedAttributes);
 }
 
 function provider() {
@@ -874,6 +1144,18 @@ function traitLabEnergySpendReason(payload: PreviewPayload) {
   ].join(":")));
 }
 
+function traitLabRecycleCreditClaim(payload: PreviewPayload) {
+  return ethers.keccak256(ethers.toUtf8Bytes([
+    "trait-lab-recycle",
+    payload.rollId,
+    payload.wallet,
+    String(payload.tokenId),
+    payload.traitType,
+    payload.previousValue,
+    String(payload.rewardEnergy || 0),
+  ].join(":")));
+}
+
 async function spendTraitLabEnergy(payload: PreviewPayload) {
   const amount = BigInt(payload.costRaw || "0");
   if (amount <= 0n) {
@@ -898,6 +1180,46 @@ async function spendTraitLabEnergy(payload: PreviewPayload) {
     txHash: tx.hash,
     blockNumber: String(receipt?.blockNumber || ""),
     reason,
+  };
+}
+
+async function creditTraitLabRecycleEnergy(payload: PreviewPayload, paidRoll?: TraitLabRollRecord | null) {
+  const reward = traitLabRecycleReward(payload.traitType);
+  const amount = BigInt(payload.rewardRaw || reward.rewardRaw || "0");
+  if (amount <= 0n) {
+    throw Object.assign(new Error("Invalid Trait Lab recycle reward."), { status: 500 });
+  }
+  const signer = energyBankSigner();
+  const signerAddress = await signer.getAddress();
+  const bank = new ethers.Contract(energyBankContract, ENERGY_BANK_ABI, signer);
+  const creditRole = await bank.CREDIT_ROLE();
+  const hasRole = await bank.hasRole(creditRole, signerAddress).then(Boolean);
+  if (!hasRole) {
+    throw Object.assign(new Error("Energy Bank operator is missing CREDIT_ROLE."), { status: 500 });
+  }
+
+  const claim = payload.recycleCreditClaim || paidRoll?.recycleCreditClaim || traitLabRecycleCreditClaim(payload);
+  const alreadyUsed = await bank.usedClaimTxHash(claim).then(Boolean).catch(() => false);
+  if (alreadyUsed) {
+    return {
+      txHash: paidRoll?.recycleCreditTxHash || "",
+      blockNumber: paidRoll?.recycleCreditBlockNumber || "",
+      claim,
+      deduped: true,
+    };
+  }
+
+  await bank.creditEnergy.staticCall(payload.wallet, amount, claim);
+  const tx = await bank.creditEnergy(payload.wallet, amount, claim, { gasLimit: 160000n });
+  const receipt = await tx.wait();
+  if (receipt?.status !== 1) {
+    throw Object.assign(new Error("Energy recycle reward transaction failed."), { status: 500 });
+  }
+  return {
+    txHash: tx.hash,
+    blockNumber: String(receipt?.blockNumber || ""),
+    claim,
+    deduped: false,
   };
 }
 
@@ -1142,6 +1464,24 @@ async function ownerOfToken(contract: ethers.Contract, tokenId: number, attempts
   return { owner: "", transient };
 }
 
+async function balanceOfWallet(contract: ethers.Contract, wallet: string, attempts = 3) {
+  let lastError: unknown = null;
+  for (let attempt = 0; attempt < attempts; attempt += 1) {
+    try {
+      const balance = Number(await contract.balanceOf(wallet));
+      if (Number.isFinite(balance) && balance >= 0) return balance;
+    } catch (error) {
+      lastError = error;
+    }
+    if (attempt < attempts - 1) await new Promise((resolve) => setTimeout(resolve, 150 * (attempt + 1)));
+  }
+
+  const message = isTransientOwnerReadError(lastError)
+    ? "Could not read Season 2 wallet balance from Monad RPC. Wait a moment and refresh."
+    : "Could not read Season 2 wallet balance.";
+  throw Object.assign(new Error(message), { status: 503 });
+}
+
 function ownerScanOrder(maxSupply: number) {
   const firstWindow = Math.min(250, maxSupply);
   const tailStart = Math.max(firstWindow + 1, maxSupply - 250 + 1);
@@ -1218,7 +1558,7 @@ export async function ownedS2TokenIds(wallet: string, maxSupply: number) {
   if (cached && cached.expiresAt > Date.now()) return [...cached.tokenIds];
 
   const contract = s2Contract();
-  const balance = Number(await contract.balanceOf(wallet).catch(() => 0n));
+  const balance = await balanceOfWallet(contract, wallet);
   const tokenIds = new Set<string>();
 
   if (Number.isFinite(balance) && balance <= 0) {
@@ -1288,16 +1628,17 @@ function parseInputTokenId(value: unknown, maxSupply: number) {
   return parsed.tokenId;
 }
 
-function parseTraitType(value: unknown) {
+function parseTraitType(value: unknown): S2TraitLabTrait {
   const traitType = String(value || "").trim();
-  if (!isS2EditableTrait(traitType)) {
+  if (!isS2TraitLabTrait(traitType)) {
     throw Object.assign(new Error("Invalid trait type. Background and Droid are locked."), { status: 400 });
   }
   return traitType;
 }
 
 function parseAction(value: unknown) {
-  const action = String(value || "").trim();
+  const requestedAction = String(value || "").trim();
+  const action = requestedAction === "remove" ? "recycle" : requestedAction;
   if (!isS2TraitLabAction(action)) {
     throw Object.assign(new Error("Invalid Trait Lab action."), { status: 400 });
   }
@@ -1312,20 +1653,46 @@ export async function createTraitLabPreview(input: Record<string, unknown>) {
   const tokenId = parseInputTokenId(input.tokenId, config.maxSupply);
   const traitType = parseTraitType(input.traitType);
   const action = parseAction(input.action);
-  const paymentMode = parsePaymentMode(input.paymentMode);
+  const paymentMode = action === "recycle" ? "energy" : parsePaymentMode(input.paymentMode);
 
   await verifyS2TokenOwner(tokenId, wallet, config.maxSupply);
 
   const { metadata } = await buildTokenMetadataAsync(tokenId, config);
+  const currentOverride = await getRuntimeTraitOverrides(tokenId);
+  assertTokenCooldownComplete(currentOverride);
   const traits = traitMapFromMetadata(metadata as MetadataJson);
   const supplyLedger = await getTraitSupplyLedger();
   const candidate = generateCandidate(traits, traitType, action, supplyLedger);
   const version = metadataVersion(metadata as MetadataJson) + 1;
-  const { costEnergy, costRaw, costMon, costLabel } = traitLabPaymentCost(traitType, action, paymentMode);
+  const { costEnergy, costRaw, costMon, costLabel, rewardEnergy, rewardRaw, rewardLabel } = traitLabPaymentCost(traitType, action, paymentMode);
   const supplyDeltas = supplyDeltasForPatch(traits, candidate.proposedAttributes);
   await assertSupplyDeltasAvailable(supplyDeltas);
   const rollId = crypto.randomUUID();
   const energyDebitId = `trait-lab-roll:${rollId}`;
+  const recycleCreditClaim = action === "recycle"
+    ? traitLabRecycleCreditClaim({
+      rollId,
+      wallet,
+      tokenId,
+      traitType,
+      action,
+      paymentMode,
+      previousValue: titleValue(traits[traitType]),
+      proposedValue: candidate.option.value,
+      proposedAttributes: candidate.proposedAttributes,
+      costEnergy,
+      costRaw,
+      costMon,
+      costLabel,
+      rewardEnergy,
+      rewardRaw,
+      rewardLabel,
+      assetUri: candidate.option.assetUri,
+      metadataVersion: version,
+      expiresAt: Date.now() + PREVIEW_TTL_MS,
+      nonce: "",
+    })
+    : undefined;
   const payload: PreviewPayload = {
     rollId,
     wallet,
@@ -1340,6 +1707,10 @@ export async function createTraitLabPreview(input: Record<string, unknown>) {
     costRaw,
     costMon,
     costLabel,
+    rewardEnergy,
+    rewardRaw,
+    rewardLabel,
+    recycleCreditClaim,
     assetUri: candidate.option.assetUri,
     metadataVersion: version,
     expiresAt: Date.now() + PREVIEW_TTL_MS,
@@ -1352,6 +1723,7 @@ export async function createTraitLabPreview(input: Record<string, unknown>) {
     version,
     attributes: candidate.proposedAttributes,
   }, tokenId, config);
+  await assertTraitLabMetadataCanRender(tokenId, proposedMetadata as MetadataJson, String(input.origin || ""));
   let energyDebitDeduped = false;
   let energySpend: Awaited<ReturnType<typeof spendTraitLabEnergy>> | null = null;
   let monPayment: Awaited<ReturnType<typeof verifyTraitLabMonPayment>> | null = null;
@@ -1387,19 +1759,22 @@ export async function createTraitLabPreview(input: Record<string, unknown>) {
     paymentMode,
     costRaw,
     costLabel,
+    recycleRewardRaw: rewardRaw,
+    recycleRewardLabel: rewardLabel,
+    recycleCreditClaim,
     previousValue: payload.previousValue,
     proposedValue: payload.proposedValue,
     proposedAttributes: payload.proposedAttributes,
     status: "created",
     createdAt: new Date().toISOString(),
     expiresAt: new Date(payload.expiresAt).toISOString(),
-    energyDebitId: paymentMode === "energy" ? energyDebitId : undefined,
+    energyDebitId: paymentMode === "energy" && action !== "recycle" ? energyDebitId : undefined,
     monPaymentTxHash: monPayment?.txHash,
     monPaymentAmountRaw: monPayment?.amountRaw,
     monPaymentBlockNumber: monPayment?.blockNumber,
   });
 
-  if (paymentMode === "energy") {
+  if (paymentMode === "energy" && action !== "recycle") {
     energySpend = await spendTraitLabEnergy(payload);
   }
 
@@ -1413,6 +1788,9 @@ export async function createTraitLabPreview(input: Record<string, unknown>) {
     paymentMode,
     costRaw,
     costLabel,
+    recycleRewardRaw: rewardRaw,
+    recycleRewardLabel: rewardLabel,
+    recycleCreditClaim,
     previousValue: payload.previousValue,
     proposedValue: payload.proposedValue,
     proposedAttributes: payload.proposedAttributes,
@@ -1420,7 +1798,7 @@ export async function createTraitLabPreview(input: Record<string, unknown>) {
     createdAt: new Date().toISOString(),
     chargedAt: new Date().toISOString(),
     expiresAt: new Date(payload.expiresAt).toISOString(),
-    energyDebitId: paymentMode === "energy" ? energyDebitId : undefined,
+    energyDebitId: paymentMode === "energy" && action !== "recycle" ? energyDebitId : undefined,
     energyDebitDeduped,
     energySpendTxHash: energySpend?.txHash,
     energySpendBlockNumber: energySpend?.blockNumber,
@@ -1440,6 +1818,9 @@ export async function createTraitLabPreview(input: Record<string, unknown>) {
     costRaw,
     costMon,
     costLabel,
+    rewardEnergy,
+    rewardRaw,
+    rewardLabel,
     previousValue: payload.previousValue,
     proposedValue: payload.proposedValue,
     proposedAttributes: payload.proposedAttributes,
@@ -1454,7 +1835,7 @@ export async function createTraitLabPreview(input: Record<string, unknown>) {
     },
     rollId,
     rollCharged: true,
-    energyDebitSkipped: paymentMode !== "energy",
+    energyDebitSkipped: paymentMode !== "energy" || action === "recycle",
     energyDebitDeduped,
     paymentTxHash: monPayment?.txHash || energySpend?.txHash || "",
     paymentAmountRaw: monPayment?.amountRaw || (energySpend ? costRaw : ""),
@@ -1498,7 +1879,7 @@ export async function confirmTraitLabPreview(input: Record<string, unknown>) {
   if (payload.paymentMode === "mon" && !paidRoll.monPaymentTxHash) {
     throw Object.assign(new Error("This roll is missing its wallet transaction."), { status: 402 });
   }
-  if (payload.paymentMode === "energy" && !paidRoll.energyDebitId) {
+  if (payload.paymentMode === "energy" && payload.action !== "recycle" && !paidRoll.energyDebitId) {
     throw Object.assign(new Error("This roll is missing its Energy debit."), { status: 402 });
   }
 
@@ -1524,17 +1905,89 @@ export async function confirmTraitLabPreview(input: Record<string, unknown>) {
 
   const { metadata } = await buildTokenMetadataAsync(tokenId, config);
   const currentTraits = traitMapFromMetadata(metadata as MetadataJson);
-  assertValidRequestedChange(currentTraits, payload.traitType, payload.action);
-  if (!valuesMatch(currentTraits[payload.traitType], payload.previousValue)) {
+  const recyclePatchApplied = payload.action === "recycle" && proposedPatchAlreadyApplied(currentTraits, payload);
+  const currentMetadataVersion = metadataVersion(metadata as MetadataJson);
+  const expectedCurrentMetadataVersion = Math.max(Number(payload.metadataVersion || 1) - 1, 1);
+  if (currentMetadataVersion !== expectedCurrentMetadataVersion && !recyclePatchApplied) {
     throw Object.assign(new Error("Metadata changed since preview. Generate a new preview."), { status: 409 });
   }
-  validateProposedPatch(currentTraits, payload);
-  const supplyDeltas = supplyDeltasForPatch(currentTraits, payload.proposedAttributes);
+  if (!recyclePatchApplied) {
+    assertValidRequestedChange(currentTraits, payload.traitType, payload.action);
+  }
+  if (!valuesMatch(currentTraits[payload.traitType], payload.previousValue) && !recyclePatchApplied) {
+    throw Object.assign(new Error("Metadata changed since preview. Generate a new preview."), { status: 409 });
+  }
+  if (!recyclePatchApplied) {
+    validateProposedPatch(currentTraits, payload);
+  }
+  const supplyDeltas = recyclePatchApplied ? supplyDeltasForPayload(payload) : supplyDeltasForPatch(currentTraits, payload.proposedAttributes);
   await assertSupplyDeltasAvailable(supplyDeltas);
 
   const currentOverride = await getRuntimeTraitOverrides(tokenId);
   if (currentOverride?.frozen) {
     throw Object.assign(new Error("Token metadata is frozen."), { status: 409 });
+  }
+
+  if (recyclePatchApplied) {
+    const supplyEvent = await applyTraitSupplyDeltas({
+      id: `trait-lab-confirm:${payload.rollId}`,
+      rollId: payload.rollId,
+      wallet,
+      tokenId: String(tokenId),
+      action: payload.action,
+      traitType: payload.traitType,
+      deltas: supplyDeltas,
+      createdAt: new Date().toISOString(),
+    });
+    const recycleCredit = await creditTraitLabRecycleEnergy(payload, paidRoll);
+    const rollRecord: TraitLabRollRecord = {
+      ...paidRoll,
+      status: "confirmed",
+      confirmedAt: new Date().toISOString(),
+      recycleRewardRaw: payload.rewardRaw,
+      recycleRewardLabel: payload.rewardLabel,
+      recycleCreditClaim: recycleCredit.claim,
+      recycleCreditTxHash: recycleCredit.txHash || paidRoll.recycleCreditTxHash,
+      recycleCreditBlockNumber: recycleCredit.blockNumber || paidRoll.recycleCreditBlockNumber,
+      recycleCreditDeduped: recycleCredit.deduped,
+    };
+    await saveTraitLabRoll(rollRecord);
+    const updated = await buildTokenMetadataAsync(tokenId, config);
+    const openSeaMetadataRefresh = await refreshOpenSeaTokenMetadata({ tokenId });
+
+    return {
+      ok: true,
+      wallet,
+      tokenId,
+      traitType: payload.traitType,
+      action: payload.action,
+      paymentMode: payload.paymentMode,
+      costEnergy: payload.costEnergy,
+      costRaw: payload.costRaw,
+      costMon: payload.costMon,
+      costLabel: payload.costLabel,
+      rewardEnergy: payload.rewardEnergy,
+      rewardRaw: payload.rewardRaw,
+      rewardLabel: payload.rewardLabel,
+      rollId: payload.rollId,
+      rollCharged: true,
+      debitDeduped: Boolean(paidRoll.energyDebitDeduped),
+      energyDebitSkipped: true,
+      paymentTxHash: recycleCredit.txHash || paidRoll.recycleCreditTxHash || "",
+      paymentAmountRaw: payload.rewardRaw || "",
+      paymentBlockNumber: recycleCredit.blockNumber || paidRoll.recycleCreditBlockNumber || "",
+      recycleCreditDeduped: recycleCredit.deduped,
+      supplyDeltas,
+      supplyEventDeduped: supplyEvent.deduped,
+      override: currentOverride,
+      metadata: updated.metadata,
+      openSeaMetadataRefresh,
+      imageRecomposition: {
+        status: "unchanged",
+        imageUrl: String((updated.metadata as MetadataJson).image || ""),
+        note: "Recycle metadata was already applied; Energy reward was reconciled without another metadata version bump.",
+      },
+    };
   }
 
   const nextVersion = Math.max(Number(currentOverride?.version || metadataVersion(metadata as MetadataJson)) + 1, 2);
@@ -1550,16 +2003,19 @@ export async function confirmTraitLabPreview(input: Record<string, unknown>) {
     notes: `Trait Lab ${payload.action} ${payload.traitType}.`,
   };
   const draftMetadata = mergeMetadata(metadata, draftOverride, tokenId, config);
-  const renderedImage = await renderTraitLabImage(tokenId, draftMetadata as MetadataJson, String(input.origin || ""));
+  const renderedImage = await renderTraitLabImageRuntime(tokenId, draftMetadata as MetadataJson, String(input.origin || ""));
+  if (!renderedImage.rendered) {
+    throw Object.assign(new Error(renderFailureMessage(renderedImage)), { status: 503 });
+  }
   const nextOverride = {
     ...draftOverride,
-    ...(renderedImage.rendered ? { image: renderedImage.imageUrl } : {}),
-    imageRender: renderedImage.rendered ? {
+    image: renderedImage.imageUrl,
+    imageRender: {
       imageId: renderedImage.imageId,
       url: renderedImage.imageUrl,
       rendererVersion: renderedImage.rendererVersion,
       renderedAt: new Date().toISOString(),
-    } : undefined,
+    },
   };
   const override = await saveRuntimeTraitOverride(tokenId, nextOverride);
   const supplyEvent = await applyTraitSupplyDeltas({
@@ -1572,13 +2028,21 @@ export async function confirmTraitLabPreview(input: Record<string, unknown>) {
     deltas: supplyDeltas,
     createdAt: new Date().toISOString(),
   });
+  const recycleCredit = payload.action === "recycle" ? await creditTraitLabRecycleEnergy(payload, paidRoll) : null;
   const rollRecord: TraitLabRollRecord = {
     ...paidRoll,
     status: "confirmed",
     confirmedAt: new Date().toISOString(),
+    recycleRewardRaw: payload.rewardRaw,
+    recycleRewardLabel: payload.rewardLabel,
+    recycleCreditClaim: recycleCredit?.claim || paidRoll.recycleCreditClaim,
+    recycleCreditTxHash: recycleCredit?.txHash || paidRoll.recycleCreditTxHash,
+    recycleCreditBlockNumber: recycleCredit?.blockNumber || paidRoll.recycleCreditBlockNumber,
+    recycleCreditDeduped: recycleCredit?.deduped || paidRoll.recycleCreditDeduped,
   };
   await saveTraitLabRoll(rollRecord);
   const updated = await buildTokenMetadataAsync(tokenId, config);
+  const openSeaMetadataRefresh = await refreshOpenSeaTokenMetadata({ tokenId });
 
   return {
     ok: true,
@@ -1591,17 +2055,22 @@ export async function confirmTraitLabPreview(input: Record<string, unknown>) {
     costRaw: payload.costRaw,
     costMon: payload.costMon,
     costLabel: payload.costLabel,
+    rewardEnergy: payload.rewardEnergy,
+    rewardRaw: payload.rewardRaw,
+    rewardLabel: payload.rewardLabel,
     rollId: payload.rollId,
     rollCharged: true,
     debitDeduped: Boolean(paidRoll.energyDebitDeduped),
-    energyDebitSkipped: payload.paymentMode !== "energy",
-    paymentTxHash: paidRoll.monPaymentTxHash || paidRoll.energySpendTxHash || "",
-    paymentAmountRaw: paidRoll.monPaymentAmountRaw || (paidRoll.energySpendTxHash ? payload.costRaw : ""),
-    paymentBlockNumber: paidRoll.monPaymentBlockNumber || paidRoll.energySpendBlockNumber || "",
+    energyDebitSkipped: payload.paymentMode !== "energy" || payload.action === "recycle",
+    paymentTxHash: recycleCredit?.txHash || paidRoll.monPaymentTxHash || paidRoll.energySpendTxHash || "",
+    paymentAmountRaw: recycleCredit ? payload.rewardRaw || "" : paidRoll.monPaymentAmountRaw || (paidRoll.energySpendTxHash ? payload.costRaw : ""),
+    paymentBlockNumber: recycleCredit?.blockNumber || paidRoll.monPaymentBlockNumber || paidRoll.energySpendBlockNumber || "",
+    recycleCreditDeduped: recycleCredit?.deduped || false,
     supplyDeltas,
     supplyEventDeduped: supplyEvent.deduped,
     override,
     metadata: updated.metadata,
+    openSeaMetadataRefresh,
     imageRecomposition: {
       status: renderedImage.rendered ? "rendered" : "unchanged",
       imageUrl: renderedImage.imageUrl,

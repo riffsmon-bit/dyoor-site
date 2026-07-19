@@ -10,6 +10,12 @@ type MetadataJson = {
   attributes?: Array<{ trait_type?: string; value?: unknown }>;
 };
 
+type RenderTraitLabImageOptions = {
+  baseImageUrl?: string;
+  overlayTraitTypes?: string[];
+  dryRun?: boolean;
+};
+
 type TraitItemMetadata = {
   slot?: string;
   name?: string;
@@ -18,8 +24,9 @@ type TraitItemMetadata = {
 
 const STORE_NAME = "dyoor-s2-metadata";
 const IMAGE_PREFIX = "trait-lab/images";
-const DEFAULT_S2_LAYER_DIR = "/Volumes/DYOOR Hard Drive/dyoor-generator-local 3/layers";
+const BUNDLED_BASE_LAYER_DIR = "data/dyoor-s2-base-layers";
 const DEFAULT_RENDER_SIZE = 1024;
+const DEFAULT_SITE_URL = "https://dyoor.netlify.app";
 export const RENDER_PIPELINE_VERSION = "trait-assets-v4";
 
 const REQUIRED_RENDER_BASE_LAYERS = new Set(["Background", "Droid"]);
@@ -110,8 +117,7 @@ function traitFolder(traitType: string) {
 function layerRoots() {
   return [
     readEnv("DYOOR_S2_LAYER_DIR"),
-    DEFAULT_S2_LAYER_DIR,
-    path.join(process.cwd(), "dyoor-builder", "layers"),
+    path.join(process.cwd(), BUNDLED_BASE_LAYER_DIR),
   ].filter(Boolean).map((root) => path.resolve(root));
 }
 
@@ -119,7 +125,7 @@ async function existingLocalLayer(traitType: string, value: unknown) {
   if (isEmptyTraitValue(value)) return "";
   const folder = traitFolder(traitType);
   const rawName = String(value || "").trim().replace(/\.[a-z0-9]+$/i, "");
-  const candidateNames = [`${rawName}.png`, `${rawName}.PNG`, rawName];
+  const candidateNames = [`${rawName}.png`, `${rawName}.PNG`, `${rawName}.webp`, `${rawName}.WEBP`, rawName];
 
   for (const root of layerRoots()) {
     const directory = path.join(root, folder);
@@ -165,6 +171,13 @@ async function fetchBuffer(url: string) {
   });
   if (!response.ok) return null;
   return Buffer.from(await response.arrayBuffer());
+}
+
+async function imageBuffer(value: unknown) {
+  if (typeof value !== "string" || !value.trim()) return null;
+  const raw = value.trim();
+  const url = /^https?:\/\//i.test(raw) ? raw : ipfsGatewayUrl(raw);
+  return url ? await fetchBuffer(url) : null;
 }
 
 async function remoteLayerBuffer(traitType: string, value: unknown) {
@@ -249,24 +262,75 @@ export async function readRenderedTraitImage(imageId: string) {
 
 export function renderedTraitImageUrl(imageId: string, origin = "") {
   const pathName = `/api/s2/trait-lab/render/${encodeURIComponent(safeImageId(imageId))}`;
-  const base = String(origin || readEnv("DYOOR_SITE_URL", "NEXT_PUBLIC_SITE_URL", "URL")).replace(/\/+$/, "");
+  const base = canonicalRenderBaseUrl(origin);
   return base ? `${base}${pathName}` : pathName;
 }
 
-export async function renderTraitLabImage(tokenId: number, metadata: MetadataJson, origin = "") {
+export function traitRenderImageId(tokenId: number, metadata: MetadataJson) {
+  const traits = traitMapFromMetadata(metadata as any);
+  const version = metadataVersion(metadata as any);
+  const fingerprint = crypto.createHash("sha256").update(JSON.stringify({
+    renderer: RENDER_PIPELINE_VERSION,
+    tokenId,
+    version,
+    traits,
+  })).digest("hex").slice(0, 16);
+  return `${tokenId}-v${version}-${RENDER_PIPELINE_VERSION}-${fingerprint}`;
+}
+
+function canonicalRenderBaseUrl(origin = "") {
+  const configured = readEnv("DYOOR_TRAIT_LAB_RENDER_BASE_URL", "DYOOR_SITE_URL", "NEXT_PUBLIC_SITE_URL");
+  const base = String(configured || origin || "").replace(/\/+$/, "");
+  if (!base) return DEFAULT_SITE_URL;
+
+  try {
+    const parsed = new URL(base);
+    if (/^deploy-preview-\d+--dyoor\.netlify\.app$/i.test(parsed.hostname)) return DEFAULT_SITE_URL;
+    if (parsed.hostname === "localhost" || parsed.hostname === "127.0.0.1" || parsed.hostname === "0.0.0.0") return base;
+    return base;
+  } catch {
+    return DEFAULT_SITE_URL;
+  }
+}
+
+export async function renderTraitLabImage(
+  tokenId: number,
+  metadata: MetadataJson,
+  origin = "",
+  options: RenderTraitLabImageOptions = {},
+) {
   const traits = traitMapFromMetadata(metadata as any);
   const size = renderSize();
   const composites: sharp.OverlayOptions[] = [];
+  const missingLayers: string[] = [];
   const missingRequiredLayers: string[] = [];
+  const overlayTraitTypes = new Set((options.overlayTraitTypes || []).map((traitType) => String(traitType || "").trim()).filter(Boolean));
+  const renderOrder = overlayTraitTypes.size
+    ? RENDER_LAYER_ORDER.filter((traitType) => overlayTraitTypes.has(traitType))
+    : RENDER_LAYER_ORDER;
+  let overlayCount = 0;
 
-  for (const traitType of RENDER_LAYER_ORDER) {
+  const baseBuffer = await imageBuffer(options.baseImageUrl);
+  if (baseBuffer) {
+    composites.push({
+      input: await sharp(baseBuffer).resize(size, size, { fit: "fill" }).png().toBuffer(),
+      top: 0,
+      left: 0,
+    });
+  }
+
+  for (const traitType of renderOrder) {
     const buffer = await layerBuffer(traitType, traits[traitType]);
     if (!buffer) {
-      if (REQUIRED_RENDER_BASE_LAYERS.has(traitType) && !isEmptyTraitValue(traits[traitType])) {
+      if (!isEmptyTraitValue(traits[traitType])) {
+        missingLayers.push(traitType);
+      }
+      if (!baseBuffer && REQUIRED_RENDER_BASE_LAYERS.has(traitType) && !isEmptyTraitValue(traits[traitType])) {
         missingRequiredLayers.push(traitType);
       }
       continue;
     }
+    overlayCount += 1;
     composites.push({
       input: await sharp(buffer).resize(size, size, { fit: "fill" }).png().toBuffer(),
       top: 0,
@@ -279,26 +343,21 @@ export async function renderTraitLabImage(tokenId: number, metadata: MetadataJso
       imageId: "",
       imageUrl: metadata.image || "",
       rendered: false,
+      missingLayers,
       missingRequiredLayers,
     };
   }
 
-  if (!composites.length) {
+  if (!composites.length || missingLayers.length || (overlayTraitTypes.size > 0 && overlayCount === 0)) {
     return {
       imageId: "",
       imageUrl: metadata.image || "",
       rendered: false,
+      missingLayers,
     };
   }
 
-  const version = metadataVersion(metadata as any);
-  const fingerprint = crypto.createHash("sha256").update(JSON.stringify({
-    renderer: RENDER_PIPELINE_VERSION,
-    tokenId,
-    version,
-    traits,
-  })).digest("hex").slice(0, 16);
-  const imageId = `${tokenId}-v${version}-${RENDER_PIPELINE_VERSION}-${fingerprint}`;
+  const imageId = traitRenderImageId(tokenId, metadata);
   const png = await sharp({
     create: {
       width: size,
@@ -308,7 +367,9 @@ export async function renderTraitLabImage(tokenId: number, metadata: MetadataJso
     },
   }).composite(composites).png().toBuffer();
 
-  await writeImage(imageId, png);
+  if (!options.dryRun) {
+    await writeImage(imageId, png);
+  }
 
   return {
     imageId,

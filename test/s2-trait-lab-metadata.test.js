@@ -90,3 +90,59 @@ test("locked traits are stripped before Trait Lab overrides are saved", () => {
     Clothes: "None",
   });
 });
+
+test("Trait Lab can save Special removal while still blocking new Special values", () => {
+  assert.deepEqual(sanitizeOverrideAttributes({
+    Special: "None",
+    Hat: "None",
+  }), {
+    Special: "None",
+    Hat: "None",
+  });
+
+  const metadata = mergeMetadata({
+    ...baseMetadata,
+    attributes: baseMetadata.attributes.map((attribute) => (
+      attribute.trait_type === "Special" ? { ...attribute, value: "Anime Mask" } : attribute
+    )),
+  }, {
+    version: 2,
+    attributes: {
+      Special: "None",
+    },
+  }, 123);
+
+  const traits = traitMap(metadata);
+  assert.equal(traits.Special, "None");
+  assert.equal(traits.Background, "Eye Sea U-Project M.A.D.");
+  assert.equal(traits.Droid, "Lime Green");
+  assert.equal(traits["Metadata Version"], "2");
+});
+
+test("Hat overrides clear existing Bandanna accessory layers", () => {
+  const metadata = mergeMetadata({
+    ...baseMetadata,
+    attributes: baseMetadata.attributes.map((attribute) => (
+      attribute.trait_type === "Hat"
+        ? { ...attribute, value: "None" }
+        : attribute.trait_type === "Mouth"
+          ? { ...attribute, value: "None" }
+        : attribute.trait_type === "Accessories 2"
+          ? { ...attribute, value: "Bandana Black" }
+          : attribute
+    )),
+  }, {
+    version: 2,
+    attributes: {
+      Hat: "Durag",
+    },
+  }, 759);
+
+  const traits = traitMap(metadata);
+  assert.equal(traits.Hat, "Durag");
+  assert.equal(traits.Mouth, "Displeased");
+  assert.equal(traits["Accessories 2"], "None");
+  assert.equal(traits.Background, "Eye Sea U-Project M.A.D.");
+  assert.equal(traits.Droid, "Lime Green");
+  assert.equal(traits["Metadata Version"], "2");
+});
