@@ -412,15 +412,17 @@ function layerEntries(metadata?: MetadataJson | null) {
 
 function LayerPreview({ fallbackImage, metadata, title }: { fallbackImage?: string; metadata?: MetadataJson | null; title: string }) {
   const layers = layerEntries(metadata);
+  const useFallbackImage = Boolean(fallbackImage);
+  const useLayerStack = layers.length > 0 && !useFallbackImage;
   return (
     <div className="aspect-square bg-black/45">
-      {fallbackImage || layers.length ? (
+      {fallbackImage || useLayerStack ? (
         <div className="relative h-full w-full overflow-hidden bg-black/35">
-          {fallbackImage ? (
+          {useFallbackImage ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img alt={title} className="absolute inset-0 h-full w-full object-cover" src={fallbackImage} />
           ) : null}
-          {layers.map((layer, index) => (
+          {useLayerStack ? layers.map((layer, index) => (
             // eslint-disable-next-line @next/next/no-img-element
             <img
               alt={`${title} ${layer.traitType} ${layer.value}`}
@@ -442,7 +444,7 @@ function LayerPreview({ fallbackImage, metadata, title }: { fallbackImage?: stri
               }}
               src={layer.sources[0]}
             />
-          ))}
+          )) : null}
         </div>
       ) : (
         <div className="grid h-full place-items-center text-xs font-black uppercase tracking-[0.16em] text-white/35">No Image</div>
@@ -535,16 +537,11 @@ export function TraitLabClient() {
   const selectedTraitAction = selectedTraitActions.includes(selectedAction as S2TraitLabAction)
     ? selectedAction as S2TraitLabAction
     : selectedTraitActions[0] || "";
-  const selectedTraitPaymentMode: S2TraitLabPaymentMode = "energy";
   const selectedTraitReward = selectedTraitAction === "recycle"
     ? traitLabConfig?.recycleRewards?.[selectedTrait] ?? S2_TRAIT_LAB_RECYCLE_REWARDS[selectedTrait] ?? 0
     : 0;
-  const selectedTraitCost = selectedTraitAction === "recycle" && selectedTraitReward
-    ? `Earn ${selectedTraitReward} Energy`
-    : costFor(selectedTrait, selectedTraitAction);
   const selectedTraitIsEmpty = isEmptyTraitValue(selectedTraitValue);
   const selectedTraitGuaranteedEmpty = selectedTraitIsEmpty && guaranteedTraits.has(selectedTrait);
-  const selectedTraitLoading = actionLoading === `${selectedTraitAction}:${selectedTrait}`;
   const rollLoading = Boolean(actionLoading && actionLoading !== "confirm" && actionLoading !== "burn-droid");
   const burnLoading = actionLoading === "burn-droid";
   const [rollingAction, rollingTraitType] = rollLoading ? actionLoading.split(":") : ["", ""];
@@ -561,12 +558,9 @@ export function TraitLabClient() {
   const previewCurrentMetadata = preview?.currentMetadata || null;
   const previewProposedMetadata = preview?.proposedMetadata || null;
   const previewBeforeImage = mediaUrl(previewCurrentMetadata?.image || metadata?.image);
+  const previewProposedImage = mediaUrl(previewProposedMetadata?.image || previewBeforeImage);
   const previewTraitAssetImage = mediaUrl(preview?.proposedAsset?.uri);
   const previewImageChanged = normalizeTraitValue(previewCurrentMetadata?.image) !== normalizeTraitValue(previewProposedMetadata?.image);
-  const paymentOptions = selectedTraitAction === "recycle"
-    ? [{ value: "energy" as const, label: "Energy Reward" }]
-    : [{ value: "energy" as const, label: "Spend Energy" }];
-  const paymentSelectValue = selectedTraitPaymentMode;
 
   useEffect(() => {
     selectedTokenIdRef.current = selectedTokenId;
@@ -1088,100 +1082,44 @@ export function TraitLabClient() {
 
                 <Alert tone="idle" className="mt-3 py-3">Locked traits cannot be changed.</Alert>
 
-                <div className="mt-3 hidden gap-2 rounded border border-white/10 bg-white/[0.035] p-2 sm:grid sm:grid-cols-1">
-                  <button
-                    type="button"
-                    className={`rounded border px-3 py-2.5 text-xs font-black uppercase tracking-[0.12em] transition ${
-                      selectedTraitPaymentMode === "energy"
-                        ? "border-dyoor-cyan bg-dyoor-cyan text-black"
-                        : "border-white/10 bg-black/30 text-white/60 hover:border-dyoor-cyan/40 hover:text-dyoor-cyan"
-                    }`}
-                    disabled={selectedTraitAction === "recycle"}
-                    onClick={() => setPreview(null)}
-                  >
-                    {selectedTraitAction === "recycle" ? "Earn Energy" : "Spend Energy"}
-                  </button>
-                </div>
-
                 <div className="mt-3 rounded border border-dyoor-cyan/20 bg-black/30 p-3">
-                  <div className="grid gap-3 lg:grid-cols-[minmax(0,0.72fr)_minmax(0,0.72fr)_minmax(0,0.72fr)_minmax(0,1fr)_auto] lg:items-end">
-                    <label className="grid gap-2">
-                      <span className="text-xs font-black uppercase tracking-[0.16em] text-white/45">Trait</span>
-                      <select
-                        className="field-control min-h-11 py-2.5 text-sm font-black uppercase"
-                        value={selectedTrait}
-                        onChange={(event) => {
-                          const trait = event.target.value as S2TraitLabTrait;
-                          setSelectedTrait(trait);
-                          setSelectedAction(actionForTrait(trait, selectedTraits[trait]));
-                          setPreview(null);
-                        }}
-                      >
-                        {S2_TRAIT_LAB_TRAITS.map((trait) => (
-                          <option key={trait} value={trait}>{trait}</option>
-                        ))}
-                      </select>
-                    </label>
-
-                    <label className="grid gap-2">
-                      <span className="text-xs font-black uppercase tracking-[0.16em] text-white/45">Action</span>
-                      <select
-                        className="field-control min-h-11 py-2.5 text-sm font-black uppercase"
-                        value={selectedTraitAction}
-                        disabled={!selectedTraitActions.length}
-                        onChange={(event) => {
-                          setSelectedAction(event.target.value as S2TraitLabAction);
-                          setPreview(null);
-                        }}
-                      >
-                        {selectedTraitActions.length ? selectedTraitActions.map((action) => (
-                          <option key={action} value={action}>{actionLabel(action)}</option>
-                        )) : (
-                          <option value="">Unavailable</option>
-                        )}
-                      </select>
-                    </label>
-
-                    <label className="grid gap-2">
-                      <span className="text-xs font-black uppercase tracking-[0.16em] text-white/45">Payment</span>
-                      <select
-                        className="field-control min-h-11 py-2.5 text-sm font-black uppercase"
-                        value={paymentSelectValue}
-                        disabled
-                        onChange={() => setPreview(null)}
-                      >
-                        {paymentOptions.map((option) => (
-                          <option key={option.value} value={option.value}>{option.label}</option>
-                        ))}
-                      </select>
-                    </label>
-
+                  <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-end">
                     <div className="grid gap-2">
                       <p className="text-xs font-black uppercase tracking-[0.16em] text-white/45">Selected Slot</p>
                       <div className="min-h-11 rounded border border-white/10 bg-white/[0.035] px-3 py-2.5">
-                        <p className="truncate text-sm font-black text-white">{displayTraitValue(selectedTraitValue)}</p>
+                        <p className="truncate text-sm font-black text-white">{selectedTrait}: {displayTraitValue(selectedTraitValue)}</p>
                         <p className={`mt-1 text-[0.65rem] font-black uppercase tracking-[0.14em] ${selectedTraitIsEmpty ? "text-yellow-100" : "text-dyoor-cyan"}`}>
-                          {selectedTraitGuaranteedEmpty ? "Guaranteed trait" : selectedTraitAction ? actionLabel(selectedTraitAction) : "Unavailable"} / {selectedTraitCost || "-"}{selectedTraitAction === "recycle" ? "" : " per roll"}
+                          {selectedTraitGuaranteedEmpty ? "Guaranteed trait" : selectedTraitActions.length ? "Choose Reroll, Unlock, or Recycle" : "Unavailable"}
                         </p>
                       </div>
                     </div>
 
-                    <Button
-                      className="w-full min-w-[11rem] py-2.5 lg:w-auto"
-                      disabled={!metadata || !selectedTraitAction || Boolean(actionLoading)}
-                      variant={selectedTraitIsEmpty ? "primary" : "secondary"}
-                      onClick={() => void previewChange(selectedTrait, selectedTraitAction)}
-                    >
-                      {selectedTraitLoading
-                        ? (selectedTraitAction === "remove" || selectedTraitAction === "recycle" ? actionVerb(selectedTraitAction) : "Rolling")
-                        : selectedTraitGuaranteedEmpty
-                          ? "Guaranteed"
-                          : selectedTraitAction === "remove" || selectedTraitAction === "recycle"
-                            ? actionLabel(selectedTraitAction)
-                            : selectedTraitAction
-                              ? `Roll ${actionVerb(selectedTraitAction)}`
-                              : "Unavailable"}
-                    </Button>
+                    <div className="flex flex-wrap gap-2 lg:justify-end">
+                      {selectedTraitActions.length ? selectedTraitActions.map((action) => {
+                        const loading = actionLoading === `${action}:${selectedTrait}`;
+                        const actionCost = action === "recycle" && selectedTraitReward
+                          ? `Earn ${selectedTraitReward} Energy`
+                          : costFor(selectedTrait, action);
+                        return (
+                          <Button
+                            key={action}
+                            className="min-w-[10rem] py-2.5 text-xs"
+                            disabled={!metadata || Boolean(actionLoading)}
+                            variant={action === "unlock" ? "primary" : "secondary"}
+                            onClick={() => {
+                              setSelectedAction(action);
+                              void previewChange(selectedTrait, action);
+                            }}
+                          >
+                            {loading ? actionVerb(action) : `${actionLabel(action)} · ${actionCost || "-"}`}
+                          </Button>
+                        );
+                      }) : (
+                        <Button className="min-w-[10rem] py-2.5 text-xs" disabled variant="secondary">
+                          {selectedTraitGuaranteedEmpty ? "Guaranteed" : "Unavailable"}
+                        </Button>
+                      )}
+                    </div>
                   </div>
                   <p className="mt-2 text-xs font-semibold leading-5 text-white/45">
                     {selectedTraitGuaranteedEmpty
@@ -1342,7 +1280,7 @@ export function TraitLabClient() {
                         {previewImageChanged ? "Full Render Updated" : "Metadata Only"}
                       </span>
                     </div>
-                    <LayerPreview fallbackImage={previewBeforeImage} metadata={previewProposedMetadata} title="Proposed D.Y.O.O.R preview" />
+                    <LayerPreview fallbackImage={previewProposedImage} metadata={previewProposedMetadata} title="Proposed D.Y.O.O.R preview" />
                     <div className="grid gap-3 border-t border-dyoor-magenta/20 p-3 xl:grid-cols-[11rem_minmax(0,1fr)]">
                       <div className="grid content-start gap-2">
                         <p className="text-xs font-black uppercase tracking-[0.14em] text-white/40">Rarity</p>

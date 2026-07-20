@@ -24,10 +24,9 @@ type TraitItemMetadata = {
 
 const STORE_NAME = "dyoor-s2-metadata";
 const IMAGE_PREFIX = "trait-lab/images";
-const BUNDLED_BASE_LAYER_DIR = "data/dyoor-s2-base-layers";
 const DEFAULT_RENDER_SIZE = 1024;
 const DEFAULT_SITE_URL = "https://dyoor.netlify.app";
-export const RENDER_PIPELINE_VERSION = "trait-assets-v5";
+export const RENDER_PIPELINE_VERSION = "trait-assets-v6";
 
 const REQUIRED_RENDER_BASE_LAYERS = new Set(["Background", "Droid"]);
 
@@ -98,7 +97,7 @@ function metadataVersion(metadata: MetadataJson) {
 function runtimeDataRoot() {
   const configured = readEnv("DYOOR_RUNTIME_DATA_DIR");
   return configured
-    ? path.resolve(process.cwd(), configured)
+    ? path.resolve(/* turbopackIgnore: true */ process.cwd(), configured)
     : path.join(process.cwd(), "data", "runtime");
 }
 
@@ -115,10 +114,14 @@ function traitFolder(traitType: string) {
 }
 
 function layerRoots() {
-  return [
-    readEnv("DYOOR_S2_LAYER_DIR"),
-    path.join(process.cwd(), BUNDLED_BASE_LAYER_DIR),
-  ].filter(Boolean).map((root) => path.resolve(root));
+  const configured = readEnv("DYOOR_S2_LAYER_DIR");
+  const roots = [
+    configured
+      ? path.resolve(/* turbopackIgnore: true */ process.cwd(), configured)
+      : "",
+    path.join(process.cwd(), "data", "dyoor-s2-base-layers"),
+  ];
+  return roots.filter(Boolean).map((root) => path.normalize(root));
 }
 
 async function existingLocalLayer(traitType: string, value: unknown) {
@@ -131,7 +134,8 @@ async function existingLocalLayer(traitType: string, value: unknown) {
     const directory = path.join(root, folder);
     for (const candidateName of candidateNames) {
       const filePath = path.normalize(path.join(directory, candidateName));
-      if (!filePath.startsWith(root)) continue;
+      const relativePath = path.relative(root, filePath);
+      if (relativePath.startsWith("..") || path.isAbsolute(relativePath)) continue;
       try {
         await fs.access(filePath);
         return filePath;

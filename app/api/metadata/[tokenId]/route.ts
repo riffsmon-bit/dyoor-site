@@ -39,9 +39,6 @@ export async function GET(_request: Request, context: MetadataRouteContext) {
   const externalRenderUrl = isExternalTraitLabRenderUrl(override?.image || override?.imageRender?.url, requestOrigin);
   const overrideImageIsStaticBase = isStaticBaseTokenImageUrl(override?.image, tokenId);
   const metadataImageIsStaticBase = isStaticBaseTokenImageUrl((metadata as any)?.image, tokenId);
-  const additiveOverlayTraitTypes = metadataImageIsStaticBase
-    ? additiveOverlayTraitTypesForOverride(metadata, override?.attributes)
-    : [];
   const staleRenderer = Boolean(override?.imageRender?.rendererVersion)
     ? override?.imageRender?.rendererVersion !== RENDER_PIPELINE_VERSION
     : Boolean(override?.imageRender);
@@ -55,15 +52,7 @@ export async function GET(_request: Request, context: MetadataRouteContext) {
       && !result.usedFallback,
   );
   if (shouldRenderOverrideImage) {
-    const rendered = await renderTraitLabImage(
-      tokenId,
-      metadata as any,
-      requestOrigin,
-      additiveOverlayTraitTypes.length ? {
-        baseImageUrl: String((metadata as any)?.image || override?.image || ""),
-        overlayTraitTypes: additiveOverlayTraitTypes,
-      } : undefined,
-    );
+    const rendered = await renderTraitLabImage(tokenId, metadata as any, requestOrigin);
     if (rendered.rendered) {
       await saveRuntimeTraitOverride(tokenId, {
         ...override,
@@ -244,22 +233,6 @@ function initialDnaTraitMap(metadata: any) {
   }
 
   return entries;
-}
-
-function additiveOverlayTraitTypesForOverride(metadata: any, attributes: unknown) {
-  if (!attributes || typeof attributes !== "object" || Array.isArray(attributes)) return [];
-
-  const initialTraits = initialDnaTraitMap(metadata);
-  const traitTypes: string[] = [];
-
-  for (const [traitType, nextValue] of Object.entries(attributes as Record<string, unknown>)) {
-    if (traitType === "Metadata Version") continue;
-    if (isEmptyTraitValue(nextValue)) return [];
-    if (!isEmptyTraitValue(initialTraits[traitType])) return [];
-    traitTypes.push(traitType);
-  }
-
-  return traitTypes;
 }
 
 function isLocalHost(hostname: string) {

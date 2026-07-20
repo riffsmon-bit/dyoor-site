@@ -638,13 +638,6 @@ function renderFailureMessage(renderedImage: TraitLabImageRenderResult) {
   return `Trait image composition failed, so metadata was not changed. Refresh the token and try again.${suffix}`;
 }
 
-async function assertTraitLabMetadataCanRender(tokenId: number, metadata: MetadataJson, origin = "") {
-  const renderedImage = await renderTraitLabImageRuntime(tokenId, metadata, origin, { dryRun: true });
-  if (!renderedImage.rendered) {
-    throw Object.assign(new Error(renderFailureMessage(renderedImage)), { status: 503 });
-  }
-}
-
 export function traitMapFromMetadata(metadata: MetadataJson) {
   const attributes = Array.isArray(metadata?.attributes) ? metadata.attributes : [];
   return attributes.reduce<Record<string, string>>((acc, attribute) => {
@@ -1836,7 +1829,21 @@ export async function createTraitLabPreview(input: Record<string, unknown>) {
     version,
     attributes: candidate.proposedAttributes,
   }, tokenId, config);
-  await assertTraitLabMetadataCanRender(tokenId, proposedMetadata as MetadataJson, String(input.origin || ""));
+  const previewImage = await renderTraitLabImageRuntime(tokenId, proposedMetadata as MetadataJson, String(input.origin || ""));
+  if (!previewImage.rendered) {
+    throw Object.assign(new Error(renderFailureMessage(previewImage)), { status: 503 });
+  }
+  const proposedPreviewMetadata = {
+    ...(proposedMetadata as MetadataJson),
+    image: previewImage.imageUrl,
+    properties: {
+      ...((proposedMetadata as MetadataJson).properties as Record<string, unknown> | undefined),
+      files: [{
+        uri: previewImage.imageUrl,
+        type: "image/png",
+      }],
+    },
+  };
   let energyDebitDeduped = false;
   let energySpend: Awaited<ReturnType<typeof spendTraitLabEnergy>> | null = null;
 
@@ -1934,15 +1941,16 @@ export async function createTraitLabPreview(input: Record<string, unknown>) {
     previewId,
     expiresAt: new Date(payload.expiresAt).toISOString(),
     currentMetadata: metadata,
-    proposedMetadata,
+    proposedMetadata: proposedPreviewMetadata,
     confirmation: {
       timestamp,
       nonce,
       message: traitLabMessage(payload, timestamp, nonce),
     },
     imageRecomposition: {
-      status: "preview",
-      note: "Preview shows the proposed layer result. The composed token image is generated after Confirm Change.",
+      status: "rendered-preview",
+      imageUrl: previewImage.imageUrl,
+      note: "Preview image was composed by the server before Energy was spent. Confirm Change publishes the same trait stack.",
     },
   };
 }
