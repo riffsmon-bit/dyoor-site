@@ -151,7 +151,6 @@ const DEFAULT_TRAIT_ASSETS_CID = "bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6h
 const PREVIEW_TTL_MS = 5 * 60 * 1000;
 const CONFIRM_WINDOW_MS = 5 * 60 * 1000;
 const TRANSFER_TOPIC = ethers.id("Transfer(address,address,uint256)");
-const BURN_SELECTOR = ethers.id("burn(uint256)").slice(0, 10).toLowerCase();
 const DEFAULT_MONAD_MAINNET_RPC_URL = "https://rpc.monad.xyz";
 const DEFAULT_MONAD_MAINNET_EXPLORER_URL = "https://monadscan.com";
 const DEFAULT_OPENSEA_CHAIN = "monad";
@@ -989,15 +988,11 @@ export async function claimTraitLabDroidBurnReward(input: Record<string, unknown
   if (!tx) throw Object.assign(new Error("Burn transaction is not available yet."), { status: 409 });
   if (!receipt) throw Object.assign(new Error("Burn transaction is not confirmed yet."), { status: 409 });
   if (receipt.status !== 1) throw Object.assign(new Error("Burn transaction failed on-chain."), { status: 400 });
-  if (normalizeWallet(tx.from) !== wallet) {
-    throw Object.assign(new Error("Burn transaction sender does not match connected wallet."), { status: 400 });
-  }
-  if (normalizeWallet(tx.to) !== s2ContractAddress().toLowerCase()) {
-    throw Object.assign(new Error("Burn transaction recipient does not match the D.Y.O.O.R Season 2 contract."), { status: 400 });
-  }
-  if (!String(tx.data || "").toLowerCase().startsWith(BURN_SELECTOR)) {
-    throw Object.assign(new Error("Burn transaction does not call burn(uint256)."), { status: 400 });
-  }
+
+  // Relayers, marketplace routers, and account abstraction flows may make the
+  // transaction sender/recipient differ from the NFT owner and NFT contract.
+  // The authoritative proof is the ERC-721 Transfer(owner, 0x0, tokenId) log
+  // emitted by the D.Y.O.O.R S2 contract itself.
   if (!hasVerifiedBurnLog(receipt, wallet, tokenId)) {
     throw Object.assign(new Error("Burn transaction did not emit the expected token burn event."), { status: 400 });
   }

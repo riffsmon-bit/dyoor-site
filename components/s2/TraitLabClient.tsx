@@ -421,6 +421,8 @@ export function TraitLabClient() {
   const [selectedTrait, setSelectedTrait] = useState<S2EditableTrait>("Eyes");
   const [burnedGallery, setBurnedGallery] = useState<BurnedDroidCard[]>([]);
   const [burnConfirmText, setBurnConfirmText] = useState("");
+  const [burnRecoveryTokenId, setBurnRecoveryTokenId] = useState("");
+  const [burnRecoveryTxHash, setBurnRecoveryTxHash] = useState("");
   const [burnedGalleryLoading, setBurnedGalleryLoading] = useState(false);
   const [ownedLoading, setOwnedLoading] = useState(false);
   const [metadataLoading, setMetadataLoading] = useState(false);
@@ -443,6 +445,7 @@ export function TraitLabClient() {
   const selectedTraitLoading = actionLoading === `${selectedTraitAction}:${selectedTrait}`;
   const rollLoading = Boolean(actionLoading && actionLoading !== "confirm" && actionLoading !== "burn-droid");
   const burnLoading = actionLoading === "burn-droid";
+  const burnRecoveryLoading = actionLoading === "recover-burn";
   const [rollingAction, rollingTraitType] = rollLoading ? actionLoading.split(":") : ["", ""];
   const droidBurnRewardEnergy = traitLabConfig?.droidBurnRewardEnergy || S2_TRAIT_LAB_DROID_BURN_REWARD_ENERGY;
   const droidBurnEnabled = traitLabConfig?.droidBurnEnabled !== false;
@@ -775,6 +778,7 @@ export function TraitLabClient() {
     }
 
     const tokenIdBeingBurned = selectedTokenId;
+    let burnTxHash = "";
     setActionLoading("burn-droid");
     setPreview(null);
     setError("");
@@ -786,7 +790,7 @@ export function TraitLabClient() {
       }
 
       setStatus(`Confirm wallet burn for D.Y.O.O.R #${tokenIdBeingBurned}. This cannot be undone.`);
-      const burnTxHash = await wallet.sendTransaction({
+      burnTxHash = await wallet.sendTransaction({
         from: walletAddress,
         to: traitLabConfig.contractAddress,
         data: encodeFunctionData({
@@ -795,8 +799,12 @@ export function TraitLabClient() {
           args: [BigInt(tokenIdBeingBurned)],
         }),
       });
+      setBurnRecoveryTokenId(tokenIdBeingBurned);
+      setBurnRecoveryTxHash(burnTxHash);
       setStatus("Droid burn sent. Waiting for on-chain confirmation.");
       await waitForTransactionReceipt(burnTxHash);
+      setOwnedTokenIds((tokenIds) => tokenIds.filter((tokenId) => tokenId !== tokenIdBeingBurned));
+      setTokenCards((cards) => cards.filter((card) => card.tokenId !== tokenIdBeingBurned));
 
       setStatus(`Burn confirmed. Crediting ${droidBurnRewardEnergy} Energy.`);
       const response = await fetch("/api/s2/trait-lab/burn-droid", {
@@ -817,15 +825,58 @@ export function TraitLabClient() {
       };
       if (!response.ok || data.ok === false) throw new Error(data.error || "Droid burn reward failed.");
 
-      setOwnedTokenIds((tokenIds) => tokenIds.filter((tokenId) => tokenId !== tokenIdBeingBurned));
-      setTokenCards((cards) => cards.filter((card) => card.tokenId !== tokenIdBeingBurned));
       setSelectedTokenId("");
       setMetadata(null);
       setBurnConfirmText("");
+      setBurnRecoveryTokenId("");
+      setBurnRecoveryTxHash("");
       await Promise.all([loadEnergy(), loadBurnedGallery()]);
       setStatus(`D.Y.O.O.R #${tokenIdBeingBurned} burned. ${data.rewardEnergy || droidBurnRewardEnergy} Energy credited.`);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Droid burn failed.");
+      const message = err instanceof Error ? err.message : "Droid burn failed.";
+      if (burnTxHash) {
+        setError(`Burn confirmed, but reward/gallery claim needs retry: ${message}`);
+      } else {
+        setError(message);
+      }
+    } finally {
+      setActionLoading("");
+    }
+  }
+
+  async function recoverBurnClaim() {
+    if (!walletAddress) {
+      await connectWallet();
+      return;
+    }
+    if (!burnRecoveryTokenId.trim() || !burnRecoveryTxHash.trim()) {
+      setError("Enter the burned token ID and burn transaction hash.");
+      return;
+    }
+    setActionLoading("recover-burn");
+    setError("");
+    try {
+      const response = await fetch("/api/s2/trait-lab/burn-droid", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          wallet: walletAddress,
+          tokenId: burnRecoveryTokenId.trim(),
+          burnTxHash: burnRecoveryTxHash.trim(),
+        }),
+      });
+      const data = await response.json().catch(() => ({})) as {
+        ok?: boolean;
+        error?: string;
+        rewardEnergy?: number;
+      };
+      if (!response.ok || data.ok === false) throw new Error(data.error || "Burn reward recovery failed.");
+      setBurnRecoveryTokenId("");
+      setBurnRecoveryTxHash("");
+      await Promise.all([loadEnergy(), loadBurnedGallery()]);
+      setStatus(`Burn reward recovered. ${data.rewardEnergy || droidBurnRewardEnergy} Energy credited and gallery updated.`);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Burn reward recovery failed.");
     } finally {
       setActionLoading("");
     }
@@ -1244,6 +1295,36 @@ export function TraitLabClient() {
           </div>
           <Button variant="secondary" disabled={burnedGalleryLoading} onClick={() => void loadBurnedGallery()}>
             {burnedGalleryLoading ? "Loading" : "Refresh Gallery"}
+          </Button>
+        </div>
+
+        <div className="mt-5 grid gap-3 rounded border border-red-300/20 bg-black/30 p-4 lg:grid-cols-[9rem_minmax(0,1fr)_auto] lg:items-end">
+          <label className="grid gap-2">
+            <span className="text-xs font-black uppercase tracking-[0.16em] text-white/45">Token ID</span>
+            <input
+              className="field-control min-h-11 py-2.5 text-sm font-black"
+              inputMode="numeric"
+              placeholder="47"
+              value={burnRecoveryTokenId}
+              onChange={(event) => setBurnRecoveryTokenId(event.target.value)}
+            />
+          </label>
+          <label className="grid gap-2">
+            <span className="text-xs font-black uppercase tracking-[0.16em] text-white/45">Burn Tx Hash</span>
+            <input
+              className="field-control min-h-11 py-2.5 text-sm font-black"
+              placeholder="0x..."
+              value={burnRecoveryTxHash}
+              onChange={(event) => setBurnRecoveryTxHash(event.target.value)}
+            />
+          </label>
+          <Button
+            className="min-h-11"
+            disabled={burnRecoveryLoading || !burnRecoveryTokenId.trim() || !burnRecoveryTxHash.trim()}
+            variant="secondary"
+            onClick={() => void recoverBurnClaim()}
+          >
+            {burnRecoveryLoading ? "Recovering" : "Recover Burn"}
           </Button>
         </div>
 
