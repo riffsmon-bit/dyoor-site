@@ -63,10 +63,11 @@ export type S2UnlockableTrait = typeof S2_UNLOCKABLE_TRAITS[number];
 export type S2RemovableTrait = typeof S2_REMOVABLE_TRAITS[number];
 export type S2RecyclableTrait = typeof S2_RECYCLABLE_TRAITS[number];
 export type S2TraitLabTrait = typeof S2_TRAIT_LAB_TRAITS[number];
-export type S2TraitLabAction = "reroll" | "unlock" | "remove" | "recycle";
+export type S2TraitLabAction = "reroll" | "unlock" | "remove" | "recycle" | "rerollAll";
 export type S2TraitLabPaymentMode = "energy";
 
 export const S2_TRAIT_LAB_FLAT_UNLOCK_COST = 100;
+export const S2_TRAIT_LAB_REROLL_ALL_COST = 1000;
 export const S2_TRAIT_LAB_SPECIAL_MAX_ACTIVE_SUPPLY = 10;
 export const S2_TRAIT_LAB_TOKEN_COOLDOWN_MS = 10 * 60 * 1000;
 export const S2_TRAIT_LAB_DROID_BURN_REWARD_ENERGY = 2500;
@@ -114,6 +115,7 @@ export const S2_TRAIT_LAB_COSTS: Record<S2TraitLabAction, Partial<Record<S2Trait
     "Accessories 2": 0,
     "Stickers/Body art": 0,
   },
+  rerollAll: {},
 };
 
 export function isS2EditableTrait(value: unknown): value is S2EditableTrait {
@@ -145,7 +147,11 @@ export function isS2TraitLabTrait(value: unknown): value is S2TraitLabTrait {
 }
 
 export function isS2TraitLabAction(value: unknown): value is S2TraitLabAction {
-  return value === "reroll" || value === "unlock" || value === "remove" || value === "recycle";
+  return value === "reroll"
+    || value === "unlock"
+    || value === "remove"
+    || value === "recycle"
+    || value === "rerollAll";
 }
 
 export function isS2TraitLabPaymentMode(value: unknown): value is S2TraitLabPaymentMode {

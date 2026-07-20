@@ -29,6 +29,7 @@ export type TraitLabRollRecord = {
   recycleCreditDeduped?: boolean;
   previousValue: string;
   proposedValue: string;
+  previousAttributes?: Record<string, string>;
   proposedAttributes: Record<string, string>;
   status: TraitLabRollStatus;
   createdAt: string;

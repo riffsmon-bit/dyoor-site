@@ -13,6 +13,7 @@ import {
   S2_REMOVABLE_TRAITS,
   S2_TRAIT_LAB_FLAT_UNLOCK_COST,
   S2_TRAIT_LAB_DROID_BURN_REWARD_ENERGY,
+  S2_TRAIT_LAB_REROLL_ALL_COST,
   S2_TRAIT_LAB_SPECIAL_MAX_ACTIVE_SUPPLY,
   S2_TRAIT_LAB_TOKEN_COOLDOWN_MS,
   S2_TRAIT_LAB_RECYCLE_REWARDS,
@@ -132,6 +133,7 @@ type PreviewPayload = {
   paymentMode: S2TraitLabPaymentMode;
   previousValue: string;
   proposedValue: string;
+  previousAttributes?: Record<string, string>;
   proposedAttributes: Record<string, string>;
   costEnergy: number;
   costRaw: string;
@@ -492,6 +494,15 @@ function parsePaymentMode(value: unknown) {
 }
 
 function traitLabPaymentCost(traitType: S2TraitLabTrait, action: S2TraitLabAction): TraitLabPaymentCost {
+  if (action === "rerollAll") {
+    return {
+      costEnergy: S2_TRAIT_LAB_REROLL_ALL_COST,
+      costRaw: formatTraitLabEnergyRaw(S2_TRAIT_LAB_REROLL_ALL_COST),
+      costMon: "0",
+      costLabel: `${S2_TRAIT_LAB_REROLL_ALL_COST} Energy`,
+    };
+  }
+
   if (action === "recycle") {
     const reward = traitLabRecycleReward(traitType);
     return {
@@ -572,6 +583,7 @@ export function traitLabPublicConfig() {
     tokenCooldownMs: traitLabTokenCooldownMs(),
     droidBurnEnabled: traitLabDroidBurnEnabled(),
     droidBurnRewardEnergy: traitLabDroidBurnRewardEnergy(),
+    rerollAllCostEnergy: S2_TRAIT_LAB_REROLL_ALL_COST,
     guaranteedTraits: S2_GUARANTEED_TRAITS,
     unlockableTraits: S2_UNLOCKABLE_TRAITS,
     removableTraits: S2_REMOVABLE_TRAITS,
@@ -598,7 +610,7 @@ export function traitLabMessage(payload: PreviewPayload, timestamp: string, nonc
     "DYOOR Trait Lab",
     `Wallet: ${payload.wallet}`,
     `Token ID: ${payload.tokenId}`,
-    `Trait: ${payload.traitType}`,
+    `Trait: ${payload.action === "rerollAll" ? "All Filled Traits" : payload.traitType}`,
     `Action: ${payload.action}`,
     `Payment: ${payload.paymentMode}`,
     `Value: ${payload.proposedValue}`,
@@ -948,7 +960,32 @@ function proposedAttributePatch(previous: Record<string, string>, next: Record<s
   return patch;
 }
 
+function proposedAttributePatchForAll(previous: Record<string, string>, next: Record<string, string>) {
+  const patch: Record<string, string> = {};
+  for (const editable of S2_EDITABLE_TRAITS) {
+    if (!valuesMatch(previous[editable], next[editable])) patch[editable] = next[editable] || "None";
+  }
+  return patch;
+}
+
+function rerollAllEligibleTraits(traits: Record<string, string>, supplyLedger?: TraitSupplyLedger) {
+  return S2_EDITABLE_TRAITS.filter((traitType) => {
+    const currentValue = traits[traitType];
+    if (isEmptyTraitValue(currentValue)) return false;
+
+    // Empty sticker/body-art slots are intentionally not guaranteed by Reroll All.
+    // They only join the bundle after the token already has this slot unlocked.
+    if (traitType === "Stickers/Body art" && isEmptyTraitValue(currentValue)) return false;
+
+    return optionsForTrait(traitType).some((option) => (
+      isOptionSupplyAvailable(option, supplyLedger) && !valuesMatch(option.value, currentValue)
+    ));
+  });
+}
+
 function assertValidRequestedChange(traits: Record<string, string>, traitType: S2TraitLabTrait, action: S2TraitLabAction) {
+  if (action === "rerollAll") return;
+
   const currentValue = traits[traitType];
   if (action === "remove" && !isS2RemovableTrait(traitType)) {
     throw Object.assign(new Error(`${traitType} cannot be removed in Trait Lab.`), { status: 400 });
@@ -976,12 +1013,85 @@ function assertValidRequestedChange(traits: Record<string, string>, traitType: S
   }
 }
 
+function generateRerollAllCandidate(
+  traits: Record<string, string>,
+  supplyLedger?: TraitSupplyLedger,
+) {
+  const eligibleTraits = rerollAllEligibleTraits(traits, supplyLedger);
+  if (!eligibleTraits.length) {
+    throw Object.assign(new Error("No filled mutable trait slots are available for Reroll All."), { status: 400 });
+  }
+
+  for (let attempt = 0; attempt < 80; attempt += 1) {
+    let nextTraits = { ...traits };
+    let failed = false;
+
+    for (const traitType of shuffle(eligibleTraits)) {
+      const currentValue = nextTraits[traitType];
+      const candidates = weightedOptionOrder(optionsForTrait(traitType).filter((option) => (
+        isOptionSupplyAvailable(option, supplyLedger)
+          && !valuesMatch(option.value, traits[traitType])
+          && !valuesMatch(option.value, currentValue)
+      )));
+      const picked = candidates.find((candidate) => {
+        const changed = {
+          ...nextTraits,
+          [traitType]: candidate.value,
+        };
+        const sideEffected = applyTraitSideEffects(changed, traitType);
+        if (eligibleTraits.some((eligible) => isEmptyTraitValue(sideEffected[eligible]))) return false;
+        return !validationConflict(sideEffected);
+      });
+
+      if (!picked) {
+        failed = true;
+        break;
+      }
+
+      nextTraits = applyTraitSideEffects({
+        ...nextTraits,
+        [traitType]: picked.value,
+      }, traitType);
+    }
+
+    if (failed || eligibleTraits.some((traitType) => isEmptyTraitValue(nextTraits[traitType]))) continue;
+    const conflict = validationConflict(nextTraits);
+    if (conflict) continue;
+
+    const proposedAttributes = proposedAttributePatchForAll(traits, nextTraits);
+    if (!Object.keys(proposedAttributes).length) continue;
+
+    return {
+      option: {
+        traitType: eligibleTraits[0],
+        file: "",
+        value: `${Object.keys(proposedAttributes).length} traits rerolled`,
+        assetUri: "",
+        rarity: "Bundle",
+        initialSupply: 0,
+        maxActiveSupply: 0,
+        burnOnEquip: "",
+        weight: 0,
+      },
+      nextTraits,
+      proposedAttributes,
+      eligibleTraits,
+    };
+  }
+
+  throw Object.assign(new Error("No valid Reroll All result is available with the current trait combination."), { status: 409 });
+}
+
 function generateCandidate(
   traits: Record<string, string>,
   traitType: S2TraitLabTrait,
   action: S2TraitLabAction,
   supplyLedger?: TraitSupplyLedger,
 ) {
+  if (action === "rerollAll") {
+    throw Object.assign(new Error("Reroll All uses the bundle generator."), { status: 400 });
+  }
+
   assertValidRequestedChange(traits, traitType, action);
 
   const currentValue = traits[traitType];
@@ -1036,7 +1146,56 @@ function generateCandidate(
     : `${traitType} does not have approved Trait Lab options.`), { status: 409 });
 }
 
+function validateRerollAllPatch(currentTraits: Record<string, string>, payload: PreviewPayload) {
+  const proposedEntries = Object.entries(payload.proposedAttributes || {});
+  if (!proposedEntries.length) {
+    throw Object.assign(new Error("Reroll All preview does not contain any trait updates."), { status: 400 });
+  }
+
+  const eligibleTraits = rerollAllEligibleTraits(currentTraits);
+  const eligibleSet = new Set<string>(eligibleTraits);
+  if (!eligibleTraits.length) {
+    throw Object.assign(new Error("No filled mutable trait slots are available for Reroll All."), { status: 400 });
+  }
+
+  for (const traitType of eligibleTraits) {
+    if (!(traitType in payload.proposedAttributes)) {
+      throw Object.assign(new Error("Reroll All preview is missing an eligible filled trait."), { status: 400 });
+    }
+  }
+
+  for (const [traitType, value] of proposedEntries) {
+    if (!isS2EditableTrait(traitType) || !eligibleSet.has(traitType)) {
+      throw Object.assign(new Error("Reroll All preview contains a trait that is not currently filled and eligible."), { status: 400 });
+    }
+    if (isEmptyTraitValue(value)) {
+      throw Object.assign(new Error("Reroll All cannot clear filled trait slots."), { status: 400 });
+    }
+    if (valuesMatch(currentTraits[traitType], value)) {
+      throw Object.assign(new Error("Reroll All preview contains an unchanged trait."), { status: 400 });
+    }
+    const approved = optionsForTrait(traitType).some((option) => valuesMatch(option.value, value));
+    if (!approved) {
+      throw Object.assign(new Error("Reroll All preview contains an unapproved trait result."), { status: 400 });
+    }
+  }
+
+  const nextTraits = { ...currentTraits, ...payload.proposedAttributes };
+  for (const traitType of eligibleTraits) {
+    if (isEmptyTraitValue(nextTraits[traitType])) {
+      throw Object.assign(new Error("Reroll All cannot clear filled trait slots."), { status: 400 });
+    }
+  }
+  const conflict = validationConflict(nextTraits);
+  if (conflict) throw Object.assign(new Error(conflict), { status: 409 });
+  return nextTraits;
+}
+
 function validateProposedPatch(currentTraits: Record<string, string>, payload: PreviewPayload) {
+  if (payload.action === "rerollAll") {
+    return validateRerollAllPatch(currentTraits, payload);
+  }
+
   const changedValue = payload.proposedAttributes[payload.traitType];
   if (payload.action === "remove" || payload.action === "recycle") {
     const validTrait = payload.action === "recycle"
@@ -1101,8 +1260,30 @@ function proposedPatchAlreadyApplied(currentTraits: Record<string, string>, payl
   return Object.entries(payload.proposedAttributes || {}).every(([traitType, value]) => valuesMatch(currentTraits[traitType], value));
 }
 
+function assertPreviewTraitsStillCurrent(currentTraits: Record<string, string>, payload: PreviewPayload) {
+  if (payload.action !== "rerollAll") {
+    if (!valuesMatch(currentTraits[payload.traitType], payload.previousValue)) {
+      throw Object.assign(new Error("Metadata changed since preview. Generate a new preview."), { status: 409 });
+    }
+    return;
+  }
+
+  const previousAttributes = payload.previousAttributes || {};
+  const proposedTraitTypes = Object.keys(payload.proposedAttributes || {});
+  if (!proposedTraitTypes.length) {
+    throw Object.assign(new Error("Reroll All preview does not contain any trait updates."), { status: 400 });
+  }
+
+  for (const traitType of proposedTraitTypes) {
+    if (!Object.prototype.hasOwnProperty.call(previousAttributes, traitType)
+      || !valuesMatch(currentTraits[traitType], previousAttributes[traitType])) {
+      throw Object.assign(new Error("Metadata changed since preview. Generate a new preview."), { status: 409 });
+    }
+  }
+}
+
 function supplyDeltasForPayload(payload: PreviewPayload) {
-  return supplyDeltasForPatch({ [payload.traitType]: payload.previousValue }, payload.proposedAttributes);
+  return supplyDeltasForPatch(payload.previousAttributes || { [payload.traitType]: payload.previousValue }, payload.proposedAttributes);
 }
 
 function provider() {
@@ -1743,7 +1924,11 @@ function parseTraitType(value: unknown): S2TraitLabTrait {
 
 function parseAction(value: unknown) {
   const requestedAction = String(value || "").trim();
-  const action = requestedAction === "remove" ? "recycle" : requestedAction;
+  const action = requestedAction === "remove"
+    ? "recycle"
+    : requestedAction === "reroll-all"
+      ? "rerollAll"
+      : requestedAction;
   if (!isS2TraitLabAction(action)) {
     throw Object.assign(new Error("Invalid Trait Lab action."), { status: 400 });
   }
@@ -1767,7 +1952,9 @@ export async function createTraitLabPreview(input: Record<string, unknown>) {
   assertTokenCooldownComplete(currentOverride);
   const traits = traitMapFromMetadata(metadata as MetadataJson);
   const supplyLedger = await getTraitSupplyLedger();
-  const candidate = generateCandidate(traits, traitType, action, supplyLedger);
+  const candidate = action === "rerollAll"
+    ? generateRerollAllCandidate(traits, supplyLedger)
+    : generateCandidate(traits, traitType, action, supplyLedger);
   const version = metadataVersion(metadata as MetadataJson) + 1;
   const paymentCost = traitLabPaymentCost(traitType, action);
   const { costEnergy, costRaw, costMon, costLabel, rewardEnergy, rewardRaw, rewardLabel } = paymentCost;
@@ -1775,6 +1962,13 @@ export async function createTraitLabPreview(input: Record<string, unknown>) {
   await assertSupplyDeltasAvailable(supplyDeltas);
   const rollId = crypto.randomUUID();
   const energyDebitId = `trait-lab-roll:${rollId}`;
+  const changedTraitCount = Object.keys(candidate.proposedAttributes).length;
+  const displayPreviousValue = action === "rerollAll"
+    ? `${changedTraitCount} filled trait${changedTraitCount === 1 ? "" : "s"}`
+    : titleValue(traits[traitType]);
+  const displayProposedValue = action === "rerollAll"
+    ? `${changedTraitCount} trait${changedTraitCount === 1 ? "" : "s"} rerolled`
+    : candidate.option.value;
   const recycleCreditClaim = action === "recycle"
     ? traitLabRecycleCreditClaim({
       rollId,
@@ -1783,8 +1977,9 @@ export async function createTraitLabPreview(input: Record<string, unknown>) {
       traitType,
       action,
       paymentMode,
-      previousValue: titleValue(traits[traitType]),
-      proposedValue: candidate.option.value,
+      previousValue: displayPreviousValue,
+      proposedValue: displayProposedValue,
+      previousAttributes: traits,
       proposedAttributes: candidate.proposedAttributes,
       costEnergy,
       costRaw,
@@ -1806,8 +2001,9 @@ export async function createTraitLabPreview(input: Record<string, unknown>) {
     traitType,
     action,
     paymentMode,
-    previousValue: titleValue(traits[traitType]),
-    proposedValue: candidate.option.value,
+    previousValue: displayPreviousValue,
+    proposedValue: displayProposedValue,
+    previousAttributes: traits,
     proposedAttributes: candidate.proposedAttributes,
     costEnergy,
     costRaw,
@@ -1862,6 +2058,7 @@ export async function createTraitLabPreview(input: Record<string, unknown>) {
     recycleCreditClaim,
     previousValue: payload.previousValue,
     proposedValue: payload.proposedValue,
+    previousAttributes: payload.previousAttributes,
     proposedAttributes: payload.proposedAttributes,
     status: "created",
     createdAt: new Date().toISOString(),
@@ -1888,6 +2085,7 @@ export async function createTraitLabPreview(input: Record<string, unknown>) {
     recycleCreditClaim,
     previousValue: payload.previousValue,
     proposedValue: payload.proposedValue,
+    previousAttributes: payload.previousAttributes,
     proposedAttributes: payload.proposedAttributes,
     status: "charged",
     createdAt: new Date().toISOString(),
@@ -2009,11 +2207,11 @@ export async function confirmTraitLabPreview(input: Record<string, unknown>) {
   if (currentMetadataVersion !== expectedCurrentMetadataVersion && !recyclePatchApplied) {
     throw Object.assign(new Error("Metadata changed since preview. Generate a new preview."), { status: 409 });
   }
-  if (!recyclePatchApplied) {
+  if (!recyclePatchApplied && payload.action !== "rerollAll") {
     assertValidRequestedChange(currentTraits, payload.traitType, payload.action);
   }
-  if (!valuesMatch(currentTraits[payload.traitType], payload.previousValue) && !recyclePatchApplied) {
-    throw Object.assign(new Error("Metadata changed since preview. Generate a new preview."), { status: 409 });
+  if (!recyclePatchApplied) {
+    assertPreviewTraitsStillCurrent(currentTraits, payload);
   }
   if (!recyclePatchApplied) {
     validateProposedPatch(currentTraits, payload);

@@ -13,6 +13,7 @@ import {
   S2_TRAIT_LAB_TRAITS,
   S2_TRAIT_LAB_COSTS,
   S2_TRAIT_LAB_DROID_BURN_REWARD_ENERGY,
+  S2_TRAIT_LAB_REROLL_ALL_COST,
   S2_TRAIT_LAB_RECYCLE_REWARDS,
   S2_UNLOCKABLE_TRAITS,
   type S2TraitLabTrait,
@@ -137,6 +138,7 @@ type TraitLabConfigResponse = {
   recycleRewards?: Record<string, number>;
   droidBurnEnabled?: boolean;
   droidBurnRewardEnergy?: number;
+  rerollAllCostEnergy?: number;
   error?: string;
 };
 
@@ -260,6 +262,7 @@ function actionLabel(action: S2TraitLabAction | "") {
   if (action === "unlock") return "Unlock Slot";
   if (action === "remove") return "Remove Trait";
   if (action === "recycle") return "Recycle Trait";
+  if (action === "rerollAll") return "Reroll All";
   if (action === "reroll") return "Reroll";
   return "Unavailable";
 }
@@ -268,11 +271,13 @@ function actionVerb(action: S2TraitLabAction | "") {
   if (action === "unlock") return "Unlock";
   if (action === "remove") return "Remove";
   if (action === "recycle") return "Recycle";
+  if (action === "rerollAll") return "Reroll All";
   if (action === "reroll") return "Reroll";
   return "Roll";
 }
 
 function costFor(traitType: string, action: S2TraitLabAction | "") {
+  if (action === "rerollAll") return `${S2_TRAIT_LAB_REROLL_ALL_COST} Energy`;
   if (!action || !S2_TRAIT_LAB_TRAITS.includes(traitType as S2TraitLabTrait)) return null;
   if (action === "recycle") {
     const reward = S2_TRAIT_LAB_RECYCLE_REWARDS[traitType as S2TraitLabTrait];
@@ -466,8 +471,11 @@ function RollProgress({
       ? "Removing trait"
       : action === "recycle"
         ? "Recycling trait"
-        : "Rolling reroll";
+        : action === "rerollAll"
+          ? "Rolling all filled traits"
+          : "Rolling reroll";
   const paymentLabel = action === "recycle" ? "Energy reward" : "Energy spend";
+  const displayTraitType = action === "rerollAll" ? "All Filled Traits" : traitType || "-";
 
   return (
     <div className="mt-5 overflow-hidden rounded border border-dyoor-cyan/30 bg-dyoor-cyan/10">
@@ -483,12 +491,14 @@ function RollProgress({
           <p className="mt-2 text-sm font-semibold leading-6 text-white/62">
             {action === "recycle"
               ? `Preparing a ${traitType || "trait"} burn and Energy reward while preserving the current metadata view.`
+              : action === "rerollAll"
+                ? "Generating one compatible bundle result from the filled mutable slots on this Droid."
               : `Generating a compatible ${traitType || "trait"} result and preserving the current metadata view.`}
           </p>
           <div className="mt-4 grid gap-2 text-xs font-black uppercase tracking-[0.14em] text-white/56 sm:grid-cols-2">
             <div className="rounded border border-white/10 bg-black/30 px-3 py-2">
               <span className="text-white/35">Trait</span>
-              <span className="ml-2 text-white">{traitType || "-"}</span>
+              <span className="ml-2 text-white">{displayTraitType}</span>
             </div>
             <div className="rounded border border-white/10 bg-black/30 px-3 py-2">
               <span className="text-white/35">Payment</span>
@@ -537,6 +547,12 @@ export function TraitLabClient() {
   const selectedTraitAction = selectedTraitActions.includes(selectedAction as S2TraitLabAction)
     ? selectedAction as S2TraitLabAction
     : selectedTraitActions[0] || "";
+  const rerollAllTraits = useMemo(() => S2_EDITABLE_TRAITS.filter((trait) => (
+    !isEmptyTraitValue(selectedTraits[trait])
+      && actionOptionsForTrait(trait, selectedTraits[trait]).includes("reroll")
+  )), [selectedTraits]);
+  const rerollAllTraitAnchor = (rerollAllTraits[0] || selectedTrait) as S2TraitLabTrait;
+  const rerollAllCostEnergy = traitLabConfig?.rerollAllCostEnergy || S2_TRAIT_LAB_REROLL_ALL_COST;
   const selectedTraitReward = selectedTraitAction === "recycle"
     ? traitLabConfig?.recycleRewards?.[selectedTrait] ?? S2_TRAIT_LAB_RECYCLE_REWARDS[selectedTrait] ?? 0
     : 0;
@@ -812,6 +828,8 @@ export function TraitLabClient() {
     setError("");
     setStatus(action === "recycle"
       ? "Preparing trait recycle preview."
+      : action === "rerollAll"
+        ? "Spending Energy and generating a Reroll All bundle."
       : "Spending Energy and generating roll.");
     try {
       const payment = {};
@@ -844,6 +862,8 @@ export function TraitLabClient() {
           ? "Remove trait preview ready."
           : action === "recycle"
             ? "Recycle preview ready."
+            : action === "rerollAll"
+              ? "Reroll All ready."
             : "Reroll ready.");
       if (data.paymentMode === "energy") await loadEnergy();
     } catch (err) {
@@ -1095,6 +1115,21 @@ export function TraitLabClient() {
                     </div>
 
                     <div className="flex flex-wrap gap-2 lg:justify-end">
+                      {rerollAllTraits.length ? (
+                        <Button
+                          className="min-w-[13rem] py-2.5 text-xs"
+                          disabled={!metadata || Boolean(actionLoading)}
+                          variant="secondary"
+                          onClick={() => {
+                            setSelectedAction("rerollAll");
+                            void previewChange(rerollAllTraitAnchor, "rerollAll");
+                          }}
+                        >
+                          {actionLoading === `rerollAll:${rerollAllTraitAnchor}`
+                            ? "Rerolling All"
+                            : `Reroll All Filled (${rerollAllTraits.length}) · ${rerollAllCostEnergy} Energy`}
+                        </Button>
+                      ) : null}
                       {selectedTraitActions.length ? selectedTraitActions.map((action) => {
                         const loading = actionLoading === `${action}:${selectedTrait}`;
                         const actionCost = action === "recycle" && selectedTraitReward
@@ -1130,7 +1165,8 @@ export function TraitLabClient() {
                             ? "Recycling burns this optional trait, clears the slot to None, and awards Energy after Confirm Change."
                           : selectedTraitAction === "remove"
                             ? "Removing spends the selected payment method and clears this optional trait to None."
-                            : "Rolling spends the selected payment method and creates one compatible reroll result."}
+                            : "Rolling spends Energy and creates one compatible reroll result."}
+                    {rerollAllTraits.length ? " Reroll All only includes filled mutable slots; empty Stickers/Body art stays excluded until unlocked." : ""}
                   </p>
                 </div>
 
@@ -1252,7 +1288,7 @@ export function TraitLabClient() {
                 <div className="grid gap-3 md:grid-cols-3">
                   <div className="rounded border border-white/10 bg-white/[0.035] p-4">
                     <p className="text-xs font-black uppercase tracking-[0.16em] text-white/42">Trait</p>
-                    <p className="mt-2 text-xl font-black text-white">{preview.traitType}</p>
+                    <p className="mt-2 text-xl font-black text-white">{preview.action === "rerollAll" ? "All Filled Traits" : preview.traitType}</p>
                   </div>
                   <div className="rounded border border-white/10 bg-white/[0.035] p-4">
                     <p className="text-xs font-black uppercase tracking-[0.16em] text-white/42">Before</p>
@@ -1351,7 +1387,7 @@ export function TraitLabClient() {
                           >
                             {actionLoading === `${preview.action}:${preview.traitType}`
                               ? "Rolling"
-                            : preview.action === "reroll" ? `Reroll Again · ${preview.costLabel || "Cost"}` : `Roll Again · ${preview.costLabel || "Cost"}`}
+                            : preview.action === "rerollAll" ? `Reroll All Again · ${preview.costLabel || "Cost"}` : preview.action === "reroll" ? `Reroll Again · ${preview.costLabel || "Cost"}` : `Roll Again · ${preview.costLabel || "Cost"}`}
                           </Button>
                         ) : null}
                       </div>
@@ -1387,7 +1423,7 @@ export function TraitLabClient() {
 
                 <div className="flex flex-wrap gap-3">
                   <Button variant="primary" disabled={actionLoading === "confirm"} onClick={() => void confirmChange()}>
-                    {actionLoading === "confirm" ? "Confirming" : preview.action === "recycle" ? "Confirm Recycle" : "Confirm Change"}
+                    {actionLoading === "confirm" ? "Confirming" : preview.action === "recycle" ? "Confirm Recycle" : preview.action === "rerollAll" ? "Confirm Reroll All" : "Confirm Change"}
                   </Button>
                   <Button variant="secondary" disabled={actionLoading === "confirm"} onClick={() => setPreview(null)}>
                     Cancel
