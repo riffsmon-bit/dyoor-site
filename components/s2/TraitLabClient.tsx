@@ -1103,21 +1103,21 @@ export function TraitLabClient() {
                 <Alert tone="idle" className="mt-3 py-3">Locked traits cannot be changed.</Alert>
 
                 <div className="mt-3 rounded border border-dyoor-cyan/20 bg-black/30 p-3">
-                  <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-end">
+                  <div className="grid gap-3">
                     <div className="grid gap-2">
                       <p className="text-xs font-black uppercase tracking-[0.16em] text-white/45">Selected Slot</p>
                       <div className="min-h-11 rounded border border-white/10 bg-white/[0.035] px-3 py-2.5">
                         <p className="truncate text-sm font-black text-white">{selectedTrait}: {displayTraitValue(selectedTraitValue)}</p>
-                        <p className={`mt-1 text-[0.65rem] font-black uppercase tracking-[0.14em] ${selectedTraitIsEmpty ? "text-yellow-100" : "text-dyoor-cyan"}`}>
+                        <p className={`mt-1 break-words text-[0.62rem] font-black uppercase leading-4 tracking-[0.1em] ${selectedTraitIsEmpty ? "text-yellow-100" : "text-dyoor-cyan"}`}>
                           {selectedTraitGuaranteedEmpty ? "Guaranteed trait" : selectedTraitActions.length ? "Choose Reroll, Unlock, or Recycle" : "Unavailable"}
                         </p>
                       </div>
                     </div>
 
-                    <div className="flex flex-wrap gap-2 lg:justify-end">
+                    <div className="grid gap-2 sm:grid-cols-2 2xl:grid-cols-3">
                       {rerollAllTraits.length ? (
                         <Button
-                          className="min-w-[13rem] py-2.5 text-xs"
+                          className="w-full px-3 py-2.5 text-[0.7rem] leading-tight"
                           disabled={!metadata || Boolean(actionLoading)}
                           variant="secondary"
                           onClick={() => {
@@ -1138,7 +1138,7 @@ export function TraitLabClient() {
                         return (
                           <Button
                             key={action}
-                            className="min-w-[10rem] py-2.5 text-xs"
+                            className="w-full px-3 py-2.5 text-[0.7rem] leading-tight"
                             disabled={!metadata || Boolean(actionLoading)}
                             variant={action === "unlock" ? "primary" : "secondary"}
                             onClick={() => {
@@ -1150,7 +1150,7 @@ export function TraitLabClient() {
                           </Button>
                         );
                       }) : (
-                        <Button className="min-w-[10rem] py-2.5 text-xs" disabled variant="secondary">
+                        <Button className="w-full px-3 py-2.5 text-[0.7rem] leading-tight" disabled variant="secondary">
                           {selectedTraitGuaranteedEmpty ? "Guaranteed" : "Unavailable"}
                         </Button>
                       )}
