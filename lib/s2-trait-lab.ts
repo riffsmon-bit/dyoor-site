@@ -12,14 +12,10 @@ import {
   S2_UNLOCKABLE_TRAITS,
   S2_REMOVABLE_TRAITS,
   S2_TRAIT_LAB_FLAT_UNLOCK_COST,
-  S2_TRAIT_LAB_ENERGY_PER_MON,
+  S2_TRAIT_LAB_DROID_BURN_REWARD_ENERGY,
   S2_TRAIT_LAB_SPECIAL_MAX_ACTIVE_SUPPLY,
   S2_TRAIT_LAB_TOKEN_COOLDOWN_MS,
   S2_TRAIT_LAB_RECYCLE_REWARDS,
-  S2_TRAIT_LAB_MON_COSTS,
-  S2_TRAIT_LAB_MEME_PAYMENT_TOKENS,
-  S2_TRAIT_LAB_MEME_TOKEN_COSTS,
-  S2_TRAIT_LAB_BURN_ADDRESS,
   S2_TRAIT_LAB_COSTS,
   isS2EditableTrait,
   isS2UnlockableTrait,
@@ -45,8 +41,7 @@ import { refreshOpenSeaTokenMetadata } from "@/lib/opensea-metadata-refresh";
 import {
   applyTraitSupplyDeltas,
   assertTraitSupplyAvailable,
-  claimTraitLabMemePayment,
-  claimTraitLabMonPayment,
+  saveBurnedDroidRecord,
   getTraitLabRoll,
   getTraitSupplyLedger,
   saveTraitLabRoll,
@@ -187,19 +182,12 @@ const ENERGY_BANK_ABI = [
   "function hasRole(bytes32 role,address account) view returns (bool)",
 ];
 
-const ERC20_ABI = [
-  "event Transfer(address indexed from,address indexed to,uint256 value)",
-  "function decimals() view returns (uint8)",
-  "function symbol() view returns (string)",
-];
-
-const ERC20_TRANSFER_TOPIC = ethers.id("Transfer(address,address,uint256)");
-
 const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
 const DEFAULT_TRAIT_ASSETS_CID = "bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu";
 const PREVIEW_TTL_MS = 5 * 60 * 1000;
 const CONFIRM_WINDOW_MS = 5 * 60 * 1000;
 const TRANSFER_TOPIC = ethers.id("Transfer(address,address,uint256)");
+const BURN_SELECTOR = ethers.id("burn(uint256)").slice(0, 10).toLowerCase();
 const DEFAULT_MONAD_MAINNET_RPC_URL = "https://rpc.monad.xyz";
 const DEFAULT_MONAD_MAINNET_EXPLORER_URL = "https://monadscan.com";
 const DEFAULT_S2_DEPLOYMENT_BLOCK = 87616887;
@@ -260,74 +248,6 @@ function requireTxHash(value: unknown) {
     throw Object.assign(new Error("A wallet transaction is required for this roll."), { status: 400 });
   }
   return txHash;
-}
-
-function monCostRaw(value: string) {
-  try {
-    return ethers.parseUnits(String(value || "0"), 18);
-  } catch {
-    throw Object.assign(new Error("Invalid MON cost configuration."), { status: 500 });
-  }
-}
-
-function memePaymentBurnAddress() {
-  const address = optionalAddress(S2_TRAIT_LAB_BURN_ADDRESS);
-  if (!address) throw Object.assign(new Error("Trait Lab meme burn address is not configured."), { status: 500 });
-  return address;
-}
-
-function approvedMemePaymentTokens() {
-  return S2_TRAIT_LAB_MEME_PAYMENT_TOKENS.map((token) => ({
-    ...token,
-    address: ethers.getAddress(token.address),
-  }));
-}
-
-function requireMemePaymentToken(value: unknown) {
-  const address = optionalAddress(value);
-  if (!address) {
-    throw Object.assign(new Error("Select an approved meme token for this roll."), { status: 400 });
-  }
-  const token = approvedMemePaymentTokens().find((item) => item.address.toLowerCase() === address.toLowerCase());
-  if (!token) {
-    throw Object.assign(new Error("This meme token is not approved for Trait Lab payments."), { status: 400 });
-  }
-  return token;
-}
-
-function tokenUnitCost(traitType: S2TraitLabTrait, action: S2TraitLabAction) {
-  const cost = S2_TRAIT_LAB_MEME_TOKEN_COSTS[action][traitType];
-  if (typeof cost !== "string" || !cost || cost === "0") {
-    throw Object.assign(new Error(`${traitType} does not support Trait Lab ${action} with meme tokens.`), { status: 400 });
-  }
-  return cost;
-}
-
-async function memeTokenQuote(tokenAddress: string, traitType: S2TraitLabTrait, action: S2TraitLabAction) {
-  const costUnits = tokenUnitCost(traitType, action);
-  const token = new ethers.Contract(tokenAddress, ERC20_ABI, provider());
-  const [decimalsResult, symbolResult] = await Promise.all([
-    token.decimals(),
-    token.symbol().catch(() => ""),
-  ]);
-  const decimals = Number(decimalsResult);
-  if (!Number.isInteger(decimals) || decimals < 0 || decimals > 36) {
-    throw Object.assign(new Error("Approved meme token has an invalid decimals value."), { status: 500 });
-  }
-  const amountRaw = ethers.parseUnits(costUnits, decimals);
-  if (amountRaw <= 1n) {
-    throw Object.assign(new Error("Approved meme token cost is too small to split."), { status: 500 });
-  }
-  const burnAmountRaw = amountRaw / 2n;
-  const treasuryAmountRaw = amountRaw - burnAmountRaw;
-  return {
-    costUnits,
-    decimals,
-    symbol: String(symbolResult || "").trim(),
-    amountRaw,
-    burnAmountRaw,
-    treasuryAmountRaw,
-  };
 }
 
 function configuredS2ChainId() {
@@ -443,6 +363,10 @@ function topicAddress(address: string) {
   return ethers.zeroPadValue(address, 32);
 }
 
+function topicUint256(value: number | bigint | string) {
+  return ethers.zeroPadValue(ethers.toBeHex(BigInt(value)), 32).toLowerCase();
+}
+
 function traitAssetCid() {
   return readEnv("DYOOR_S2_TRAIT_ASSETS_CID", "NEXT_PUBLIC_DYOOR_S2_TRAIT_ASSETS_CID") || DEFAULT_TRAIT_ASSETS_CID;
 }
@@ -556,25 +480,18 @@ export function traitLabRecycleReward(traitType: S2TraitLabTrait) {
   };
 }
 
-function monTestModeEnabled() {
-  const raw = readEnv("DYOOR_TRAIT_LAB_ENABLE_MON_TEST", "NEXT_PUBLIC_DYOOR_TRAIT_LAB_ENABLE_MON_TEST");
-  if (/^(0|false|no|off)$/i.test(raw)) return false;
-  if (/^(1|true|yes|on)$/i.test(raw)) return true;
-  return true;
-}
-
 function parsePaymentMode(value: unknown) {
   const paymentMode = String(value || "energy").trim().toLowerCase();
   if (!isS2TraitLabPaymentMode(paymentMode)) {
     throw Object.assign(new Error("Invalid Trait Lab payment mode."), { status: 400 });
   }
-  if (paymentMode === "mon" && !monTestModeEnabled()) {
-    throw Object.assign(new Error("MON Trait Lab payments are disabled."), { status: 403 });
+  if (paymentMode !== "energy") {
+    throw Object.assign(new Error("Trait Lab currently supports Energy payments only."), { status: 403 });
   }
   return paymentMode;
 }
 
-function traitLabPaymentCost(traitType: S2TraitLabTrait, action: S2TraitLabAction, paymentMode: S2TraitLabPaymentMode): TraitLabPaymentCost {
+function traitLabPaymentCost(traitType: S2TraitLabTrait, action: S2TraitLabAction): TraitLabPaymentCost {
   if (action === "recycle") {
     const reward = traitLabRecycleReward(traitType);
     return {
@@ -587,30 +504,6 @@ function traitLabPaymentCost(traitType: S2TraitLabTrait, action: S2TraitLabActio
   }
 
   const energyCost = traitLabCost(traitType, action);
-  if (paymentMode === "mon") {
-    const costMon = S2_TRAIT_LAB_MON_COSTS[action][traitType];
-    if (typeof costMon !== "string") {
-      throw Object.assign(new Error(`${traitType} does not support Trait Lab ${action}.`), { status: 400 });
-    }
-    return {
-      costEnergy: 0,
-      costRaw: "0",
-      costMon,
-      costLabel: `${costMon} MON`,
-    };
-  }
-  if (paymentMode === "meme") {
-    const costMeme = S2_TRAIT_LAB_MEME_TOKEN_COSTS[action][traitType];
-    if (typeof costMeme !== "string" || !costMeme || costMeme === "0") {
-      throw Object.assign(new Error(`${traitType} does not support Trait Lab ${action} with meme tokens.`), { status: 400 });
-    }
-    return {
-      costEnergy: 0,
-      costRaw: "0",
-      costMon: costMeme,
-      costLabel: `${costMeme} meme tokens`,
-    };
-  }
   return {
     ...energyCost,
     costMon: "0",
@@ -623,6 +516,19 @@ function traitLabTokenCooldownMs() {
   if (!raw) return S2_TRAIT_LAB_TOKEN_COOLDOWN_MS;
   const parsed = Number(raw);
   return Number.isFinite(parsed) && parsed >= 0 ? Math.floor(parsed) : S2_TRAIT_LAB_TOKEN_COOLDOWN_MS;
+}
+
+export function traitLabDroidBurnRewardEnergy() {
+  const raw = readEnv("DYOOR_TRAIT_LAB_DROID_BURN_REWARD_ENERGY", "NEXT_PUBLIC_DYOOR_TRAIT_LAB_DROID_BURN_REWARD_ENERGY");
+  const parsed = Number.parseInt(raw, 10);
+  return Number.isSafeInteger(parsed) && parsed > 0 ? parsed : S2_TRAIT_LAB_DROID_BURN_REWARD_ENERGY;
+}
+
+export function traitLabDroidBurnEnabled() {
+  const configured = readEnv("DYOOR_TRAIT_LAB_ENABLE_DROID_BURN", "NEXT_PUBLIC_DYOOR_TRAIT_LAB_ENABLE_DROID_BURN");
+  if (/^(0|false|no|off|disabled)$/i.test(configured)) return false;
+  if (/^(1|true|yes|on|enabled)$/i.test(configured)) return true;
+  return true;
 }
 
 function formatCooldown(ms: number) {
@@ -655,25 +561,22 @@ export function traitLabPublicConfig() {
   return {
     ok: true,
     treasuryWallet: traitLabTreasuryWallet(),
-    monTestMode: monTestModeEnabled(),
+    contractAddress: s2ContractAddress(),
     chainId,
     chainHex: chainId > 0 ? `0x${chainId.toString(16)}` : "",
     chainName: safeChainName,
     rpcUrl: configuredS2RpcUrl(),
     explorerUrl: configuredS2ExplorerUrl(),
-    energyPerMon: S2_TRAIT_LAB_ENERGY_PER_MON,
     flatUnlockCostEnergy: S2_TRAIT_LAB_FLAT_UNLOCK_COST,
     specialMaxActiveSupply: S2_TRAIT_LAB_SPECIAL_MAX_ACTIVE_SUPPLY,
     tokenCooldownMs: traitLabTokenCooldownMs(),
+    droidBurnEnabled: traitLabDroidBurnEnabled(),
+    droidBurnRewardEnergy: traitLabDroidBurnRewardEnergy(),
     guaranteedTraits: S2_GUARANTEED_TRAITS,
     unlockableTraits: S2_UNLOCKABLE_TRAITS,
     removableTraits: S2_REMOVABLE_TRAITS,
     recyclableTraits: S2_RECYCLABLE_TRAITS,
     recycleRewards: S2_TRAIT_LAB_RECYCLE_REWARDS,
-    monCosts: S2_TRAIT_LAB_MON_COSTS,
-    memePaymentTokens: approvedMemePaymentTokens(),
-    memeTokenCosts: S2_TRAIT_LAB_MEME_TOKEN_COSTS,
-    burnAddress: memePaymentBurnAddress(),
   };
 }
 
@@ -705,13 +608,6 @@ export function traitLabMessage(payload: PreviewPayload, timestamp: string, nonc
   if (payload.rewardLabel) {
     lines.push(`Reward: ${payload.rewardLabel}`);
     lines.push(`RewardRaw: ${payload.rewardRaw || "0"}`);
-  }
-  if (payload.paymentMode === "meme") {
-    lines.push(`Payment Token: ${payload.paymentTokenAddress || ""}`);
-    lines.push(`Payment Token Symbol: ${payload.paymentTokenSymbol || ""}`);
-    lines.push(`Payment Token AmountRaw: ${payload.paymentTokenAmountRaw || "0"}`);
-    lines.push(`Payment Token TreasuryRaw: ${payload.paymentTokenTreasuryAmountRaw || "0"}`);
-    lines.push(`Payment Token BurnRaw: ${payload.paymentTokenBurnAmountRaw || "0"}`);
   }
   lines.push(`Preview ID: ${encodePreview(payload)}`);
   lines.push(`Timestamp: ${timestamp}`);
@@ -1322,158 +1218,155 @@ async function creditTraitLabRecycleEnergy(payload: PreviewPayload, paidRoll?: T
   };
 }
 
-async function verifyTraitLabMonPayment({
-  wallet,
-  txHash,
-  expectedAmountRaw,
-}: {
-  wallet: string;
-  txHash: string;
-  expectedAmountRaw: bigint;
-}) {
-  const treasuryWallet = traitLabTreasuryWallet();
-  const rpcProvider = provider();
-  const [tx, receipt] = await Promise.all([
-    rpcProvider.getTransaction(txHash),
-    rpcProvider.getTransactionReceipt(txHash),
-  ]);
-  if (!tx) throw Object.assign(new Error("Roll transaction is not available yet."), { status: 409 });
-  if (!receipt) throw Object.assign(new Error("Roll transaction is not confirmed yet."), { status: 409 });
-  if (receipt.status !== 1) throw Object.assign(new Error("Roll transaction failed on-chain."), { status: 400 });
+function traitLabDroidBurnClaim(wallet: string, tokenId: number, burnTxHash: string, rewardRaw: string) {
+  return ethers.keccak256(ethers.toUtf8Bytes([
+    "trait-lab-droid-burn",
+    String(configuredS2ChainId()),
+    s2ContractAddress().toLowerCase(),
+    wallet,
+    String(tokenId),
+    burnTxHash.toLowerCase(),
+    rewardRaw,
+  ].join(":")));
+}
 
-  const sender = normalizeWallet(tx.from);
-  const recipient = optionalAddress(tx.to).toLowerCase();
-  if (sender !== wallet) {
-    throw Object.assign(new Error(`Roll transaction sender ${shortWallet(sender)} does not match connected wallet ${shortWallet(wallet)}.`), { status: 400 });
-  }
-  if (recipient !== treasuryWallet.toLowerCase()) throw Object.assign(new Error("Roll transaction recipient does not match Trait Lab treasury."), { status: 400 });
-  if (tx.value < expectedAmountRaw) throw Object.assign(new Error("Roll transaction MON amount is below the required cost."), { status: 400 });
+function hasVerifiedBurnLog(receipt: ethers.TransactionReceipt, wallet: string, tokenId: number) {
+  const expectedFrom = topicAddress(wallet).toLowerCase();
+  const expectedTo = topicAddress(ZERO_ADDRESS).toLowerCase();
+  const expectedTokenId = topicUint256(tokenId);
 
+  return receipt.logs.some((log) => {
+    if (normalizeWallet(log.address) !== s2ContractAddress().toLowerCase()) return false;
+    const topics = log.topics.map((topic) => String(topic || "").toLowerCase());
+    return topics[0] === TRANSFER_TOPIC.toLowerCase()
+      && topics[1] === expectedFrom
+      && topics[2] === expectedTo
+      && topics[3] === expectedTokenId;
+  });
+}
+
+function metadataSnapshot(metadata: MetadataJson | null) {
+  if (!metadata) return {};
   return {
-    txHash,
-    treasuryWallet,
-    amountRaw: tx.value.toString(),
-    blockNumber: String(receipt.blockNumber || ""),
+    name: metadata.name || "",
+    image: String(metadata.image || ""),
+    metadataVersion: String(traitMapFromMetadata(metadata)["Metadata Version"] || metadataVersion(metadata)),
   };
 }
 
-function receiptTokenTransferTotal(
-  receipt: ethers.TransactionReceipt,
-  tokenAddress: string,
-  from: string,
-  to: string,
-) {
-  const fromTopic = topicAddress(from).toLowerCase();
-  const toTopic = topicAddress(to).toLowerCase();
-  const token = tokenAddress.toLowerCase();
-  let total = 0n;
-
-  for (const log of receipt.logs || []) {
-    if (String(log.address || "").toLowerCase() !== token) continue;
-    if (String(log.topics?.[0] || "").toLowerCase() !== ERC20_TRANSFER_TOPIC.toLowerCase()) continue;
-    if (String(log.topics?.[1] || "").toLowerCase() !== fromTopic) continue;
-    if (String(log.topics?.[2] || "").toLowerCase() !== toTopic) continue;
-    try {
-      total += BigInt(String(log.data || "0x0"));
-    } catch {}
+export async function claimTraitLabDroidBurnReward(input: Record<string, unknown>) {
+  if (!traitLabDroidBurnEnabled()) {
+    throw Object.assign(new Error("Droid burn rewards are not enabled."), { status: 403 });
   }
 
-  return total;
-}
+  const wallet = normalizeWallet(input.wallet);
+  if (!wallet) throw Object.assign(new Error("wallet must be a valid address."), { status: 400 });
 
-async function verifyTraitLabErc20Transfer({
-  wallet,
-  txHash,
-  tokenAddress,
-  recipient,
-  expectedAmountRaw,
-  label,
-}: {
-  wallet: string;
-  txHash: string;
-  tokenAddress: string;
-  recipient: string;
-  expectedAmountRaw: bigint;
-  label: string;
-}) {
+  const config = await getRuntimeMetadataConfig();
+  const tokenId = parseInputTokenId(input.tokenId, config.maxSupply);
+  const burnTxHash = requireTxHash(input.burnTxHash);
+  const rewardEnergy = traitLabDroidBurnRewardEnergy();
+  const rewardRaw = formatTraitLabEnergyRaw(rewardEnergy);
+  const rewardLabel = `${rewardEnergy} Energy`;
+  const claim = traitLabDroidBurnClaim(wallet, tokenId, burnTxHash, rewardRaw);
   const rpcProvider = provider();
-  const [tx, receipt] = await Promise.all([
-    rpcProvider.getTransaction(txHash),
-    rpcProvider.getTransactionReceipt(txHash),
-  ]);
-  if (!tx) throw Object.assign(new Error(`${label} transaction is not available yet.`), { status: 409 });
-  if (!receipt) throw Object.assign(new Error(`${label} transaction is not confirmed yet.`), { status: 409 });
-  if (receipt.status !== 1) throw Object.assign(new Error(`${label} transaction failed on-chain.`), { status: 400 });
-
-  const sender = normalizeWallet(tx.from);
-  if (sender !== wallet) {
-    throw Object.assign(new Error(`${label} transaction sender ${shortWallet(sender)} does not match connected wallet ${shortWallet(wallet)}.`), { status: 400 });
-  }
-
-  const transferred = receiptTokenTransferTotal(receipt, tokenAddress, wallet, recipient);
-  if (transferred !== expectedAmountRaw) {
-    throw Object.assign(new Error(`${label} meme token transfer must equal the required amount exactly.`), { status: 400 });
-  }
-
-  return {
-    txHash,
-    amountRaw: transferred.toString(),
-    blockNumber: String(receipt.blockNumber || ""),
-  };
-}
-
-async function verifyTraitLabMemePayment({
-  wallet,
-  tokenAddress,
-  treasuryTxHash,
-  burnTxHash,
-  traitType,
-  action,
-}: {
-  wallet: string;
-  tokenAddress: string;
-  treasuryTxHash: string;
-  burnTxHash: string;
-  traitType: S2TraitLabTrait;
-  action: S2TraitLabAction;
-}) {
-  const approvedToken = requireMemePaymentToken(tokenAddress);
-  const treasuryWallet = traitLabTreasuryWallet();
-  const burnAddress = memePaymentBurnAddress();
-  const quote = await memeTokenQuote(approvedToken.address, traitType, action);
-  const tokenSymbol = quote.symbol || approvedToken.symbol;
-  const [treasuryPayment, burnPayment] = await Promise.all([
-    verifyTraitLabErc20Transfer({
-      wallet,
-      txHash: treasuryTxHash,
-      tokenAddress: approvedToken.address,
-      recipient: treasuryWallet,
-      expectedAmountRaw: quote.treasuryAmountRaw,
-      label: "Treasury",
-    }),
-    verifyTraitLabErc20Transfer({
-      wallet,
-      txHash: burnTxHash,
-      tokenAddress: approvedToken.address,
-      recipient: burnAddress,
-      expectedAmountRaw: quote.burnAmountRaw,
-      label: "Burn",
-    }),
+  const [tx, receipt, metadataResult] = await Promise.all([
+    rpcProvider.getTransaction(burnTxHash),
+    rpcProvider.getTransactionReceipt(burnTxHash),
+    buildTokenMetadataAsync(tokenId, config).then((result) => result.metadata as MetadataJson).catch(() => null),
   ]);
 
-  return {
-    tokenAddress: approvedToken.address,
-    tokenSymbol,
-    costUnits: quote.costUnits,
-    totalAmountRaw: quote.amountRaw.toString(),
-    treasuryAmountRaw: quote.treasuryAmountRaw.toString(),
-    burnAmountRaw: quote.burnAmountRaw.toString(),
-    treasuryWallet,
-    burnAddress,
-    treasuryTxHash,
+  if (!tx) throw Object.assign(new Error("Burn transaction is not available yet."), { status: 409 });
+  if (!receipt) throw Object.assign(new Error("Burn transaction is not confirmed yet."), { status: 409 });
+  if (receipt.status !== 1) throw Object.assign(new Error("Burn transaction failed on-chain."), { status: 400 });
+  if (normalizeWallet(tx.from) !== wallet) {
+    throw Object.assign(new Error("Burn transaction sender does not match connected wallet."), { status: 400 });
+  }
+  if (normalizeWallet(tx.to) !== s2ContractAddress().toLowerCase()) {
+    throw Object.assign(new Error("Burn transaction recipient does not match the D.Y.O.O.R Season 2 contract."), { status: 400 });
+  }
+  if (!String(tx.data || "").toLowerCase().startsWith(BURN_SELECTOR)) {
+    throw Object.assign(new Error("Burn transaction does not call burn(uint256)."), { status: 400 });
+  }
+  if (!hasVerifiedBurnLog(receipt, wallet, tokenId)) {
+    throw Object.assign(new Error("Burn transaction did not emit the expected token burn event."), { status: 400 });
+  }
+
+  const signer = energyBankSigner();
+  const signerAddress = await signer.getAddress();
+  const bank = new ethers.Contract(energyBankContract, ENERGY_BANK_ABI, signer);
+  const creditRole = await bank.CREDIT_ROLE();
+  const hasRole = await bank.hasRole(creditRole, signerAddress).then(Boolean);
+  if (!hasRole) {
+    throw Object.assign(new Error("Energy Bank operator is missing CREDIT_ROLE."), { status: 500 });
+  }
+
+  const alreadyCredited = await bank.usedClaimTxHash(claim).then(Boolean);
+  if (alreadyCredited) {
+    const burnRecord = await saveBurnedDroidRecord({
+      tokenId: String(tokenId),
+      wallet,
+      burnTxHash,
+      rewardEnergy,
+      rewardRaw,
+      rewardLabel,
+      claim,
+      burnedAt: new Date().toISOString(),
+      ...metadataSnapshot(metadataResult),
+      deduped: true,
+    });
+    return {
+      ok: true,
+      wallet,
+      tokenId,
+      burnTxHash,
+      rewardEnergy,
+      rewardRaw,
+      rewardLabel,
+      claim,
+      deduped: true,
+      burnRecord,
+    };
+  }
+
+  await bank.creditEnergy.staticCall(wallet, BigInt(rewardRaw), claim);
+  const creditTx = await bank.creditEnergy(wallet, BigInt(rewardRaw), claim, { gasLimit: 160000n });
+  const creditReceipt = await creditTx.wait();
+  if (creditReceipt?.status !== 1) {
+    throw Object.assign(new Error("Energy burn reward transaction failed."), { status: 500 });
+  }
+  const openSeaMetadataRefresh = await refreshOpenSeaTokenMetadata({ tokenId }).catch((error) => ({
+    queued: false,
+    reason: error instanceof Error ? error.message : "refresh_failed",
+  }));
+
+  const burnRecord = await saveBurnedDroidRecord({
+    tokenId: String(tokenId),
+    wallet,
     burnTxHash,
-    treasuryBlockNumber: treasuryPayment.blockNumber,
-    burnBlockNumber: burnPayment.blockNumber,
+    rewardEnergy,
+    rewardRaw,
+    rewardLabel,
+    claim,
+    burnedAt: new Date().toISOString(),
+    ...metadataSnapshot(metadataResult),
+    rewardTxHash: creditTx.hash,
+    rewardBlockNumber: String(creditReceipt.blockNumber || ""),
+  });
+
+  return {
+    ok: true,
+    wallet,
+    tokenId,
+    burnTxHash,
+    rewardEnergy,
+    rewardRaw,
+    rewardLabel,
+    claim,
+    rewardTxHash: creditTx.hash,
+    rewardBlockNumber: String(creditReceipt.blockNumber || ""),
+    openSeaMetadataRefresh,
+    burnRecord,
   };
 }
 
@@ -1873,7 +1766,6 @@ export async function createTraitLabPreview(input: Record<string, unknown>) {
   const traitType = parseTraitType(input.traitType);
   const action = parseAction(input.action);
   const paymentMode = action === "recycle" ? "energy" : parsePaymentMode(input.paymentMode);
-  const memeToken = paymentMode === "meme" ? requireMemePaymentToken(input.paymentToken) : null;
 
   await verifyS2TokenOwner(tokenId, wallet, config.maxSupply);
 
@@ -1884,13 +1776,8 @@ export async function createTraitLabPreview(input: Record<string, unknown>) {
   const supplyLedger = await getTraitSupplyLedger();
   const candidate = generateCandidate(traits, traitType, action, supplyLedger);
   const version = metadataVersion(metadata as MetadataJson) + 1;
-  const paymentCost = traitLabPaymentCost(traitType, action, paymentMode);
-  let { costEnergy, costRaw, costMon, costLabel, rewardEnergy, rewardRaw, rewardLabel } = paymentCost;
-  const memeQuote = memeToken ? await memeTokenQuote(memeToken.address, traitType, action) : null;
-  if (memeToken && memeQuote) {
-    costMon = memeQuote.costUnits;
-    costLabel = `${memeQuote.costUnits} ${memeQuote.symbol || memeToken.symbol}`;
-  }
+  const paymentCost = traitLabPaymentCost(traitType, action);
+  const { costEnergy, costRaw, costMon, costLabel, rewardEnergy, rewardRaw, rewardLabel } = paymentCost;
   const supplyDeltas = supplyDeltasForPatch(traits, candidate.proposedAttributes);
   await assertSupplyDeltasAvailable(supplyDeltas);
   const rollId = crypto.randomUUID();
@@ -1913,11 +1800,6 @@ export async function createTraitLabPreview(input: Record<string, unknown>) {
       rewardEnergy,
       rewardRaw,
       rewardLabel,
-      paymentTokenAddress: memeToken?.address,
-      paymentTokenSymbol: memeQuote?.symbol || memeToken?.symbol,
-      paymentTokenAmountRaw: memeQuote?.amountRaw.toString(),
-      paymentTokenTreasuryAmountRaw: memeQuote?.treasuryAmountRaw.toString(),
-      paymentTokenBurnAmountRaw: memeQuote?.burnAmountRaw.toString(),
       assetUri: candidate.option.assetUri,
       metadataVersion: version,
       expiresAt: Date.now() + PREVIEW_TTL_MS,
@@ -1942,11 +1824,6 @@ export async function createTraitLabPreview(input: Record<string, unknown>) {
     rewardRaw,
     rewardLabel,
     recycleCreditClaim,
-    paymentTokenAddress: memeToken?.address,
-    paymentTokenSymbol: memeQuote?.symbol || memeToken?.symbol,
-    paymentTokenAmountRaw: memeQuote?.amountRaw.toString(),
-    paymentTokenTreasuryAmountRaw: memeQuote?.treasuryAmountRaw.toString(),
-    paymentTokenBurnAmountRaw: memeQuote?.burnAmountRaw.toString(),
     assetUri: candidate.option.assetUri,
     metadataVersion: version,
     expiresAt: Date.now() + PREVIEW_TTL_MS,
@@ -1962,62 +1839,6 @@ export async function createTraitLabPreview(input: Record<string, unknown>) {
   await assertTraitLabMetadataCanRender(tokenId, proposedMetadata as MetadataJson, String(input.origin || ""));
   let energyDebitDeduped = false;
   let energySpend: Awaited<ReturnType<typeof spendTraitLabEnergy>> | null = null;
-  let monPayment: Awaited<ReturnType<typeof verifyTraitLabMonPayment>> | null = null;
-  let memePayment: Awaited<ReturnType<typeof verifyTraitLabMemePayment>> | null = null;
-
-  if (paymentMode === "mon") {
-    const txHash = requireTxHash(input.paymentTxHash);
-    monPayment = await verifyTraitLabMonPayment({
-      wallet,
-      txHash,
-      expectedAmountRaw: monCostRaw(costMon),
-    });
-    await claimTraitLabMonPayment({
-      txHash: monPayment.txHash,
-      rollId,
-      wallet,
-      tokenId: String(tokenId),
-      traitType,
-      action,
-      amountRaw: monPayment.amountRaw,
-      treasuryWallet: monPayment.treasuryWallet,
-      blockNumber: monPayment.blockNumber,
-      createdAt: new Date().toISOString(),
-    });
-  }
-
-  if (paymentMode === "meme") {
-    const treasuryTxHash = requireTxHash(input.paymentTxHash);
-    const burnTxHash = requireTxHash(input.paymentBurnTxHash);
-    memePayment = await verifyTraitLabMemePayment({
-      wallet,
-      tokenAddress: memeToken?.address || String(input.paymentToken || ""),
-      treasuryTxHash,
-      burnTxHash,
-      traitType,
-      action,
-    });
-    await claimTraitLabMemePayment({
-      txHash: memePayment.treasuryTxHash,
-      rollId,
-      wallet,
-      tokenId: String(tokenId),
-      traitType,
-      action,
-      tokenAddress: memePayment.tokenAddress,
-      tokenSymbol: memePayment.tokenSymbol,
-      totalAmountRaw: memePayment.totalAmountRaw,
-      treasuryAmountRaw: memePayment.treasuryAmountRaw,
-      burnAmountRaw: memePayment.burnAmountRaw,
-      treasuryWallet: memePayment.treasuryWallet,
-      burnAddress: memePayment.burnAddress,
-      treasuryTxHash: memePayment.treasuryTxHash,
-      burnTxHash: memePayment.burnTxHash,
-      treasuryBlockNumber: memePayment.treasuryBlockNumber,
-      burnBlockNumber: memePayment.burnBlockNumber,
-      createdAt: new Date().toISOString(),
-    });
-  }
 
   await saveTraitLabRoll({
     rollId,
@@ -2038,22 +1859,10 @@ export async function createTraitLabPreview(input: Record<string, unknown>) {
     status: "created",
     createdAt: new Date().toISOString(),
     expiresAt: new Date(payload.expiresAt).toISOString(),
-    energyDebitId: paymentMode === "energy" && action !== "recycle" ? energyDebitId : undefined,
-    monPaymentTxHash: monPayment?.txHash,
-    monPaymentAmountRaw: monPayment?.amountRaw,
-    monPaymentBlockNumber: monPayment?.blockNumber,
-    memePaymentTokenAddress: memePayment?.tokenAddress,
-    memePaymentTokenSymbol: memePayment?.tokenSymbol,
-    memePaymentTotalAmountRaw: memePayment?.totalAmountRaw,
-    memePaymentTreasuryAmountRaw: memePayment?.treasuryAmountRaw,
-    memePaymentBurnAmountRaw: memePayment?.burnAmountRaw,
-    memePaymentTreasuryTxHash: memePayment?.treasuryTxHash,
-    memePaymentBurnTxHash: memePayment?.burnTxHash,
-    memePaymentTreasuryBlockNumber: memePayment?.treasuryBlockNumber,
-    memePaymentBurnBlockNumber: memePayment?.burnBlockNumber,
+    energyDebitId: action !== "recycle" ? energyDebitId : undefined,
   });
 
-  if (paymentMode === "energy" && action !== "recycle") {
+  if (action !== "recycle") {
     energySpend = await spendTraitLabEnergy(payload);
   }
 
@@ -2077,22 +1886,10 @@ export async function createTraitLabPreview(input: Record<string, unknown>) {
     createdAt: new Date().toISOString(),
     chargedAt: new Date().toISOString(),
     expiresAt: new Date(payload.expiresAt).toISOString(),
-    energyDebitId: paymentMode === "energy" && action !== "recycle" ? energyDebitId : undefined,
+    energyDebitId: action !== "recycle" ? energyDebitId : undefined,
     energyDebitDeduped,
     energySpendTxHash: energySpend?.txHash,
     energySpendBlockNumber: energySpend?.blockNumber,
-    monPaymentTxHash: monPayment?.txHash,
-    monPaymentAmountRaw: monPayment?.amountRaw,
-    monPaymentBlockNumber: monPayment?.blockNumber,
-    memePaymentTokenAddress: memePayment?.tokenAddress,
-    memePaymentTokenSymbol: memePayment?.tokenSymbol,
-    memePaymentTotalAmountRaw: memePayment?.totalAmountRaw,
-    memePaymentTreasuryAmountRaw: memePayment?.treasuryAmountRaw,
-    memePaymentBurnAmountRaw: memePayment?.burnAmountRaw,
-    memePaymentTreasuryTxHash: memePayment?.treasuryTxHash,
-    memePaymentBurnTxHash: memePayment?.burnTxHash,
-    memePaymentTreasuryBlockNumber: memePayment?.treasuryBlockNumber,
-    memePaymentBurnBlockNumber: memePayment?.burnBlockNumber,
   });
 
   return {
@@ -2123,16 +1920,16 @@ export async function createTraitLabPreview(input: Record<string, unknown>) {
     },
     rollId,
     rollCharged: true,
-    energyDebitSkipped: paymentMode !== "energy" || action === "recycle",
+    energyDebitSkipped: action === "recycle",
     energyDebitDeduped,
-    paymentTxHash: monPayment?.txHash || memePayment?.treasuryTxHash || energySpend?.txHash || "",
-    paymentBurnTxHash: memePayment?.burnTxHash || "",
-    paymentToken: memePayment?.tokenAddress || "",
-    paymentTokenSymbol: memePayment?.tokenSymbol || "",
-    paymentTreasuryAmountRaw: memePayment?.treasuryAmountRaw || "",
-    paymentBurnAmountRaw: memePayment?.burnAmountRaw || "",
-    paymentAmountRaw: monPayment?.amountRaw || memePayment?.totalAmountRaw || (energySpend ? costRaw : ""),
-    paymentBlockNumber: monPayment?.blockNumber || memePayment?.treasuryBlockNumber || energySpend?.blockNumber || "",
+    paymentTxHash: energySpend?.txHash || "",
+    paymentBurnTxHash: "",
+    paymentToken: "",
+    paymentTokenSymbol: "",
+    paymentTreasuryAmountRaw: "",
+    paymentBurnAmountRaw: "",
+    paymentAmountRaw: energySpend ? costRaw : "",
+    paymentBlockNumber: energySpend?.blockNumber || "",
     supplyDeltas,
     previewId,
     expiresAt: new Date(payload.expiresAt).toISOString(),
@@ -2169,13 +1966,10 @@ export async function confirmTraitLabPreview(input: Record<string, unknown>) {
   if (!paidRoll || paidRoll.previewId !== previewId || paidRoll.status === "created") {
     throw Object.assign(new Error("This roll was not paid or is no longer available."), { status: 402 });
   }
-  if (payload.paymentMode === "mon" && !paidRoll.monPaymentTxHash) {
-    throw Object.assign(new Error("This roll is missing its wallet transaction."), { status: 402 });
+  if (payload.paymentMode !== "energy") {
+    throw Object.assign(new Error("This Trait Lab preview used a disabled payment method. Generate a fresh Energy preview."), { status: 402 });
   }
-  if (payload.paymentMode === "meme" && (!paidRoll.memePaymentTreasuryTxHash || !paidRoll.memePaymentBurnTxHash)) {
-    throw Object.assign(new Error("This roll is missing its meme token burn/treasury transactions."), { status: 402 });
-  }
-  if (payload.paymentMode === "energy" && payload.action !== "recycle" && !paidRoll.energyDebitId) {
+  if (payload.action !== "recycle" && !paidRoll.energyDebitId) {
     throw Object.assign(new Error("This roll is missing its Energy debit."), { status: 402 });
   }
 
@@ -2357,15 +2151,15 @@ export async function confirmTraitLabPreview(input: Record<string, unknown>) {
     rollId: payload.rollId,
     rollCharged: true,
     debitDeduped: Boolean(paidRoll.energyDebitDeduped),
-    energyDebitSkipped: payload.paymentMode !== "energy" || payload.action === "recycle",
-    paymentTxHash: recycleCredit?.txHash || paidRoll.monPaymentTxHash || paidRoll.memePaymentTreasuryTxHash || paidRoll.energySpendTxHash || "",
-    paymentBurnTxHash: paidRoll.memePaymentBurnTxHash || "",
-    paymentToken: paidRoll.memePaymentTokenAddress || "",
-    paymentTokenSymbol: paidRoll.memePaymentTokenSymbol || "",
-    paymentTreasuryAmountRaw: paidRoll.memePaymentTreasuryAmountRaw || "",
-    paymentBurnAmountRaw: paidRoll.memePaymentBurnAmountRaw || "",
-    paymentAmountRaw: recycleCredit ? payload.rewardRaw || "" : paidRoll.monPaymentAmountRaw || paidRoll.memePaymentTotalAmountRaw || (paidRoll.energySpendTxHash ? payload.costRaw : ""),
-    paymentBlockNumber: recycleCredit?.blockNumber || paidRoll.monPaymentBlockNumber || paidRoll.memePaymentTreasuryBlockNumber || paidRoll.energySpendBlockNumber || "",
+    energyDebitSkipped: payload.action === "recycle",
+    paymentTxHash: recycleCredit?.txHash || paidRoll.energySpendTxHash || "",
+    paymentBurnTxHash: "",
+    paymentToken: "",
+    paymentTokenSymbol: "",
+    paymentTreasuryAmountRaw: "",
+    paymentBurnAmountRaw: "",
+    paymentAmountRaw: recycleCredit ? payload.rewardRaw || "" : paidRoll.energySpendTxHash ? payload.costRaw : "",
+    paymentBlockNumber: recycleCredit?.blockNumber || paidRoll.energySpendBlockNumber || "",
     recycleCreditDeduped: recycleCredit?.deduped || false,
     supplyDeltas,
     supplyEventDeduped: supplyEvent.deduped,

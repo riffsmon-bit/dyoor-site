@@ -4,12 +4,8 @@ import {
   S2_GUARANTEED_TRAITS,
   S2_RECYCLABLE_TRAITS,
   S2_REMOVABLE_TRAITS,
-  S2_TRAIT_LAB_ENERGY_PER_MON,
   S2_TRAIT_LAB_FLAT_UNLOCK_COST,
-  S2_TRAIT_LAB_BURN_ADDRESS,
-  S2_TRAIT_LAB_MEME_PAYMENT_TOKENS,
-  S2_TRAIT_LAB_MEME_TOKEN_COSTS,
-  S2_TRAIT_LAB_MON_COSTS,
+  S2_TRAIT_LAB_DROID_BURN_REWARD_ENERGY,
   S2_TRAIT_LAB_RECYCLE_REWARDS,
   S2_TRAIT_LAB_SPECIAL_MAX_ACTIVE_SUPPLY,
   S2_TRAIT_LAB_TOKEN_COOLDOWN_MS,
@@ -69,13 +65,6 @@ function traitLabTreasuryWallet() {
   return address;
 }
 
-function approvedMemePaymentTokens() {
-  return S2_TRAIT_LAB_MEME_PAYMENT_TOKENS.map((token) => ({
-    ...token,
-    address: ethers.getAddress(token.address),
-  }));
-}
-
 function configuredS2ChainId() {
   return 143;
 }
@@ -107,17 +96,23 @@ function configuredS2ExplorerUrl() {
   return DEFAULT_MONAD_MAINNET_EXPLORER_URL;
 }
 
-function monTestModeEnabled() {
-  const raw = readEnv("DYOOR_TRAIT_LAB_ENABLE_MON_TEST", "NEXT_PUBLIC_DYOOR_TRAIT_LAB_ENABLE_MON_TEST");
-  if (/^(0|false|no|off)$/i.test(raw)) return false;
-  if (/^(1|true|yes|on)$/i.test(raw)) return true;
-  return true;
-}
-
 function traitLabTokenCooldownMs() {
   const raw = readEnv("DYOOR_TRAIT_LAB_TOKEN_COOLDOWN_MS", "NEXT_PUBLIC_DYOOR_TRAIT_LAB_TOKEN_COOLDOWN_MS");
   const parsed = Number.parseInt(raw, 10);
   return Number.isFinite(parsed) && parsed >= 0 ? parsed : S2_TRAIT_LAB_TOKEN_COOLDOWN_MS;
+}
+
+function traitLabDroidBurnEnabled() {
+  const configured = readEnv("DYOOR_TRAIT_LAB_ENABLE_DROID_BURN", "NEXT_PUBLIC_DYOOR_TRAIT_LAB_ENABLE_DROID_BURN");
+  if (/^(0|false|no|off|disabled)$/i.test(configured)) return false;
+  if (/^(1|true|yes|on|enabled)$/i.test(configured)) return true;
+  return true;
+}
+
+function traitLabDroidBurnRewardEnergy() {
+  const raw = readEnv("DYOOR_TRAIT_LAB_DROID_BURN_REWARD_ENERGY", "NEXT_PUBLIC_DYOOR_TRAIT_LAB_DROID_BURN_REWARD_ENERGY");
+  const parsed = Number.parseInt(raw, 10);
+  return Number.isSafeInteger(parsed) && parsed > 0 ? parsed : S2_TRAIT_LAB_DROID_BURN_REWARD_ENERGY;
 }
 
 function parsePositiveInt(value: string, fallback: number) {
@@ -460,25 +455,22 @@ export function traitLabPublicConfig() {
   return {
     ok: true,
     treasuryWallet: traitLabTreasuryWallet(),
-    monTestMode: monTestModeEnabled(),
+    contractAddress: s2ContractAddress(),
     chainId,
     chainHex: chainId > 0 ? `0x${chainId.toString(16)}` : "",
     chainName: safeChainName,
     rpcUrl: configuredS2RpcUrl(),
     explorerUrl: configuredS2ExplorerUrl(),
-    energyPerMon: S2_TRAIT_LAB_ENERGY_PER_MON,
     flatUnlockCostEnergy: S2_TRAIT_LAB_FLAT_UNLOCK_COST,
     specialMaxActiveSupply: S2_TRAIT_LAB_SPECIAL_MAX_ACTIVE_SUPPLY,
     tokenCooldownMs: traitLabTokenCooldownMs(),
+    droidBurnEnabled: traitLabDroidBurnEnabled(),
+    droidBurnRewardEnergy: traitLabDroidBurnRewardEnergy(),
     guaranteedTraits: S2_GUARANTEED_TRAITS,
     unlockableTraits: S2_UNLOCKABLE_TRAITS,
     removableTraits: S2_REMOVABLE_TRAITS,
     recyclableTraits: S2_RECYCLABLE_TRAITS,
     recycleRewards: S2_TRAIT_LAB_RECYCLE_REWARDS,
-    monCosts: S2_TRAIT_LAB_MON_COSTS,
-    memePaymentTokens: approvedMemePaymentTokens(),
-    memeTokenCosts: S2_TRAIT_LAB_MEME_TOKEN_COSTS,
-    burnAddress: ethers.getAddress(S2_TRAIT_LAB_BURN_ADDRESS),
   };
 }
 
