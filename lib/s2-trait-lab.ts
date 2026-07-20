@@ -1486,11 +1486,12 @@ export async function createTraitLabPreview(input: Record<string, unknown>) {
     version,
     attributes: candidate.proposedAttributes,
   }, tokenId, config);
-  const missingLayers = await findMissingTraitLabLayers(proposedMetadata as MetadataJson);
+  const requestOrigin = String(input.origin || "");
+  const missingLayers = await findMissingTraitLabLayers(proposedMetadata as MetadataJson, requestOrigin);
   if (missingLayers.length) {
     throw Object.assign(new Error(`Trait Lab renderer is missing layer assets for ${missingLayers.join(", ")}. Energy was not spent.`), { status: 409 });
   }
-  const previewImage = await renderTraitLabImage(tokenId, proposedMetadata as MetadataJson, String(input.origin || ""));
+  const previewImage = await renderTraitLabImage(tokenId, proposedMetadata as MetadataJson, requestOrigin);
   if (!previewImage.rendered) {
     throw Object.assign(new Error("Trait Lab renderer could not produce a matching preview image. Energy was not spent."), { status: 409 });
   }
@@ -1671,11 +1672,12 @@ export async function confirmTraitLabPreview(input: Record<string, unknown>) {
     notes: `Trait Lab ${payload.action} ${payload.traitType}.`,
   };
   const draftMetadata = mergeMetadata(metadata, draftOverride, tokenId, config);
-  const missingLayers = await findMissingTraitLabLayers(draftMetadata as MetadataJson);
+  const requestOrigin = String(input.origin || "");
+  const missingLayers = await findMissingTraitLabLayers(draftMetadata as MetadataJson, requestOrigin);
   if (missingLayers.length) {
     throw Object.assign(new Error(`Trait Lab renderer is missing layer assets for ${missingLayers.join(", ")}. Metadata was not changed.`), { status: 409 });
   }
-  const renderedImage = await renderTraitLabImage(tokenId, draftMetadata as MetadataJson, String(input.origin || ""));
+  const renderedImage = await renderTraitLabImage(tokenId, draftMetadata as MetadataJson, requestOrigin);
   if (!renderedImage.rendered) {
     throw Object.assign(new Error("Trait Lab renderer could not produce a matching image. Metadata was not changed."), { status: 409 });
   }

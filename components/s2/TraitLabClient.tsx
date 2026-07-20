@@ -100,7 +100,9 @@ type PreviewResponse = {
   };
   imageRecomposition?: {
     status?: string;
+    imageUrl?: string;
     todo?: string;
+    note?: string;
   };
   openSeaRefresh?: {
     queued?: boolean;
@@ -147,6 +149,16 @@ type BurnedGalleryResponse = {
   items?: BurnedDroidCard[];
   error?: string;
 };
+
+type PendingBurnClaim = {
+  tokenId: string;
+  burnTxHash: string;
+  wallet: string;
+  createdAt: string;
+  lastAttemptAt?: string;
+};
+
+const PENDING_BURN_CLAIMS_KEY = "dyoor:s2:trait-lab:pending-burn-claims:v1";
 
 const S2_DROID_BURN_ABI = [{
   type: "function",
@@ -297,6 +309,30 @@ function uniqueStrings(values: string[]) {
   return Array.from(new Set(values.filter(Boolean)));
 }
 
+function readPendingBurnClaims() {
+  if (typeof window === "undefined") return [];
+  try {
+    const parsed = JSON.parse(window.localStorage.getItem(PENDING_BURN_CLAIMS_KEY) || "[]");
+    if (!Array.isArray(parsed)) return [];
+    return parsed
+      .map((claim) => ({
+        tokenId: String(claim?.tokenId || "").trim(),
+        burnTxHash: String(claim?.burnTxHash || "").trim(),
+        wallet: normalizeAddress(claim?.wallet),
+        createdAt: String(claim?.createdAt || new Date().toISOString()),
+        lastAttemptAt: claim?.lastAttemptAt ? String(claim.lastAttemptAt) : undefined,
+      }))
+      .filter((claim) => claim.tokenId && /^0x[a-fA-F0-9]{64}$/.test(claim.burnTxHash) && claim.wallet);
+  } catch {
+    return [];
+  }
+}
+
+function writePendingBurnClaims(claims: PendingBurnClaim[]) {
+  if (typeof window === "undefined") return;
+  window.localStorage.setItem(PENDING_BURN_CLAIMS_KEY, JSON.stringify(claims.slice(0, 20)));
+}
+
 function layerSources(traitType: string, value: unknown) {
   if (isEmptyTraitValue(value)) return [];
   const fullLayerCid = process.env.NEXT_PUBLIC_DYOOR_S2_LAYER_IMAGE_CID || "";
@@ -324,8 +360,7 @@ function layerEntries(metadata?: MetadataJson | null) {
 
 function LayerPreview({ fallbackImage, metadata, title }: { fallbackImage?: string; metadata?: MetadataJson | null; title: string }) {
   const layers = layerEntries(metadata);
-  const preferFallback = Boolean(fallbackImage && /\/api\/s2\/trait-lab\/render\//.test(fallbackImage));
-  const useFallbackImage = Boolean(fallbackImage && (preferFallback || !layers.length));
+  const useFallbackImage = Boolean(fallbackImage);
   const useLayerStack = layers.length > 0 && !useFallbackImage;
   return (
     <div className="aspect-square bg-black/45">
@@ -335,29 +370,31 @@ function LayerPreview({ fallbackImage, metadata, title }: { fallbackImage?: stri
             // eslint-disable-next-line @next/next/no-img-element
             <img alt={title} className="absolute inset-0 h-full w-full object-cover" src={fallbackImage} />
           ) : null}
-          {layers.map((layer, index) => (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              alt={`${title} ${layer.traitType} ${layer.value}`}
-              className="absolute inset-0 h-full w-full object-cover"
-              key={`${layer.traitType}-${layer.value}-${index}`}
-              data-next-source-index="1"
-              data-sources={JSON.stringify(layer.sources)}
-              onError={(event) => {
-                const img = event.currentTarget;
-                const sources = JSON.parse(img.dataset.sources || "[]") as string[];
-                const nextIndex = Number(img.dataset.nextSourceIndex || "1");
-                const nextSource = sources[nextIndex];
-                if (nextSource) {
-                  img.dataset.nextSourceIndex = String(nextIndex + 1);
-                  img.src = nextSource;
-                  return;
-                }
-                img.style.display = "none";
-              }}
-              src={layer.sources[0]}
-            />
-          ))}
+          {useLayerStack
+            ? layers.map((layer, index) => (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                alt={`${title} ${layer.traitType} ${layer.value}`}
+                className="absolute inset-0 h-full w-full object-cover"
+                key={`${layer.traitType}-${layer.value}-${index}`}
+                data-next-source-index="1"
+                data-sources={JSON.stringify(layer.sources)}
+                onError={(event) => {
+                  const img = event.currentTarget;
+                  const sources = JSON.parse(img.dataset.sources || "[]") as string[];
+                  const nextIndex = Number(img.dataset.nextSourceIndex || "1");
+                  const nextSource = sources[nextIndex];
+                  if (nextSource) {
+                    img.dataset.nextSourceIndex = String(nextIndex + 1);
+                    img.src = nextSource;
+                    return;
+                  }
+                  img.style.display = "none";
+                }}
+                src={layer.sources[0]}
+              />
+            ))
+            : null}
         </div>
       ) : (
         <div className="grid h-full place-items-center text-xs font-black uppercase tracking-[0.16em] text-white/35">No Image</div>
@@ -423,6 +460,7 @@ export function TraitLabClient() {
   const [burnConfirmText, setBurnConfirmText] = useState("");
   const [burnRecoveryTokenId, setBurnRecoveryTokenId] = useState("");
   const [burnRecoveryTxHash, setBurnRecoveryTxHash] = useState("");
+  const [pendingBurnClaims, setPendingBurnClaims] = useState<PendingBurnClaim[]>(() => readPendingBurnClaims());
   const [burnedGalleryLoading, setBurnedGalleryLoading] = useState(false);
   const [ownedLoading, setOwnedLoading] = useState(false);
   const [metadataLoading, setMetadataLoading] = useState(false);
@@ -431,6 +469,7 @@ export function TraitLabClient() {
   const [status, setStatus] = useState("Connect wallet to load D.Y.O.O.R Season 2 droids.");
   const [error, setError] = useState("");
   const selectedTokenIdRef = useRef("");
+  const burnRecoveryActiveRef = useRef(false);
 
   const selectedTraits = useMemo(() => traitMap(metadata), [metadata]);
   const emptySlots = useMemo(() => S2_EDITABLE_TRAITS.filter((trait) => isEmptyTraitValue(selectedTraits[trait])), [selectedTraits]);
@@ -460,9 +499,13 @@ export function TraitLabClient() {
   const previewCurrentMetadata = preview?.currentMetadata || null;
   const previewProposedMetadata = preview?.proposedMetadata || null;
   const previewBeforeImage = mediaUrl(previewCurrentMetadata?.image || metadata?.image);
-  const previewProposedImage = mediaUrl(previewProposedMetadata?.image || previewCurrentMetadata?.image || metadata?.image);
+  const previewProposedImage = mediaUrl(preview?.imageRecomposition?.imageUrl || previewProposedMetadata?.image || previewCurrentMetadata?.image || metadata?.image);
   const previewTraitAssetImage = mediaUrl(preview?.proposedAsset?.uri);
-  const previewImageChanged = normalizeTraitValue(previewCurrentMetadata?.image) !== normalizeTraitValue(previewProposedMetadata?.image);
+  const previewHasRenderedImage = Boolean(preview?.imageRecomposition?.imageUrl || /\/api\/s2\/trait-lab\/render\//.test(previewProposedImage));
+  const pendingWalletBurnClaims = useMemo(
+    () => pendingBurnClaims.filter((claim) => normalizeAddress(claim.wallet) === walletAddress),
+    [pendingBurnClaims, walletAddress],
+  );
 
   useEffect(() => {
     selectedTokenIdRef.current = selectedTokenId;
@@ -687,6 +730,109 @@ export function TraitLabClient() {
     throw new Error("Wallet transaction is still pending. Wait a moment and try again.");
   }
 
+  const persistPendingBurnClaims = useCallback((updater: (claims: PendingBurnClaim[]) => PendingBurnClaim[]) => {
+    setPendingBurnClaims((current) => {
+      const next = updater(current);
+      writePendingBurnClaims(next);
+      return next;
+    });
+  }, []);
+
+  const upsertPendingBurnClaim = useCallback((tokenId: string, burnTxHash: string) => {
+    if (!walletAddress) return;
+    const wallet = walletAddress;
+    persistPendingBurnClaims((claims) => {
+      const nextClaim: PendingBurnClaim = {
+        tokenId,
+        burnTxHash,
+        wallet,
+        createdAt: new Date().toISOString(),
+      };
+      return [nextClaim]
+        .concat(claims.filter((claim) => claim.tokenId !== tokenId && claim.burnTxHash.toLowerCase() !== burnTxHash.toLowerCase()))
+        .slice(0, 20);
+    });
+  }, [persistPendingBurnClaims, walletAddress]);
+
+  const removePendingBurnClaim = useCallback((tokenId: string, burnTxHash: string) => {
+    persistPendingBurnClaims((claims) => (
+      claims.filter((claim) => claim.tokenId !== tokenId && claim.burnTxHash.toLowerCase() !== burnTxHash.toLowerCase())
+    ));
+  }, [persistPendingBurnClaims]);
+
+  const requestBurnRewardClaim = useCallback(async (tokenId: string, burnTxHash: string) => {
+    const response = await fetch("/api/s2/trait-lab/burn-droid", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        wallet: walletAddress,
+        tokenId,
+        burnTxHash,
+      }),
+    });
+    const data = await response.json().catch(() => ({})) as {
+      ok?: boolean;
+      error?: string;
+      rewardEnergy?: number;
+      rewardTxHash?: string;
+      burnRecord?: BurnedDroidCard;
+    };
+    if (!response.ok || data.ok === false) throw new Error(data.error || "Droid burn reward failed.");
+    return data;
+  }, [walletAddress]);
+
+  const claimBurnRewardWithRetry = useCallback(async (tokenId: string, burnTxHash: string, attempts = 6) => {
+    let lastError: unknown = null;
+    for (let attempt = 0; attempt < attempts; attempt += 1) {
+      try {
+        return await requestBurnRewardClaim(tokenId, burnTxHash);
+      } catch (err) {
+        lastError = err;
+        if (attempt < attempts - 1) await sleep(1750 * (attempt + 1));
+      }
+    }
+    throw lastError instanceof Error ? lastError : new Error("Droid burn reward failed.");
+  }, [requestBurnRewardClaim]);
+
+  const autoRecoverPendingBurns = useCallback(async () => {
+    if (!walletAddress || burnRecoveryActiveRef.current) return;
+    const claims = readPendingBurnClaims().filter((claim) => claim.wallet === walletAddress);
+    if (!claims.length) return;
+
+    burnRecoveryActiveRef.current = true;
+    try {
+      for (const claim of claims) {
+        try {
+          persistPendingBurnClaims((current) => current.map((entry) => (
+            entry.tokenId === claim.tokenId && entry.burnTxHash.toLowerCase() === claim.burnTxHash.toLowerCase()
+              ? { ...entry, lastAttemptAt: new Date().toISOString() }
+              : entry
+          )));
+          await requestBurnRewardClaim(claim.tokenId, claim.burnTxHash);
+          removePendingBurnClaim(claim.tokenId, claim.burnTxHash);
+          if (burnRecoveryTokenId === claim.tokenId && burnRecoveryTxHash.toLowerCase() === claim.burnTxHash.toLowerCase()) {
+            setBurnRecoveryTokenId("");
+            setBurnRecoveryTxHash("");
+          }
+          await Promise.all([loadEnergy(), loadBurnedGallery()]);
+          setStatus(`Recovered burn reward for D.Y.O.O.R #${claim.tokenId}.`);
+        } catch {}
+      }
+    } finally {
+      burnRecoveryActiveRef.current = false;
+    }
+  }, [burnRecoveryTokenId, burnRecoveryTxHash, loadBurnedGallery, loadEnergy, persistPendingBurnClaims, removePendingBurnClaim, requestBurnRewardClaim, walletAddress]);
+
+  useEffect(() => {
+    if (!walletAddress || !pendingWalletBurnClaims.length) return;
+    const timer = window.setTimeout(() => void autoRecoverPendingBurns(), 1500);
+    const interval = window.setInterval(() => void autoRecoverPendingBurns(), 20_000);
+    return () => {
+      window.clearTimeout(timer);
+      window.clearInterval(interval);
+    };
+  }, [autoRecoverPendingBurns, pendingWalletBurnClaims.length, walletAddress]);
+
   async function previewChange(traitType: S2EditableTrait, action: S2TraitLabAction) {
     if (!walletAddress) {
       await connectWallet();
@@ -801,33 +947,19 @@ export function TraitLabClient() {
       });
       setBurnRecoveryTokenId(tokenIdBeingBurned);
       setBurnRecoveryTxHash(burnTxHash);
+      upsertPendingBurnClaim(tokenIdBeingBurned, burnTxHash);
       setStatus("Droid burn sent. Waiting for on-chain confirmation.");
       await waitForTransactionReceipt(burnTxHash);
       setOwnedTokenIds((tokenIds) => tokenIds.filter((tokenId) => tokenId !== tokenIdBeingBurned));
       setTokenCards((cards) => cards.filter((card) => card.tokenId !== tokenIdBeingBurned));
 
       setStatus(`Burn confirmed. Crediting ${droidBurnRewardEnergy} Energy.`);
-      const response = await fetch("/api/s2/trait-lab/burn-droid", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({
-          wallet: walletAddress,
-          tokenId: tokenIdBeingBurned,
-          burnTxHash,
-        }),
-      });
-      const data = await response.json().catch(() => ({})) as {
-        ok?: boolean;
-        error?: string;
-        rewardEnergy?: number;
-        rewardTxHash?: string;
-        burnRecord?: BurnedDroidCard;
-      };
-      if (!response.ok || data.ok === false) throw new Error(data.error || "Droid burn reward failed.");
+      const data = await claimBurnRewardWithRetry(tokenIdBeingBurned, burnTxHash);
 
       setSelectedTokenId("");
       setMetadata(null);
       setBurnConfirmText("");
+      removePendingBurnClaim(tokenIdBeingBurned, burnTxHash);
       setBurnRecoveryTokenId("");
       setBurnRecoveryTxHash("");
       await Promise.all([loadEnergy(), loadBurnedGallery()]);
@@ -856,21 +988,10 @@ export function TraitLabClient() {
     setActionLoading("recover-burn");
     setError("");
     try {
-      const response = await fetch("/api/s2/trait-lab/burn-droid", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({
-          wallet: walletAddress,
-          tokenId: burnRecoveryTokenId.trim(),
-          burnTxHash: burnRecoveryTxHash.trim(),
-        }),
-      });
-      const data = await response.json().catch(() => ({})) as {
-        ok?: boolean;
-        error?: string;
-        rewardEnergy?: number;
-      };
-      if (!response.ok || data.ok === false) throw new Error(data.error || "Burn reward recovery failed.");
+      const tokenId = burnRecoveryTokenId.trim();
+      const burnTxHash = burnRecoveryTxHash.trim();
+      const data = await requestBurnRewardClaim(tokenId, burnTxHash);
+      removePendingBurnClaim(tokenId, burnTxHash);
       setBurnRecoveryTokenId("");
       setBurnRecoveryTxHash("");
       await Promise.all([loadEnergy(), loadBurnedGallery()]);
@@ -1000,22 +1121,13 @@ export function TraitLabClient() {
 
                 <div className="mt-3 rounded border border-dyoor-cyan/20 bg-black/30 p-3">
                   <div className="grid gap-3 lg:grid-cols-[minmax(0,0.75fr)_minmax(0,1fr)_auto] lg:items-end">
-                    <label className="grid gap-2">
-                      <span className="text-xs font-black uppercase tracking-[0.16em] text-white/45">Trait</span>
-                      <select
-                        className="field-control min-h-11 py-2.5 text-sm font-black uppercase"
-                        value={selectedTrait}
-                        onChange={(event) => {
-                          setSelectedTrait(event.target.value as S2EditableTrait);
-                          setPreview(null);
-                        }}
-                      >
-                        {S2_EDITABLE_TRAITS.map((trait) => (
-                          <option key={trait} value={trait}>{trait}</option>
-                        ))}
-                      </select>
-                    </label>
-
+                    <div className="grid gap-2">
+                      <p className="text-xs font-black uppercase tracking-[0.16em] text-white/45">Selected Trait</p>
+                      <div className="min-h-11 rounded border border-dyoor-cyan/25 bg-dyoor-cyan/10 px-3 py-2.5">
+                        <p className="truncate text-sm font-black uppercase text-white">{selectedTrait}</p>
+                        <p className="mt-1 text-[0.65rem] font-black uppercase tracking-[0.14em] text-white/42">Click a trait card below</p>
+                      </div>
+                    </div>
                     <div className="grid gap-2">
                       <p className="text-xs font-black uppercase tracking-[0.16em] text-white/45">Selected Slot</p>
                       <div className="min-h-11 rounded border border-white/10 bg-white/[0.035] px-3 py-2.5">
@@ -1183,7 +1295,7 @@ export function TraitLabClient() {
                     <div className="flex items-center justify-between gap-3 border-b border-dyoor-magenta/20 px-3 py-2">
                       <p className="text-xs font-black uppercase tracking-[0.14em] text-dyoor-magenta">Proposed Render + Layer</p>
                       <span className="text-[0.65rem] font-black uppercase tracking-[0.12em] text-yellow-100">
-                        {previewImageChanged ? "Composed Image Updated" : "Layer Overlay Preview"}
+                        {previewHasRenderedImage ? "Composed Image Updated" : "Metadata Only"}
                       </span>
                     </div>
                     <div className="grid gap-0 md:grid-cols-[minmax(0,1fr)_12rem]">
@@ -1290,13 +1402,19 @@ export function TraitLabClient() {
             <p className="eyebrow text-red-100">Burn Archive</p>
             <h2 className="mt-2 text-2xl font-black uppercase text-white">Burned Gallery</h2>
             <p className="mt-2 max-w-3xl text-sm font-semibold leading-6 text-white/58">
-              Permanently burned D.Y.O.O.R Season 2 NFTs appear here after the burn transaction is verified and the Energy reward is credited.
+              Every verified D.Y.O.O.R Season 2 burn appears here after the burn transaction is verified and the Energy reward is credited to the burner.
             </p>
           </div>
           <Button variant="secondary" disabled={burnedGalleryLoading} onClick={() => void loadBurnedGallery()}>
             {burnedGalleryLoading ? "Loading" : "Refresh Gallery"}
           </Button>
         </div>
+
+        {pendingWalletBurnClaims.length ? (
+          <Alert tone="busy" className="mt-5">
+            Recovering {pendingWalletBurnClaims.length} confirmed burn reward{pendingWalletBurnClaims.length === 1 ? "" : "s"} in the background.
+          </Alert>
+        ) : null}
 
         <div className="mt-5 grid gap-3 rounded border border-red-300/20 bg-black/30 p-4 lg:grid-cols-[9rem_minmax(0,1fr)_auto] lg:items-end">
           <label className="grid gap-2">
@@ -1361,7 +1479,7 @@ export function TraitLabClient() {
               ))}
             </div>
           ) : (
-            <EmptyState title="No Burned Droids Yet" copy="Burned Droids will appear here after verified burn reward claims." />
+            <EmptyState title="No Burned Droids Yet" copy="Burned Droids from any wallet will appear here after verified burn reward claims." />
           )}
         </div>
       </Card>
