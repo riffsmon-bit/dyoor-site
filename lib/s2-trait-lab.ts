@@ -67,10 +67,17 @@ type MetadataJson = {
 type TraitLabImageRenderResult = {
   imageId?: string;
   imageUrl?: string;
+  previewDataUrl?: string;
   rendererVersion?: string;
   rendered?: boolean;
   missingLayers?: string[];
   missingRequiredLayers?: string[];
+  storage?: {
+    persisted?: boolean;
+    readable?: boolean;
+    location?: string;
+    error?: string;
+  };
 };
 
 type TraitOption = {
@@ -636,7 +643,7 @@ async function renderTraitLabImageRuntime(
   tokenId: number,
   metadata: MetadataJson,
   origin = "",
-  options: { baseImageUrl?: string; overlayTraitTypes?: string[]; dryRun?: boolean } = {},
+  options: { baseImageUrl?: string; overlayTraitTypes?: string[]; dryRun?: boolean; includeDataUrl?: boolean } = {},
 ) {
   const { renderTraitLabImage } = await import("@/lib/s2-trait-lab-render");
   return renderTraitLabImage(tokenId, metadata, origin, options);
@@ -2025,7 +2032,9 @@ export async function createTraitLabPreview(input: Record<string, unknown>) {
     version,
     attributes: candidate.proposedAttributes,
   }, tokenId, config);
-  const previewImage = await renderTraitLabImageRuntime(tokenId, proposedMetadata as MetadataJson, String(input.origin || ""));
+  const previewImage = await renderTraitLabImageRuntime(tokenId, proposedMetadata as MetadataJson, String(input.origin || ""), {
+    includeDataUrl: true,
+  });
   if (!previewImage.rendered) {
     throw Object.assign(new Error(renderFailureMessage(previewImage)), { status: 503 });
   }
@@ -2148,6 +2157,8 @@ export async function createTraitLabPreview(input: Record<string, unknown>) {
     imageRecomposition: {
       status: "rendered-preview",
       imageUrl: previewImage.imageUrl,
+      previewDataUrl: previewImage.previewDataUrl,
+      storage: previewImage.storage,
       note: "Preview image was composed by the server before Energy was spent. Confirm Change publishes the same trait stack.",
     },
   };

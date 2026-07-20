@@ -14,6 +14,7 @@ type RenderTraitLabImageOptions = {
   baseImageUrl?: string;
   overlayTraitTypes?: string[];
   dryRun?: boolean;
+  includeDataUrl?: boolean;
 };
 
 type TraitItemMetadata = {
@@ -26,6 +27,7 @@ const STORE_NAME = "dyoor-s2-metadata";
 const IMAGE_PREFIX = "trait-lab/images";
 const DEFAULT_RENDER_SIZE = 1024;
 const DEFAULT_SITE_URL = "https://dyoor.netlify.app";
+const DEFAULT_PINATA_GATEWAY = "https://jade-efficient-beaver-697.mypinata.cloud";
 export const RENDER_PIPELINE_VERSION = "trait-assets-v6";
 
 const REQUIRED_RENDER_BASE_LAYERS = new Set(["Background", "Droid"]);
@@ -153,7 +155,7 @@ async function existingLocalLayer(traitType: string, value: unknown) {
 }
 
 function gatewayUrl(cid: string, parts: string[]) {
-  const gateway = readEnv("DYOOR_S2_LAYER_GATEWAY", "NEXT_PUBLIC_PINATA_GATEWAY_URL", "PINATA_GATEWAY_URL") || "https://ipfs.io";
+  const gateway = readEnv("DYOOR_S2_LAYER_GATEWAY", "NEXT_PUBLIC_PINATA_GATEWAY_URL", "PINATA_GATEWAY_URL") || DEFAULT_PINATA_GATEWAY;
   const cleanGateway = gateway.replace(/\/+$/, "");
   return `${cleanGateway}/ipfs/${cid}/${parts.map((part) => encodeURIComponent(part)).join("/")}`;
 }
@@ -164,7 +166,7 @@ function ipfsGatewayUrl(uri: string) {
   if (/^https?:\/\//i.test(raw)) return raw;
   if (!raw.startsWith("ipfs://")) return "";
 
-  const gateway = readEnv("NEXT_PUBLIC_PINATA_GATEWAY_URL", "PINATA_GATEWAY_URL", "DYOOR_S2_LAYER_GATEWAY") || "https://ipfs.io";
+  const gateway = readEnv("NEXT_PUBLIC_PINATA_GATEWAY_URL", "PINATA_GATEWAY_URL", "DYOOR_S2_LAYER_GATEWAY") || DEFAULT_PINATA_GATEWAY;
   return `${gateway.replace(/\/+$/, "")}/ipfs/${raw.slice(7).replace(/^\/+/, "")}`;
 }
 
@@ -235,6 +237,11 @@ async function layerBuffer(traitType: string, value: unknown) {
 }
 
 function imageStore() {
+  const siteID = readEnv("NETLIFY_BLOBS_SITE_ID", "NETLIFY_SITE_ID", "SITE_ID");
+  const token = readEnv("NETLIFY_BLOBS_TOKEN", "NETLIFY_ACCESS_TOKEN", "NETLIFY_AUTH_TOKEN");
+  if (siteID && token) {
+    return getStore({ name: STORE_NAME, siteID, token, consistency: "strong" });
+  }
   return getStore({ name: STORE_NAME, consistency: "strong" });
 }
 
@@ -243,10 +250,24 @@ async function writeImage(imageId: string, png: Buffer) {
   try {
     const body = png.buffer.slice(png.byteOffset, png.byteOffset + png.byteLength) as ArrayBuffer;
     await imageStore().set(key, body);
-  } catch {
+    return { persisted: true, location: "blob" };
+  } catch (error) {
+    if (process.env.NETLIFY) {
+      return {
+        persisted: false,
+        location: "blob",
+        error: error instanceof Error ? error.message : String(error),
+      };
+    }
+  }
+
+  try {
     const filePath = localImagePath(imageId);
     await fs.mkdir(path.dirname(filePath), { recursive: true });
     await fs.writeFile(filePath, png);
+    return { persisted: true, location: "local" };
+  } catch {
+    return { persisted: false, location: "local" };
   }
 }
 
@@ -372,12 +393,38 @@ export async function renderTraitLabImage(
   }).composite(composites).png().toBuffer();
 
   if (!options.dryRun) {
-    await writeImage(imageId, png);
+    const writeResult = await writeImage(imageId, png);
+    const storedImage = writeResult.persisted ? await readRenderedTraitImage(imageId) : null;
+    const previewDataUrl = options.includeDataUrl ? `data:image/png;base64,${png.toString("base64")}` : "";
+
+    if (!storedImage && !previewDataUrl) {
+      return {
+        imageId,
+        imageUrl: metadata.image || "",
+        rendererVersion: RENDER_PIPELINE_VERSION,
+        rendered: false,
+        missingLayers: ["Rendered image storage"],
+        storage: writeResult,
+      };
+    }
+
+    return {
+      imageId,
+      imageUrl: renderedTraitImageUrl(imageId, origin),
+      previewDataUrl,
+      rendererVersion: RENDER_PIPELINE_VERSION,
+      rendered: true,
+      storage: {
+        ...writeResult,
+        readable: Boolean(storedImage),
+      },
+    };
   }
 
   return {
     imageId,
     imageUrl: renderedTraitImageUrl(imageId, origin),
+    previewDataUrl: options.includeDataUrl ? `data:image/png;base64,${png.toString("base64")}` : "",
     rendererVersion: RENDER_PIPELINE_VERSION,
     rendered: true,
   };

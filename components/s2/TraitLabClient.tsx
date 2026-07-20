@@ -112,6 +112,14 @@ type PreviewResponse = {
   imageRecomposition?: {
     status?: string;
     todo?: string;
+    imageUrl?: string;
+    previewDataUrl?: string;
+    storage?: {
+      persisted?: boolean;
+      readable?: boolean;
+      location?: string;
+      error?: string;
+    };
   };
   openSeaMetadataRefresh?: {
     status?: "queued" | "skipped" | "failed";
@@ -417,15 +425,21 @@ function layerEntries(metadata?: MetadataJson | null) {
 
 function LayerPreview({ fallbackImage, metadata, title }: { fallbackImage?: string; metadata?: MetadataJson | null; title: string }) {
   const layers = layerEntries(metadata);
-  const useFallbackImage = Boolean(fallbackImage);
+  const [failedFallbackImage, setFailedFallbackImage] = useState("");
+  const useFallbackImage = Boolean(fallbackImage && failedFallbackImage !== fallbackImage);
   const useLayerStack = layers.length > 0 && !useFallbackImage;
   return (
     <div className="aspect-square bg-black/45">
-      {fallbackImage || useLayerStack ? (
+      {useFallbackImage || useLayerStack ? (
         <div className="relative h-full w-full overflow-hidden bg-black/35">
           {useFallbackImage ? (
             // eslint-disable-next-line @next/next/no-img-element
-            <img alt={title} className="absolute inset-0 h-full w-full object-cover" src={fallbackImage} />
+            <img
+              alt={title}
+              className="absolute inset-0 h-full w-full object-cover"
+              onError={() => setFailedFallbackImage(fallbackImage || "")}
+              src={fallbackImage}
+            />
           ) : null}
           {useLayerStack ? layers.map((layer, index) => (
             // eslint-disable-next-line @next/next/no-img-element
@@ -574,7 +588,7 @@ export function TraitLabClient() {
   const previewCurrentMetadata = preview?.currentMetadata || null;
   const previewProposedMetadata = preview?.proposedMetadata || null;
   const previewBeforeImage = mediaUrl(previewCurrentMetadata?.image || metadata?.image);
-  const previewProposedImage = mediaUrl(previewProposedMetadata?.image || previewBeforeImage);
+  const previewProposedImage = mediaUrl(preview?.imageRecomposition?.previewDataUrl || previewProposedMetadata?.image || previewBeforeImage);
   const previewTraitAssetImage = mediaUrl(preview?.proposedAsset?.uri);
   const previewImageChanged = normalizeTraitValue(previewCurrentMetadata?.image) !== normalizeTraitValue(previewProposedMetadata?.image);
 
