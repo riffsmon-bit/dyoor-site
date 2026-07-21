@@ -169,6 +169,14 @@ type BurnedGalleryResponse = {
   error?: string;
 };
 
+type PendingBurnClaim = {
+  wallet: string;
+  tokenId: string;
+  burnTxHash: string;
+  createdAt: string;
+  confirmedAt?: string;
+};
+
 const S2_DROID_BURN_ABI = [{
   type: "function",
   name: "burn",
@@ -542,6 +550,7 @@ export function TraitLabClient() {
   const [selectedAction, setSelectedAction] = useState<S2TraitLabAction | "">("");
   const [burnedGallery, setBurnedGallery] = useState<BurnedDroidCard[]>([]);
   const [burnConfirmText, setBurnConfirmText] = useState("");
+  const [pendingBurnClaim, setPendingBurnClaim] = useState<PendingBurnClaim | null>(null);
   const [burnedGalleryLoading, setBurnedGalleryLoading] = useState(false);
   const [ownedLoading, setOwnedLoading] = useState(false);
   const [metadataLoading, setMetadataLoading] = useState(false);
@@ -572,12 +581,14 @@ export function TraitLabClient() {
     : 0;
   const selectedTraitIsEmpty = isEmptyTraitValue(selectedTraitValue);
   const selectedTraitGuaranteedEmpty = selectedTraitIsEmpty && guaranteedTraits.has(selectedTrait);
-  const rollLoading = Boolean(actionLoading && actionLoading !== "confirm" && actionLoading !== "burn-droid");
+  const rollLoading = Boolean(actionLoading && !["confirm", "burn-droid", "burn-claim"].includes(actionLoading));
   const burnLoading = actionLoading === "burn-droid";
+  const burnClaimLoading = actionLoading === "burn-claim";
   const [rollingAction, rollingTraitType] = rollLoading ? actionLoading.split(":") : ["", ""];
   const droidBurnRewardEnergy = traitLabConfig?.droidBurnRewardEnergy || S2_TRAIT_LAB_DROID_BURN_REWARD_ENERGY;
   const droidBurnEnabled = traitLabConfig?.droidBurnEnabled !== false;
   const burnConfirmationPhrase = selectedTokenId ? `BURN DROID #${selectedTokenId}` : "";
+  const pendingBurnStorageKey = walletAddress ? `dyoor:s2:pending-droid-burn:${walletAddress}` : "";
   const burnReady = Boolean(
     walletAddress
     && selectedTokenId
@@ -616,6 +627,24 @@ export function TraitLabClient() {
     const timer = window.setTimeout(() => setSelectedAction(selectedTraitAction), 0);
     return () => window.clearTimeout(timer);
   }, [selectedAction, selectedTraitAction]);
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      if (!pendingBurnStorageKey) {
+        setPendingBurnClaim(null);
+        return;
+      }
+
+      try {
+        const raw = window.localStorage.getItem(pendingBurnStorageKey);
+        const parsed = raw ? JSON.parse(raw) as PendingBurnClaim : null;
+        setPendingBurnClaim(parsed?.wallet === walletAddress && parsed.burnTxHash ? parsed : null);
+      } catch {
+        setPendingBurnClaim(null);
+      }
+    }, 0);
+    return () => window.clearTimeout(timer);
+  }, [pendingBurnStorageKey, walletAddress]);
 
   useEffect(() => {
     let active = true;
@@ -822,6 +851,72 @@ export function TraitLabClient() {
     throw new Error("Roll transaction is still pending. Wait a moment and try again.");
   }
 
+  function savePendingBurnClaim(claim: PendingBurnClaim) {
+    if (typeof window !== "undefined") {
+      window.localStorage.setItem(`dyoor:s2:pending-droid-burn:${claim.wallet}`, JSON.stringify(claim));
+    }
+    setPendingBurnClaim(claim);
+  }
+
+  function clearPendingBurnClaim(claim: PendingBurnClaim) {
+    if (typeof window !== "undefined") {
+      const key = `dyoor:s2:pending-droid-burn:${claim.wallet}`;
+      const raw = window.localStorage.getItem(key);
+      try {
+        const parsed = raw ? JSON.parse(raw) as PendingBurnClaim : null;
+        if (!parsed || parsed.burnTxHash === claim.burnTxHash) window.localStorage.removeItem(key);
+      } catch {
+        window.localStorage.removeItem(key);
+      }
+    }
+    setPendingBurnClaim(null);
+  }
+
+  async function submitDroidBurnRewardClaim(claim: PendingBurnClaim) {
+    const response = await fetch("/api/s2/trait-lab/burn-droid", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        wallet: claim.wallet,
+        tokenId: claim.tokenId,
+        burnTxHash: claim.burnTxHash,
+      }),
+    });
+    const data = await response.json().catch(() => ({})) as {
+      ok?: boolean;
+      error?: string;
+      rewardEnergy?: number;
+      rewardTxHash?: string;
+      burnRecord?: BurnedDroidCard;
+    };
+    if (!response.ok || data.ok === false) throw new Error(data.error || "Droid burn reward failed.");
+
+    clearPendingBurnClaim(claim);
+    setOwnedTokenIds((tokenIds) => tokenIds.filter((tokenId) => tokenId !== claim.tokenId));
+    setTokenCards((cards) => cards.filter((card) => card.tokenId !== claim.tokenId));
+    if (selectedTokenIdRef.current === claim.tokenId) {
+      setSelectedTokenId("");
+      setMetadata(null);
+    }
+    setBurnConfirmText("");
+    await Promise.all([loadEnergy(), loadBurnedGallery()]);
+    setStatus(`D.Y.O.O.R #${claim.tokenId} burned. ${(data.rewardEnergy || droidBurnRewardEnergy).toLocaleString()} Energy credited.`);
+  }
+
+  async function claimPendingDroidBurnReward() {
+    if (!pendingBurnClaim) return;
+    setActionLoading("burn-claim");
+    setError("");
+    setStatus("Verifying confirmed burn and retrying Energy reward.");
+    try {
+      await submitDroidBurnRewardClaim(pendingBurnClaim);
+    } catch (err) {
+      setError(`${traitLabErrorMessage(err, "Droid burn reward claim failed.")} The NFT is already burned; use Claim / Retry after a minute, do not burn again.`);
+    } finally {
+      setActionLoading("");
+    }
+  }
+
   async function activeProviderWallet() {
     const provider = await wallet.getProvider();
     const accounts = await provider.request({ method: "eth_accounts" }).catch(() => []) as string[];
@@ -946,6 +1041,7 @@ export function TraitLabClient() {
     }
 
     const tokenIdBeingBurned = selectedTokenId;
+    let savedClaim: PendingBurnClaim | null = null;
     setActionLoading("burn-droid");
     setPreview(null);
     setError("");
@@ -970,37 +1066,30 @@ export function TraitLabClient() {
           args: [BigInt(tokenIdBeingBurned)],
         }),
       });
+      savedClaim = {
+        wallet: walletAddress,
+        tokenId: tokenIdBeingBurned,
+        burnTxHash,
+        createdAt: new Date().toISOString(),
+      };
+      savePendingBurnClaim(savedClaim);
       setStatus("Droid burn sent. Waiting for on-chain confirmation.");
       await waitForTransactionReceipt(burnTxHash);
 
       setStatus(`Burn confirmed. Crediting ${droidBurnRewardEnergy.toLocaleString()} Energy.`);
-      const response = await fetch("/api/s2/trait-lab/burn-droid", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({
-          wallet: walletAddress,
-          tokenId: tokenIdBeingBurned,
-          burnTxHash,
-        }),
-      });
-      const data = await response.json().catch(() => ({})) as {
-        ok?: boolean;
-        error?: string;
-        rewardEnergy?: number;
-        rewardTxHash?: string;
-        burnRecord?: BurnedDroidCard;
+      if (!savedClaim) throw new Error("Burn transaction was not saved for reward claim.");
+      const confirmedClaim = {
+        ...savedClaim,
+        confirmedAt: new Date().toISOString(),
       };
-      if (!response.ok || data.ok === false) throw new Error(data.error || "Droid burn reward failed.");
-
-      setOwnedTokenIds((tokenIds) => tokenIds.filter((tokenId) => tokenId !== tokenIdBeingBurned));
-      setTokenCards((cards) => cards.filter((card) => card.tokenId !== tokenIdBeingBurned));
-      setSelectedTokenId("");
-      setMetadata(null);
-      setBurnConfirmText("");
-      await Promise.all([loadEnergy(), loadBurnedGallery()]);
-      setStatus(`D.Y.O.O.R #${tokenIdBeingBurned} burned. ${(data.rewardEnergy || droidBurnRewardEnergy).toLocaleString()} Energy credited.`);
+      savedClaim = confirmedClaim;
+      savePendingBurnClaim(confirmedClaim);
+      await submitDroidBurnRewardClaim(confirmedClaim);
     } catch (err) {
-      setError(traitLabErrorMessage(err, "Droid burn failed."));
+      const message = traitLabErrorMessage(err, "Droid burn failed.");
+      setError(savedClaim
+        ? `${message} The burn transaction is saved below for retry. Do not burn again.`
+        : message);
     } finally {
       setActionLoading("");
     }
@@ -1448,6 +1537,34 @@ export function TraitLabClient() {
           </Card>
         </div>
       </section>
+
+      {pendingBurnClaim ? (
+        <Card className="border-yellow-300/30 bg-yellow-400/10 p-5">
+          <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center">
+            <div>
+              <p className="eyebrow text-yellow-100">Burn Reward Recovery</p>
+              <h2 className="mt-2 text-2xl font-black uppercase text-white">Claim Pending Burn Energy</h2>
+              <p className="mt-2 max-w-3xl text-sm font-semibold leading-6 text-white/62">
+                D.Y.O.O.R #{pendingBurnClaim.tokenId} has a saved burn transaction. If the first reward step failed because of RPC indexing or a refresh, retry the verified reward claim here. Do not burn another Droid for this claim.
+              </p>
+              <div className="mt-3 flex flex-wrap gap-2 text-xs font-black uppercase tracking-[0.12em]">
+                <span className="rounded border border-yellow-200/25 bg-yellow-200/10 px-3 py-2 text-yellow-100">Reward: {droidBurnRewardEnergy.toLocaleString()} Energy</span>
+                <a
+                  className="rounded border border-dyoor-cyan/25 bg-dyoor-cyan/10 px-3 py-2 text-dyoor-cyan underline-offset-4 hover:underline"
+                  href={`${traitLabConfig?.explorerUrl || "https://monadscan.com"}/tx/${pendingBurnClaim.burnTxHash}`}
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  View Burn Tx
+                </a>
+              </div>
+            </div>
+            <Button className="w-full lg:w-auto" disabled={burnClaimLoading} variant="primary" onClick={() => void claimPendingDroidBurnReward()}>
+              {burnClaimLoading ? "Claiming" : `Claim / Retry ${droidBurnRewardEnergy.toLocaleString()} Energy`}
+            </Button>
+          </div>
+        </Card>
+      ) : null}
 
       <Card className="p-5">
         <div className="flex flex-col justify-between gap-3 md:flex-row md:items-end">

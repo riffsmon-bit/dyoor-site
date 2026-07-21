@@ -51,7 +51,9 @@
     "backfill:energy-bank": "hardhat run scripts/backfill-energy-bank.js --network monad",
     "backfill:energy-bank:execute": "EXECUTE_BACKFILL=1 hardhat run scripts/backfill-energy-bank.js --network monad",
     "airdrop:energy:dry-run": "node scripts/airdrop-energy.js",
-    "airdrop:energy:broadcast": "EXECUTE_AIRDROP=1 node scripts/airdrop-energy.js"
+    "airdrop:energy:broadcast": "EXECUTE_AIRDROP=1 node scripts/airdrop-energy.js",
+    "trait-lab:droid-burn-credit": "node scripts/trait-lab-droid-burn-credit.js",
+    "trait-lab:droid-burn-credit:execute": "EXECUTE_DROID_BURN_CREDIT=1 node scripts/trait-lab-droid-burn-credit.js"
   },
   "dependencies": {
     "@netlify/blobs": "^7.4.0",

@@ -9,6 +9,14 @@ function safeKey(key: string) {
   return key.replace(/^\/+/, "").replace(/\.\.+/g, "").replace(/\\/g, "/");
 }
 
+function readEnv(...names: string[]) {
+  for (const name of names) {
+    const value = process.env[name];
+    if (value) return value;
+  }
+  return "";
+}
+
 function createFileStore(storeName: string): JsonStore {
   return {
     async getJson<T>(key: string, fallback: T) {
@@ -23,7 +31,12 @@ function createFileStore(storeName: string): JsonStore {
 }
 
 function createBlobStore(storeName: string): JsonStore {
-  const store = () => getStore({ name: storeName, consistency: "strong" });
+  const store = () => {
+    const siteID = readEnv("NETLIFY_BLOBS_SITE_ID", "NETLIFY_SITE_ID", "SITE_ID");
+    const token = readEnv("NETLIFY_BLOBS_TOKEN", "NETLIFY_AUTH_TOKEN");
+    if (siteID && token) return getStore({ name: storeName, siteID, token, consistency: "strong" });
+    return getStore({ name: storeName, consistency: "strong" });
+  };
   return {
     async getJson<T>(key: string, fallback: T) {
       try {

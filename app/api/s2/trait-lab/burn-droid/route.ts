@@ -18,7 +18,8 @@ export async function POST(request: Request) {
   try {
     const body = await request.json().catch(() => ({})) as Record<string, unknown>;
     const wallet = normalizeWallet(body.wallet);
-    assertTraitLabRateLimit(`burn-droid:${wallet || "invalid"}:${clientIp(request)}`, 4, 60_000);
+    const txHash = String(body.burnTxHash || "").trim().toLowerCase();
+    assertTraitLabRateLimit(`burn-droid:${wallet || txHash || "invalid"}:${clientIp(request)}`, 8, 60_000);
     return json(200, await claimTraitLabDroidBurnReward(body));
   } catch (error: any) {
     return json(Number(error?.status || 500), { ok: false, error: error?.message || "Droid burn reward failed." });

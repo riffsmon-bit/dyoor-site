@@ -196,7 +196,6 @@ const DEFAULT_TRAIT_ASSETS_CID = "bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6h
 const PREVIEW_TTL_MS = 5 * 60 * 1000;
 const CONFIRM_WINDOW_MS = 5 * 60 * 1000;
 const TRANSFER_TOPIC = ethers.id("Transfer(address,address,uint256)");
-const BURN_SELECTOR = ethers.id("burn(uint256)").slice(0, 10).toLowerCase();
 const DEFAULT_MONAD_MAINNET_RPC_URL = "https://rpc.monad.xyz";
 const DEFAULT_MONAD_MAINNET_EXPLORER_URL = "https://monadscan.com";
 const DEFAULT_S2_DEPLOYMENT_BLOCK = 87616887;
@@ -827,11 +826,64 @@ function hasBandannaAccessory(traits: Record<string, string>) {
   return isBandanna(traits.Accessories) || isBandanna(traits["Accessories 2"]);
 }
 
+const ACCESSORY_SLOT_TRAITS = new Set<S2TraitLabTrait>(["Accessories", "Accessories 2"]);
+const ACCESSORY_LAYER_GROUPS = [
+  {
+    name: "face accessory",
+    values: new Set([
+      "bandaid",
+      "bandana black",
+      "bandana pink",
+      "mesh bandanna",
+    ]),
+  },
+  {
+    name: "neck accessory",
+    values: new Set([
+      "bob-chain",
+      "bob chain",
+      "choker necklace",
+      "sealuminati chain",
+    ]),
+  },
+  {
+    name: "companion accessory",
+    values: new Set([
+      "10ksquad",
+      "molandak",
+      "mouch",
+      "shramp",
+      "the hive",
+    ]),
+  },
+];
+
+function accessoryLayerGroup(value: unknown) {
+  const normalized = normalizeComparable(value);
+  if (!normalized) return "";
+  return ACCESSORY_LAYER_GROUPS.find((group) => group.values.has(normalized))?.name || "";
+}
+
+function oppositeAccessoryTrait(traitType: S2TraitLabTrait) {
+  if (traitType === "Accessories") return "Accessories 2";
+  if (traitType === "Accessories 2") return "Accessories";
+  return "";
+}
+
 function explicitCompatibilityConflict(traits: Record<string, string>) {
   if (!isEmptyTraitValue(traits.Accessories)
     && !isEmptyTraitValue(traits["Accessories 2"])
     && valuesMatch(traits.Accessories, traits["Accessories 2"])) {
     return "Accessories and Accessories 2 cannot use the same trait.";
+  }
+
+  const accessoriesGroup = accessoryLayerGroup(traits.Accessories);
+  const accessories2Group = accessoryLayerGroup(traits["Accessories 2"]);
+  if (!isEmptyTraitValue(traits.Accessories)
+    && !isEmptyTraitValue(traits["Accessories 2"])
+    && accessoriesGroup
+    && accessoriesGroup === accessories2Group) {
+    return `Accessories and Accessories 2 cannot both use a ${accessoriesGroup}.`;
   }
 
   if (hasBandannaAccessory(traits) && !isEmptyTraitValue(traits.Hat)) {
@@ -928,8 +980,21 @@ function applyHeadwearSideEffects(traits: Record<string, string>, changedTraitTy
   return next;
 }
 
+function applyAccessoryLayerSideEffects(traits: Record<string, string>, changedTraitType: S2TraitLabTrait) {
+  const next = { ...traits };
+  if (!ACCESSORY_SLOT_TRAITS.has(changedTraitType)) return next;
+
+  const oppositeTrait = oppositeAccessoryTrait(changedTraitType);
+  if (!oppositeTrait) return next;
+
+  const changedGroup = accessoryLayerGroup(next[changedTraitType]);
+  const oppositeGroup = accessoryLayerGroup(next[oppositeTrait]);
+  if (changedGroup && changedGroup === oppositeGroup) next[oppositeTrait] = "None";
+  return next;
+}
+
 function applyTraitSideEffects(traits: Record<string, string>, changedTraitType: S2TraitLabTrait) {
-  return applySpecialSideEffects(applyHeadwearSideEffects(traits, changedTraitType));
+  return applySpecialSideEffects(applyAccessoryLayerSideEffects(applyHeadwearSideEffects(traits, changedTraitType), changedTraitType));
 }
 
 function repairMouthAfterFaceCoverRemoval(
@@ -1411,19 +1476,47 @@ function traitLabDroidBurnClaim(wallet: string, tokenId: number, burnTxHash: str
   ].join(":")));
 }
 
-function hasVerifiedBurnLog(receipt: ethers.TransactionReceipt, wallet: string, tokenId: number) {
-  const expectedFrom = topicAddress(wallet).toLowerCase();
-  const expectedTo = topicAddress(ZERO_ADDRESS).toLowerCase();
-  const expectedTokenId = topicUint256(tokenId);
+type VerifiedDroidBurnLog = {
+  wallet: string;
+  tokenId: number;
+};
 
-  return receipt.logs.some((log) => {
-    if (normalizeWallet(log.address) !== s2ContractAddress().toLowerCase()) return false;
+function walletFromTopic(topic: string) {
+  const value = String(topic || "").trim();
+  if (!/^0x[a-fA-F0-9]{64}$/.test(value)) return "";
+  return normalizeWallet(`0x${value.slice(-40)}`);
+}
+
+function verifiedDroidBurnLogs(receipt: ethers.TransactionReceipt): VerifiedDroidBurnLog[] {
+  const expectedTo = topicAddress(ZERO_ADDRESS).toLowerCase();
+  return receipt.logs.flatMap((log) => {
+    if (normalizeWallet(log.address) !== s2ContractAddress().toLowerCase()) return [];
     const topics = log.topics.map((topic) => String(topic || "").toLowerCase());
-    return topics[0] === TRANSFER_TOPIC.toLowerCase()
-      && topics[1] === expectedFrom
-      && topics[2] === expectedTo
-      && topics[3] === expectedTokenId;
+    if (topics[0] !== TRANSFER_TOPIC.toLowerCase() || topics[2] !== expectedTo || !topics[1] || !topics[3]) return [];
+
+    const wallet = walletFromTopic(topics[1]);
+    if (!wallet) return [];
+
+    const tokenIdBig = BigInt(topics[3]);
+    if (tokenIdBig > BigInt(Number.MAX_SAFE_INTEGER)) {
+      throw Object.assign(new Error("Burned token ID is outside the supported range."), { status: 400 });
+    }
+
+    return [{
+      wallet,
+      tokenId: Number(tokenIdBig),
+    }];
   });
+}
+
+function verifiedDroidBurnLog(receipt: ethers.TransactionReceipt, requestedTokenId?: number) {
+  const logs = verifiedDroidBurnLogs(receipt);
+  if (requestedTokenId !== undefined) return logs.find((log) => log.tokenId === requestedTokenId) || null;
+  if (logs.length === 1) return logs[0];
+  if (logs.length > 1) {
+    throw Object.assign(new Error("Burn transaction includes multiple Droid burns. Submit a token ID with the claim."), { status: 400 });
+  }
+  return null;
 }
 
 function metadataSnapshot(metadata: MetadataJson | null) {
@@ -1440,38 +1533,41 @@ export async function claimTraitLabDroidBurnReward(input: Record<string, unknown
     throw Object.assign(new Error("Droid burn rewards are not enabled."), { status: 403 });
   }
 
-  const wallet = normalizeWallet(input.wallet);
-  if (!wallet) throw Object.assign(new Error("wallet must be a valid address."), { status: 400 });
+  const requestedWallet = String(input.wallet || "").trim() ? normalizeWallet(input.wallet) : "";
+  if (String(input.wallet || "").trim() && !requestedWallet) {
+    throw Object.assign(new Error("wallet must be a valid address."), { status: 400 });
+  }
 
-  const config = await getRuntimeMetadataConfig();
-  const tokenId = parseInputTokenId(input.tokenId, config.maxSupply);
   const burnTxHash = requireTxHash(input.burnTxHash);
   const rewardEnergy = traitLabDroidBurnRewardEnergy();
   const rewardRaw = formatTraitLabEnergyRaw(rewardEnergy);
   const rewardLabel = `${rewardEnergy} Energy`;
-  const claim = traitLabDroidBurnClaim(wallet, tokenId, burnTxHash, rewardRaw);
   const rpcProvider = provider();
-  const [tx, receipt, metadataResult] = await Promise.all([
+  const [tx, receipt] = await Promise.all([
     rpcProvider.getTransaction(burnTxHash),
     rpcProvider.getTransactionReceipt(burnTxHash),
-    buildTokenMetadataAsync(tokenId, config).then((result) => result.metadata as MetadataJson).catch(() => null),
   ]);
 
   if (!tx) throw Object.assign(new Error("Burn transaction is not available yet."), { status: 409 });
   if (!receipt) throw Object.assign(new Error("Burn transaction is not confirmed yet."), { status: 409 });
   if (receipt.status !== 1) throw Object.assign(new Error("Burn transaction failed on-chain."), { status: 400 });
-  if (normalizeWallet(tx.from) !== wallet) {
-    throw Object.assign(new Error("Burn transaction sender does not match connected wallet."), { status: 400 });
-  }
-  if (normalizeWallet(tx.to) !== s2ContractAddress().toLowerCase()) {
-    throw Object.assign(new Error("Burn transaction recipient does not match the D.Y.O.O.R Season 2 contract."), { status: 400 });
-  }
-  if (!String(tx.data || "").toLowerCase().startsWith(BURN_SELECTOR)) {
-    throw Object.assign(new Error("Burn transaction does not call burn(uint256)."), { status: 400 });
-  }
-  if (!hasVerifiedBurnLog(receipt, wallet, tokenId)) {
+
+  const config = await getRuntimeMetadataConfig();
+  const requestedTokenId = String(input.tokenId || "").trim()
+    ? parseInputTokenId(input.tokenId, config.maxSupply)
+    : undefined;
+  const burnLog = verifiedDroidBurnLog(receipt, requestedTokenId);
+  if (!burnLog) {
     throw Object.assign(new Error("Burn transaction did not emit the expected token burn event."), { status: 400 });
   }
+  if (requestedWallet && requestedWallet !== burnLog.wallet) {
+    throw Object.assign(new Error("Burn transaction owner does not match connected wallet."), { status: 400 });
+  }
+
+  const wallet = requestedWallet || burnLog.wallet;
+  const tokenId = requestedTokenId ?? burnLog.tokenId;
+  const claim = traitLabDroidBurnClaim(wallet, tokenId, burnTxHash, rewardRaw);
+  const metadataResult = await buildTokenMetadataAsync(tokenId, config).then((result) => result.metadata as MetadataJson).catch(() => null);
 
   const signer = energyBankSigner();
   const signerAddress = await signer.getAddress();
