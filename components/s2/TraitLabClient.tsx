@@ -122,9 +122,16 @@ type PreviewResponse = {
     };
   };
   openSeaMetadataRefresh?: {
-    status?: "queued" | "skipped" | "failed";
+    status?: "queued" | "scheduled" | "skipped" | "failed";
     note?: string;
     error?: string;
+    runAt?: string;
+    delayMs?: number;
+    immediate?: {
+      status?: "queued" | "scheduled" | "skipped" | "failed";
+      note?: string;
+      error?: string;
+    };
   };
   error?: string;
 };
@@ -1009,8 +1016,14 @@ export function TraitLabClient() {
       setPreview(null);
       await loadEnergy();
       const openSeaStatus = data.openSeaMetadataRefresh?.status;
-      const openSeaSuffix = openSeaStatus === "queued"
-        ? " OpenSea refresh queued."
+      scheduleOpenSeaRefreshProcessor(data.openSeaMetadataRefresh);
+      const immediateOpenSeaStatus = data.openSeaMetadataRefresh?.immediate?.status;
+      const openSeaSuffix = openSeaStatus === "scheduled" && immediateOpenSeaStatus === "queued"
+        ? " OpenSea refresh fired; follow-up refresh scheduled."
+        : openSeaStatus === "scheduled"
+          ? " OpenSea follow-up refresh scheduled."
+        : openSeaStatus === "queued"
+          ? " OpenSea refresh queued."
         : openSeaStatus === "failed"
           ? " OpenSea refresh needs a retry."
           : "";
@@ -1020,6 +1033,21 @@ export function TraitLabClient() {
     } finally {
       setActionLoading("");
     }
+  }
+
+  function scheduleOpenSeaRefreshProcessor(refresh?: PreviewResponse["openSeaMetadataRefresh"]) {
+    if (!refresh || refresh.status !== "scheduled") return;
+    const runAtMs = refresh.runAt ? Date.parse(refresh.runAt) : 0;
+    const delayMs = refresh.runAt && Number.isFinite(runAtMs)
+      ? Math.max(5_000, runAtMs - Date.now() + 2_500)
+      : Math.max(5_000, Number(refresh.delayMs || 120_000) + 2_500);
+    window.setTimeout(() => {
+      void fetch("/api/s2/trait-lab/opensea-refresh", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ source: "trait-lab-client" }),
+      }).catch(() => undefined);
+    }, Math.min(delayMs, 10 * 60_000));
   }
 
   async function burnSelectedDroid() {

@@ -149,13 +149,15 @@ Current important rules:
 7. The server saves the metadata override.
 8. Metadata Version increments.
 9. The public metadata endpoint returns the updated metadata.
-10. OpenSea metadata refresh is queued automatically when `OPENSEA_API_KEY` is configured.
+10. OpenSea metadata refresh fires immediately and schedules a follow-up refresh when `OPENSEA_API_KEY` is configured.
 
-OpenSea can still take time to re-index after a refresh is queued. The D.Y.O.O.R metadata endpoint updates first; marketplace display may lag behind it.
+OpenSea receives one refresh immediately after confirmation, then a delayed follow-up so rapid back-to-back rerolls settle into one final metadata/image state. The D.Y.O.O.R metadata endpoint updates first; marketplace display may lag behind it.
 
 ## OpenSea Refresh
 
-After a successful confirmed Trait Lab change, the server calls OpenSea's metadata refresh endpoint for the affected token.
+After a successful confirmed Trait Lab change, the server calls OpenSea's metadata refresh endpoint for the affected token immediately, then schedules one follow-up refresh. Repeated rerolls on the same token update the queued follow-up run time instead of stacking multiple delayed refreshes.
+
+The browser also pings the refresh processor after the delay, and Netlify runs `opensea-refresh-queue` every two minutes as a fallback. This keeps follow-up refreshes moving even if the user closes the tab after confirming a reroll.
 
 Required private environment variable:
 
@@ -168,10 +170,11 @@ Optional environment variables:
 ```txt
 OPENSEA_CHAIN=monad
 OPENSEA_METADATA_REFRESH_TIMEOUT_MS=3500
+OPENSEA_METADATA_REFRESH_DELAY_MS=120000
 OPENSEA_METADATA_REFRESH_DISABLED=0
 ```
 
-Refresh failures do not revert a successful Trait Lab update. If OpenSea rate-limits or errors, the metadata remains updated on D.Y.O.O.R and OpenSea can be refreshed again later.
+Refresh failures do not revert a successful Trait Lab update. If OpenSea rate-limits or errors, the metadata remains updated on D.Y.O.O.R and the refresh queue retries later.
 
 ## User Tutorial
 
@@ -190,7 +193,7 @@ Refresh failures do not revert a successful Trait Lab update. If OpenSea rate-li
 7. Preview the generated result.
 8. Confirm the change with the connected wallet.
 9. Wait for the new Metadata Version and image to appear.
-10. OpenSea refresh is queued automatically, but OpenSea display can lag while it re-indexes.
+10. OpenSea refresh is scheduled automatically, but OpenSea display can lag while it re-indexes.
 
 ## Notes
 

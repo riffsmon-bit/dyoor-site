@@ -19,6 +19,7 @@ export function AppProviders({ children }: { children: ReactNode }) {
   }));
 
   const appId = process.env.NEXT_PUBLIC_PRIVY_APP_ID || "";
+  const walletConnectProjectId = process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID || "";
 
   useEffect(() => {
     if (process.env.NODE_ENV === "production") {
@@ -57,10 +58,31 @@ export function AppProviders({ children }: { children: ReactNode }) {
           theme: "dark",
           accentColor: "#39ffe2",
           logo: dyoorLogo.src,
+          showWalletLoginFirst: true,
+          walletChainType: "ethereum-only",
+          walletList: [
+            "detected_ethereum_wallets",
+            "metamask",
+            "okx_wallet",
+            "coinbase_wallet",
+            "phantom",
+            "backpack",
+            "wallet_connect",
+            "wallet_connect_qr",
+          ],
         },
         loginMethods: ["wallet", "email"],
+        walletConnectCloudProjectId: walletConnectProjectId || undefined,
+        externalWallets: {
+          walletConnect: {
+            enabled: true,
+          },
+          disableAllExternalWallets: false,
+        },
         embeddedWallets: {
-          createOnLogin: "users-without-wallets",
+          ethereum: {
+            createOnLogin: "users-without-wallets",
+          },
         },
         defaultChain: monadMainnet,
         supportedChains: [monadMainnet],

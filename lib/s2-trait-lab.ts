@@ -38,7 +38,7 @@ import {
   parseTokenId,
   saveRuntimeTraitOverride,
 } from "@/lib/dyoor-s2-metadata.js";
-import { refreshOpenSeaTokenMetadata } from "@/lib/opensea-metadata-refresh";
+import { processDueOpenSeaMetadataRefreshes, refreshOpenSeaTokenMetadataNowAndLater } from "@/lib/opensea-metadata-refresh";
 import {
   applyTraitSupplyDeltas,
   assertTraitSupplyAvailable,
@@ -1612,9 +1612,16 @@ export async function claimTraitLabDroidBurnReward(input: Record<string, unknown
   if (creditReceipt?.status !== 1) {
     throw Object.assign(new Error("Energy burn reward transaction failed."), { status: 500 });
   }
-  const openSeaMetadataRefresh = await refreshOpenSeaTokenMetadata({ tokenId }).catch((error) => ({
-    queued: false,
-    reason: error instanceof Error ? error.message : "refresh_failed",
+  await processDueOpenSeaMetadataRefreshes().catch(() => undefined);
+  const openSeaMetadataRefresh = await refreshOpenSeaTokenMetadataNowAndLater({
+    tokenId,
+    reason: "trait_lab_droid_burn",
+  }).catch((error) => ({
+    status: "failed" as const,
+    chain: "monad",
+    contractAddress: s2ContractAddress(),
+    tokenId: String(tokenId),
+    error: error instanceof Error ? error.message : "refresh_failed",
   }));
 
   const burnRecord = await saveBurnedDroidRecord({
@@ -2356,7 +2363,17 @@ export async function confirmTraitLabPreview(input: Record<string, unknown>) {
     };
     await saveTraitLabRoll(rollRecord);
     const updated = await buildTokenMetadataAsync(tokenId, config);
-    const openSeaMetadataRefresh = await refreshOpenSeaTokenMetadata({ tokenId });
+    await processDueOpenSeaMetadataRefreshes().catch(() => undefined);
+    const openSeaMetadataRefresh = await refreshOpenSeaTokenMetadataNowAndLater({
+      tokenId,
+      reason: "trait_lab_recycle_recovery",
+    }).catch((error) => ({
+      status: "failed" as const,
+      chain: "monad",
+      contractAddress: s2ContractAddress(),
+      tokenId: String(tokenId),
+      error: error instanceof Error ? error.message : "refresh_failed",
+    }));
 
     return {
       ok: true,
@@ -2445,7 +2462,17 @@ export async function confirmTraitLabPreview(input: Record<string, unknown>) {
   };
   await saveTraitLabRoll(rollRecord);
   const updated = await buildTokenMetadataAsync(tokenId, config);
-  const openSeaMetadataRefresh = await refreshOpenSeaTokenMetadata({ tokenId });
+  await processDueOpenSeaMetadataRefreshes().catch(() => undefined);
+  const openSeaMetadataRefresh = await refreshOpenSeaTokenMetadataNowAndLater({
+    tokenId,
+    reason: `trait_lab_${payload.action}`,
+  }).catch((error) => ({
+    status: "failed" as const,
+    chain: "monad",
+    contractAddress: s2ContractAddress(),
+    tokenId: String(tokenId),
+    error: error instanceof Error ? error.message : "refresh_failed",
+  }));
 
   return {
     ok: true,

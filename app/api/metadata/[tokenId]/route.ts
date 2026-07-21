@@ -5,7 +5,7 @@ import {
   parseTokenId,
   saveRuntimeTraitOverride,
 } from "@/lib/dyoor-s2-metadata.js";
-import { refreshOpenSeaTokenMetadata } from "@/lib/opensea-metadata-refresh";
+import { processDueOpenSeaMetadataRefreshes, refreshOpenSeaTokenMetadataNowAndLater } from "@/lib/opensea-metadata-refresh";
 import { RENDER_PIPELINE_VERSION, renderTraitLabImage, traitRenderImageId } from "@/lib/s2-trait-lab-render";
 
 export const runtime = "nodejs";
@@ -67,7 +67,11 @@ export async function GET(_request: Request, context: MetadataRouteContext) {
         notes: String(override.notes || "").replace(/;?\s*image recomposition TODO\.?/i, "").trim() || override.notes,
       });
       metadata = (await buildTokenMetadataAsync(tokenId, config)).metadata;
-      await refreshOpenSeaTokenMetadata({ tokenId });
+      await processDueOpenSeaMetadataRefreshes().catch(() => undefined);
+      await refreshOpenSeaTokenMetadataNowAndLater({
+        tokenId,
+        reason: "metadata_route_image_repair",
+      }).catch(() => undefined);
     } else if (staleRenderer || externalRenderUrl || legacyRenderId) {
       const nextOverride = { ...override };
       delete nextOverride.image;
@@ -87,7 +91,11 @@ export async function GET(_request: Request, context: MetadataRouteContext) {
       updatedAt: new Date().toISOString(),
     });
     metadata = (await buildTokenMetadataAsync(tokenId, config)).metadata;
-    await refreshOpenSeaTokenMetadata({ tokenId });
+    await processDueOpenSeaMetadataRefreshes().catch(() => undefined);
+    await refreshOpenSeaTokenMetadataNowAndLater({
+      tokenId,
+      reason: "metadata_route_attribute_reconcile",
+    }).catch(() => undefined);
   }
 
   metadata = normalizeMetadataUrls(metadata, requestOrigin);

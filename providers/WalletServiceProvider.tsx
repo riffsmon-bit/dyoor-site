@@ -121,9 +121,25 @@ function useInjectedWallet() {
   const [connecting, setConnecting] = useState(false);
   const [wrongNetwork, setWrongNetwork] = useState(false);
   const [suppressedAddress, setSuppressedAddress] = useState("");
+  const [providerName, setProviderName] = useState("");
 
-  const provider = useMemo(() => injectedProvider(), []);
-  const providerName = shortProviderName(provider);
+  useEffect(() => {
+    let attempts = 0;
+    let timer = 0;
+    const detect = () => {
+      attempts += 1;
+      const nextName = shortProviderName(injectedProvider());
+      if (nextName) {
+        setProviderName(nextName);
+        return;
+      }
+      if (attempts < 12) {
+        timer = window.setTimeout(detect, 350);
+      }
+    };
+    detect();
+    return () => window.clearTimeout(timer);
+  }, []);
 
   const getProvider = useCallback(async () => {
     const active = injectedProvider();
@@ -287,6 +303,7 @@ function PrivyFirstWalletServiceProvider({ children }: { children: ReactNode }) 
   const address = privyAddress || injected.address;
   const source: WalletSource = privyAddress ? "privy" : injected.source;
   const uiReady = authReady || readyTimedOut || injected.ready;
+  const hasInjectedWallet = Boolean(injected.providerName);
 
   useEffect(() => {
     if (authReady) return;
@@ -295,11 +312,11 @@ function PrivyFirstWalletServiceProvider({ children }: { children: ReactNode }) 
   }, [authReady]);
 
   const getProvider = useCallback(async () => {
-    if (wallet && "getEthereumProvider" in wallet) {
+    if (privyAddress && wallet && "getEthereumProvider" in wallet) {
       return await wallet.getEthereumProvider() as Eip1193Provider;
     }
     return await injected.getProvider();
-  }, [injected, wallet]);
+  }, [injected, privyAddress, wallet]);
 
   const switchChain = useCallback(async () => {
     const provider = await getProvider();
@@ -345,6 +362,10 @@ function PrivyFirstWalletServiceProvider({ children }: { children: ReactNode }) 
     setSuppressedPrivyAddress("");
     setConnecting(true);
     try {
+      if (hasInjectedWallet) {
+        await injected.connect();
+        return;
+      }
       if (authReady && !readyTimedOut) {
         await timeout(Promise.resolve(login()), 8_000, "Privy connection timed out.");
         return;
@@ -365,7 +386,7 @@ function PrivyFirstWalletServiceProvider({ children }: { children: ReactNode }) 
     } finally {
       setConnecting(false);
     }
-  }, [authReady, injected, login, readyTimedOut]);
+  }, [authReady, hasInjectedWallet, injected, login, readyTimedOut]);
 
   const disconnect = useCallback(async () => {
     setError("");
