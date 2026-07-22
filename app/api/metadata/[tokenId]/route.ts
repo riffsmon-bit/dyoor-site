@@ -151,66 +151,12 @@ function isStaticBaseTokenImageUrl(value: unknown, tokenId: number) {
   }
 }
 
-function normalizeComparableTraitValue(value: unknown) {
-  return String(value ?? "")
-    .trim()
-    .replace(/\.[a-z0-9]+$/i, "")
-    .replace(/&/g, " and ")
-    .replace(/[^a-z0-9]+/gi, " ")
-    .replace(/\s+/g, " ")
-    .trim()
-    .toLowerCase();
-}
-
-function isEmptyTraitValue(value: unknown) {
-  const normalized = normalizeComparableTraitValue(value);
-  return !normalized
-    || normalized === "none"
-    || normalized === "null"
-    || normalized === "undefined"
-    || normalized === "n a"
-    || normalized === "na"
-    || normalized === "unknown";
-}
-
-function isBandannaTraitValue(value: unknown) {
-  const normalized = normalizeComparableTraitValue(value);
-  return normalized.includes("bandana") || normalized.includes("bandanna");
-}
-
-function traitValueFromMetadata(metadata: any, traitType: string) {
-  const attributes = Array.isArray(metadata?.attributes) ? metadata.attributes : [];
-  const attribute = attributes.find((entry: any) => entry?.trait_type === traitType);
-  return attribute?.value;
-}
-
-function reconciledOverrideAttributes(attributes: unknown, metadata: any) {
+function reconciledOverrideAttributes(attributes: unknown, _metadata: any) {
   if (!attributes || typeof attributes !== "object" || Array.isArray(attributes)) return attributes;
 
-  const next = { ...(attributes as Record<string, unknown>) };
-  const initialTraits = initialDnaTraitMap(metadata);
-  const metadataMouth = traitValueFromMetadata(metadata, "Mouth");
-  const changedHat = Object.hasOwn(next, "Hat") && !isEmptyTraitValue(next.Hat);
-  const changedBandannaAccessory = (Object.hasOwn(next, "Accessories") && isBandannaTraitValue(next.Accessories))
-    || (Object.hasOwn(next, "Accessories 2") && isBandannaTraitValue(next["Accessories 2"]));
-  const hadFaceCoveringBandanna = isBandannaTraitValue(next.Accessories)
-    || isBandannaTraitValue(next["Accessories 2"])
-    || isBandannaTraitValue(initialTraits.Accessories)
-    || isBandannaTraitValue(initialTraits["Accessories 2"]);
-
-  if (changedHat) {
-    if (isEmptyTraitValue(traitValueFromMetadata(metadata, "Accessories"))) next.Accessories = "None";
-    if (isEmptyTraitValue(traitValueFromMetadata(metadata, "Accessories 2"))) next["Accessories 2"] = "None";
-    if (hadFaceCoveringBandanna && isEmptyTraitValue(next.Mouth) && !isEmptyTraitValue(metadataMouth)) {
-      next.Mouth = metadataMouth;
-    }
-  }
-
-  if (changedBandannaAccessory && isEmptyTraitValue(traitValueFromMetadata(metadata, "Hat"))) {
-    next.Hat = "None";
-  }
-
-  return next;
+  // Compatibility is enforced by Trait Lab before saving overrides. Keep the
+  // metadata endpoint non-destructive so independent wearable slots survive.
+  return { ...(attributes as Record<string, unknown>) };
 }
 
 function overrideAttributesMatch(left: unknown, right: unknown) {
@@ -228,19 +174,6 @@ function overrideAttributesMatch(left: unknown, right: unknown) {
   }
 
   return true;
-}
-
-function initialDnaTraitMap(metadata: any) {
-  const raw = String(metadata?.properties?.initial_dna || "");
-  const entries: Record<string, string> = {};
-
-  for (const part of raw.split("|")) {
-    const index = part.indexOf(":");
-    if (index <= 0) continue;
-    entries[part.slice(0, index)] = part.slice(index + 1);
-  }
-
-  return entries;
 }
 
 function isLocalHost(hostname: string) {

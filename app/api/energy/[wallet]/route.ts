@@ -35,6 +35,11 @@ function format(raw: string) {
   return ethers.formatUnits(BigInt(raw || "0"), 18).replace(/\.0+$/, "").replace(/(\.\d*?)0+$/, "$1");
 }
 
+function positiveDifference(left: string, right: string) {
+  const diff = BigInt(left || "0") - BigInt(right || "0");
+  return diff > 0n ? diff.toString() : "0";
+}
+
 function readEnv(...names: string[]) {
   for (const name of names) {
     const value = process.env[name];
@@ -71,6 +76,7 @@ export async function GET(_request: Request, context: EnergyRouteContext) {
   const spendableRaw = bankBalance?.spendableRaw || balance.spendableRaw;
   const lifetimeRaw = bankBalance?.lifetimeRaw || balance.lifetimeRaw;
   const spentRaw = bankBalance?.spentRaw || balance.spentRaw;
+  const missingSpendableRaw = bankBalance ? positiveDifference(balance.spendableRaw, bankBalance.spendableRaw) : "0";
 
   return json(200, {
     ok: true,
@@ -91,6 +97,11 @@ export async function GET(_request: Request, context: EnergyRouteContext) {
     spendableEnergy: format(spendableRaw),
     bankedRaw: spendableRaw,
     bankedEnergy: format(spendableRaw),
+    ledgerSpendableRaw: balance.spendableRaw,
+    ledgerSpendableEnergy: format(balance.spendableRaw),
+    missingSpendableRaw,
+    missingSpendableEnergy: format(missingSpendableRaw),
+    energyBankSyncPending: BigInt(missingSpendableRaw) > 0n,
     lifetimeRaw,
     lifetimeEnergy: format(lifetimeRaw),
     entryCount: balance.entryCount,

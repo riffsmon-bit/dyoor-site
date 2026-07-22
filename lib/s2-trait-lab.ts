@@ -886,10 +886,6 @@ function explicitCompatibilityConflict(traits: Record<string, string>) {
     return `Accessories and Accessories 2 cannot both use a ${accessoriesGroup}.`;
   }
 
-  if (hasBandannaAccessory(traits) && !isEmptyTraitValue(traits.Hat)) {
-    return "Bandanna cannot be combined with Hat.";
-  }
-
   if (hasBandannaAccessory(traits) && isBlockedBandannaMouth(traits.Mouth)) {
     return "Bandanna cannot be combined with this mouth trait.";
   }
@@ -963,23 +959,6 @@ function applySpecialSideEffects(traits: Record<string, string>) {
   return next;
 }
 
-function applyHeadwearSideEffects(traits: Record<string, string>, changedTraitType: S2TraitLabTrait) {
-  const next = { ...traits };
-
-  if (changedTraitType === "Hat" && !isEmptyTraitValue(next.Hat)) {
-    if (isBandanna(next.Accessories)) next.Accessories = "None";
-    if (isBandanna(next["Accessories 2"])) next["Accessories 2"] = "None";
-  }
-
-  if ((changedTraitType === "Accessories" || changedTraitType === "Accessories 2")
-    && isBandanna(next[changedTraitType])
-    && !isEmptyTraitValue(next.Hat)) {
-    next.Hat = "None";
-  }
-
-  return next;
-}
-
 function applyAccessoryLayerSideEffects(traits: Record<string, string>, changedTraitType: S2TraitLabTrait) {
   const next = { ...traits };
   if (!ACCESSORY_SLOT_TRAITS.has(changedTraitType)) return next;
@@ -994,33 +973,7 @@ function applyAccessoryLayerSideEffects(traits: Record<string, string>, changedT
 }
 
 function applyTraitSideEffects(traits: Record<string, string>, changedTraitType: S2TraitLabTrait) {
-  return applySpecialSideEffects(applyAccessoryLayerSideEffects(applyHeadwearSideEffects(traits, changedTraitType), changedTraitType));
-}
-
-function repairMouthAfterFaceCoverRemoval(
-  previousTraits: Record<string, string>,
-  nextTraits: Record<string, string>,
-  changedTraitType: S2TraitLabTrait,
-  supplyLedger?: TraitSupplyLedger,
-) {
-  if (changedTraitType !== "Hat") return nextTraits;
-  if (!hasBandannaAccessory(previousTraits) || hasBandannaAccessory(nextTraits)) return nextTraits;
-  if (isEmptyTraitValue(nextTraits.Hat)) return nextTraits;
-  if (!isEmptyTraitValue(previousTraits.Mouth) || !isEmptyTraitValue(nextTraits.Mouth)) return nextTraits;
-
-  const candidates = weightedOptionOrder(optionsForTrait("Mouth").filter((option) => (
-    !isEmptyTraitValue(option.value) && isOptionSupplyAvailable(option, supplyLedger)
-  )));
-
-  for (const option of candidates) {
-    const repaired = {
-      ...nextTraits,
-      Mouth: option.value,
-    };
-    if (!validationConflict(repaired)) return repaired;
-  }
-
-  return null;
+  return applySpecialSideEffects(applyAccessoryLayerSideEffects(traits, changedTraitType));
 }
 
 function proposedAttributePatch(previous: Record<string, string>, next: Record<string, string>, traitType: S2EditableTrait) {
@@ -1199,9 +1152,7 @@ function generateCandidate(
       ...traits,
       [traitType]: option.value,
     };
-    const sideEffectTraits = applyTraitSideEffects(changed, traitType);
-    const next = repairMouthAfterFaceCoverRemoval(traits, sideEffectTraits, traitType, supplyLedger);
-    if (!next) continue;
+    const next = applyTraitSideEffects(changed, traitType);
     const conflict = validationConflict(next);
     if (!conflict) {
       return {
@@ -1296,9 +1247,7 @@ function validateProposedPatch(currentTraits: Record<string, string>, payload: P
     if (!isS2TraitLabTrait(traitType)) {
       throw Object.assign(new Error("Preview contains a locked or invalid trait update."), { status: 400 });
     }
-    if (traitType !== payload.traitType
-      && !isEmptyTraitValue(value)
-      && !isApprovedMouthRepairSideEffect(currentTraits, payload, traitType, String(value))) {
+    if (traitType !== payload.traitType && !isEmptyTraitValue(value)) {
       throw Object.assign(new Error("Preview contains an unexpected side-effect trait value."), { status: 400 });
     }
   }
@@ -1307,25 +1256,6 @@ function validateProposedPatch(currentTraits: Record<string, string>, payload: P
   const conflict = validationConflict(nextTraits);
   if (conflict) throw Object.assign(new Error(conflict), { status: 409 });
   return nextTraits;
-}
-
-function isApprovedMouthRepairSideEffect(
-  currentTraits: Record<string, string>,
-  payload: PreviewPayload,
-  traitType: string,
-  value: string,
-) {
-  if (traitType !== "Mouth") return false;
-  if (payload.traitType !== "Hat") return false;
-  if (payload.action !== "reroll" && payload.action !== "unlock") return false;
-  if (!hasBandannaAccessory(currentTraits)) return false;
-  if (!isEmptyTraitValue(currentTraits.Mouth)) return false;
-
-  const nextTraits = { ...currentTraits, ...payload.proposedAttributes };
-  if (hasBandannaAccessory(nextTraits) || isEmptyTraitValue(nextTraits.Hat)) return false;
-  if (isEmptyTraitValue(nextTraits.Mouth)) return false;
-  if (validationConflict(nextTraits)) return false;
-  return optionsForTrait("Mouth").some((option) => valuesMatch(option.value, value));
 }
 
 function proposedPatchAlreadyApplied(currentTraits: Record<string, string>, payload: PreviewPayload) {
@@ -1367,9 +1297,9 @@ function provider() {
 }
 
 function energyBankSigner() {
-  const privateKey = normalizePrivateKey(readEnv("ENERGY_BANK_OPERATOR_PRIVATE_KEY"));
+  const privateKey = normalizePrivateKey(readEnv("ENERGY_BANK_OPERATOR_PRIVATE_KEY", "DEPLOYER_PRIVATE_KEY"));
   if (!privateKey) {
-    throw Object.assign(new Error("ENERGY_BANK_OPERATOR_PRIVATE_KEY is required for Energy Trait Lab rolls."), { status: 500 });
+    throw Object.assign(new Error("ENERGY_BANK_OPERATOR_PRIVATE_KEY or DEPLOYER_PRIVATE_KEY is required for Energy Trait Lab rolls."), { status: 500 });
   }
   return new ethers.Wallet(privateKey, provider());
 }

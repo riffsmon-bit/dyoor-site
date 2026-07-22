@@ -19,6 +19,13 @@ spendable in the app.
 
 ## New Energy Model
 
+Production note, July 2026: Trait Lab still debits the on-chain Energy Bank
+contract for rerolls, recycle rewards, Droid burn rewards, and wallet-to-wallet
+Energy transfers. The ledger/indexer is used for visibility, diagnostics, and
+repair planning. If indexed harvests are ahead of the Energy Bank, the admin
+reconciliation flow must credit the missing spendable Energy before those users
+can spend it in Trait Lab.
+
 Spendable Energy is now derived from an off-chain ledger:
 
 ```text
@@ -33,12 +40,13 @@ deduped by `txHash:logIndex`. User harvest confirmation now syncs the confirmed
 transaction into the ledger instead of requiring `/api/energy-harvest-credit`.
 
 Admin airdrops, MON recharge credits, wallet-to-wallet transfers, and reroll
-spends also write ledger entries. Legacy Energy Bank routes remain in the repo
-for compatibility/recovery, but normal spendable balance should come from this
-ledger.
+spends also write ledger entries. The Energy Bank remains the production
+spendable source for Trait Lab until a transactional ledger debit path replaces
+it end to end.
 
-Reconciliation is now diagnostic. It compares ledger-derived totals and reports
-mismatches; it is no longer part of the normal user lifecycle.
+Reconciliation compares ledger-derived totals against the Energy Bank and
+repairs mismatches when harvested credits were indexed but not credited to
+spendable Bank balances.
 
 ## New Energy Endpoints
 

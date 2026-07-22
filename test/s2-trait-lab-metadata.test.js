@@ -121,7 +121,7 @@ test("Trait Lab can save Special removal while still blocking new Special values
   assert.equal(traits["Metadata Version"], "2");
 });
 
-test("Hat overrides clear existing Bandanna accessory layers", () => {
+test("Hat overrides preserve Bandanna accessory layers", () => {
   const metadata = mergeMetadata({
     ...baseMetadata,
     attributes: baseMetadata.attributes.map((attribute) => (
@@ -142,8 +142,8 @@ test("Hat overrides clear existing Bandanna accessory layers", () => {
 
   const traits = traitMap(metadata);
   assert.equal(traits.Hat, "Durag");
-  assert.equal(traits.Mouth, "Displeased");
-  assert.equal(traits["Accessories 2"], "None");
+  assert.equal(traits.Mouth, "None");
+  assert.equal(traits["Accessories 2"], "Bandana Black");
   assert.equal(traits.Background, "Eye Sea U-Project M.A.D.");
   assert.equal(traits.Droid, "Lime Green");
   assert.equal(traits["Metadata Version"], "2");

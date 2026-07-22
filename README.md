@@ -36,7 +36,7 @@ Upload the folder contents to Netlify as a static site.
 Energy Bank deployment, backfill, and airdrop commands live in
 `DEPLOY_ENERGY_BANK.md`.
 
-For the 25,000 Energy wallet airdrop, run contract tests first:
+For Energy wallet airdrops, run contract tests first:
 
 ```bash
 npm run compile:contracts

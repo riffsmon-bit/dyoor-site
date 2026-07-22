@@ -81,9 +81,9 @@ function rpcUrl() {
 }
 
 function energyBankSigner() {
-  const privateKey = normalizePrivateKey(readEnv("ENERGY_BANK_OPERATOR_PRIVATE_KEY"));
+  const privateKey = normalizePrivateKey(readEnv("ENERGY_BANK_OPERATOR_PRIVATE_KEY", "DEPLOYER_PRIVATE_KEY"));
   if (!privateKey) {
-    throw Object.assign(new Error("ENERGY_BANK_OPERATOR_PRIVATE_KEY is required for Energy transfers."), { status: 500 });
+    throw Object.assign(new Error("ENERGY_BANK_OPERATOR_PRIVATE_KEY or DEPLOYER_PRIVATE_KEY is required for Energy transfers."), { status: 500 });
   }
   return new ethers.Wallet(privateKey, new ethers.JsonRpcProvider(rpcUrl()));
 }

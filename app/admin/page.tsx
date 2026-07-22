@@ -1229,7 +1229,7 @@ export default function AdminPage() {
             <p className="eyebrow">Energy Dashboard</p>
             <h2 className="mt-2 text-2xl font-black uppercase text-white">Ledger Spendability</h2>
             <p className="mt-2 max-w-3xl text-sm font-semibold leading-6 text-white/60">
-              Harvested Energy is indexed from Ascension `PointsClaimed` events and becomes spendable from ledger math. Reconciliation is diagnostic, not part of the normal user flow.
+              Harvested Energy is indexed from Ascension `PointsClaimed` events. Trait Lab spends from the Energy Bank, so reconciliation repairs indexed harvests that are not reflected in spendable Bank balances.
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
@@ -1374,7 +1374,7 @@ export default function AdminPage() {
               <p className="eyebrow">Dynamic Traits</p>
               <h2 className="mt-2 text-2xl font-black uppercase text-white">Metadata and Rerolls</h2>
               <p className="mt-2 text-sm font-semibold leading-6 text-white/60">
-                Trait overrides are served by /api/metadata/tokenId. Rerolls should debit ledger Energy, lock Background and Droid, then write a token override with an incremented metadata version.
+                Trait overrides are served by /api/metadata/tokenId. Rerolls debit spendable Energy in the Energy Bank, lock Background and Droid, then write a token override with an incremented metadata version.
               </p>
             </div>
             <Link className="btn-secondary text-center" href="/admin/metadata">Open Metadata Tools</Link>
@@ -1530,9 +1530,9 @@ export default function AdminPage() {
           <div className="flex flex-col justify-between gap-4 md:flex-row md:items-start">
             <div>
               <p className="eyebrow">Owner Tool</p>
-              <h2 className="mt-2 text-2xl font-black uppercase text-white">Energy Airdrop</h2>
+              <h2 className="mt-2 text-2xl font-black uppercase text-white">Legacy Ledger Energy Airdrop</h2>
               <p className="mt-2 max-w-2xl text-sm font-semibold leading-6 text-white/60">
-                Credit ledger Energy to one wallet or a deduped bulk list. Requires owner signature; no Energy Bank operator transaction is needed for spendable off-chain balance.
+                Credit ledger-only Energy to one wallet or a deduped bulk list. Trait Lab rerolls spend from the on-chain Energy Bank, so use the Energy Bank airdrop or reconciliation scripts for reroll-spendable credits.
               </p>
             </div>
             <div className="flex flex-wrap gap-2">

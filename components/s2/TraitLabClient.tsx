@@ -51,6 +51,11 @@ type EnergyResponse = {
   ok?: boolean;
   spendableEnergy?: string;
   spendableRaw?: string;
+  ledgerSpendableEnergy?: string;
+  ledgerSpendableRaw?: string;
+  missingSpendableEnergy?: string;
+  missingSpendableRaw?: string;
+  energyBankSyncPending?: boolean;
   pendingEnergy?: string;
   spentEnergy?: string;
   error?: string;
@@ -1136,12 +1141,19 @@ export function TraitLabClient() {
 
       <Alert tone={alertTone}>{error || status}</Alert>
 
-      <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+      <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
         <StatCard label="Wallet Connect Status" value={walletAddress ? shortAddress(walletAddress) : "Disconnected"} />
         <StatCard label="Energy Balance" value={energyLoading ? "Loading" : energy?.spendableEnergy || "-"} />
+        <StatCard label="Spent Energy" value={energyLoading ? "Loading" : energy?.spentEnergy || "-"} />
         <StatCard label="Owned Droids" value={ownedLoading ? "Loading" : ownedTokenIds.length.toString()} />
         <StatCard label="Metadata Version" value={metadataLoading ? "Loading" : metadata ? metadataVersion(metadata) : "-"} />
       </section>
+
+      {energy?.energyBankSyncPending ? (
+        <Alert tone="danger">
+          Energy Bank sync is pending for this wallet. Indexed spendable Energy is {energy.ledgerSpendableEnergy || "-"}, but only {energy.spendableEnergy || "0"} Energy is currently spendable for rerolls. Missing spendable Energy: {energy.missingSpendableEnergy || "0"}.
+        </Alert>
+      ) : null}
 
       <section className="grid gap-5 lg:grid-cols-[minmax(18rem,0.85fr)_minmax(0,1.55fr)]">
         <Card className="p-5">

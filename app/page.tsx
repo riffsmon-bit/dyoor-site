@@ -6,7 +6,7 @@ import { SwapCard } from "@/components/swap/SwapCard";
 const heroStats = [
   ["3,333", "Season 2 Droid Supply"],
   ["1:1", "Ascended S1 Allocation"],
-  ["70%", "Mint Funds To Treasury"],
+  ["Live", "Trait Lab Rerolls"],
   ["Quarterly", "Planned Staked Droid Rewards"],
 ];
 
@@ -31,8 +31,8 @@ export default function HomePage() {
               Season 1 was the key. Droids are next.
             </h1>
             <p className="mt-6 max-w-2xl text-lg font-semibold leading-8 text-white/74">
-              D.Y.O.O.R expands through Ascension, Energy, blueprints, dynamic traits, treasury growth, Season 2 staking,
-              and planned quarterly reward programs for eligible staked Droids.
+              D.Y.O.O.R expands through Ascension, Energy, blueprints, dynamic traits, Season 2 staking,
+              planned rewards, and long-term treasury growth.
             </p>
             <div className="mt-8 flex flex-wrap gap-3">
               <Link className="btn-primary" href="/blueprint-checker">
@@ -61,7 +61,7 @@ export default function HomePage() {
         {[
           ["Ascension", "Ascend S1, generate Energy, and unlock Season 2 allocation eligibility.", "/ascension"],
           ["Blueprints", "Check saved Ascension Blueprints against minted Season 2 Droid traits.", "/blueprint-checker"],
-          ["Treasury", "Track the Season 2 treasury model, staking vision, and planned reward programs.", "/whitepaper#treasury"],
+          ["Trait Lab", "Reroll traits, unlock empty slots, recycle wearables, and burn Droids for Energy.", "/reroll"],
         ].map(([title, copy, href]) => (
           <Link key={href} href={href} className="glass-panel hover-lift p-5">
             <h2 className="text-xl font-black uppercase text-white">{title}</h2>
@@ -74,11 +74,12 @@ export default function HomePage() {
         <SwapCard />
       </section>
 
-      <section className="mx-auto grid max-w-7xl gap-4 px-5 pb-16 md:grid-cols-3">
+      <section className="mx-auto grid max-w-7xl gap-4 px-5 pb-16 md:grid-cols-2 lg:grid-cols-4">
         {[
           ["Dynamic Traits", "Droids are designed to evolve through future trait upgrades, rerolls, and marketplace systems.", "/whitepaper#dynamic-traits"],
           ["Revenue Vision", "Read the careful quarterly revenue-sharing vision for eligible staked Droids.", "/whitepaper#quarterly-revenue-sharing"],
           ["Role Sync", "Verify Discord roles against holder and Ascension wallet state.", "/verify"],
+          ["Treasury", "Track the Season 2 treasury model after the core Droid and Energy loops.", "/whitepaper#treasury"],
         ].map(([title, copy, href]) => (
           <Link key={href} href={href} className="glass-panel hover-lift p-5">
             <h2 className="text-xl font-black uppercase text-white">{title}</h2>
