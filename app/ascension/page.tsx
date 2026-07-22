@@ -858,10 +858,17 @@ export default function AscensionPage() {
         const record = await response.json().catch(() => ({}));
         if (!response.ok || record?.ok === false) {
           setActionStatus(`Harvest confirmed, but the Energy ledger did not index yet: ${record?.error || "ledger sync failed"}`);
+        } else if (record?.energyBankCreditOk === false) {
+          const failure = Array.isArray(record?.energyBankCreditFailures) ? record.energyBankCreditFailures[0]?.error : "";
+          setActionStatus(`Harvest indexed, but Energy Bank credit needs retry: ${failure || "bank credit failed"}`);
+        } else if (Number(record?.energyBankCredited || 0) > 0) {
+          setActionStatus("Energy harvest indexed and credited to Energy Bank. Refreshing state...");
+        } else if (Number(record?.energyBankDeduped || 0) > 0) {
+          setActionStatus("Energy harvest was already credited to Energy Bank. Refreshing state...");
         } else if (record?.deduped) {
           setActionStatus("Energy harvest was already indexed. Refreshing state...");
         } else {
-          setActionStatus("Energy harvest indexed and spendable. Refreshing state...");
+          setActionStatus("Energy harvest indexed. Refreshing state...");
         }
       } else {
         setActionStatus("Energy harvest confirmed. Refreshing state...");

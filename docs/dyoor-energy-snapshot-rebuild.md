@@ -19,14 +19,22 @@ spendable in the app.
 
 ## New Energy Model
 
-Production note, July 2026: Trait Lab still debits the on-chain Energy Bank
-contract for rerolls, recycle rewards, Droid burn rewards, and wallet-to-wallet
-Energy transfers. The ledger/indexer is used for visibility, diagnostics, and
-repair planning. If indexed harvests are ahead of the Energy Bank, the admin
-reconciliation flow must credit the missing spendable Energy before those users
-can spend it in Trait Lab.
+Production note, July 2026: Trait Lab debits the on-chain Energy Bank contract
+for rerolls, recycle rewards, Droid burn rewards, and wallet-to-wallet Energy
+transfers. The ledger/indexer is used for visibility, diagnostics, and repair
+planning, but the spendable balance shown to users comes from Energy Bank.
 
-Spendable Energy is now derived from an off-chain ledger:
+When a user harvests on the Ascension page, `/api/energy/sync-wallet` now:
+
+1. verifies the confirmed staking transaction emitted `PointsClaimed`
+2. indexes the harvest event into the visibility ledger
+3. credits the same amount to Energy Bank with `creditEnergy`
+4. uses the harvest transaction hash as the one-time `claimTxHash`
+
+This makes newly harvested Energy spendable in Trait Lab without a manual owner
+repair run. The server operator key must have `CREDIT_ROLE` on Energy Bank.
+
+The diagnostic ledger still calculates:
 
 ```text
 spendableEnergy = CREDIT_HARVEST + CREDIT_AIRDROP + CREDIT_RECHARGE + CREDIT_TRANSFER + ADJUSTMENT_ADMIN - DEBIT_*
@@ -36,8 +44,8 @@ lifetimeEnergy = CREDIT_HARVEST + CREDIT_AIRDROP + CREDIT_RECHARGE + CREDIT_TRAN
 `pendingEnergy` still comes from the staking contract live read when available.
 
 Harvest credits are indexed from the staking contract `PointsClaimed` event and
-deduped by `txHash:logIndex`. User harvest confirmation now syncs the confirmed
-transaction into the ledger instead of requiring `/api/energy-harvest-credit`.
+deduped by `txHash:logIndex`. Energy Bank credits are deduped by the harvest
+transaction hash, so retries cannot double-credit a confirmed harvest.
 
 Admin airdrops, MON recharge credits, wallet-to-wallet transfers, and reroll
 spends also write ledger entries. The Energy Bank remains the production
@@ -45,8 +53,9 @@ spendable source for Trait Lab until a transactional ledger debit path replaces
 it end to end.
 
 Reconciliation compares ledger-derived totals against the Energy Bank and
-repairs mismatches when harvested credits were indexed but not credited to
-spendable Bank balances.
+repairs old mismatches when harvested credits were indexed before the live
+Energy Bank credit path existed, or when a transient RPC/operator failure
+prevented a live credit.
 
 ## New Energy Endpoints
 
@@ -62,6 +71,17 @@ POST /api/admin/energy/reconcile
 GET  /api/admin/energy/export
 ```
 
+`/api/energy/sync-wallet` requires:
+
+```text
+ENERGY_BANK_OPERATOR_PRIVATE_KEY=
+ENERGY_BANK_ADDRESS=0x291a8cC0FCa08EBd64a0e4d67B4455d24e9E6767
+MONAD_RPC_URL=https://rpc.monad.xyz
+ENERGY_SYNC_BANK_CREDIT_LIMIT=10
+```
+
+`ENERGY_BANK_OPERATOR_PRIVATE_KEY` must belong to a wallet with `CREDIT_ROLE`.
+
 `/api/admin/energy/reindex` accepts either owner wallet authorization or
 `x-admin-secret` with `ENERGY_INDEXER_SECRET` / `ADMIN_API_SECRET`.
 
@@ -71,15 +91,18 @@ The scheduled function:
 
 ```text
 netlify/functions/energy-indexer-hourly.js
+netlify/functions/energy-reconciliation-hourly.js
 ```
 
-runs every 15 minutes and calls `/api/admin/energy/reindex`. Set:
+indexes events every 15 minutes and runs reconciliation hourly. Set:
 
 ```text
 ENERGY_INDEXER_SECRET=
 ENERGY_INDEXER_MAX_CHUNKS=8
 ASCENSION_ENERGY_LOG_CHUNK_SIZE=2500
 ASCENSION_ENERGY_START_BLOCK=
+ENERGY_RECONCILIATION_AUTOMATION_SECRET=
+ENERGY_RECONCILIATION_AUTO_LIMIT=10
 ```
 
 ## Storage
