@@ -26,11 +26,12 @@ const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
 const TRANSFER_TOPIC = ethers.id("Transfer(address,address,uint256)");
 const DEFAULT_MONAD_MAINNET_RPC_URL = "https://rpc.monad.xyz";
 const DEFAULT_MONAD_MAINNET_EXPLORER_URL = "https://monadscan.com";
+const DEFAULT_ETHERSCAN_V2_API_URL = "https://api.etherscan.io/v2/api";
 const DEFAULT_S2_DEPLOYMENT_BLOCK = 87616887;
 const SERVERLESS_LOG_SPAN = 25_000;
 const MIN_OWNED_TOKEN_LOG_SPAN = 10_000;
-const OWNED_TOKEN_CACHE_VERSION = "s2-owned-v9";
-const DEFAULT_OWNER_OF_CONCURRENCY = 8;
+const OWNED_TOKEN_CACHE_VERSION = "s2-owned-v11";
+const DEFAULT_OWNER_OF_CONCURRENCY = 4;
 const ALCHEMY_TRANSFER_PAGE_SIZE = "0x3e8";
 
 const rateLimitBuckets = new Map<string, { count: number; resetAt: number }>();
@@ -86,15 +87,51 @@ function firstUsableRpc(names: string[], mainnet: boolean) {
 
 function configuredS2RpcUrl() {
   return firstUsableRpc(
-    ["DYOOR_S2_RPC_URL", "MONAD_RPC_URL", "NEXT_PUBLIC_MONAD_RPC_URL", "NEXT_PUBLIC_DYOOR_S2_RPC_URL", "RPC_URL"],
+    ["ALCHEMY_MONAD_RPC_URL", "DYOOR_S2_RPC_URL", "MONAD_RPC_URL", "NEXT_PUBLIC_MONAD_RPC_URL", "NEXT_PUBLIC_DYOOR_S2_RPC_URL", "RPC_URL"],
     true,
   ) || DEFAULT_MONAD_MAINNET_RPC_URL;
+}
+
+function configuredS2PublicRpcUrl() {
+  return firstUsableRpc(
+    ["NEXT_PUBLIC_DYOOR_S2_RPC_URL", "NEXT_PUBLIC_MONAD_RPC_URL"],
+    true,
+  ) || DEFAULT_MONAD_MAINNET_RPC_URL;
+}
+
+function isAlchemyLikeUrl(value: string) {
+  return /alchemy/i.test(value);
+}
+
+function configuredS2LogRpcUrl() {
+  const explicit = firstUsableRpc(
+    ["DYOOR_S2_LOG_RPC_URL", "MONAD_LOG_RPC_URL", "NEXT_PUBLIC_DYOOR_S2_LOG_RPC_URL", "NEXT_PUBLIC_MONAD_LOG_RPC_URL"],
+    true,
+  );
+  if (explicit) return explicit;
+
+  for (const name of ["DYOOR_S2_RPC_URL", "MONAD_RPC_URL", "NEXT_PUBLIC_DYOOR_S2_RPC_URL", "RPC_URL"]) {
+    const value = readEnv(name);
+    if (!value || isTestnetLikeUrl(value) || isAlchemyLikeUrl(value)) continue;
+    return value;
+  }
+
+  return DEFAULT_MONAD_MAINNET_RPC_URL;
 }
 
 function configuredS2ExplorerUrl() {
   const configured = readEnv("NEXT_PUBLIC_DYOOR_S2_EXPLORER_URL");
   if (configured && !isTestnetLikeUrl(configured)) return configured.replace(/\/+$/, "");
   return DEFAULT_MONAD_MAINNET_EXPLORER_URL;
+}
+
+function configuredExplorerApiKey() {
+  return readEnv("MONADSCAN_API_KEY", "ETHERSCAN_API_KEY", "ETHERSCAN_V2_API_KEY", "DYOOR_S2_EXPLORER_API_KEY");
+}
+
+function configuredExplorerApiUrl() {
+  const configured = readEnv("ETHERSCAN_V2_API_URL", "MONADSCAN_V2_API_URL", "DYOOR_S2_EXPLORER_API_URL");
+  return configured ? configured.replace(/\/+$/, "") : DEFAULT_ETHERSCAN_V2_API_URL;
 }
 
 function traitLabTokenCooldownMs() {
@@ -130,7 +167,7 @@ function alchemyTransferLookupEnabled() {
   const configured = readEnv("DYOOR_S2_ENABLE_ALCHEMY_TRANSFERS", "NEXT_PUBLIC_DYOOR_S2_ENABLE_ALCHEMY_TRANSFERS");
   if (/^(1|true|yes|on)$/i.test(configured)) return true;
   if (/^(0|false|no|off)$/i.test(configured)) return false;
-  return /alchemy/i.test(configuredS2RpcUrl());
+  return false;
 }
 
 function provider() {
@@ -139,6 +176,10 @@ function provider() {
     throw Object.assign(new Error("DYOOR_S2_RPC_URL or MONAD_RPC_URL is required before Trait Lab can verify ownership."), { status: 500 });
   }
   return new ethers.JsonRpcProvider(rpcUrl);
+}
+
+function logProvider() {
+  return new ethers.JsonRpcProvider(configuredS2LogRpcUrl());
 }
 
 function s2ContractAddress() {
@@ -197,17 +238,21 @@ async function getLogsWithSplit(
   toBlock: number,
 ): Promise<ethers.Log[]> {
   if (fromBlock > toBlock) return [];
-  try {
-    return await rpcProvider.getLogs({ ...filter, fromBlock, toBlock });
-  } catch (error) {
-    if (fromBlock === toBlock) throw error;
-    const mid = Math.floor((fromBlock + toBlock) / 2);
-    const [left, right] = await Promise.all([
-      getLogsWithSplit(rpcProvider, filter, fromBlock, mid),
-      getLogsWithSplit(rpcProvider, filter, mid + 1, toBlock),
-    ]);
-    return left.concat(right);
+  for (let attempt = 0; attempt < 4; attempt += 1) {
+    try {
+      return await rpcProvider.getLogs({ ...filter, fromBlock, toBlock });
+    } catch (error) {
+      if (!isTransientOwnerReadError(error) || attempt >= 3) {
+        if (fromBlock === toBlock) throw error;
+        const mid = Math.floor((fromBlock + toBlock) / 2);
+        const left = await getLogsWithSplit(rpcProvider, filter, fromBlock, mid);
+        const right = await getLogsWithSplit(rpcProvider, filter, mid + 1, toBlock);
+        return left.concat(right);
+      }
+      await new Promise((resolve) => setTimeout(resolve, 750 * (attempt + 1)));
+    }
   }
+  return [];
 }
 
 async function ownedTokensFromEnumerable(contract: ethers.Contract, wallet: string, balance: number) {
@@ -305,8 +350,77 @@ async function ownedTokensFromAlchemyTransfers(contract: ethers.Contract, wallet
   return verifyCandidateTokenIds(contract, wallet, candidates, balance);
 }
 
-async function ownedTokensFromTransferLogs(contract: ethers.Contract, wallet: string) {
-  const rpcProvider = provider();
+function tokenIdFromExplorerTransfer(transfer: Record<string, unknown>) {
+  try {
+    return BigInt(String(transfer.tokenID ?? transfer.tokenId ?? "")).toString();
+  } catch {
+    return "";
+  }
+}
+
+function explorerTransferOrder(transfer: Record<string, unknown>) {
+  const blockNumber = Number(transfer.blockNumber || 0);
+  const transactionIndex = Number(transfer.transactionIndex || 0);
+  const logIndex = Number(transfer.logIndex || 0);
+  return { blockNumber, transactionIndex, logIndex };
+}
+
+async function ownedTokensFromExplorerTransfers(contract: ethers.Contract, wallet: string, balance: number) {
+  const apiKey = configuredExplorerApiKey();
+  if (!apiKey) return [];
+
+  const transfers: Array<Record<string, unknown>> = [];
+  const pageSize = 1000;
+  for (let page = 1; page <= 20; page += 1) {
+    const url = new URL(configuredExplorerApiUrl());
+    url.searchParams.set("chainid", String(configuredS2ChainId()));
+    url.searchParams.set("module", "account");
+    url.searchParams.set("action", "tokennfttx");
+    url.searchParams.set("address", wallet);
+    url.searchParams.set("contractaddress", s2ContractAddress());
+    url.searchParams.set("page", String(page));
+    url.searchParams.set("offset", String(pageSize));
+    url.searchParams.set("sort", "asc");
+    url.searchParams.set("apikey", apiKey);
+
+    const response = await fetch(url, { headers: { accept: "application/json" } });
+    if (!response.ok) throw new Error(`Explorer ownership lookup failed with status ${response.status}.`);
+    const payload = await response.json() as { status?: string; message?: string; result?: unknown };
+    if (!Array.isArray(payload.result)) {
+      if (payload.status === "0" && /no transactions found/i.test(String(payload.result || payload.message || ""))) break;
+      throw new Error(String(payload.result || payload.message || "Explorer ownership lookup failed."));
+    }
+
+    transfers.push(...payload.result as Array<Record<string, unknown>>);
+    if (payload.result.length < pageSize) break;
+  }
+
+  if (!transfers.length) return [];
+
+  transfers.sort((a, b) => {
+    const left = explorerTransferOrder(a);
+    const right = explorerTransferOrder(b);
+    if (left.blockNumber !== right.blockNumber) return left.blockNumber - right.blockNumber;
+    if (left.transactionIndex !== right.transactionIndex) return left.transactionIndex - right.transactionIndex;
+    return left.logIndex - right.logIndex;
+  });
+
+  const tokenIds = new Set<string>();
+  for (const transfer of transfers) {
+    const tokenId = tokenIdFromExplorerTransfer(transfer);
+    if (!tokenId) continue;
+    const from = normalizeWallet(transfer.from);
+    const to = normalizeWallet(transfer.to);
+    if (to === wallet) tokenIds.add(tokenId);
+    if (from === wallet) tokenIds.delete(tokenId);
+  }
+
+  if (!tokenIds.size) return [];
+  return verifyCandidateTokenIds(contract, wallet, tokenIds, balance);
+}
+
+async function ownedTokensFromTransferLogs(contract: ethers.Contract, wallet: string, balance = 0) {
+  const rpcProvider = logProvider();
   const latest = await rpcProvider.getBlockNumber();
   const startBlock = Math.max(
     0,
@@ -326,16 +440,14 @@ async function ownedTokensFromTransferLogs(contract: ethers.Contract, wallet: st
 
   for (let fromBlock = startBlock; fromBlock <= latest; fromBlock += chunkSize) {
     const toBlock = Math.min(latest, fromBlock + chunkSize - 1);
-    const [incoming, outgoing] = await Promise.all([
-      getLogsWithSplit(rpcProvider, {
-        address: s2ContractAddress(),
-        topics: [TRANSFER_TOPIC, null, topicAddress(wallet)],
-      }, fromBlock, toBlock),
-      getLogsWithSplit(rpcProvider, {
-        address: s2ContractAddress(),
-        topics: [TRANSFER_TOPIC, topicAddress(wallet), null],
-      }, fromBlock, toBlock),
-    ]);
+    const incoming = await getLogsWithSplit(rpcProvider, {
+      address: s2ContractAddress(),
+      topics: [TRANSFER_TOPIC, null, topicAddress(wallet)],
+    }, fromBlock, toBlock);
+    const outgoing = await getLogsWithSplit(rpcProvider, {
+      address: s2ContractAddress(),
+      topics: [TRANSFER_TOPIC, topicAddress(wallet), null],
+    }, fromBlock, toBlock);
 
     for (const log of incoming) {
       const tokenId = BigInt(log.topics[3] || "0").toString();
@@ -354,7 +466,7 @@ async function ownedTokensFromTransferLogs(contract: ethers.Contract, wallet: st
     else tokenIds.delete(change.tokenId);
   }
 
-  return verifyCandidateTokenIds(contract, wallet, tokenIds);
+  return verifyCandidateTokenIds(contract, wallet, tokenIds, balance);
 }
 
 function ownerScanOrder(maxSupply: number) {
@@ -460,7 +572,7 @@ export function traitLabPublicConfig() {
     chainId,
     chainHex: chainId > 0 ? `0x${chainId.toString(16)}` : "",
     chainName: safeChainName,
-    rpcUrl: configuredS2RpcUrl(),
+    rpcUrl: configuredS2PublicRpcUrl(),
     explorerUrl: configuredS2ExplorerUrl(),
     flatUnlockCostEnergy: S2_TRAIT_LAB_FLAT_UNLOCK_COST,
     rerollAllCostEnergy: S2_TRAIT_LAB_REROLL_ALL_COST,
@@ -518,6 +630,24 @@ export async function ownedS2TokenIds(wallet: string, maxSupply: number) {
     }
   } catch {}
 
+  try {
+    for (const tokenId of await ownedTokensFromExplorerTransfers(contract, wallet, balance)) tokenIds.add(tokenId);
+    if (done()) {
+      const sorted = sortedResult();
+      ownedTokenCache.set(cacheKey, { tokenIds: sorted, expiresAt: Date.now() + 120_000 });
+      return sorted;
+    }
+  } catch {}
+
+  try {
+    for (const tokenId of await ownedTokensFromTransferLogs(contract, wallet, balance)) tokenIds.add(tokenId);
+    if (done()) {
+      const sorted = sortedResult();
+      ownedTokenCache.set(cacheKey, { tokenIds: sorted, expiresAt: Date.now() + 120_000 });
+      return sorted;
+    }
+  } catch {}
+
   const scanMax = await ownedTokenScanMax(contract, maxSupply, balance);
   try {
     for (const tokenId of await ownedTokensFromOwnerScan(contract, wallet, scanMax, balance)) tokenIds.add(tokenId);
@@ -528,18 +658,15 @@ export async function ownedS2TokenIds(wallet: string, maxSupply: number) {
     }
   } catch {}
 
-  try {
-    for (const tokenId of await ownedTokensFromTransferLogs(contract, wallet)) tokenIds.add(tokenId);
-    if (done()) {
-      const sorted = sortedResult();
-      ownedTokenCache.set(cacheKey, { tokenIds: sorted, expiresAt: Date.now() + 120_000 });
-      return sorted;
-    }
-  } catch {}
-
   const sorted = sortedResult();
   if (!Number.isFinite(balance) || balance <= 0 || sorted.length >= balance) {
     ownedTokenCache.set(cacheKey, { tokenIds: sorted, expiresAt: Date.now() + 120_000 });
+  }
+  if (Number.isFinite(balance) && balance > 0 && sorted.length < balance) {
+    throw Object.assign(
+      new Error(`Could only verify ${sorted.length} of ${balance} owned Season 2 droids. Monad RPC is behind or rate-limited; refresh in a moment.`),
+      { status: 503 },
+    );
   }
   return sorted;
 }
