@@ -80,8 +80,8 @@ const nextConfig = {
   },
   async redirects() {
     return [
-      { source: "/admin-ascension", destination: "/", permanent: false },
-      { source: "/admin-ascension.html", destination: "/", permanent: false },
+      { source: "/admin-ascension", destination: "/admin", permanent: false },
+      { source: "/admin-ascension.html", destination: "/admin", permanent: false },
       { source: "/quests", destination: "/", permanent: false },
       { source: "/quests.html", destination: "/", permanent: false },
       { source: "/stake", destination: "/ascension", permanent: false },

@@ -86,6 +86,31 @@ test("admin signatures bind domain, chain, route, action, and canonical payload"
   }), payload);
 });
 
+test("legacy Blueprint bearer-token export is retired for wallet-signed admin snapshots", () => {
+  assert.equal(fs.existsSync("netlify/functions/ascension-blueprint-export.js"), false);
+  assert.equal(fs.existsSync("admin-ascension.js"), false);
+  assert.equal(fs.existsSync("admin-ascension.html"), false);
+  assert.doesNotMatch(fs.readFileSync(".env.example", "utf8"), /ASCENSION_BLUEPRINT_ADMIN_TOKEN/);
+
+  const nextConfig = fs.readFileSync("next.config.mjs", "utf8");
+  assert.match(
+    nextConfig,
+    /\{ source: "\/admin-ascension", destination: "\/admin", permanent: false \}/,
+  );
+  assert.match(
+    nextConfig,
+    /\{ source: "\/admin-ascension\.html", destination: "\/admin", permanent: false \}/,
+  );
+
+  const adminPage = fs.readFileSync("app/admin/page.tsx", "utf8");
+  const legacyAdminRedirect = fs.readFileSync("app/admin-ascension/page.tsx", "utf8");
+  const snapshotRoute = fs.readFileSync("app/api/admin/snapshots/route.ts", "utf8");
+  assert.match(legacyAdminRedirect, /redirect\("\/admin"\)/);
+  assert.match(adminPage, /createAdminAuthorization/);
+  assert.match(adminPage, /signAdminAction\("snapshot", "\/api\/admin\/snapshots"/);
+  assert.match(snapshotRoute, /verifyAdmin\(body, "snapshot"/);
+});
+
 test("Trait Lab leaderboard is default-off and aggregates completion records only", () => {
   assert.equal(traitLabLeaderboardEnabled({}), false);
   assert.equal(traitLabBountiesEnabled({}), false);

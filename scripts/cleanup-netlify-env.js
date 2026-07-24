@@ -4,6 +4,7 @@ import { getAPIToken } from "@netlify/dev-utils";
 const SITE_ID = "e2a951cd-7e5b-49ac-a39a-391f68b69964";
 const SECRET_SCOPES = ["builds", "functions", "runtime"];
 const REMOVE_KEYS = new Map([
+  ["ASCENSION_BLUEPRINT_ADMIN_TOKEN", "Blueprint exports now require owner-wallet signatures."],
   ["CREDIT_ROLE", "The Energy Bank role is read directly from the contract."],
   ["GOLDSKY_API_KEY", "Runtime code uses the public Goldsky subgraph URL."],
   ["OX_API_KEY", "The current swap quote function no longer uses 0x."],
@@ -11,7 +12,6 @@ const REMOVE_KEYS = new Map([
 ]);
 const PROTECT_KEYS = [
   "ALCHEMY_MONAD_RPC_URL",
-  "ASCENSION_BLUEPRINT_ADMIN_TOKEN",
   "DISCORD_BOT_TOKEN",
   "DISCORD_CLIENT_SECRET",
   "DYOOR_TRAIT_LAB_SECRET",
