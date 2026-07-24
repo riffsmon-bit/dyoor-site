@@ -14,6 +14,8 @@ dyoor-builder/layers/_disabled/
 netlify-trait-lab-functions.env
 netlify-trait-lab-builds.env
 netlify-dyoor-world.env
+netlify-dyoor-world-functions.env
+netlify-dyoor-world-builds.env
 deno.lock
 artifacts/
 cache/

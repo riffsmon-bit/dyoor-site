@@ -50,6 +50,10 @@
     "deploy:trait-bounties": "hardhat run scripts/deploy-dyoor-trait-bounties.js --network monad",
     "deploy:dyoor-world-names": "hardhat run scripts/deploy-dyoor-world-names.js --network monad",
     "configure:dyoor-world-names": "hardhat run scripts/configure-dyoor-world-names.js --network monad",
+    "prepare:dyoor-world": "PREPARE_DYOOR_WORLD_SECRETS=1 node scripts/prepare-dyoor-world-deployment.js",
+    "finalize:dyoor-world": "FINALIZE_DYOOR_WORLD_DEPLOYMENT=1 node scripts/finalize-dyoor-world-deployment.js",
+    "netlify:dyoor-world:preview-env": "APPLY_DYOOR_WORLD_NETLIFY_PREVIEW=1 node scripts/apply-dyoor-world-netlify-preview-env.js",
+    "netlify:env:cleanup": "APPLY_NETLIFY_ENV_CLEANUP=1 node scripts/cleanup-netlify-env.js",
     "deploy:dyoor-season2": "hardhat run scripts/deploy-dyoor-season2.js --network monad",
     "backfill:energy-bank": "hardhat run scripts/backfill-energy-bank.js --network monad",
     "backfill:energy-bank:execute": "EXECUTE_BACKFILL=1 hardhat run scripts/backfill-energy-bank.js --network monad",
@@ -71,14 +75,17 @@
     "wagmi": "^3.6.17"
   },
   "devDependencies": {
+    "@netlify/api": "^14.0.18",
+    "@netlify/dev-utils": "^4.4.3",
     "@nomicfoundation/hardhat-ethers": "^4.0.9",
+    "@nomicfoundation/hardhat-verify": "^3.0.21",
     "@openzeppelin/contracts": "^5.6.1",
     "@types/react-dom": "^19.2.3",
     "autoprefixer": "^10.4.21",
     "dotenv": "^17.4.2",
     "eslint": "^9.39.4",
     "eslint-config-next": "^16.2.9",
-    "hardhat": "^3.4.2",
+    "hardhat": "^3.11.1",
     "netlify-cli": "^25.6.1",
     "tailwindcss": "^3.4.18"
   }
