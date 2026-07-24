@@ -88,8 +88,6 @@ passes.
 7. Add these to Netlify **Functions** scope:
 
    ```text
-   DYOOR_TRAIT_BOUNTIES_CONTRACT=0x...
-   DYOOR_TRAIT_BOUNTIES_START_BLOCK=...
    DYOOR_TRAIT_BOUNTY_OPERATOR_PRIVATE_KEY=...
    DYOOR_TRAIT_BOUNTY_PROCESSOR_SECRET=<fresh 64-character hex>
    DYOOR_TRAIT_LAB_ENABLE_BOUNTIES=true
@@ -100,6 +98,9 @@ passes.
    ```text
    NEXT_PUBLIC_DYOOR_TRAIT_BOUNTIES_CONTRACT=0x...
    ```
+
+   The server bundle uses this same public address. Keep the deployment block
+   and processor address in the local deployment record rather than Netlify.
 
 9. Build and deploy. Confirm the Admin Command Center shows:
    `Energy Role: Granted`, `Processor: Approved`, and `Payouts: Ready`.

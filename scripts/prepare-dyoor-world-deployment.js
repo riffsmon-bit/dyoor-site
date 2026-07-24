@@ -19,6 +19,18 @@ if (process.env.PREPARE_DYOOR_WORLD_SECRETS !== "1") {
 const root = process.cwd();
 const localEnvPath = path.join(root, ".env");
 const netlifyEnvPath = path.join(root, "netlify-dyoor-world.env");
+const NETLIFY_RUNTIME_REMOVED_KEYS = [
+  "DYOOR_TRAIT_BOUNTIES_CONTRACT",
+  "DYOOR_TRAIT_BOUNTIES_START_BLOCK",
+  "DYOOR_TRAIT_BOUNTY_PROCESSOR_ADDRESS",
+  "DYOOR_TRAIT_LAB_DROID_BURN_REWARD_ENERGY",
+  "DYOOR_TRAIT_LAB_ENABLE_DROID_BURN",
+  "DYOOR_TRAIT_LAB_ENABLE_LEADERBOARD",
+  "DYOOR_WORLD_NAMES_CONTRACT",
+  "DYOOR_WORLD_NAMES_METADATA_BASE_URI",
+  "DYOOR_WORLD_NAMES_START_BLOCK",
+  "DYOOR_WORLD_OPEN_CLAIMS",
+];
 
 function readEnvFile(filePath) {
   return existsSync(filePath) ? readFileSync(filePath, "utf8") : "";
@@ -45,6 +57,13 @@ function upsertEnv(source, key, value) {
   return `${source.replace(/\s*$/, "")}\n${line}\n`;
 }
 
+function removeEnvKeys(source, keys) {
+  return keys.reduce(
+    (output, key) => output.replace(new RegExp(`^${key}=.*(?:\\r?\\n|$)`, "gm"), ""),
+    source,
+  );
+}
+
 function writeSecure(filePath, contents) {
   const tempPath = `${filePath}.tmp`;
   writeFileSync(tempPath, contents, { encoding: "utf8", mode: 0o600 });
@@ -53,7 +72,10 @@ function writeSecure(filePath, contents) {
 }
 
 let localSource = readEnvFile(localEnvPath);
-let netlifySource = readEnvFile(netlifyEnvPath);
+let netlifySource = removeEnvKeys(
+  readEnvFile(netlifyEnvPath),
+  NETLIFY_RUNTIME_REMOVED_KEYS,
+);
 const localValues = parse(localSource);
 const netlifyValues = parse(netlifySource);
 
@@ -105,13 +127,9 @@ for (const [key, value] of Object.entries(localUpdates)) {
 
 const netlifyUpdates = {
   DYOOR_WORLD_SESSION_SECRET: sessionSecret,
-  DYOOR_WORLD_NAMES_METADATA_BASE_URI: metadataBaseUri,
-  DYOOR_WORLD_OPEN_CLAIMS: "false",
-  DYOOR_TRAIT_BOUNTY_PROCESSOR_ADDRESS: processor.address,
   DYOOR_TRAIT_BOUNTY_OPERATOR_PRIVATE_KEY: processorKey,
   DYOOR_TRAIT_BOUNTY_PROCESSOR_SECRET: processorSecret,
   DYOOR_TRAIT_LAB_ENABLE_BOUNTIES: "false",
-  DYOOR_TRAIT_LAB_ENABLE_LEADERBOARD: "true",
   NEXT_PUBLIC_DYOOR_TRAIT_LAB_ENABLE_LEADERBOARD: "true",
 };
 for (const [key, value] of Object.entries(netlifyUpdates)) {

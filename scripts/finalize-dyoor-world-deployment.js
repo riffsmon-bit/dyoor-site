@@ -26,6 +26,18 @@ const masterEnvPath = path.join(root, "netlify-dyoor-world.env");
 const functionsEnvPath = path.join(root, "netlify-dyoor-world-functions.env");
 const buildsEnvPath = path.join(root, "netlify-dyoor-world-builds.env");
 const deploymentsDir = path.join(root, "deployments");
+const NETLIFY_RUNTIME_REMOVED_KEYS = [
+  "DYOOR_TRAIT_BOUNTIES_CONTRACT",
+  "DYOOR_TRAIT_BOUNTIES_START_BLOCK",
+  "DYOOR_TRAIT_BOUNTY_PROCESSOR_ADDRESS",
+  "DYOOR_TRAIT_LAB_DROID_BURN_REWARD_ENERGY",
+  "DYOOR_TRAIT_LAB_ENABLE_DROID_BURN",
+  "DYOOR_TRAIT_LAB_ENABLE_LEADERBOARD",
+  "DYOOR_WORLD_NAMES_CONTRACT",
+  "DYOOR_WORLD_NAMES_METADATA_BASE_URI",
+  "DYOOR_WORLD_NAMES_START_BLOCK",
+  "DYOOR_WORLD_OPEN_CLAIMS",
+];
 
 function requiredAddress(key) {
   const value = String(process.env[key] || "").trim();
@@ -56,6 +68,13 @@ function upsertEnv(source, key, value) {
   return `${source.replace(/\s*$/, "")}\n${line}\n`;
 }
 
+function removeEnvKeys(source, keys) {
+  return keys.reduce(
+    (output, key) => output.replace(new RegExp(`^${key}=.*(?:\\r?\\n|$)`, "gm"), ""),
+    source,
+  );
+}
+
 function writeAtomic(filePath, contents, mode) {
   const tempPath = `${filePath}.tmp`;
   writeFileSync(tempPath, contents, { encoding: "utf8", mode });
@@ -73,7 +92,10 @@ const bountyDeploymentTx = requiredHash("DEPLOYED_DYOOR_TRAIT_BOUNTIES_TX");
 const grantCreditRoleTx = requiredHash("DEPLOYED_DYOOR_TRAIT_BOUNTIES_GRANT_TX");
 
 let localSource = readText(localEnvPath);
-let masterSource = readText(masterEnvPath);
+let masterSource = removeEnvKeys(
+  readText(masterEnvPath),
+  NETLIFY_RUNTIME_REMOVED_KEYS,
+);
 const localValues = parse(localSource);
 const masterValues = parse(masterSource);
 
@@ -196,7 +218,7 @@ const metadataBaseUri = String(
   localValues.DYOOR_WORLD_NAMES_METADATA_BASE_URI
     || "https://dyoor.netlify.app/api/dyoor-world/names/metadata/",
 ).trim();
-const sharedUpdates = {
+const localUpdates = {
   DYOOR_WORLD_NAMES_CONTRACT: worldAddress,
   NEXT_PUBLIC_DYOOR_WORLD_NAMES_CONTRACT: worldAddress,
   DYOOR_WORLD_NAMES_START_BLOCK: worldBlock,
@@ -208,8 +230,16 @@ const sharedUpdates = {
   DYOOR_TRAIT_BOUNTY_PROCESSOR_ADDRESS: processor,
   DYOOR_TRAIT_LAB_ENABLE_BOUNTIES: "false",
 };
-for (const [key, value] of Object.entries(sharedUpdates)) {
+for (const [key, value] of Object.entries(localUpdates)) {
   localSource = upsertEnv(localSource, key, value);
+}
+const netlifyUpdates = {
+  NEXT_PUBLIC_DYOOR_WORLD_NAMES_CONTRACT: worldAddress,
+  NEXT_PUBLIC_DYOOR_TRAIT_BOUNTIES_CONTRACT: bountyAddress,
+  NEXT_PUBLIC_DYOOR_TRAIT_LAB_ENABLE_LEADERBOARD: "true",
+  DYOOR_TRAIT_LAB_ENABLE_BOUNTIES: "false",
+};
+for (const [key, value] of Object.entries(netlifyUpdates)) {
   masterSource = upsertEnv(masterSource, key, value);
 }
 writeAtomic(localEnvPath, localSource, 0o600);
@@ -218,14 +248,6 @@ writeAtomic(masterEnvPath, masterSource, 0o600);
 const functionsSource = [
   "# Import into Netlify deploy-preview context with Functions scope.",
   `DYOOR_WORLD_SESSION_SECRET=${sessionSecret}`,
-  `DYOOR_WORLD_NAMES_CONTRACT=${worldAddress}`,
-  `DYOOR_WORLD_NAMES_START_BLOCK=${worldBlock}`,
-  `DYOOR_WORLD_NAMES_METADATA_BASE_URI=${metadataBaseUri}`,
-  "DYOOR_WORLD_OPEN_CLAIMS=false",
-  "DYOOR_TRAIT_LAB_ENABLE_LEADERBOARD=true",
-  `DYOOR_TRAIT_BOUNTIES_CONTRACT=${bountyAddress}`,
-  `DYOOR_TRAIT_BOUNTIES_START_BLOCK=${bountyBlock}`,
-  `DYOOR_TRAIT_BOUNTY_PROCESSOR_ADDRESS=${processor}`,
   `DYOOR_TRAIT_BOUNTY_OPERATOR_PRIVATE_KEY=${processorKey}`,
   `DYOOR_TRAIT_BOUNTY_PROCESSOR_SECRET=${processorSecret}`,
   "DYOOR_TRAIT_LAB_ENABLE_BOUNTIES=false",

@@ -108,7 +108,9 @@ Do not open claims in the deployment transaction.
 6. Confirm `S2_COLLECTION`, `ROOT_NODE`, owner, metadata base URI, and
    `claimsOpen == false`.
 7. Lock metadata forever only after confirming the stable metadata endpoint.
-8. Add the same verified registry address to both Netlify variables.
+8. Add the verified registry address to
+   `NEXT_PUBLIC_DYOOR_WORLD_NAMES_CONTRACT` in Netlify Builds scope. The server
+   bundle uses that same public address.
 9. Test a real holder claim and confirm a transfer reverts with
    `SoulboundName`.
 10. Open claims from the owner wallet.
