@@ -12,6 +12,7 @@ import {
   dyoorWorldChallengeMessage,
   verifyDyoorWorldSessionToken,
 } from "../lib/dyoor-world-auth.ts";
+import { dyoorWorldNameSvg } from "../lib/dyoor-world-name-image.ts";
 
 process.env.DYOOR_WORLD_SESSION_SECRET = "test-only-dyoor-world-secret-with-32-characters";
 
@@ -74,6 +75,33 @@ test("holder sessions reject tampering and expiry", () => {
   assert.equal(verifyDyoorWorldSessionToken(token, now + 1_000)?.wallet, wallet.toLowerCase());
   assert.equal(verifyDyoorWorldSessionToken(`${token}x`, now + 1_000), null);
   assert.equal(verifyDyoorWorldSessionToken(token, now + (13 * 60 * 60 * 1000)), null);
+});
+
+test("World name metadata uses marketplace-compatible hosted text artwork", () => {
+  const wallet = ethers.Wallet.createRandom().address.toLowerCase();
+  const svg = dyoorWorldNameSvg({
+    displayName: "riffs.dYOOR",
+    wallet,
+  });
+  assert.match(svg, /riffs\.dYOOR/);
+  assert.match(svg, new RegExp(wallet));
+  assert.match(svg, /SOULBOUND HOLDER IDENTITY/);
+  assert.match(svg, /S2 HOLDER VERIFIED/);
+  assert.doesNotMatch(svg, /<script/i);
+
+  const metadataSource = fs.readFileSync(
+    "app/api/dyoor-world/names/metadata/[tokenId]/route.ts",
+    "utf8",
+  );
+  assert.match(metadataSource, /\/api\/dyoor-world\/names\/image\//);
+  assert.doesNotMatch(metadataSource, /data:image/);
+
+  const imageRouteSource = fs.readFileSync(
+    "app/api/dyoor-world/names/image/[tokenId]/route.ts",
+    "utf8",
+  );
+  assert.match(imageRouteSource, /image\/svg\+xml/);
+  assert.match(imageRouteSource, /getDyoorWorldNameToken/);
 });
 
 test("World APIs enforce holder sessions and the nav icon is eligibility-gated", () => {
