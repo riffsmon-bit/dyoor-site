@@ -556,13 +556,23 @@ export async function createDyoorWorldMessage(input: {
   } satisfies DyoorWorldMessageView;
 }
 
-export function dyoorWorldPublicConfig() {
+export async function dyoorWorldPublicConfig() {
   const registryAddress = dyoorWorldNamesContractAddress();
+  let claimsOpen = false;
+  if (registryAddress) {
+    const contract = await validatedNamesContract();
+    try {
+      claimsOpen = Boolean(await contract?.claimsOpen());
+    } catch {
+      throw dyoorWorldError("The Monad dYOOR name registry is unavailable.", 503);
+    }
+  }
   return {
     chainId: 143,
     s2ContractAddress: dyoorS2Contract,
     registryAddress,
     registryMode: registryAddress ? "monad" : "preview-reservation",
+    claimsOpen,
     channels: DYOOR_WORLD_CHANNELS,
   };
 }

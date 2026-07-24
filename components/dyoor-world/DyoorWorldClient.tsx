@@ -19,6 +19,7 @@ type WorldConfig = {
   s2ContractAddress: string;
   registryAddress: string;
   registryMode: "monad" | "preview-reservation";
+  claimsOpen: boolean;
 };
 
 type ProfileResponse = {
@@ -133,7 +134,12 @@ export function DyoorWorldClient({ sessionWallet }: { sessionWallet: string }) {
     setError("");
     setNotice("");
     try {
-      if (config.registryMode === "monad" && config.registryAddress) {
+      const latest = await loadProfile();
+      const liveConfig = latest.config || config;
+      if (liveConfig.registryMode === "monad" && liveConfig.registryAddress) {
+        if (!liveConfig.claimsOpen) {
+          throw new Error("dYOOR World name claims are currently closed.");
+        }
         if (!connectedWallet) throw new Error("Connect the holder wallet before claiming on Monad.");
         if (connectedWallet !== normalizedSessionWallet) {
           throw new Error("The connected wallet must match the authenticated holder session.");
@@ -148,7 +154,7 @@ export function DyoorWorldClient({ sessionWallet }: { sessionWallet: string }) {
         });
         const txHash = await wallet.sendTransaction({
           from: connectedWallet,
-          to: config.registryAddress,
+          to: liveConfig.registryAddress,
           data,
         });
         setNotice(`Monad claim submitted: ${txHash.slice(0, 10)}…`);
@@ -337,7 +343,9 @@ export function DyoorWorldClient({ sessionWallet }: { sessionWallet: string }) {
                 <p className="text-sm font-black text-white">Create your .dYOOR name</p>
                 <p className="mt-2 text-xs font-bold leading-5 text-white/42">
                   {config?.registryMode === "monad"
-                    ? "Claim a soulbound holder identity directly on Monad."
+                    ? config.claimsOpen
+                      ? "Claim a soulbound holder identity directly on Monad."
+                      : "On-chain name claims are currently closed by the registry owner."
                     : "Reserve the name in this preview. On-chain activation follows registry deployment."}
                 </p>
                 <label className="mt-4 block text-[0.62rem] font-black uppercase tracking-[0.15em] text-white/40" htmlFor="world-label">
@@ -357,11 +365,21 @@ export function DyoorWorldClient({ sessionWallet }: { sessionWallet: string }) {
                   />
                   <span className="flex items-center border-l border-white/10 px-3 text-xs font-black text-dyoor-cyan">.dYOOR</span>
                 </div>
-                <button className="btn-secondary mt-3 w-full text-xs" disabled={claiming || normalizeWorldLabel(label).length < 3} type="submit">
+                <button
+                  className="btn-secondary mt-3 w-full text-xs"
+                  disabled={
+                    claiming
+                      || normalizeWorldLabel(label).length < 3
+                      || (config?.registryMode === "monad" && !config.claimsOpen)
+                  }
+                  type="submit"
+                >
                   {claiming
                     ? "Claiming"
                     : config?.registryMode === "monad"
-                      ? "Claim on Monad"
+                      ? config.claimsOpen
+                        ? "Claim on Monad"
+                        : "Claims closed"
                       : "Reserve preview name"}
                 </button>
               </form>

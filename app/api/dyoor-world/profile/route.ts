@@ -21,11 +21,15 @@ function json(status: number, body: Record<string, unknown>) {
 export async function GET(request: Request) {
   try {
     const { wallet } = await requireDyoorWorldRequest(request);
+    const [profile, config] = await Promise.all([
+      getDyoorWorldProfile(wallet),
+      dyoorWorldPublicConfig(),
+    ]);
     return json(200, {
       ok: true,
       wallet,
-      profile: await getDyoorWorldProfile(wallet),
-      config: dyoorWorldPublicConfig(),
+      profile,
+      config,
     });
   } catch (error) {
     return json(dyoorWorldErrorStatus(error), {
@@ -44,11 +48,12 @@ export async function POST(request: Request) {
       60_000,
     );
     const body = await request.json().catch(() => ({}));
+    const profile = await reserveDyoorWorldName(wallet, body?.label);
     return json(201, {
       ok: true,
       wallet,
-      profile: await reserveDyoorWorldName(wallet, body?.label),
-      config: dyoorWorldPublicConfig(),
+      profile,
+      config: await dyoorWorldPublicConfig(),
     });
   } catch (error) {
     return json(dyoorWorldErrorStatus(error), {

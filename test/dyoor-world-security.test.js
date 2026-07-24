@@ -87,6 +87,15 @@ test("World APIs enforce holder sessions and the nav icon is eligibility-gated",
   assert.match(navSource, /data\?\.eligible === true/);
   assert.match(navSource, /if \(!address \|\| eligibleWallet !== address\) return null/);
 
+  const worldClientSource = fs.readFileSync("components/dyoor-world/DyoorWorldClient.tsx", "utf8");
+  assert.match(worldClientSource, /if \(!liveConfig\.claimsOpen\)/);
+  assert.match(worldClientSource, /Claims closed/);
+  assert.match(worldClientSource, /const latest = await loadProfile\(\)/);
+
+  const profileRouteSource = fs.readFileSync("app/api/dyoor-world/profile/route.ts", "utf8");
+  assert.match(profileRouteSource, /dyoorWorldPublicConfig\(\)/);
+  assert.match(profileRouteSource, /config/);
+
   const contractSource = fs.readFileSync("contracts/DYOORWorldNames.sol", "utf8");
   assert.match(contractSource, /S2_COLLECTION\.balanceOf\(wallet\)/);
   assert.match(contractSource, /revert SoulboundName\(\)/);

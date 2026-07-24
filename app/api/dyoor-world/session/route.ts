@@ -29,12 +29,16 @@ export async function GET(request: Request) {
   try {
     const authenticated = await authenticateDyoorWorldRequest(request);
     if (!authenticated) return json(401, { ok: false, authenticated: false });
+    const [profile, config] = await Promise.all([
+      getDyoorWorldProfile(authenticated.wallet),
+      dyoorWorldPublicConfig(),
+    ]);
     return json(200, {
       ok: true,
       authenticated: true,
       wallet: authenticated.wallet,
-      profile: await getDyoorWorldProfile(authenticated.wallet),
-      config: dyoorWorldPublicConfig(),
+      profile,
+      config,
     });
   } catch (error) {
     return json(dyoorWorldErrorStatus(error), {
@@ -55,7 +59,7 @@ export async function POST(request: Request) {
         ok: true,
         authenticated: true,
         wallet: completed.wallet,
-        config: dyoorWorldPublicConfig(),
+        config: await dyoorWorldPublicConfig(),
       },
       { "set-cookie": dyoorWorldSessionCookie(completed.token) },
     );
