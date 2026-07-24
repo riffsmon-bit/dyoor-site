@@ -2,6 +2,8 @@
 
 Date: 2026-07-23
 
+Status: application and registry contract built and tested locally; **registry not deployed to Monad mainnet**.
+
 ## Scope
 
 dYOOR World is an unlisted, holder-only social surface inside the DYOOR site. Its
@@ -69,6 +71,8 @@ Ethereum ENS name, or NNS `.nad` name. The canonical on-chain form is lowercase
 - Soulbound ERC-721 ownership; names cannot be transferred or sold.
 - Forward resolution from a name/node to a wallet.
 - Reverse resolution from a wallet to its `.dYOOR` name.
+- Batched protocol-label reservation, a live claimed-name count, availability
+  reads, and a combined wallet record helper.
 
 World access continues to check current S2 ownership. A wallet that later
 transfers or burns its final S2 cannot enter World, even though its historical
@@ -117,6 +121,19 @@ npm run deploy:dyoor-world-names
 
 It requires an explicit `DYOOR_WORLD_OPEN_CLAIMS=true` to open claims after
 reserving protocol labels.
+
+Post-deployment configuration is performed separately so explorer verification
+can happen before claims open:
+
+```text
+DYOOR_WORLD_NAMES_CONTRACT=0x...
+DYOOR_WORLD_CONFIGURE_ACTION=status
+npm run configure:dyoor-world-names
+```
+
+Supported actions are `status`, `open`, `close`, `reserve`, `metadata`, and
+`lock-metadata`. The permanent metadata lock requires the exact
+`DYOOR_WORLD_CONFIRM_LOCK_METADATA` confirmation phrase printed by the script.
 
 ## DNS, ENS, and NNS paths
 

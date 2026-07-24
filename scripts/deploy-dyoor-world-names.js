@@ -67,7 +67,13 @@ const s2Collection = requireAddress(
 if (s2Collection !== ethers.getAddress(DYOOR_S2_MAINNET)) {
   throw new Error(`dYOOR World names must gate the production S2 contract ${DYOOR_S2_MAINNET}.`);
 }
-const metadataBaseURI = String(process.env.DYOOR_WORLD_NAMES_METADATA_BASE_URI || "").trim();
+const metadataBaseURI = String(
+  process.env.DYOOR_WORLD_NAMES_METADATA_BASE_URI
+  || "https://dyoor.netlify.app/api/dyoor-world/names/metadata/",
+).trim();
+if (!/^https:\/\/[^\s]+\/$/.test(metadataBaseURI)) {
+  throw new Error("DYOOR_WORLD_NAMES_METADATA_BASE_URI must be an HTTPS URL ending in /.");
+}
 
 console.log("Deploying DYOORWorldNames...");
 console.log("Deployer:", deployer.address);
@@ -80,18 +86,18 @@ const Names = await ethers.getContractFactory("DYOORWorldNames", deployer);
 const names = await Names.deploy(owner, s2Collection, metadataBaseURI);
 await names.waitForDeployment();
 const address = await names.getAddress();
+const deploymentReceipt = await names.deploymentTransaction()?.wait();
 
 console.log("DYOORWorldNames address:", address);
+console.log("Deployment block:", String(deploymentReceipt?.blockNumber || ""));
 
 if (owner !== deployer.address) {
   console.log("Owner differs from deployer. Claims remain closed.");
   console.log("From the owner wallet, reserve protocol labels before calling setClaimsOpen(true).");
 } else {
-  for (const label of RESERVED_LABELS) {
-    const tx = await names.setReservedLabel(label, true);
-    await tx.wait();
-    console.log("Reserved:", label, tx.hash);
-  }
+  const reserveTx = await names.setReservedLabels(RESERVED_LABELS, true);
+  await reserveTx.wait();
+  console.log(`Reserved ${RESERVED_LABELS.length} protocol labels:`, reserveTx.hash);
 
   if (enabled(process.env.DYOOR_WORLD_OPEN_CLAIMS)) {
     const tx = await names.setClaimsOpen(true);
@@ -105,3 +111,4 @@ if (owner !== deployer.address) {
 console.log("Add both Netlify variables only after verifying the deployment:");
 console.log(`DYOOR_WORLD_NAMES_CONTRACT=${address}`);
 console.log(`NEXT_PUBLIC_DYOOR_WORLD_NAMES_CONTRACT=${address}`);
+console.log(`DYOOR_WORLD_NAMES_START_BLOCK=${String(deploymentReceipt?.blockNumber || "")}`);

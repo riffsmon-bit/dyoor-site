@@ -13,9 +13,9 @@ import {
   S2_UNLOCKABLE_TRAITS,
 } from "@/lib/s2-trait-lab-config";
 import {
-  traitLabBountiesEnabled,
   traitLabLeaderboardEnabled,
 } from "@/lib/s2-trait-lab-leaderboard";
+import { traitBountyEngineEnabled } from "@/lib/s2-trait-bounties";
 
 const ERC721_ABI = [
   "event Transfer(address indexed from,address indexed to,uint256 indexed tokenId)",
@@ -593,7 +593,7 @@ export function traitLabPublicConfig() {
     droidBurnEnabled: traitLabDroidBurnEnabled(),
     droidBurnRewardEnergy: traitLabDroidBurnRewardEnergy(),
     leaderboardEnabled: traitLabLeaderboardEnabled(),
-    bountyEnabled: traitLabBountiesEnabled(),
+    bountyEnabled: traitBountyEngineEnabled(),
     guaranteedTraits: S2_GUARANTEED_TRAITS,
     unlockableTraits: S2_UNLOCKABLE_TRAITS,
     removableTraits: S2_REMOVABLE_TRAITS,

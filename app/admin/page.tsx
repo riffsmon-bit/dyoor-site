@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import { formatUnits, parseUnits } from "viem";
+import { encodeFunctionData, formatUnits, parseUnits } from "viem";
 import { Alert, Button, Card, EmptyState, LoadingSkeleton, PageShell, SectionHeader, StatCard } from "@/components/ui/DyoorUi";
 import { WalletButton } from "@/components/wallet/WalletButton";
 import { createAdminAuthorization } from "@/lib/adminMessage";
@@ -277,6 +277,92 @@ type LedgerDiagnosticReport = {
   note?: string;
   error?: string;
 };
+
+type TraitBountyAdminItem = {
+  id: `0x${string}`;
+  label: string;
+  traitType: string;
+  traitValue: string;
+  rewardRaw: string;
+  rewardEnergy: string;
+  maxClaims: number;
+  totalClaims: number;
+  remainingClaims: number;
+  perWalletLimit: number;
+  perTokenLimit: number;
+  actionMask: number;
+  actions: string[];
+  startsAt: string;
+  endsAt: string;
+  active: boolean;
+  status: "draft" | "upcoming" | "active" | "ended" | "complete" | "closed";
+};
+
+type TraitBountyAdminState = {
+  ok?: boolean;
+  configured?: boolean;
+  enabled?: boolean;
+  chainId?: number;
+  contractAddress?: `0x${string}` | "";
+  preflight?: {
+    ready?: boolean;
+    owner?: string;
+    paused?: boolean;
+    energyCreditRole?: boolean;
+    processorConfigured?: boolean;
+    processor?: string;
+  };
+  bounties?: TraitBountyAdminItem[];
+  settlements?: Array<{
+    settlementKey: string;
+    bountyId: string;
+    bountyLabel: string;
+    wallet: string;
+    tokenId: string;
+    traitType: string;
+    traitValue: string;
+    rewardEnergy: string;
+    settledAt: string;
+    txHash?: string;
+  }>;
+  catalog?: Record<string, string[]>;
+  error?: string;
+};
+
+const TRAIT_BOUNTY_ADMIN_ABI = [
+  {
+    type: "function",
+    name: "createBounty",
+    stateMutability: "nonpayable",
+    inputs: [{
+      name: "input",
+      type: "tuple",
+      components: [
+        { name: "label", type: "string" },
+        { name: "traitType", type: "string" },
+        { name: "traitValue", type: "string" },
+        { name: "rewardRaw", type: "uint256" },
+        { name: "maxClaims", type: "uint32" },
+        { name: "perWalletLimit", type: "uint16" },
+        { name: "perTokenLimit", type: "uint16" },
+        { name: "actionMask", type: "uint8" },
+        { name: "startsAt", type: "uint64" },
+        { name: "endsAt", type: "uint64" },
+      ],
+    }],
+    outputs: [{ name: "bountyId", type: "bytes32" }],
+  },
+  {
+    type: "function",
+    name: "setBountyActive",
+    stateMutability: "nonpayable",
+    inputs: [
+      { name: "bountyId", type: "bytes32" },
+      { name: "active", type: "bool" },
+    ],
+    outputs: [],
+  },
+] as const;
 
 function normalizeAddress(address?: string) {
   return /^0x[a-fA-F0-9]{40}$/.test(address || "") ? String(address).toLowerCase() : "";
@@ -610,6 +696,19 @@ export default function AdminPage() {
   const [energyLedgerLoading, setEnergyLedgerLoading] = useState(false);
   const [energyIndexResult, setEnergyIndexResult] = useState<EnergyIndexResult | null>(null);
   const [ledgerDiagnostic, setLedgerDiagnostic] = useState<LedgerDiagnosticReport | null>(null);
+  const [traitBountyState, setTraitBountyState] = useState<TraitBountyAdminState | null>(null);
+  const [traitBountyLoading, setTraitBountyLoading] = useState(false);
+  const [traitBountyStatus, setTraitBountyStatus] = useState("Deploy and configure the Trait Bounty contract before creating campaigns.");
+  const [traitBountyLabel, setTraitBountyLabel] = useState("");
+  const [traitBountyTraitType, setTraitBountyTraitType] = useState("Eyes");
+  const [traitBountyTraitValue, setTraitBountyTraitValue] = useState("");
+  const [traitBountyReward, setTraitBountyReward] = useState("");
+  const [traitBountyMaxClaims, setTraitBountyMaxClaims] = useState("1");
+  const [traitBountyPerWallet, setTraitBountyPerWallet] = useState("1");
+  const [traitBountyPerToken, setTraitBountyPerToken] = useState("1");
+  const [traitBountyStartsAt, setTraitBountyStartsAt] = useState("");
+  const [traitBountyEndsAt, setTraitBountyEndsAt] = useState("");
+  const [traitBountyActionMask, setTraitBountyActionMask] = useState(1 | 2 | 4);
 
   useEffect(() => {
     let active = true;
@@ -642,6 +741,31 @@ export default function AdminPage() {
     };
   }, [getWalletProviderForStatus, walletAddress]);
 
+  useEffect(() => {
+    let active = true;
+    async function loadInitialTraitBounties() {
+      try {
+        const response = await fetch("/api/s2/trait-lab/bounties", { cache: "no-store" });
+        const data = await response.json().catch(() => ({})) as TraitBountyAdminState;
+        if (!active) return;
+        setTraitBountyState(data);
+        setTraitBountyStatus(
+          data.configured
+            ? data.preflight?.ready
+              ? "Trait Bounty contract is configured and ready for Energy payouts."
+              : "Trait Bounty contract is configured but payout preflight is incomplete."
+            : "Deploy and configure the Trait Bounty contract before creating campaigns.",
+        );
+      } catch {
+        if (active) setTraitBountyStatus("Trait Bounty status could not be loaded.");
+      }
+    }
+    void loadInitialTraitBounties();
+    return () => {
+      active = false;
+    };
+  }, []);
+
   const filenameBase = useMemo(() => `dyoor-admin-${stamp(snapshot?.generatedAt)}`, [snapshot?.generatedAt]);
   const snapshotFiles = useMemo(() => {
     const fallbackStamp = snapshotFileStamp(snapshot?.generatedAt);
@@ -671,6 +795,10 @@ export default function AdminPage() {
   const airdropRecipients = parsedAirdropRecipients.valid;
   const airdropAmountRaw = useMemo(() => parseEnergyAmount(airdropAmount), [airdropAmount]);
   const airdropTotalRaw = useMemo(() => airdropAmountRaw ? airdropAmountRaw * BigInt(airdropRecipients.length) : 0n, [airdropAmountRaw, airdropRecipients.length]);
+  const traitBountyValues = useMemo(
+    () => traitBountyState?.catalog?.[traitBountyTraitType] || [],
+    [traitBountyState?.catalog, traitBountyTraitType],
+  );
   const estimatedActionCount = Math.max(airdropRecipients.length ? 1 : 0, Math.ceil(airdropRecipients.length / 150));
   const airdropRows = useMemo(() => {
     if (airdropResult?.results?.length) {
@@ -723,7 +851,7 @@ export default function AdminPage() {
   }
 
   async function signAdminAction(action: AdminAction, route: string, payload: Record<string, unknown>) {
-    const timestamp = String(Date.now());
+    const timestamp = String(new Date().getTime());
     const nonce = crypto.randomUUID();
     const authorization = createAdminAuthorization({
       wallet: walletAddress,
@@ -738,6 +866,153 @@ export default function AdminPage() {
     setLastSignatureAt(new Date().toISOString());
     const { message: _message, ...authorizationFields } = authorization;
     return { timestamp, nonce, signature, ...authorizationFields };
+  }
+
+  async function loadTraitBounties() {
+    const response = await fetch("/api/s2/trait-lab/bounties", { cache: "no-store" });
+    const data = await response.json().catch(() => ({})) as TraitBountyAdminState;
+    setTraitBountyState(data);
+    if (!response.ok || data.ok === false) {
+      throw new Error(data.error || "Trait Bounty status could not be loaded.");
+    }
+    return data;
+  }
+
+  async function waitForWalletTransaction(txHash: string) {
+    const provider = await getProvider();
+    for (let attempt = 0; attempt < 40; attempt += 1) {
+      const receipt = await provider.request({
+        method: "eth_getTransactionReceipt",
+        params: [txHash],
+      }).catch(() => null) as { status?: string } | null;
+      if (receipt) {
+        if (receipt.status && receipt.status !== "0x1") {
+          throw new Error("The Monad transaction reverted.");
+        }
+        return receipt;
+      }
+      await sleep(1_500);
+    }
+    throw new Error("The transaction is still pending. Refresh after it confirms.");
+  }
+
+  function parsedPositiveInteger(value: string, label: string, maximum: number) {
+    if (!/^\d+$/.test(value.trim())) throw new Error(`${label} must be a whole number.`);
+    const parsed = Number(value);
+    if (!Number.isSafeInteger(parsed) || parsed < 1 || parsed > maximum) {
+      throw new Error(`${label} must be between 1 and ${maximum.toLocaleString()}.`);
+    }
+    return parsed;
+  }
+
+  async function createTraitBounty() {
+    if (!authorized || !walletAddress) {
+      setTraitBountyStatus("Connect the configured owner wallet first.");
+      return;
+    }
+    const contractAddress = traitBountyState?.contractAddress;
+    if (!contractAddress) {
+      setTraitBountyStatus("Deploy and configure the Trait Bounty contract first.");
+      return;
+    }
+    setTraitBountyLoading(true);
+    try {
+      const label = traitBountyLabel.trim().toLowerCase().replace(/\s+/g, "-");
+      if (!/^[a-z0-9](?:[a-z0-9-]{1,46}[a-z0-9])$/.test(label) || label.includes("--")) {
+        throw new Error("Campaign ID must contain 3–48 lowercase letters, numbers, or single hyphens.");
+      }
+      const traitValue = traitBountyTraitValue.trim();
+      if (!traitBountyValues.includes(traitValue)) {
+        throw new Error("Choose an exact selectable trait value from the collection catalog.");
+      }
+      const rewardRaw = parseEnergyAmount(traitBountyReward);
+      if (!rewardRaw) throw new Error("Enter a positive Energy reward.");
+      const maxClaims = parsedPositiveInteger(traitBountyMaxClaims, "Maximum winners", 10_000);
+      const perWalletLimit = parsedPositiveInteger(traitBountyPerWallet, "Per-wallet limit", maxClaims);
+      const perTokenLimit = parsedPositiveInteger(traitBountyPerToken, "Per-token limit", maxClaims);
+      if (!traitBountyActionMask) throw new Error("Select at least one eligible Trait Lab action.");
+      const startsAt = traitBountyStartsAt
+        ? Math.floor(new Date(traitBountyStartsAt).getTime() / 1_000)
+        : Math.floor(new Date().getTime() / 1_000);
+      const endsAt = traitBountyEndsAt
+        ? Math.floor(new Date(traitBountyEndsAt).getTime() / 1_000)
+        : 0;
+      if (!Number.isSafeInteger(startsAt) || startsAt <= 0) {
+        throw new Error("Choose a valid bounty start time.");
+      }
+      if (endsAt && endsAt <= startsAt) {
+        throw new Error("The bounty end time must be after its start time.");
+      }
+      if (wrongNetwork) await walletService.switchChain();
+
+      const data = encodeFunctionData({
+        abi: TRAIT_BOUNTY_ADMIN_ABI,
+        functionName: "createBounty",
+        args: [{
+          label,
+          traitType: traitBountyTraitType,
+          traitValue,
+          rewardRaw,
+          maxClaims,
+          perWalletLimit,
+          perTokenLimit,
+          actionMask: traitBountyActionMask,
+          startsAt: BigInt(startsAt),
+          endsAt: BigInt(endsAt),
+        }],
+      });
+      setTraitBountyStatus("Confirm the inactive bounty draft transaction in your owner wallet.");
+      const txHash = await walletService.sendTransaction({
+        from: walletAddress,
+        to: contractAddress,
+        data,
+      });
+      setTraitBountyStatus(`Bounty draft submitted: ${txHash.slice(0, 10)}… Waiting for Monad.`);
+      await waitForWalletTransaction(txHash);
+      await loadTraitBounties();
+      setTraitBountyLabel("");
+      setTraitBountyTraitValue("");
+      setTraitBountyReward("");
+      setTraitBountyStatus("Bounty draft created. Review every limit before activating it.");
+    } catch (caught) {
+      setTraitBountyStatus(caught instanceof Error ? caught.message : "Trait bounty creation failed.");
+    } finally {
+      setTraitBountyLoading(false);
+    }
+  }
+
+  async function setTraitBountyActive(bounty: TraitBountyAdminItem, active: boolean) {
+    if (!authorized || !walletAddress || !traitBountyState?.contractAddress) return;
+    if (active && (!traitBountyState.enabled || !traitBountyState.preflight?.ready)) {
+      setTraitBountyStatus("Enable the bounty feature flag and complete payout preflight before activation.");
+      return;
+    }
+    setTraitBountyLoading(true);
+    try {
+      if (wrongNetwork) await walletService.switchChain();
+      const data = encodeFunctionData({
+        abi: TRAIT_BOUNTY_ADMIN_ABI,
+        functionName: "setBountyActive",
+        args: [bounty.id, active],
+      });
+      setTraitBountyStatus(`Confirm ${active ? "activation" : "closure"} for ${bounty.label} in your owner wallet.`);
+      const txHash = await walletService.sendTransaction({
+        from: walletAddress,
+        to: traitBountyState.contractAddress,
+        data,
+      });
+      await waitForWalletTransaction(txHash);
+      await loadTraitBounties();
+      setTraitBountyStatus(
+        active
+          ? `${bounty.label} is active. Matching completed reveals can now receive Energy.`
+          : `${bounty.label} is closed. No further payouts will be accepted.`,
+      );
+    } catch (caught) {
+      setTraitBountyStatus(caught instanceof Error ? caught.message : "Trait bounty update failed.");
+    } finally {
+      setTraitBountyLoading(false);
+    }
   }
 
   async function loadLedgerWallet(scan = false) {
@@ -1544,6 +1819,273 @@ export default function AdminPage() {
           validationStatus={combinedValidationStatus}
           dataSource="staking + blueprint"
         />
+
+        <Card className="p-5 md:p-6">
+          <div className="flex flex-col justify-between gap-4 md:flex-row md:items-start">
+            <div>
+              <p className="eyebrow">On-Chain Campaigns</p>
+              <h2 className="mt-2 text-2xl font-black uppercase text-white">Trait Reveal Bounties</h2>
+              <p className="mt-2 max-w-3xl text-sm font-semibold leading-6 text-white/60">
+                Create immutable bounty rules for exact Trait Lab reveals. Drafts begin inactive; the Monad contract enforces campaign windows, eligible actions, winner caps, per-wallet limits, per-token limits, and duplicate-proof Energy credits.
+              </p>
+            </div>
+            <Button
+              variant="secondary"
+              disabled={traitBountyLoading}
+              onClick={() => void loadTraitBounties().catch((caught) => setTraitBountyStatus(caught instanceof Error ? caught.message : "Refresh failed."))}
+            >
+              {traitBountyLoading ? "Working..." : "Refresh"}
+            </Button>
+          </div>
+
+          <Alert
+            className="mt-5"
+            tone={traitBountyLoading
+              ? "busy"
+              : traitBountyState?.preflight?.ready
+                ? "success"
+                : traitBountyState?.configured
+                  ? "warning"
+                  : "idle"}
+          >
+            {traitBountyStatus}
+          </Alert>
+
+          <div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-6">
+            <div className="rounded border border-white/10 bg-black/30 p-3">
+              <p className="text-[0.66rem] font-black uppercase tracking-[0.14em] text-white/40">Contract</p>
+              <p className="mt-2 text-sm font-black text-white">{traitBountyState?.configured ? shortAddress(traitBountyState.contractAddress) : "Not deployed"}</p>
+            </div>
+            <div className="rounded border border-white/10 bg-black/30 p-3">
+              <p className="text-[0.66rem] font-black uppercase tracking-[0.14em] text-white/40">Feature Flag</p>
+              <p className={`mt-2 text-sm font-black ${traitBountyState?.enabled ? "text-dyoor-cyan" : "text-yellow-100"}`}>{traitBountyState?.enabled ? "Enabled" : "Disabled"}</p>
+            </div>
+            <div className="rounded border border-white/10 bg-black/30 p-3">
+              <p className="text-[0.66rem] font-black uppercase tracking-[0.14em] text-white/40">Energy Role</p>
+              <p className={`mt-2 text-sm font-black ${traitBountyState?.preflight?.energyCreditRole ? "text-dyoor-cyan" : "text-yellow-100"}`}>{traitBountyState?.preflight?.energyCreditRole ? "Granted" : "Missing"}</p>
+            </div>
+            <div className="rounded border border-white/10 bg-black/30 p-3">
+              <p className="text-[0.66rem] font-black uppercase tracking-[0.14em] text-white/40">Processor</p>
+              <p className={`mt-2 text-sm font-black ${traitBountyState?.preflight?.processorConfigured ? "text-dyoor-cyan" : "text-yellow-100"}`}>{traitBountyState?.preflight?.processorConfigured ? "Approved" : "Missing"}</p>
+            </div>
+            <div className="rounded border border-white/10 bg-black/30 p-3">
+              <p className="text-[0.66rem] font-black uppercase tracking-[0.14em] text-white/40">Payouts</p>
+              <p className={`mt-2 text-sm font-black ${traitBountyState?.preflight?.ready ? "text-dyoor-cyan" : "text-yellow-100"}`}>{traitBountyState?.preflight?.ready ? "Ready" : "Blocked"}</p>
+            </div>
+            <div className="rounded border border-white/10 bg-black/30 p-3">
+              <p className="text-[0.66rem] font-black uppercase tracking-[0.14em] text-white/40">Campaigns</p>
+              <p className="mt-2 text-sm font-black text-white">{traitBountyState?.bounties?.length || 0}</p>
+            </div>
+          </div>
+
+          <div className="mt-6 grid gap-5 xl:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)]">
+            <div className="rounded border border-dyoor-purple/25 bg-black/30 p-4">
+              <p className="text-xs font-black uppercase tracking-[0.15em] text-dyoor-cyan">Create Inactive Draft</p>
+              <div className="mt-4 grid gap-3">
+                <label className="grid gap-2 text-xs font-black uppercase tracking-[0.1em] text-white/45">
+                  Campaign ID
+                  <input
+                    className="field-control"
+                    placeholder="e.g. abyss-laser-launch"
+                    value={traitBountyLabel}
+                    onChange={(event) => setTraitBountyLabel(event.target.value)}
+                  />
+                </label>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <label className="grid gap-2 text-xs font-black uppercase tracking-[0.1em] text-white/45">
+                    Trait Type
+                    <select
+                      className="field-control"
+                      value={traitBountyTraitType}
+                      onChange={(event) => {
+                        setTraitBountyTraitType(event.target.value);
+                        setTraitBountyTraitValue("");
+                      }}
+                    >
+                      {Object.keys(traitBountyState?.catalog || { Eyes: [] }).map((traitType) => (
+                        <option key={traitType} value={traitType}>{traitType}</option>
+                      ))}
+                    </select>
+                  </label>
+                  <label className="grid gap-2 text-xs font-black uppercase tracking-[0.1em] text-white/45">
+                    Exact Revealed Trait
+                    <input
+                      className="field-control"
+                      list="trait-bounty-values"
+                      placeholder="Select a catalog value"
+                      value={traitBountyTraitValue}
+                      onChange={(event) => setTraitBountyTraitValue(event.target.value)}
+                    />
+                  </label>
+                  <datalist id="trait-bounty-values">
+                    {traitBountyValues.map((value) => <option key={value} value={value} />)}
+                  </datalist>
+                </div>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <label className="grid gap-2 text-xs font-black uppercase tracking-[0.1em] text-white/45">
+                    Energy Reward
+                    <input
+                      className="field-control"
+                      inputMode="decimal"
+                      placeholder="e.g. 500"
+                      value={traitBountyReward}
+                      onChange={(event) => setTraitBountyReward(event.target.value)}
+                    />
+                  </label>
+                  <label className="grid gap-2 text-xs font-black uppercase tracking-[0.1em] text-white/45">
+                    Maximum Winners
+                    <input
+                      className="field-control"
+                      inputMode="numeric"
+                      value={traitBountyMaxClaims}
+                      onChange={(event) => setTraitBountyMaxClaims(event.target.value)}
+                    />
+                  </label>
+                  <label className="grid gap-2 text-xs font-black uppercase tracking-[0.1em] text-white/45">
+                    Wins Per Wallet
+                    <input
+                      className="field-control"
+                      inputMode="numeric"
+                      value={traitBountyPerWallet}
+                      onChange={(event) => setTraitBountyPerWallet(event.target.value)}
+                    />
+                  </label>
+                  <label className="grid gap-2 text-xs font-black uppercase tracking-[0.1em] text-white/45">
+                    Wins Per Droid
+                    <input
+                      className="field-control"
+                      inputMode="numeric"
+                      value={traitBountyPerToken}
+                      onChange={(event) => setTraitBountyPerToken(event.target.value)}
+                    />
+                  </label>
+                </div>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <label className="grid gap-2 text-xs font-black uppercase tracking-[0.1em] text-white/45">
+                    Starts
+                    <input
+                      className="field-control"
+                      type="datetime-local"
+                      value={traitBountyStartsAt}
+                      onChange={(event) => setTraitBountyStartsAt(event.target.value)}
+                    />
+                  </label>
+                  <label className="grid gap-2 text-xs font-black uppercase tracking-[0.1em] text-white/45">
+                    Ends (optional)
+                    <input
+                      className="field-control"
+                      type="datetime-local"
+                      value={traitBountyEndsAt}
+                      onChange={(event) => setTraitBountyEndsAt(event.target.value)}
+                    />
+                  </label>
+                </div>
+                <div className="grid gap-2 sm:grid-cols-3">
+                  {[
+                    ["Reroll", 1],
+                    ["Unlock", 2],
+                    ["Reroll All", 4],
+                  ].map(([label, bit]) => (
+                    <label className="flex items-center gap-2 rounded border border-white/10 bg-white/[0.035] p-3 text-xs font-black uppercase tracking-[0.08em] text-white/65" key={String(label)}>
+                      <input
+                        type="checkbox"
+                        checked={Boolean(traitBountyActionMask & Number(bit))}
+                        onChange={(event) => setTraitBountyActionMask((current) => (
+                          event.target.checked
+                            ? current | Number(bit)
+                            : current & ~Number(bit)
+                        ))}
+                      />
+                      {label}
+                    </label>
+                  ))}
+                </div>
+                <Button
+                  variant="primary"
+                  disabled={!authorized || traitBountyLoading || !traitBountyState?.configured}
+                  onClick={() => void createTraitBounty()}
+                >
+                  Create Bounty Draft
+                </Button>
+                <p className="text-xs font-semibold leading-5 text-white/42">
+                  Rules cannot be edited after creation. Close a mistaken draft and create a new campaign ID.
+                </p>
+              </div>
+            </div>
+
+            <div className="grid content-start gap-3">
+              {!traitBountyState?.bounties?.length ? (
+                <EmptyState title="No Bounty Campaigns" copy="Deploy the contract, complete payout preflight, then create an inactive draft here." />
+              ) : traitBountyState.bounties.map((bounty) => (
+                <div className="rounded border border-white/10 bg-black/30 p-4" key={bounty.id}>
+                  <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-start">
+                    <div>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <p className="font-black uppercase text-white">{bounty.label}</p>
+                        <span className={`rounded border px-2 py-1 text-[0.62rem] font-black uppercase tracking-[0.12em] ${bounty.status === "active" ? "border-dyoor-cyan/35 bg-dyoor-cyan/10 text-dyoor-cyan" : "border-white/10 bg-white/[0.04] text-white/48"}`}>
+                          {bounty.status}
+                        </span>
+                      </div>
+                      <p className="mt-2 text-sm font-black text-dyoor-cyan">{bounty.traitType}: {bounty.traitValue}</p>
+                      <p className="mt-1 text-xs font-semibold text-white/48">{bounty.actions.join(", ")} · {bounty.rewardEnergy} Energy</p>
+                    </div>
+                    <Button
+                      variant={bounty.active ? "ghost" : "secondary"}
+                      disabled={
+                        traitBountyLoading
+                        || bounty.status === "complete"
+                        || (!bounty.active && (!traitBountyState.enabled || !traitBountyState.preflight?.ready))
+                      }
+                      onClick={() => void setTraitBountyActive(bounty, !bounty.active)}
+                    >
+                      {bounty.active ? "Close" : "Activate"}
+                    </Button>
+                  </div>
+                  <div className="mt-4 grid gap-2 text-xs font-bold text-white/55 sm:grid-cols-2 lg:grid-cols-4">
+                    <span>Paid: <strong className="text-white">{bounty.totalClaims}/{bounty.maxClaims}</strong></span>
+                    <span>Wallet cap: <strong className="text-white">{bounty.perWalletLimit}</strong></span>
+                    <span>Droid cap: <strong className="text-white">{bounty.perTokenLimit}</strong></span>
+                    <span>Remaining: <strong className="text-white">{bounty.remainingClaims}</strong></span>
+                  </div>
+                  <div className="mt-2 grid gap-1 text-[0.68rem] font-semibold text-white/38 sm:grid-cols-2">
+                    <span>Starts: {bounty.startsAt ? new Date(bounty.startsAt).toLocaleString() : "Immediately"}</span>
+                    <span>Ends: {bounty.endsAt ? new Date(bounty.endsAt).toLocaleString() : "No scheduled end"}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {traitBountyState?.settlements?.length ? (
+            <div className="mt-6 overflow-auto rounded border border-white/10 bg-black/30">
+              <div className="border-b border-white/10 px-4 py-3">
+                <p className="text-xs font-black uppercase tracking-[0.14em] text-white/45">Latest Bounty Winners</p>
+              </div>
+              <table className="min-w-full text-left text-xs">
+                <thead className="bg-white/[0.04] uppercase tracking-[0.1em] text-white/40">
+                  <tr>
+                    <th className="px-3 py-2">Campaign</th>
+                    <th className="px-3 py-2">Wallet</th>
+                    <th className="px-3 py-2">Droid</th>
+                    <th className="px-3 py-2">Reveal</th>
+                    <th className="px-3 py-2">Energy</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {traitBountyState.settlements.slice(0, 25).map((settlement) => (
+                    <tr className="border-t border-white/8" key={settlement.settlementKey}>
+                      <td className="px-3 py-2 font-black text-white">{settlement.bountyLabel}</td>
+                      <td className="px-3 py-2 text-white/60">{shortAddress(settlement.wallet)}</td>
+                      <td className="px-3 py-2 text-white/60">#{settlement.tokenId}</td>
+                      <td className="px-3 py-2 text-dyoor-cyan">{settlement.traitType}: {settlement.traitValue}</td>
+                      <td className="px-3 py-2 font-black text-white">{settlement.rewardEnergy}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ) : null}
+        </Card>
 
         <Card className="p-5 md:p-6">
           <div className="flex flex-col justify-between gap-4 md:flex-row md:items-start">

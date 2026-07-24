@@ -18,6 +18,7 @@ contract DYOORWorldNames is ERC721, Ownable, ReentrancyGuard {
 
     bool public claimsOpen;
     bool public metadataLocked;
+    uint256 public totalNames;
     string private _metadataBaseURI;
 
     mapping(address wallet => uint256 tokenId) private _tokenByWallet;
@@ -75,6 +76,9 @@ contract DYOORWorldNames is ERC721, Ownable, ReentrancyGuard {
         _labelByWallet[msg.sender] = label;
         _labelByToken[tokenId] = label;
         _addressByNode[node] = msg.sender;
+        unchecked {
+            totalNames += 1;
+        }
         _safeMint(msg.sender, tokenId);
 
         emit WorldNameClaimed(
@@ -112,6 +116,34 @@ contract DYOORWorldNames is ERC721, Ownable, ReentrancyGuard {
         return _ownerOf(uint256(_validatedLabelHash(label)));
     }
 
+    function isAvailable(string calldata label) external view returns (bool) {
+        bytes32 labelHash = _validatedLabelHash(label);
+        return
+            !reservedLabels[labelHash]
+                && _ownerOf(uint256(labelHash)) == address(0);
+    }
+
+    function recordOf(
+        address wallet
+    )
+        external
+        view
+        returns (
+            uint256 tokenId,
+            bytes32 node,
+            string memory label,
+            string memory displayName
+        )
+    {
+        tokenId = _tokenByWallet[wallet];
+        label = _labelByWallet[wallet];
+        if (tokenId == 0 || bytes(label).length == 0) {
+            return (0, bytes32(0), "", "");
+        }
+        node = nodeForLabelHash(bytes32(tokenId));
+        displayName = string.concat(label, ".dYOOR");
+    }
+
     function resolve(bytes32 node) external view returns (address) {
         return _addressByNode[node];
     }
@@ -130,6 +162,24 @@ contract DYOORWorldNames is ERC721, Ownable, ReentrancyGuard {
     }
 
     function setReservedLabel(string calldata label, bool reserved) external onlyOwner {
+        _setReservedLabel(label, reserved);
+    }
+
+    function setReservedLabels(
+        string[] calldata labels,
+        bool reserved
+    ) external onlyOwner {
+        uint256 length = labels.length;
+        if (length == 0 || length > 100) revert InvalidLabel();
+        for (uint256 index = 0; index < length; ) {
+            _setReservedLabel(labels[index], reserved);
+            unchecked {
+                ++index;
+            }
+        }
+    }
+
+    function _setReservedLabel(string memory label, bool reserved) private {
         bytes32 labelHash = _validatedLabelHash(label);
         if (_ownerOf(uint256(labelHash)) != address(0)) revert NameAlreadyClaimed();
         reservedLabels[labelHash] = reserved;

@@ -1,4 +1,9 @@
-import { assertTraitLabRateLimit, createTraitLabPreview, normalizeWallet } from "@/lib/s2-trait-lab";
+import {
+  assertTraitLabRateLimit,
+  createTraitLabPreview,
+  normalizeWallet,
+  traitLabPublicErrorMessage,
+} from "@/lib/s2-trait-lab";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -26,7 +31,7 @@ export async function POST(request: Request) {
   } catch (error: any) {
     return json(Number(error?.status || 500), {
       ok: false,
-      error: error?.message || "Trait Lab preview failed.",
+      error: traitLabPublicErrorMessage(error, "Trait Lab preview failed."),
       operationId: error?.operationId,
       recoveryRequired: Boolean(error?.recoveryRequired),
       recoveryPreview: error?.recoveryPreview,

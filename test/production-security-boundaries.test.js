@@ -19,6 +19,7 @@ import {
   resolveS2ChainSupply,
   resolveS2RecordedBurnSupply,
   S2_ISSUED_SUPPLY_FALLBACK,
+  S2_POST_BURN_SUPPLY_CAP,
 } from "../lib/s2-supply.ts";
 import { runtimeTraitOverrideKey } from "../lib/dyoor-s2-metadata.js";
 
@@ -182,6 +183,7 @@ test("public metadata GET source contains no repair writes or marketplace refres
 });
 
 test("S2 live supply is issued supply minus permanent burns", () => {
+  assert.equal(S2_POST_BURN_SUPPLY_CAP, 555);
   assert.deepEqual(resolveS2ChainSupply(1065n, 1096n), {
     issuedSupply: 1096,
     currentSupply: 1065,
@@ -204,6 +206,31 @@ test("public product copy contains no revenue-sharing references", () => {
   }
   const homeSource = fs.readFileSync("app/page.tsx", "utf8");
   assert.match(homeSource, /S2SupplyStat/);
+  assert.match(homeSource, /Droid Burn Cap/);
+  assert.doesNotMatch(homeSource, /Ascended S1 Allocation/);
   assert.match(homeSource, /deflationary dynamic NFT/i);
   assert.match(homeSource, /Energy Flywheel/i);
+});
+
+test("Trait Lab Energy settlement does not depend on broad historical log scans", () => {
+  const source = fs.readFileSync("lib/s2-trait-lab.ts", "utf8");
+  assert.doesNotMatch(source, /TRAIT_LAB_SPEND_LOOKBACK_BLOCKS/);
+  assert.doesNotMatch(source, /findExistingTraitLabEnergySpend/);
+
+  const start = source.indexOf("async function spendTraitLabEnergy(");
+  const end = source.indexOf("async function creditTraitLabRecycleEnergy(", start);
+  assert.ok(start >= 0 && end > start);
+  const spendSource = source.slice(start, end);
+  assert.doesNotMatch(spendSource, /\.getLogs\(/);
+  assert.ok(
+    spendSource.indexOf("await onSubmitted?.({ txHash: tx.hash, reason, submittedAt });")
+      < spendSource.indexOf("const receipt = await tx.wait();"),
+  );
+
+  for (const route of [
+    "app/api/s2/trait-lab/preview/route.ts",
+    "app/api/s2/trait-lab/confirm/route.ts",
+  ]) {
+    assert.match(fs.readFileSync(route, "utf8"), /traitLabPublicErrorMessage/);
+  }
 });

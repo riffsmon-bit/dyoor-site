@@ -2,10 +2,11 @@ import Link from "next/link";
 import Image from "next/image";
 import homeBanner from "@/assets/home_banner.png";
 import { S2SupplyStat } from "@/components/s2/S2SupplyStat";
+import { S2_POST_BURN_SUPPLY_CAP } from "@/lib/s2-supply";
 import { SwapCard } from "@/components/swap/SwapCard";
 
 const heroStats = [
-  ["1:1", "Ascended S1 Allocation"],
+  [S2_POST_BURN_SUPPLY_CAP.toLocaleString("en-US"), "Droid Burn Cap"],
   ["Live", "Dynamic Trait Lab"],
   ["Permanent", "On-chain Droid Burns"],
 ];
@@ -110,9 +111,9 @@ export default function HomePage() {
               <div className="rounded border border-dyoor-cyan/25 bg-dyoor-cyan/[0.08] p-5">
                 <p className="text-xs font-black uppercase tracking-[0.2em] text-dyoor-cyan">Deflationary By Action</p>
                 <p className="mt-3 text-sm font-semibold leading-7 text-white/70">
-                  Season 2 began with 1,096 issued Droids. Burning is irreversible, recorded on Monad, and removes that
-                  token from the live collection forever. The supply counter above reads this state directly from the
-                  contract.
+                  Season 2 began with 1,096 issued Droids, and the burn program targets a final live supply of 555.
+                  Burning is irreversible, recorded on Monad, and removes that token from the live collection forever.
+                  The supply counter above reads this state directly from the contract.
                 </p>
               </div>
             </div>

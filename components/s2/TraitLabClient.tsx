@@ -146,6 +146,17 @@ type PreviewResponse = {
   error?: string;
   recoveryRequired?: boolean;
   recoveryPreview?: PreviewResponse;
+  bountySettlements?: Array<{
+    bountyId?: string;
+    bountyLabel?: string;
+    traitType?: string;
+    traitValue?: string;
+    rewardRaw?: string;
+    rewardEnergy?: string;
+    status?: "settled" | "deduped" | "pending" | "ineligible";
+    txHash?: string;
+    error?: string;
+  }>;
 };
 
 type TraitLabConfigResponse = {
@@ -241,6 +252,46 @@ type TraitLabLeaderboardResponse = {
   enabled?: boolean;
   bountyEnabled?: boolean;
   rows?: TraitLabLeaderboardRow[];
+  error?: string;
+};
+
+type TraitBountyCard = {
+  id: string;
+  label: string;
+  traitType: string;
+  traitValue: string;
+  rewardEnergy: string;
+  maxClaims: number;
+  totalClaims: number;
+  remainingClaims: number;
+  perWalletLimit: number;
+  perTokenLimit: number;
+  actions: string[];
+  startsAt: string;
+  endsAt: string;
+  status: "draft" | "upcoming" | "active" | "ended" | "complete" | "closed";
+};
+
+type TraitBountyWinner = {
+  settlementKey: string;
+  bountyId: string;
+  bountyLabel: string;
+  wallet: string;
+  tokenId: string;
+  traitType: string;
+  traitValue: string;
+  rewardEnergy: string;
+  settledAt: string;
+  txHash?: string;
+};
+
+type TraitBountyResponse = {
+  ok?: boolean;
+  configured?: boolean;
+  enabled?: boolean;
+  contractAddress?: string;
+  bounties?: TraitBountyCard[];
+  settlements?: TraitBountyWinner[];
   error?: string;
 };
 
@@ -623,6 +674,9 @@ export function TraitLabClient() {
   const [operationRecoveryLoading, setOperationRecoveryLoading] = useState("");
   const [leaderboardRows, setLeaderboardRows] = useState<TraitLabLeaderboardRow[]>([]);
   const [leaderboardLoading, setLeaderboardLoading] = useState(false);
+  const [traitBounties, setTraitBounties] = useState<TraitBountyCard[]>([]);
+  const [traitBountyWinners, setTraitBountyWinners] = useState<TraitBountyWinner[]>([]);
+  const [traitBountyLoading, setTraitBountyLoading] = useState(false);
   const [burnedGalleryLoading, setBurnedGalleryLoading] = useState(false);
   const [ownedLoading, setOwnedLoading] = useState(false);
   const [metadataLoading, setMetadataLoading] = useState(false);
@@ -811,6 +865,27 @@ export function TraitLabClient() {
     }
   }, [traitLabConfig?.leaderboardEnabled]);
 
+  const loadTraitBounties = useCallback(async () => {
+    if (!traitLabConfig?.bountyEnabled) {
+      setTraitBounties([]);
+      setTraitBountyWinners([]);
+      return;
+    }
+    setTraitBountyLoading(true);
+    try {
+      const response = await fetch("/api/s2/trait-lab/bounties", { cache: "no-store" });
+      const data = await response.json().catch(() => ({})) as TraitBountyResponse;
+      if (!response.ok || data.ok === false) throw new Error(data.error || "Could not load Trait Lab bounties.");
+      setTraitBounties(Array.isArray(data.bounties) ? data.bounties : []);
+      setTraitBountyWinners(Array.isArray(data.settlements) ? data.settlements : []);
+    } catch {
+      setTraitBounties([]);
+      setTraitBountyWinners([]);
+    } finally {
+      setTraitBountyLoading(false);
+    }
+  }, [traitLabConfig?.bountyEnabled]);
+
   const loadTokenMetadata = useCallback(async (tokenId: string) => {
     if (!tokenId) {
       setMetadata(null);
@@ -907,6 +982,14 @@ export function TraitLabClient() {
     }, 0);
     return () => window.clearTimeout(timer);
   }, [loadLeaderboard, traitLabConfig?.leaderboardEnabled]);
+
+  useEffect(() => {
+    if (!traitLabConfig?.bountyEnabled) return;
+    const timer = window.setTimeout(() => {
+      void loadTraitBounties();
+    }, 0);
+    return () => window.clearTimeout(timer);
+  }, [loadTraitBounties, traitLabConfig?.bountyEnabled]);
 
   async function connectWallet() {
     setError("");
@@ -1025,6 +1108,7 @@ export function TraitLabClient() {
         await refreshConfirmedToken(item.tokenId, data.completion.metadata || item.preview.proposedMetadata || null);
         await loadEnergy();
         if (traitLabConfig?.leaderboardEnabled) await loadLeaderboard();
+        if (traitLabConfig?.bountyEnabled) await loadTraitBounties();
         setStatus(`Recovered completed ${data.operation.action || "Trait Lab"} operation for D.Y.O.O.R #${item.tokenId}.`);
         return;
       }
@@ -1251,6 +1335,7 @@ export function TraitLabClient() {
       setPreview(null);
       await loadEnergy();
       if (traitLabConfig?.leaderboardEnabled) await loadLeaderboard();
+      if (traitLabConfig?.bountyEnabled) await loadTraitBounties();
       const openSeaStatus = data.openSeaMetadataRefresh?.status;
       scheduleOpenSeaRefreshProcessor(data.openSeaMetadataRefresh);
       const immediateOpenSeaStatus = data.openSeaMetadataRefresh?.immediate?.status;
@@ -1263,7 +1348,16 @@ export function TraitLabClient() {
         : openSeaStatus === "failed"
           ? " OpenSea refresh needs a retry."
           : "";
-      setStatus(`${data.action === "recycle" ? "Trait recycled. Energy reward credited." : "Metadata Version updated. Trait supply updated."}${openSeaSuffix}`);
+      const bountyWins = (data.bountySettlements || []).filter((item) => (
+        item.status === "settled" || item.status === "deduped"
+      ));
+      const bountyPending = (data.bountySettlements || []).some((item) => item.status === "pending");
+      const bountySuffix = bountyWins.length
+        ? ` Bounty won: ${bountyWins.map((item) => `${item.bountyLabel || item.traitValue} (+${item.rewardEnergy || "0"} Energy)`).join(", ")}.`
+        : bountyPending
+          ? " Matching bounty payout is queued for automatic retry."
+          : "";
+      setStatus(`${data.action === "recycle" ? "Trait recycled. Energy reward credited." : "Metadata Version updated. Trait supply updated."}${bountySuffix}${openSeaSuffix}`);
     } catch (err) {
       setError(traitLabErrorMessage(err, "Confirm failed."));
     } finally {
@@ -1858,6 +1952,84 @@ export function TraitLabClient() {
           </Card>
         </div>
       </section>
+
+      {traitLabConfig?.bountyEnabled ? (
+        <Card className="p-5">
+          <div className="flex flex-col justify-between gap-3 md:flex-row md:items-end">
+            <div>
+              <p className="eyebrow">Verified Reveal Rewards</p>
+              <h2 className="mt-2 text-2xl font-black uppercase text-white">Live Trait Bounties</h2>
+              <p className="mt-2 max-w-3xl text-sm font-semibold leading-6 text-white/58">
+                Complete an eligible reroll, unlock, or Reroll All during the campaign window. The on-chain payout engine enforces every winner limit and credits Energy only after the Trait Lab completion record is final.
+              </p>
+            </div>
+            <Button variant="secondary" disabled={traitBountyLoading} onClick={() => void loadTraitBounties()}>
+              {traitBountyLoading ? "Loading" : "Refresh"}
+            </Button>
+          </div>
+
+          <div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+            {traitBountyLoading && !traitBounties.length ? (
+              <div className="md:col-span-2 xl:col-span-3"><LoadingSkeleton lines={4} /></div>
+            ) : traitBounties.filter((bounty) => (
+              bounty.status === "active" || bounty.status === "upcoming"
+            )).length ? traitBounties.filter((bounty) => (
+              bounty.status === "active" || bounty.status === "upcoming"
+            )).map((bounty) => (
+              <div className="rounded border border-dyoor-purple/25 bg-black/30 p-4" key={bounty.id}>
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <p className="text-xs font-black uppercase tracking-[0.14em] text-white/40">{bounty.label}</p>
+                    <h3 className="mt-2 text-lg font-black text-dyoor-cyan">{bounty.traitType}: {bounty.traitValue}</h3>
+                  </div>
+                  <span className={`rounded border px-2 py-1 text-[0.62rem] font-black uppercase tracking-[0.12em] ${bounty.status === "active" ? "border-dyoor-cyan/35 bg-dyoor-cyan/10 text-dyoor-cyan" : "border-yellow-300/25 bg-yellow-300/10 text-yellow-100"}`}>
+                    {bounty.status}
+                  </span>
+                </div>
+                <p className="mt-4 text-3xl font-black text-white">+{bounty.rewardEnergy} <span className="text-sm uppercase text-white/45">Energy</span></p>
+                <div className="mt-4 grid gap-2 text-xs font-bold text-white/55 sm:grid-cols-2">
+                  <span>Remaining: <strong className="text-white">{bounty.remainingClaims}/{bounty.maxClaims}</strong></span>
+                  <span>Wallet cap: <strong className="text-white">{bounty.perWalletLimit}</strong></span>
+                  <span>Droid cap: <strong className="text-white">{bounty.perTokenLimit}</strong></span>
+                  <span>Actions: <strong className="text-white">{bounty.actions.join(", ")}</strong></span>
+                </div>
+                <div className="mt-3 border-t border-white/10 pt-3 text-[0.68rem] font-semibold leading-5 text-white/38">
+                  {bounty.status === "upcoming" && bounty.startsAt ? <p>Starts {new Date(bounty.startsAt).toLocaleString()}</p> : null}
+                  <p>{bounty.endsAt ? `Ends ${new Date(bounty.endsAt).toLocaleString()}` : "No scheduled end"}</p>
+                </div>
+              </div>
+            )) : (
+              <div className="md:col-span-2 xl:col-span-3">
+                <EmptyState title="No Active Bounties" copy="The owner can publish a new immutable campaign from the Admin Command Center." />
+              </div>
+            )}
+          </div>
+
+          {traitBountyWinners.length ? (
+            <div className="mt-6 overflow-x-auto rounded border border-white/10">
+              <div className="grid min-w-[46rem] grid-cols-[minmax(9rem,1fr)_8rem_5rem_minmax(12rem,1.4fr)_7rem] gap-2 border-b border-white/10 bg-white/[0.04] px-3 py-2 text-[0.65rem] font-black uppercase tracking-[0.12em] text-white/40">
+                <span>Campaign</span>
+                <span>Wallet</span>
+                <span>Droid</span>
+                <span>Reveal</span>
+                <span>Reward</span>
+              </div>
+              {traitBountyWinners.slice(0, 15).map((winner) => (
+                <div
+                  className="grid min-w-[46rem] grid-cols-[minmax(9rem,1fr)_8rem_5rem_minmax(12rem,1.4fr)_7rem] gap-2 border-b border-white/10 px-3 py-3 text-sm font-bold text-white/65 last:border-b-0"
+                  key={winner.settlementKey}
+                >
+                  <span className="font-black text-white">{winner.bountyLabel}</span>
+                  <span>{shortAddress(winner.wallet)}</span>
+                  <span>#{winner.tokenId}</span>
+                  <span className="text-dyoor-cyan">{winner.traitType}: {winner.traitValue}</span>
+                  <span className="font-black text-white">+{winner.rewardEnergy}</span>
+                </div>
+              ))}
+            </div>
+          ) : null}
+        </Card>
+      ) : null}
 
       {traitLabConfig?.leaderboardEnabled ? (
         <Card className="p-5">

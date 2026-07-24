@@ -31,9 +31,12 @@ import {
   type S2TraitLabPaymentMode,
 } from "@/lib/s2-trait-lab-config";
 import {
-  traitLabBountiesEnabled,
   traitLabLeaderboardEnabled,
 } from "@/lib/s2-trait-lab-leaderboard";
+import {
+  settleTraitLabBountiesForCompletion,
+  traitBountyEngineEnabled,
+} from "@/lib/s2-trait-bounties";
 import {
   buildTokenMetadataAsync,
   getRuntimeMetadataConfig,
@@ -221,7 +224,6 @@ const MIN_OWNED_TOKEN_LOG_SPAN = 10_000;
 const OWNED_TOKEN_CACHE_VERSION = "s2-owned-v11";
 const DEFAULT_OWNER_OF_CONCURRENCY = 4;
 const ALCHEMY_TRANSFER_PAGE_SIZE = "0x3e8";
-const TRAIT_LAB_SPEND_LOOKBACK_BLOCKS = 25_000;
 const CLOTHES_ALLOWED_SPECIALS = new Set([
   "anime mask",
   "gimp",
@@ -529,6 +531,20 @@ export function normalizeWallet(value: unknown) {
   }
 }
 
+export function traitLabPublicErrorMessage(error: unknown, fallback: string) {
+  const message = error instanceof Error ? error.message : fallback;
+  if (
+    /eth_getLogs|block range|range should work|requestUrl|responseBody|could not coalesce|SERVER_ERROR|RPC Request failed/i
+      .test(message)
+  ) {
+    const recoveryRequired = Boolean((error as { recoveryRequired?: unknown })?.recoveryRequired);
+    return recoveryRequired
+      ? "Monad RPC lost confirmation after the Energy transaction was submitted. Use Retry Confirmation for the saved operation; do not start another roll."
+      : "Monad RPC could not complete the Trait Lab request. No Energy transaction was submitted. Wait a moment and retry.";
+  }
+  return message || fallback;
+}
+
 function shortWallet(value: string) {
   return value ? `${value.slice(0, 6)}...${value.slice(-4)}` : "-";
 }
@@ -673,7 +689,7 @@ export function traitLabPublicConfig() {
     droidBurnEnabled: traitLabDroidBurnEnabled(),
     droidBurnRewardEnergy: traitLabDroidBurnRewardEnergy(),
     leaderboardEnabled: traitLabLeaderboardEnabled(),
-    bountyEnabled: traitLabBountiesEnabled(),
+    bountyEnabled: traitBountyEngineEnabled(),
     rerollAllCostEnergy: S2_TRAIT_LAB_REROLL_ALL_COST,
     guaranteedTraits: S2_GUARANTEED_TRAITS,
     unlockableTraits: S2_UNLOCKABLE_TRAITS,
@@ -1431,46 +1447,6 @@ type TraitLabEnergySpendSubmission = {
   submittedAt: string;
 };
 
-async function findExistingTraitLabEnergySpend(
-  payload: PreviewPayload,
-  signerAddress: string,
-  toBlock?: number,
-) {
-  const chainProvider = provider();
-  const latestBlock = toBlock ?? await chainProvider.getBlockNumber();
-  const reason = traitLabEnergySpendReason(payload);
-  const logs = await chainProvider.getLogs({
-    address: energyBankContract,
-    topics: [
-      ethers.id("EnergySpent(address,address,uint256,bytes32)"),
-      topicAddress(payload.wallet),
-      topicAddress(signerAddress),
-      reason,
-    ],
-    fromBlock: Math.max(0, latestBlock - TRAIT_LAB_SPEND_LOOKBACK_BLOCKS),
-    toBlock: latestBlock,
-  });
-  const energyInterface = new ethers.Interface(ENERGY_BANK_ABI);
-  for (const log of logs.slice().reverse()) {
-    try {
-      const parsed = energyInterface.parseLog(log);
-      if (
-        parsed?.name === "EnergySpent"
-        && BigInt(parsed.args.amount) === BigInt(payload.costRaw || "0")
-      ) {
-        return {
-          txHash: log.transactionHash,
-          blockNumber: String(log.blockNumber),
-          reason,
-          submittedAt: new Date().toISOString(),
-          deduped: true,
-        };
-      }
-    } catch {}
-  }
-  return null;
-}
-
 async function spendTraitLabEnergy(
   payload: PreviewPayload,
   onSubmitted?: (submission: TraitLabEnergySpendSubmission) => Promise<void>,
@@ -1493,12 +1469,6 @@ async function spendTraitLabEnergy(
   const chainProvider = signer.provider;
   if (!chainProvider) throw Object.assign(new Error("Energy Bank signer has no RPC provider."), { status: 500 });
   const nonceSnapshotBlock = await chainProvider.getBlockNumber();
-  const existingSpend = await findExistingTraitLabEnergySpend(payload, signerAddress, nonceSnapshotBlock);
-  if (existingSpend) {
-    await onSubmitted?.(existingSpend);
-    await onConfirmed?.();
-    return existingSpend;
-  }
   const operatorNonce = await chainProvider.getTransactionCount(signerAddress, nonceSnapshotBlock);
   const pendingOperatorNonce = await chainProvider.getTransactionCount(signerAddress, "pending");
   if (pendingOperatorNonce > operatorNonce) {
@@ -1509,29 +1479,15 @@ async function spendTraitLabEnergy(
   await new Promise((resolve) => setTimeout(resolve, SUPPLY_RESERVATION_SETTLE_MS));
   await beforeSubmit?.();
   await bank.spendEnergy.staticCall(payload.wallet, amount, reason);
-  const spendAfterSimulation = await findExistingTraitLabEnergySpend(payload, signerAddress);
-  if (spendAfterSimulation) {
-    await onSubmitted?.(spendAfterSimulation);
-    await onConfirmed?.();
-    return spendAfterSimulation;
-  }
   const tx = await bank.spendEnergy(payload.wallet, amount, reason, {
     gasLimit: 160000n,
     nonce: operatorNonce,
   });
   const submittedAt = new Date().toISOString();
+  // Persist the hash before waiting. Recovery verifies this exact receipt,
+  // avoiding provider-specific historical eth_getLogs range requirements.
   await onSubmitted?.({ txHash: tx.hash, reason, submittedAt });
-  let receipt: ethers.TransactionReceipt | null = null;
-  try {
-    receipt = await tx.wait();
-  } catch (error) {
-    const reconciled = await findExistingTraitLabEnergySpend(payload, signerAddress).catch(() => null);
-    if (reconciled) {
-      await onConfirmed?.();
-      return reconciled;
-    }
-    throw error;
-  }
+  const receipt = await tx.wait();
   if (receipt?.status !== 1) {
     throw Object.assign(new Error("Energy spend transaction failed."), { status: 500 });
   }
@@ -2434,9 +2390,18 @@ async function persistTraitLabCompletion(
     recoveryRequired: false,
     lastError: undefined,
   });
+  const bountySettlements = await settleTraitLabBountiesForCompletion(
+    saved.completion,
+  ).catch((error) => [{
+    status: "pending" as const,
+    error: error instanceof Error
+      ? error.message
+      : "Trait bounty settlement is pending automatic retry.",
+  }]);
   return {
     ...saved.completion.result,
     completionDeduped: saved.deduped,
+    bountySettlements,
   };
 }
 
@@ -2794,10 +2759,19 @@ export async function confirmTraitLabPreview(input: Record<string, unknown>) {
 
   const completed = await getTraitLabCompletion(payload.rollId);
   if (completed) {
+    const bountySettlements = await settleTraitLabBountiesForCompletion(
+      completed,
+    ).catch((error) => [{
+      status: "pending" as const,
+      error: error instanceof Error
+        ? error.message
+        : "Trait bounty settlement is pending automatic retry.",
+    }]);
     return {
       ...completed.result,
       operationStatus: "completed",
       completionDeduped: true,
+      bountySettlements,
     };
   }
   if (activeConfirmations.has(payload.rollId)) {

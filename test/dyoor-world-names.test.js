@@ -43,6 +43,13 @@ test("only an S2 holder can claim a unique lowercase dYOOR World name", async ()
   assert.equal(await names.ownerOfName("riffs"), holder.address);
   assert.equal(await names.resolve(await names.nodeForLabel("riffs")), holder.address);
   assert.equal(await names.labelOfToken(await names.tokenOf(holder.address)), "riffs");
+  assert.equal(await names.totalNames(), 1n);
+  assert.equal(await names.isAvailable("riffs"), false);
+  assert.equal(await names.isAvailable("another"), true);
+  const record = await names.recordOf(holder.address);
+  assert.equal(record.label, "riffs");
+  assert.equal(record.displayName, "riffs.dYOOR");
+  assert.equal(record.node, await names.nodeForLabel("riffs"));
 });
 
 test("one wallet cannot claim twice and one label cannot be claimed twice", async () => {
@@ -56,10 +63,11 @@ test("one wallet cannot claim twice and one label cannot be claimed twice", asyn
 
 test("reserved, malformed, and mixed-case labels are rejected", async () => {
   const { names } = await deployWorldNames();
-  await (await names.connect(owner).setReservedLabel("official", true)).wait();
+  await (await names.connect(owner).setReservedLabels(["official", "support"], true)).wait();
   await (await names.connect(owner).setClaimsOpen(true)).wait();
 
   await expectRevert(names.connect(holder).claim("official"), "LabelReservedForProtocol");
+  await expectRevert(names.connect(otherHolder).claim("support"), "LabelReservedForProtocol");
   await expectRevert(names.connect(holder).claim("RiFFs"), "InvalidLabel");
   await expectRevert(names.connect(holder).claim("-riffs"), "InvalidLabel");
   await expectRevert(names.connect(holder).claim("ri--ffs"), "InvalidLabel");
