@@ -16,6 +16,20 @@ function json(status: number, body: Record<string, unknown>) {
   });
 }
 
+function publicOrigin(request: Request) {
+  for (const candidate of [
+    process.env.DEPLOY_PRIME_URL,
+    process.env.URL,
+    new URL(request.url).origin,
+  ]) {
+    try {
+      const url = new URL(String(candidate || ""));
+      if (url.protocol === "https:" || url.protocol === "http:") return url.origin;
+    } catch {}
+  }
+  return new URL(request.url).origin;
+}
+
 export async function GET(
   request: Request,
   context: { params: Promise<{ tokenId: string }> },
@@ -28,7 +42,7 @@ export async function GET(
       60_000,
     );
     const record = await getDyoorWorldNameToken(tokenId);
-    const origin = new URL(request.url).origin;
+    const origin = publicOrigin(request);
     const image = `${origin}/api/dyoor-world/names/image/${record.tokenId}`;
     return json(200, {
       name: record.profile.displayName,
