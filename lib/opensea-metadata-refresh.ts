@@ -23,9 +23,11 @@ const DEFAULT_OPENSEA_CHAIN = "monad";
 const DEFAULT_TIMEOUT_MS = 3500;
 const DEFAULT_REFRESH_DELAY_MS = 120_000;
 const REFRESH_QUEUE_KEY = "trait-lab/opensea-refresh-queue.json";
+const REFRESH_QUEUE_PREFIX = "trait-lab/opensea-refresh-queue";
 const refreshQueueStore = createJsonStore("dyoor-s2-metadata");
 
 type OpenSeaRefreshQueueEntry = {
+  jobId?: string;
   key: string;
   chain: string;
   contractAddress: string;
@@ -88,24 +90,48 @@ function responsePayload(text: string) {
   }
 }
 
-function emptyQueue(): OpenSeaRefreshQueue {
-  return {
-    version: 1,
-    updatedAt: "",
-    items: {},
-  };
-}
-
 function queueEntryKey(chain: string, contractAddress: string, tokenId: string) {
   return `${chain}:${contractAddress.toLowerCase()}:${tokenId}`;
 }
 
-async function readRefreshQueue() {
-  return await refreshQueueStore.getJson<OpenSeaRefreshQueue>(REFRESH_QUEUE_KEY, emptyQueue());
+function queueEntryStorageKey(entry: OpenSeaRefreshQueueEntry) {
+  const identifier = entry.jobId || entry.key;
+  return `${REFRESH_QUEUE_PREFIX}/${identifier.toLowerCase().replace(/[^a-z0-9:_-]/g, "-")}.json`;
 }
 
-async function writeRefreshQueue(queue: OpenSeaRefreshQueue) {
-  await refreshQueueStore.setJson(REFRESH_QUEUE_KEY, queue);
+async function saveRefreshQueueEntry(entry: OpenSeaRefreshQueueEntry) {
+  await refreshQueueStore.setJson(queueEntryStorageKey(entry), entry);
+}
+
+async function deleteRefreshQueueEntry(entry: OpenSeaRefreshQueueEntry) {
+  await refreshQueueStore.deleteJson(queueEntryStorageKey(entry));
+}
+
+async function readRefreshQueueEntries() {
+  const keys = await refreshQueueStore.listKeys(`${REFRESH_QUEUE_PREFIX}/`);
+  const stored = await Promise.all(keys.map((key) => refreshQueueStore.getJsonStrict<OpenSeaRefreshQueueEntry>(key)));
+  const byKey = new Map(
+    stored
+      .filter((entry): entry is OpenSeaRefreshQueueEntry => Boolean(entry?.key && entry?.runAt))
+      .map((entry) => [entry.jobId || entry.key, entry]),
+  );
+
+  const legacy = await refreshQueueStore.getJsonStrict<OpenSeaRefreshQueue>(REFRESH_QUEUE_KEY);
+  if (legacy?.items && Object.keys(legacy.items).length) {
+    for (const entry of Object.values(legacy.items)) {
+      if (!entry?.key || !entry?.runAt) continue;
+      const migrated = {
+        ...entry,
+        jobId: entry.jobId || `legacy:${entry.key}`,
+      };
+      if (byKey.has(migrated.jobId)) continue;
+      await saveRefreshQueueEntry(migrated);
+      byKey.set(migrated.jobId, migrated);
+    }
+    await refreshQueueStore.deleteJson(REFRESH_QUEUE_KEY);
+  }
+
+  return Array.from(byKey.values());
 }
 
 export async function queueOpenSeaTokenMetadataRefresh({
@@ -125,28 +151,18 @@ export async function queueOpenSeaTokenMetadataRefresh({
   const safeDelayMs = Math.min(Math.max(Math.floor(Number(delayMs) || configuredRefreshDelayMs()), 15_000), 10 * 60_000);
   const runAt = new Date(now.getTime() + safeDelayMs).toISOString();
   const key = queueEntryKey(chain, contractAddress, identifier);
-  const queue = await readRefreshQueue();
-  const existing = queue.items[key];
   const entry: OpenSeaRefreshQueueEntry = {
+    jobId: `${key}:${now.getTime()}:${crypto.randomUUID()}`,
     key,
     chain,
     contractAddress,
     tokenId: identifier,
     scheduledAt: now.toISOString(),
     runAt,
-    attempts: existing?.attempts || 0,
+    attempts: 0,
     reason,
-    lastAttemptAt: existing?.lastAttemptAt,
-    lastResult: existing?.lastResult,
   };
-  await writeRefreshQueue({
-    version: 1,
-    updatedAt: now.toISOString(),
-    items: {
-      ...queue.items,
-      [key]: entry,
-    },
-  });
+  await saveRefreshQueueEntry(entry);
 
   return {
     status: "scheduled",
@@ -167,8 +183,8 @@ export async function processDueOpenSeaMetadataRefreshes({
   limit?: number;
   now?: Date;
 } = {}) {
-  const queue = await readRefreshQueue();
-  const due = Object.values(queue.items)
+  const entries = await readRefreshQueueEntries();
+  const due = entries
     .filter((entry) => Date.parse(entry.runAt) <= now.getTime())
     .sort((a, b) => Date.parse(a.runAt) - Date.parse(b.runAt))
     .slice(0, Math.max(1, Math.min(Math.floor(limit), 25)));
@@ -177,13 +193,13 @@ export async function processDueOpenSeaMetadataRefreshes({
     return {
       ok: true,
       processed: 0,
-      remaining: Object.keys(queue.items).length,
+      remaining: entries.length,
       results: [] as OpenSeaMetadataRefreshResult[],
     };
   }
 
-  const items = { ...queue.items };
   const results: OpenSeaMetadataRefreshResult[] = [];
+  let removed = 0;
 
   for (const entry of due) {
     const result = await refreshOpenSeaTokenMetadata({
@@ -193,31 +209,26 @@ export async function processDueOpenSeaMetadataRefreshes({
     results.push(result);
 
     if (result.status === "queued" || result.status === "skipped") {
-      delete items[entry.key];
+      await deleteRefreshQueueEntry(entry);
+      removed += 1;
       continue;
     }
 
     const attempts = (entry.attempts || 0) + 1;
     const retryDelayMs = Math.min(15 * 60_000, 60_000 * Math.max(2, attempts));
-    items[entry.key] = {
+    await saveRefreshQueueEntry({
       ...entry,
       attempts,
       lastAttemptAt: now.toISOString(),
       lastResult: result,
       runAt: new Date(now.getTime() + retryDelayMs).toISOString(),
-    };
+    });
   }
-
-  await writeRefreshQueue({
-    version: 1,
-    updatedAt: new Date().toISOString(),
-    items,
-  });
 
   return {
     ok: true,
     processed: results.length,
-    remaining: Object.keys(items).length,
+    remaining: Math.max(0, entries.length - removed),
     results,
   };
 }

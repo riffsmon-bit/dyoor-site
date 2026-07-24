@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import dyoorLogo from "@/assets/dyoor-logo.png";
+import { DyoorWorldDiscovery } from "@/components/dyoor-world/DyoorWorldDiscovery";
 import { WalletButton } from "@/components/wallet/WalletButton";
 import { useWalletService } from "@/providers/WalletServiceProvider";
 
@@ -86,7 +87,7 @@ export function SiteNav() {
             alt="DYOOR"
             width={132}
             height={62}
-            priority
+            loading="eager"
             className="h-12 w-28 object-contain drop-shadow-[0_0_18px_rgba(57,255,226,.22)] sm:w-32"
           />
         </Link>
@@ -98,6 +99,7 @@ export function SiteNav() {
           ))}
         </div>
         <div className="ml-auto flex items-center gap-2">
+          <DyoorWorldDiscovery />
           <button
             aria-controls="mobile-site-menu"
             aria-expanded={menuOpen}

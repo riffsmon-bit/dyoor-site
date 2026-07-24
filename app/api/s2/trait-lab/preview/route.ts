@@ -24,6 +24,12 @@ export async function POST(request: Request) {
       origin: new URL(request.url).origin,
     }));
   } catch (error: any) {
-    return json(Number(error?.status || 500), { ok: false, error: error?.message || "Trait Lab preview failed." });
+    return json(Number(error?.status || 500), {
+      ok: false,
+      error: error?.message || "Trait Lab preview failed.",
+      operationId: error?.operationId,
+      recoveryRequired: Boolean(error?.recoveryRequired),
+      recoveryPreview: error?.recoveryPreview,
+    });
   }
 }

@@ -1,5 +1,6 @@
 import { getStore } from "@netlify/blobs";
 import { adminOwnerWallet, verifyAdmin } from "@/lib/adminAuth";
+import { adminPayloadHash } from "@/lib/adminMessage";
 import {
   METADATA_BLOB_CONFIG_KEY,
   METADATA_BLOB_INDEX_KEY,
@@ -241,7 +242,22 @@ export async function POST(request: Request) {
   try {
     const body = await request.json().catch(() => ({})) as Record<string, unknown>;
     const mode = String(body.mode || "");
-    await verifyAdmin(body, "metadata", { consumeNonce: mode !== "upload-metadata-batch" });
+    const uploadPayload = mode === "upload-metadata-batch"
+      ? {
+        mode,
+        uploadManifestHash: String(body.uploadManifestHash || ""),
+        batchHashes: body.batchHashes,
+      }
+      : undefined;
+    await verifyAdmin(body, "metadata", {
+      route: "/api/admin/metadata",
+      consumeNonce: mode !== "upload-metadata-batch"
+        || (
+          Array.isArray(body.batchHashes)
+          && Number(body.batchIndex) === body.batchHashes.length - 1
+        ),
+      payload: uploadPayload,
+    });
 
     if (mode === "save-config") {
       const currentConfig = await getRuntimeMetadataConfig();
@@ -259,9 +275,21 @@ export async function POST(request: Request) {
     if (mode === "upload-metadata-batch") {
       const config = await getRuntimeMetadataConfig();
       const recordsInput = Array.isArray(body.records) ? body.records : [];
+      const batchHashes = Array.isArray(body.batchHashes) ? body.batchHashes.map(String) : [];
+      const batchIndex = Number(body.batchIndex);
+      const uploadManifestHash = String(body.uploadManifestHash || "").toLowerCase();
       if (!recordsInput.length) return json(400, { ok: false, error: "No metadata records were provided." });
       if (recordsInput.length > MAX_UPLOAD_RECORDS_PER_BATCH) {
         return json(400, { ok: false, error: `Upload at most ${MAX_UPLOAD_RECORDS_PER_BATCH} records per batch.` });
+      }
+      if (!Number.isSafeInteger(batchIndex) || batchIndex < 0 || batchIndex >= batchHashes.length) {
+        return json(400, { ok: false, error: "Invalid metadata upload batch index." });
+      }
+      if (adminPayloadHash(batchHashes).toLowerCase() !== uploadManifestHash) {
+        return json(401, { ok: false, error: "Metadata upload manifest does not match the signed request." });
+      }
+      if (adminPayloadHash(recordsInput).toLowerCase() !== String(batchHashes[batchIndex] || "").toLowerCase()) {
+        return json(401, { ok: false, error: "Metadata upload batch does not match the signed manifest." });
       }
 
       const records = recordsInput.map((item) => normalizeRecord(item, config.maxSupply));

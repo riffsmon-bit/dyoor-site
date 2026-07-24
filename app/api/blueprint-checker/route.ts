@@ -48,7 +48,11 @@ function isTestnetLikeUrl(value: string) {
 function mainnetRpcUrl() {
   for (const name of ["DYOOR_S2_RPC_URL", "MONAD_RPC_URL", "NEXT_PUBLIC_MONAD_RPC_URL", "NEXT_PUBLIC_DYOOR_S2_RPC_URL", "RPC_URL"]) {
     const value = readEnv(name);
-    if (value && !isTestnetLikeUrl(value)) return value;
+    if (!value) continue;
+    if (isTestnetLikeUrl(value)) {
+      throw Object.assign(new Error(`${name} points to a testnet RPC; Blueprint checking requires Monad mainnet.`), { status: 500 });
+    }
+    return value;
   }
   return DEFAULT_MONAD_MAINNET_RPC_URL;
 }
@@ -76,7 +80,7 @@ async function readBlueprints() {
 function provider() {
   const rpcUrl = mainnetRpcUrl();
   if (!rpcUrl) throw Object.assign(new Error("DYOOR_S2_RPC_URL or MONAD_RPC_URL is required for Blueprint checking."), { status: 500 });
-  return new ethers.JsonRpcProvider(rpcUrl);
+  return new ethers.JsonRpcProvider(rpcUrl, 143);
 }
 
 async function ownerOfToken(tokenId: number) {

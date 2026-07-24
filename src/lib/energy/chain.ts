@@ -4,7 +4,7 @@ import { DEFAULT_ASCENSION_STAKING_CONTRACT } from "@/lib/contracts/addresses";
 import type { HarvestEvent } from "@/src/lib/storage/types";
 
 const DEFAULT_RPC = "https://rpc.monad.xyz";
-const DEFAULT_START_BLOCK = 0;
+const DEFAULT_START_BLOCK = 54_985_442;
 const DEFAULT_CHUNK_SIZE = 2_500;
 const POINTS_CLAIMED_TOPIC = ethers.id("PointsClaimed(address,uint256)");
 const ASCENSION_ABI = [
@@ -132,6 +132,9 @@ export async function scanHarvestEvents({
   const start = fromBlock ?? wholeNumber(readEnv("ASCENSION_ENERGY_START_BLOCK", "ASCENSION_START_BLOCK", "NEXT_PUBLIC_DYOOR_S1_START_BLOCK"), DEFAULT_START_BLOCK);
   const chunkSize = Math.max(1, wholeNumber(readEnv("ASCENSION_ENERGY_LOG_CHUNK_SIZE", "ASCENSION_LOG_CHUNK_SIZE"), DEFAULT_CHUNK_SIZE));
   const normalizedWallet = wallet ? normalizeAddress(wallet) : "";
+  if (wallet && !normalizedWallet) {
+    throw Object.assign(new Error("Invalid wallet address."), { status: 400 });
+  }
   const topics = normalizedWallet ? [POINTS_CLAIMED_TOPIC, addressTopic(normalizedWallet)] : [POINTS_CLAIMED_TOPIC];
   const filter: ethers.Filter = {
     address: ascensionStakingAddress(),

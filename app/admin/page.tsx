@@ -5,7 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 import { formatUnits, parseUnits } from "viem";
 import { Alert, Button, Card, EmptyState, LoadingSkeleton, PageShell, SectionHeader, StatCard } from "@/components/ui/DyoorUi";
 import { WalletButton } from "@/components/wallet/WalletButton";
-import { adminMessage } from "@/lib/adminMessage";
+import { createAdminAuthorization } from "@/lib/adminMessage";
 import type { AdminAction } from "@/lib/adminMessage";
 import { MONAD_CHAIN_HEX } from "@/lib/monad";
 import { useWalletService } from "@/providers/WalletServiceProvider";
@@ -722,14 +722,22 @@ export default function AdminPage() {
     return await walletService.getProvider() as Eip1193Provider;
   }
 
-  async function signAdminAction(action: AdminAction) {
+  async function signAdminAction(action: AdminAction, route: string, payload: Record<string, unknown>) {
     const timestamp = String(Date.now());
     const nonce = crypto.randomUUID();
-    const message = adminMessage(walletAddress, timestamp, nonce, action);
+    const authorization = createAdminAuthorization({
+      wallet: walletAddress,
+      timestamp,
+      nonce,
+      action,
+      route,
+      payload,
+    });
     const provider = await getProvider();
-    const signature = await provider.request({ method: "personal_sign", params: [message, walletAddress] });
+    const signature = await provider.request({ method: "personal_sign", params: [authorization.message, walletAddress] });
     setLastSignatureAt(new Date().toISOString());
-    return { timestamp, nonce, signature };
+    const { message: _message, ...authorizationFields } = authorization;
+    return { timestamp, nonce, signature, ...authorizationFields };
   }
 
   async function loadLedgerWallet(scan = false) {
@@ -768,7 +776,8 @@ export default function AdminPage() {
     setEnergyIndexResult(null);
     setEnergyLedgerStatus("Sign owner authorization to run the global harvest event indexer.");
     try {
-      const signature = await signAdminAction("energy-index");
+      const command = { maxChunks: 8 };
+      const signature = await signAdminAction("energy-index", "/api/admin/energy/reindex", command);
       setEnergyLedgerStatus("Indexing new PointsClaimed events into the Energy ledger.");
       const response = await fetch("/api/admin/energy/reindex", {
         method: "POST",
@@ -776,7 +785,7 @@ export default function AdminPage() {
         body: JSON.stringify({
           ...signature,
           wallet: walletAddress,
-          maxChunks: 8,
+          ...command,
         }),
       });
       const data = await response.json().catch(() => ({})) as EnergyIndexResult;
@@ -796,14 +805,15 @@ export default function AdminPage() {
     setLedgerDiagnostic(null);
     setEnergyLedgerStatus("Sign owner authorization for diagnostic ledger reconciliation.");
     try {
-      const signature = await signAdminAction("energy-reconciliation");
+      const command = { dryRun: true };
+      const signature = await signAdminAction("energy-reconciliation", "/api/admin/energy/reconcile", command);
       const response = await fetch("/api/admin/energy/reconcile", {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({
           ...signature,
           wallet: walletAddress,
-          dryRun: true,
+          ...command,
         }),
       });
       const data = await response.json().catch(() => ({})) as LedgerDiagnosticReport;
@@ -841,10 +851,12 @@ export default function AdminPage() {
     setSnapshotProgress("Sign once to gather staking and blueprint data.");
     setAuthStatus("Sign once to gather staking and blueprint data.");
     try {
-      const signature = await signAdminAction("snapshot");
+      const authScope = "snapshot-session:v1";
+      const signature = await signAdminAction("snapshot", "/api/admin/snapshots", { authScope });
       const signedPayload = {
         ...signature,
         wallet: walletAddress,
+        authScope,
       };
 
       let lastProgressKey = "";
@@ -880,16 +892,23 @@ export default function AdminPage() {
         throw new Error("Snapshot collection could not finish after repeated RPC retries. Retry generation; no export was produced.");
       }
 
-      setSnapshotProgress("Generating snapshot tables and CSV downloads.");
-      setAuthStatus("Generating snapshot tables and CSV downloads.");
-      const data = await postSnapshotRequest({
-        ...signedPayload,
+      setSnapshotProgress("Sign the verified snapshot payload to generate exports.");
+      setAuthStatus("Sign the verified snapshot payload to generate exports.");
+      const finalizeCommand = {
         mode: "finalize",
         discoveredWallets: session.discoveredWallets,
         discoveredTokenIds: session.discoveredTokenIds,
         tokenOwners: session.tokenOwners,
         discovery: session.discovery,
         warnings: session.warnings,
+      };
+      const finalizeSignature = await signAdminAction("snapshot", "/api/admin/snapshots", finalizeCommand);
+      setSnapshotProgress("Generating snapshot tables and CSV downloads.");
+      setAuthStatus("Generating snapshot tables and CSV downloads.");
+      const data = await postSnapshotRequest({
+        ...finalizeSignature,
+        wallet: walletAddress,
+        ...finalizeCommand,
       }) as Snapshot;
       if (data?.ok === false) throw new Error("Admin snapshot failed.");
       setSnapshot(data);
@@ -989,25 +1008,21 @@ export default function AdminPage() {
     setAirdropResult(null);
     setAirdropStatus("Sign owner authorization for Energy airdrop.");
     try {
-      const timestamp = String(Date.now());
-      const nonce = crypto.randomUUID();
-      const message = adminMessage(walletAddress, timestamp, nonce, "energy-airdrop");
-      const provider = await getProvider();
-      const signature = await provider.request({ method: "personal_sign", params: [message, walletAddress] });
-      setLastSignatureAt(new Date().toISOString());
-      setAirdropStatus("Writing ledger airdrop credits...");
-      const response = await fetch("/api/admin/energy/airdrop", {
+      const command = {
+        recipients: airdropRecipients,
+        amountRaw: airdropAmountRaw.toString(),
+        campaignId: airdropCampaign.trim(),
+        note: airdropNote.trim(),
+      };
+      const authorization = await signAdminAction("energy-airdrop", "/api/admin/energy-airdrop", command);
+      setAirdropStatus("Submitting spendable Energy Bank credits...");
+      const response = await fetch("/api/admin/energy-airdrop", {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({
           wallet: walletAddress,
-          timestamp,
-          nonce,
-          signature,
-          recipients: airdropRecipients,
-          amountRaw: airdropAmountRaw.toString(),
-          campaignId: airdropCampaign.trim(),
-          note: airdropNote.trim(),
+          ...authorization,
+          ...command,
         }),
       });
       const data = await response.json().catch(() => ({}));
@@ -1030,7 +1045,8 @@ export default function AdminPage() {
     setReconciliationStatus("Sign owner authorization for Energy reconciliation.");
     setReconciliationResult(null);
     try {
-      const signature = await signAdminAction("energy-reconciliation");
+      const command = { mode: "report" };
+      const signature = await signAdminAction("energy-reconciliation", "/api/admin/energy-reconciliation", command);
       setReconciliationStatus("Building Energy reconciliation report.");
       const response = await fetch("/api/admin/energy-reconciliation", {
         method: "POST",
@@ -1038,7 +1054,7 @@ export default function AdminPage() {
         body: JSON.stringify({
           ...signature,
           wallet: walletAddress,
-          mode: "report",
+          ...command,
         }),
       });
       const data = await response.json().catch(() => ({}));
@@ -1067,7 +1083,11 @@ export default function AdminPage() {
     setReconciliationLoading(true);
     setReconciliationStatus("Sign owner authorization to apply reconciliation credits.");
     try {
-      const signature = await signAdminAction("energy-reconciliation");
+      const command = {
+        mode: "repair",
+        limit: Number(reconciliationLimit || 10),
+      };
+      const signature = await signAdminAction("energy-reconciliation", "/api/admin/energy-reconciliation", command);
       setReconciliationStatus("Applying reconciliation credits in a safe batch.");
       const response = await fetch("/api/admin/energy-reconciliation", {
         method: "POST",
@@ -1075,8 +1095,7 @@ export default function AdminPage() {
         body: JSON.stringify({
           ...signature,
           wallet: walletAddress,
-          mode: "repair",
-          limit: Number(reconciliationLimit || 10),
+          ...command,
         }),
       });
       const data = await response.json().catch(() => ({}));
@@ -1530,9 +1549,9 @@ export default function AdminPage() {
           <div className="flex flex-col justify-between gap-4 md:flex-row md:items-start">
             <div>
               <p className="eyebrow">Owner Tool</p>
-              <h2 className="mt-2 text-2xl font-black uppercase text-white">Legacy Ledger Energy Airdrop</h2>
+              <h2 className="mt-2 text-2xl font-black uppercase text-white">Energy Bank Airdrop</h2>
               <p className="mt-2 max-w-2xl text-sm font-semibold leading-6 text-white/60">
-                Credit ledger-only Energy to one wallet or a deduped bulk list. Trait Lab rerolls spend from the on-chain Energy Bank, so use the Energy Bank airdrop or reconciliation scripts for reroll-spendable credits.
+                Credit spendable on-chain Energy to one wallet or a deduped bulk list. Campaign and recipient claim IDs prevent duplicate credits on retry.
               </p>
             </div>
             <div className="flex flex-wrap gap-2">

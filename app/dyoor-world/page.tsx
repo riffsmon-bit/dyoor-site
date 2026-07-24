@@ -1,0 +1,27 @@
+import type { Metadata } from "next";
+import { cookies } from "next/headers";
+import { DyoorWorldClient } from "@/components/dyoor-world/DyoorWorldClient";
+import { DyoorWorldGate } from "@/components/dyoor-world/DyoorWorldGate";
+import { DYOOR_WORLD_SESSION_COOKIE } from "@/lib/dyoor-world";
+import { authenticateDyoorWorldToken } from "@/lib/dyoor-world-server";
+
+export const dynamic = "force-dynamic";
+
+export const metadata: Metadata = {
+  title: "dYOOR World",
+  description: "The private Monad social world for verified D.Y.O.O.R S2 holders.",
+  robots: {
+    index: false,
+    follow: false,
+  },
+};
+
+export default async function DyoorWorldPage() {
+  const cookieStore = await cookies();
+  const token = cookieStore.get(DYOOR_WORLD_SESSION_COOKIE)?.value || "";
+  const authenticated = await authenticateDyoorWorldToken(token).catch(() => null);
+
+  return authenticated
+    ? <DyoorWorldClient sessionWallet={authenticated.wallet} />
+    : <DyoorWorldGate />;
+}

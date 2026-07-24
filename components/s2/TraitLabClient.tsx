@@ -20,6 +20,11 @@ import {
   type S2TraitLabAction,
   type S2TraitLabPaymentMode,
 } from "@/lib/s2-trait-lab-config";
+import {
+  canonicalTraitLabPreviewAction,
+  traitLabConfirmationAuthorizationMessage,
+  traitLabPreviewAuthorizationMessage,
+} from "@/lib/s2-trait-lab-auth";
 import { useWalletService } from "@/providers/WalletServiceProvider";
 
 type MetadataAttribute = {
@@ -139,6 +144,8 @@ type PreviewResponse = {
     };
   };
   error?: string;
+  recoveryRequired?: boolean;
+  recoveryPreview?: PreviewResponse;
 };
 
 type TraitLabConfigResponse = {
@@ -159,6 +166,8 @@ type TraitLabConfigResponse = {
   droidBurnEnabled?: boolean;
   droidBurnRewardEnergy?: number;
   rerollAllCostEnergy?: number;
+  leaderboardEnabled?: boolean;
+  bountyEnabled?: boolean;
   error?: string;
 };
 
@@ -189,6 +198,52 @@ type PendingBurnClaim = {
   confirmedAt?: string;
 };
 
+type PendingTraitLabOperation = {
+  wallet: string;
+  rollId: string;
+  tokenId: string;
+  savedAt: string;
+  preview: PreviewResponse;
+};
+
+type TraitLabOperationResponse = {
+  ok?: boolean;
+  operation?: {
+    rollId?: string;
+    tokenId?: string;
+    action?: string;
+    status?: string;
+    chargeStatus?: string;
+    recoveryRequired?: boolean;
+    canRetryConfirmation?: boolean;
+    lastError?: string;
+  };
+  completion?: PreviewResponse & { metadata?: MetadataJson };
+  retryPreview?: PreviewResponse;
+  error?: string;
+};
+
+type TraitLabLeaderboardRow = {
+  rank: number;
+  wallet: string;
+  completedOperations: number;
+  rerolls: number;
+  rerollAlls: number;
+  unlocks: number;
+  recycles: number;
+  energySpentRaw: string;
+  energyEarnedRaw: string;
+  lastCompletedAt: string;
+};
+
+type TraitLabLeaderboardResponse = {
+  ok?: boolean;
+  enabled?: boolean;
+  bountyEnabled?: boolean;
+  rows?: TraitLabLeaderboardRow[];
+  error?: string;
+};
+
 const S2_DROID_BURN_ABI = [{
   type: "function",
   name: "burn",
@@ -216,6 +271,7 @@ const renderTraits = [
   "Special",
 ];
 const TOKEN_CARD_METADATA_CONCURRENCY = 6;
+const MAX_PENDING_TRAIT_LAB_OPERATIONS = 8;
 
 function normalizeAddress(address?: string) {
   return /^0x[a-fA-F0-9]{40}$/.test(address || "") ? String(address).toLowerCase() : "";
@@ -563,6 +619,10 @@ export function TraitLabClient() {
   const [burnedGallery, setBurnedGallery] = useState<BurnedDroidCard[]>([]);
   const [burnConfirmText, setBurnConfirmText] = useState("");
   const [pendingBurnClaim, setPendingBurnClaim] = useState<PendingBurnClaim | null>(null);
+  const [pendingTraitLabOperations, setPendingTraitLabOperations] = useState<PendingTraitLabOperation[]>([]);
+  const [operationRecoveryLoading, setOperationRecoveryLoading] = useState("");
+  const [leaderboardRows, setLeaderboardRows] = useState<TraitLabLeaderboardRow[]>([]);
+  const [leaderboardLoading, setLeaderboardLoading] = useState(false);
   const [burnedGalleryLoading, setBurnedGalleryLoading] = useState(false);
   const [ownedLoading, setOwnedLoading] = useState(false);
   const [metadataLoading, setMetadataLoading] = useState(false);
@@ -601,6 +661,7 @@ export function TraitLabClient() {
   const droidBurnEnabled = traitLabConfig?.droidBurnEnabled !== false;
   const burnConfirmationPhrase = selectedTokenId ? `BURN DROID #${selectedTokenId}` : "";
   const pendingBurnStorageKey = walletAddress ? `dyoor:s2:pending-droid-burn:${walletAddress}` : "";
+  const pendingTraitLabStorageKey = walletAddress ? `dyoor:s2:pending-trait-lab:${walletAddress}` : "";
   const burnReady = Boolean(
     walletAddress
     && selectedTokenId
@@ -659,6 +720,33 @@ export function TraitLabClient() {
   }, [pendingBurnStorageKey, walletAddress]);
 
   useEffect(() => {
+    const timer = window.setTimeout(() => {
+      if (!pendingTraitLabStorageKey) {
+        setPendingTraitLabOperations([]);
+        return;
+      }
+
+      try {
+        const raw = window.localStorage.getItem(pendingTraitLabStorageKey);
+        const parsed = raw ? JSON.parse(raw) as unknown : [];
+        const operations = (Array.isArray(parsed) ? parsed : [])
+          .filter((item): item is PendingTraitLabOperation => Boolean(
+            item
+            && typeof item === "object"
+            && (item as PendingTraitLabOperation).wallet === walletAddress
+            && /^0x[a-fA-F0-9]{64}$/.test(String((item as PendingTraitLabOperation).rollId || ""))
+            && (item as PendingTraitLabOperation).preview?.previewId,
+          ))
+          .slice(0, MAX_PENDING_TRAIT_LAB_OPERATIONS);
+        setPendingTraitLabOperations(operations);
+      } catch {
+        setPendingTraitLabOperations([]);
+      }
+    }, 0);
+    return () => window.clearTimeout(timer);
+  }, [pendingTraitLabStorageKey, walletAddress]);
+
+  useEffect(() => {
     let active = true;
     async function loadTraitLabConfig() {
       try {
@@ -704,6 +792,24 @@ export function TraitLabClient() {
       setBurnedGalleryLoading(false);
     }
   }, []);
+
+  const loadLeaderboard = useCallback(async () => {
+    if (!traitLabConfig?.leaderboardEnabled) {
+      setLeaderboardRows([]);
+      return;
+    }
+    setLeaderboardLoading(true);
+    try {
+      const response = await fetch("/api/s2/trait-lab/leaderboard?limit=25", { cache: "no-store" });
+      const data = await response.json().catch(() => ({})) as TraitLabLeaderboardResponse;
+      if (!response.ok || data.ok === false) throw new Error(data.error || "Could not load Trait Lab leaderboard.");
+      setLeaderboardRows(Array.isArray(data.rows) ? data.rows : []);
+    } catch {
+      setLeaderboardRows([]);
+    } finally {
+      setLeaderboardLoading(false);
+    }
+  }, [traitLabConfig?.leaderboardEnabled]);
 
   const loadTokenMetadata = useCallback(async (tokenId: string) => {
     if (!tokenId) {
@@ -794,6 +900,14 @@ export function TraitLabClient() {
     return () => window.clearTimeout(timer);
   }, [loadBurnedGallery]);
 
+  useEffect(() => {
+    if (!traitLabConfig?.leaderboardEnabled) return;
+    const timer = window.setTimeout(() => {
+      void loadLeaderboard();
+    }, 0);
+    return () => window.clearTimeout(timer);
+  }, [loadLeaderboard, traitLabConfig?.leaderboardEnabled]);
+
   async function connectWallet() {
     setError("");
     await wallet.connect().catch((err) => setError(err instanceof Error ? err.message : "Wallet connection failed."));
@@ -807,6 +921,8 @@ export function TraitLabClient() {
   async function refreshConfirmedToken(tokenId: string, fallbackMetadata?: MetadataJson | null) {
     let nextMetadata = fallbackMetadata || metadata;
     try {
+      // Event-driven cache buster; this function is only called from async user/recovery flows.
+      // eslint-disable-next-line react-hooks/purity
       const response = await fetch(`/api/metadata/${encodeURIComponent(tokenId)}?confirmed=${Date.now()}`, { cache: "no-store" });
       const fresh = await response.json().catch(() => ({})) as MetadataJson & { error?: string };
       if (response.ok && !fresh.error) {
@@ -861,6 +977,76 @@ export function TraitLabClient() {
       await sleep(1500);
     }
     throw new Error("Roll transaction is still pending. Wait a moment and try again.");
+  }
+
+  function savePendingTraitLabOperation(nextPreview: PreviewResponse) {
+    if (!walletAddress || !nextPreview.rollId || !nextPreview.previewId || !pendingTraitLabStorageKey) return;
+    setPendingTraitLabOperations((current) => {
+      const next: PendingTraitLabOperation[] = [{
+        wallet: walletAddress,
+        rollId: nextPreview.rollId as string,
+        tokenId: String(nextPreview.tokenId || selectedTokenId),
+        savedAt: new Date().toISOString(),
+        preview: nextPreview,
+      }]
+        .concat(current.filter((item) => item.rollId !== nextPreview.rollId))
+        .slice(0, MAX_PENDING_TRAIT_LAB_OPERATIONS);
+      window.localStorage.setItem(pendingTraitLabStorageKey, JSON.stringify(next));
+      return next;
+    });
+  }
+
+  function clearPendingTraitLabOperation(rollId: string) {
+    if (!rollId) return;
+    setPendingTraitLabOperations((current) => {
+      const next = current.filter((item) => item.rollId !== rollId);
+      if (pendingTraitLabStorageKey) {
+        if (next.length) window.localStorage.setItem(pendingTraitLabStorageKey, JSON.stringify(next));
+        else window.localStorage.removeItem(pendingTraitLabStorageKey);
+      }
+      return next;
+    });
+  }
+
+  async function recoverPendingTraitLabOperation(item: PendingTraitLabOperation) {
+    setOperationRecoveryLoading(item.rollId);
+    setError("");
+    setStatus(`Checking Trait Lab operation for D.Y.O.O.R #${item.tokenId}.`);
+    try {
+      const response = await fetch(
+        `/api/s2/trait-lab/operations/${encodeURIComponent(item.rollId)}?wallet=${encodeURIComponent(item.wallet)}`,
+        { cache: "no-store" },
+      );
+      const data = await response.json().catch(() => ({})) as TraitLabOperationResponse;
+      if (!response.ok || data.ok === false) throw new Error(data.error || "Could not load Trait Lab operation.");
+
+      if (data.operation?.status === "completed" && data.completion) {
+        clearPendingTraitLabOperation(item.rollId);
+        await refreshConfirmedToken(item.tokenId, data.completion.metadata || item.preview.proposedMetadata || null);
+        await loadEnergy();
+        if (traitLabConfig?.leaderboardEnabled) await loadLeaderboard();
+        setStatus(`Recovered completed ${data.operation.action || "Trait Lab"} operation for D.Y.O.O.R #${item.tokenId}.`);
+        return;
+      }
+
+      if (!data.operation?.canRetryConfirmation) {
+        throw new Error(data.operation?.lastError
+          || (data.operation?.chargeStatus === "pending_or_unverified"
+            ? "The Energy spend is still pending or not indexed. Retry recovery shortly."
+            : "This operation was not charged. Generate a fresh preview."));
+      }
+
+      setSelectedTokenId(item.tokenId);
+      await loadTokenMetadata(item.tokenId);
+      const recoveredPreview = data.retryPreview || item.preview;
+      setPreview(recoveredPreview);
+      savePendingTraitLabOperation(recoveredPreview);
+      setStatus(`Recovered paid ${data.operation.action || "Trait Lab"} preview. Confirm the saved change to finish it.`);
+    } catch (err) {
+      setError(traitLabErrorMessage(err, "Trait Lab recovery failed."));
+    } finally {
+      setOperationRecoveryLoading("");
+    }
   }
 
   function savePendingBurnClaim(claim: PendingBurnClaim) {
@@ -948,12 +1134,27 @@ export function TraitLabClient() {
     setPreview(null);
     setError("");
     setStatus(action === "recycle"
-      ? "Preparing trait recycle preview."
+      ? "Sign to authorize the trait recycle preview."
       : action === "rerollAll"
-        ? "Spending Energy and generating a Reroll All bundle."
-      : "Spending Energy and generating roll.");
+        ? "Sign to authorize the Reroll All Energy spend."
+      : "Sign to authorize the Energy spend.");
     try {
       const payment = {};
+      const authorizationTimestamp = String(Date.now());
+      const authorizationNonce = crypto.randomUUID();
+      const authorizationSignature = await wallet.signMessage(traitLabPreviewAuthorizationMessage({
+        wallet: walletAddress,
+        tokenId: selectedTokenId,
+        traitType,
+        action: canonicalTraitLabPreviewAction(action),
+        timestamp: authorizationTimestamp,
+        nonce: authorizationNonce,
+      }));
+      setStatus(action === "recycle"
+        ? "Preparing trait recycle preview."
+        : action === "rerollAll"
+          ? "Spending Energy and generating a Reroll All bundle."
+          : "Spending Energy and generating roll.");
       let response: Response | null = null;
       let data = {} as PreviewResponse;
       for (let attempt = 0; attempt < 4; attempt += 1) {
@@ -966,6 +1167,9 @@ export function TraitLabClient() {
             traitType,
             action,
             paymentMode: effectiveMode,
+            authorizationTimestamp,
+            authorizationNonce,
+            authorizationSignature,
             ...payment,
           }),
         });
@@ -975,8 +1179,14 @@ export function TraitLabClient() {
         await sleep(1500);
       }
       if (!response) throw new Error("Preview failed.");
-      if (!response.ok || data.ok === false) throw new Error(data.error || "Preview failed.");
+      if (!response.ok || data.ok === false) {
+        if (data.recoveryRequired && data.recoveryPreview?.rollId) {
+          savePendingTraitLabOperation(data.recoveryPreview);
+        }
+        throw new Error(data.error || "Preview failed.");
+      }
       setPreview(data);
+      savePendingTraitLabOperation(data);
       setStatus(action === "unlock"
         ? "Unlock roll ready."
         : action === "remove"
@@ -995,11 +1205,30 @@ export function TraitLabClient() {
   }
 
   async function confirmChange() {
-    if (!preview?.previewId || !preview.confirmation || !walletAddress || !selectedTokenId) return;
+    if (!preview?.previewId || !preview.rollId || !walletAddress || !selectedTokenId) return;
     setActionLoading("confirm");
     setError("");
     try {
-      const signature = await wallet.signMessage(preview.confirmation.message);
+      // Confirmation challenges must be fresh at the moment of the wallet action.
+      // eslint-disable-next-line react-hooks/purity
+      const timestamp = String(Date.now());
+      const nonce = crypto.randomUUID();
+      const message = traitLabConfirmationAuthorizationMessage({
+        wallet: walletAddress,
+        tokenId: selectedTokenId,
+        traitType: String(preview.traitType || ""),
+        action: String(preview.action || ""),
+        paymentMode: String(preview.paymentMode || ""),
+        proposedValue: String(preview.proposedValue || ""),
+        costLabel: String(preview.costLabel || ""),
+        costRaw: String(preview.costRaw || ""),
+        rewardLabel: preview.rewardLabel,
+        rewardRaw: preview.rewardRaw,
+        previewId: preview.previewId,
+        timestamp,
+        nonce,
+      });
+      const signature = await wallet.signMessage(message);
       const response = await fetch("/api/s2/trait-lab/confirm", {
         method: "POST",
         headers: { "content-type": "application/json" },
@@ -1010,16 +1239,18 @@ export function TraitLabClient() {
           action: preview.action,
           paymentMode: preview.paymentMode,
           previewId: preview.previewId,
-          timestamp: preview.confirmation.timestamp,
-          nonce: preview.confirmation.nonce,
+          timestamp,
+          nonce,
           signature,
         }),
       });
       const data = await response.json().catch(() => ({})) as PreviewResponse & { metadata?: MetadataJson };
       if (!response.ok || data.ok === false) throw new Error(data.error || "Confirm failed.");
       await refreshConfirmedToken(selectedTokenId, data.metadata || preview.proposedMetadata || metadata);
+      clearPendingTraitLabOperation(preview.rollId);
       setPreview(null);
       await loadEnergy();
+      if (traitLabConfig?.leaderboardEnabled) await loadLeaderboard();
       const openSeaStatus = data.openSeaMetadataRefresh?.status;
       scheduleOpenSeaRefreshProcessor(data.openSeaMetadataRefresh);
       const immediateOpenSeaStatus = data.openSeaMetadataRefresh?.immediate?.status;
@@ -1044,6 +1275,8 @@ export function TraitLabClient() {
     if (!refresh || refresh.status !== "scheduled") return;
     const runAtMs = refresh.runAt ? Date.parse(refresh.runAt) : 0;
     const delayMs = refresh.runAt && Number.isFinite(runAtMs)
+      // This scheduler runs only after a confirmed user action.
+      // eslint-disable-next-line react-hooks/purity
       ? Math.max(5_000, runAtMs - Date.now() + 2_500)
       : Math.max(5_000, Number(refresh.delayMs || 120_000) + 2_500);
     window.setTimeout(() => {
@@ -1153,6 +1386,54 @@ export function TraitLabClient() {
         <Alert tone="danger">
           Energy Bank sync is pending for this wallet. Indexed spendable Energy is {energy.ledgerSpendableEnergy || "-"}, but only {energy.spendableEnergy || "0"} Energy is currently spendable for rerolls. Missing spendable Energy: {energy.missingSpendableEnergy || "0"}.
         </Alert>
+      ) : null}
+
+      {pendingTraitLabOperations.length ? (
+        <Card className="border-yellow-300/30 bg-yellow-400/10 p-5">
+          <div>
+            <p className="eyebrow text-yellow-100">Paid Change Recovery</p>
+            <h2 className="mt-2 text-2xl font-black uppercase text-white">Finish Saved Trait Lab Operations</h2>
+            <p className="mt-2 max-w-3xl text-sm font-semibold leading-6 text-white/62">
+              Paid previews stay in this browser until the server records completion. Resume a saved operation after a refresh, timeout, or interrupted confirmation.
+            </p>
+          </div>
+          <div className="mt-4 grid gap-3">
+            {pendingTraitLabOperations.map((item) => (
+              <div
+                key={item.rollId}
+                className="grid gap-3 rounded border border-yellow-200/20 bg-black/25 p-3 md:grid-cols-[minmax(0,1fr)_auto] md:items-center"
+              >
+                <div className="min-w-0">
+                  <p className="text-sm font-black uppercase text-white">
+                    D.Y.O.O.R #{item.tokenId} · {item.preview.action === "rerollAll" ? "Reroll All" : item.preview.action || "Trait Change"}
+                  </p>
+                  <p className="mt-1 truncate text-xs font-bold text-white/45">
+                    Operation {item.rollId.slice(0, 10)}…{item.rollId.slice(-8)} · Saved {new Date(item.savedAt).toLocaleString()}
+                  </p>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {item.preview.paymentTxHash ? (
+                    <a
+                      className="rounded border border-dyoor-cyan/25 bg-dyoor-cyan/10 px-3 py-2 text-xs font-black uppercase tracking-[0.12em] text-dyoor-cyan"
+                      href={`${traitLabConfig?.explorerUrl || "https://monadscan.com"}/tx/${item.preview.paymentTxHash}`}
+                      target="_blank"
+                      rel="noreferrer"
+                    >
+                      Energy Tx
+                    </a>
+                  ) : null}
+                  <Button
+                    variant="primary"
+                    disabled={Boolean(operationRecoveryLoading || actionLoading)}
+                    onClick={() => void recoverPendingTraitLabOperation(item)}
+                  >
+                    {operationRecoveryLoading === item.rollId ? "Checking" : "Resume / Check"}
+                  </Button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </Card>
       ) : null}
 
       <section className="grid gap-5 lg:grid-cols-[minmax(18rem,0.85fr)_minmax(0,1.55fr)]">
@@ -1569,7 +1850,7 @@ export function TraitLabClient() {
                     {actionLoading === "confirm" ? "Confirming" : preview.action === "recycle" ? "Confirm Recycle" : preview.action === "rerollAll" ? "Confirm Reroll All" : "Confirm Change"}
                   </Button>
                   <Button variant="secondary" disabled={actionLoading === "confirm"} onClick={() => setPreview(null)}>
-                    Cancel
+                    Close Preview (Saved)
                   </Button>
                 </div>
               </div>
@@ -1577,6 +1858,54 @@ export function TraitLabClient() {
           </Card>
         </div>
       </section>
+
+      {traitLabConfig?.leaderboardEnabled ? (
+        <Card className="p-5">
+          <div className="flex flex-col justify-between gap-3 md:flex-row md:items-end">
+            <div>
+              <p className="eyebrow">Completed Operations Only</p>
+              <h2 className="mt-2 text-2xl font-black uppercase text-white">Trait Lab Leaderboard</h2>
+              <p className="mt-2 max-w-3xl text-sm font-semibold leading-6 text-white/58">
+                Rankings count durable completed Trait Lab records. Paid previews, failed confirmations, and recovery-pending operations never contribute.
+              </p>
+            </div>
+            <Button variant="secondary" disabled={leaderboardLoading} onClick={() => void loadLeaderboard()}>
+              {leaderboardLoading ? "Loading" : "Refresh"}
+            </Button>
+          </div>
+          <div className="mt-5">
+            {leaderboardLoading && !leaderboardRows.length ? (
+              <LoadingSkeleton lines={5} />
+            ) : leaderboardRows.length ? (
+              <div className="overflow-x-auto rounded border border-white/10">
+                <div className="grid min-w-[46rem] grid-cols-[4rem_minmax(10rem,1fr)_7rem_6rem_6rem_6rem] gap-2 border-b border-white/10 bg-white/[0.04] px-3 py-2 text-[0.65rem] font-black uppercase tracking-[0.12em] text-white/40">
+                  <span>Rank</span>
+                  <span>Wallet</span>
+                  <span>Completed</span>
+                  <span>Rerolls</span>
+                  <span>Unlocks</span>
+                  <span>Recycles</span>
+                </div>
+                {leaderboardRows.map((row) => (
+                  <div
+                    key={row.wallet}
+                    className="grid min-w-[46rem] grid-cols-[4rem_minmax(10rem,1fr)_7rem_6rem_6rem_6rem] gap-2 border-b border-white/10 px-3 py-3 text-sm font-bold text-white/68 last:border-b-0"
+                  >
+                    <span className="font-black text-dyoor-cyan">#{row.rank}</span>
+                    <span>{shortAddress(row.wallet)}</span>
+                    <span className="text-white">{row.completedOperations}</span>
+                    <span>{row.rerolls + row.rerollAlls}</span>
+                    <span>{row.unlocks}</span>
+                    <span>{row.recycles}</span>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <EmptyState title="No Completed Operations" copy="The leaderboard will populate after completed Trait Lab changes are recorded." />
+            )}
+          </div>
+        </Card>
+      ) : null}
 
       {pendingBurnClaim ? (
         <Card className="border-yellow-300/30 bg-yellow-400/10 p-5">

@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { Alert, Button, Card, EmptyState, LoadingSkeleton, PageShell, SectionHeader, StatCard } from "@/components/ui/DyoorUi";
 import { WalletButton } from "@/components/wallet/WalletButton";
-import { adminMessage } from "@/lib/adminMessage";
+import { adminPayloadHash, createAdminAuthorization } from "@/lib/adminMessage";
 import { useWalletService } from "@/providers/WalletServiceProvider";
 
 type MetadataAttribute = {
@@ -137,13 +137,21 @@ function jsonPreview(value: unknown) {
   return JSON.stringify(value, null, 2);
 }
 
-function createAdminSignatureRequest(walletAddress: string) {
+function createAdminSignatureRequest(walletAddress: string, payload: Record<string, unknown>) {
   const timestamp = String(Date.now());
   const nonce = crypto.randomUUID();
+  const authorization = createAdminAuthorization({
+    wallet: walletAddress,
+    timestamp,
+    nonce,
+    action: "metadata",
+    route: "/api/admin/metadata",
+    payload,
+  });
   return {
     timestamp,
     nonce,
-    message: adminMessage(walletAddress, timestamp, nonce, "metadata"),
+    ...authorization,
   };
 }
 
@@ -221,14 +229,14 @@ export default function AdminMetadataPage() {
     return false;
   }
 
-  async function signMetadataAction() {
-    const { timestamp, nonce, message } = createAdminSignatureRequest(walletAddress);
+  async function signMetadataAction(payload: Record<string, unknown>) {
+    const { timestamp, nonce, message, ...authorization } = createAdminSignatureRequest(walletAddress, payload);
     const signature = await walletService.signMessage(message);
-    return { wallet: walletAddress, timestamp, nonce, signature };
+    return { wallet: walletAddress, timestamp, nonce, signature, ...authorization };
   }
 
   async function postAdmin(body: Record<string, unknown>) {
-    const signed = await signMetadataAction();
+    const signed = await signMetadataAction(body);
     const response = await fetch("/api/admin/metadata", {
       method: "POST",
       headers: { "content-type": "application/json" },
@@ -304,18 +312,31 @@ export default function AdminMetadataPage() {
     setLoading(true);
     setUploadProgress("Signing once for chunked metadata upload.");
     try {
-      const signed = await signMetadataAction();
       const batches = chunk(parsedValid, UPLOAD_BATCH_SIZE);
+      const recordBatches = batches.map((batch) => batch.map((file) => ({
+        tokenId: file.tokenId,
+        metadata: file.metadata,
+      })));
+      const batchHashes = recordBatches.map((records) => adminPayloadHash(records));
+      const uploadManifestHash = adminPayloadHash(batchHashes);
+      const authorizationPayload = {
+        mode: "upload-metadata-batch",
+        uploadManifestHash,
+        batchHashes,
+      };
+      const signed = await signMetadataAction(authorizationPayload);
       for (let index = 0; index < batches.length; index += 1) {
-        const records = batches[index].map((file) => ({
-          tokenId: file.tokenId,
-          metadata: file.metadata,
-        }));
+        const records = recordBatches[index];
         setUploadProgress(`Uploading batch ${index + 1} of ${batches.length}.`);
         const response = await fetch("/api/admin/metadata", {
           method: "POST",
           headers: { "content-type": "application/json" },
-          body: JSON.stringify({ ...signed, mode: "upload-metadata-batch", records }),
+          body: JSON.stringify({
+            ...signed,
+            ...authorizationPayload,
+            batchIndex: index,
+            records,
+          }),
         });
         const data = await response.json().catch(() => ({})) as MetadataStatus & { uploaded?: number };
         if (!response.ok || data.ok === false) throw new Error(data.error || `Upload batch ${index + 1} failed.`);

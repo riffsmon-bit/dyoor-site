@@ -9,6 +9,8 @@ export const dynamic = "force-dynamic";
 
 const DEFAULT_WALLET_SYNC_CHUNKS = 4;
 const DEFAULT_BANK_CREDIT_LIMIT = 10;
+const MAX_WALLET_SYNC_CHUNKS = 20;
+const MAX_BANK_CREDIT_LIMIT = 25;
 const ENERGY_CREDIT_GAS_LIMIT = 160_000n;
 
 const ENERGY_BANK_ABI = [
@@ -43,6 +45,10 @@ function format(raw: string) {
 function readPositiveInt(value: unknown, fallback: number) {
   const parsed = Number.parseInt(String(value || ""), 10);
   return Number.isSafeInteger(parsed) && parsed > 0 ? parsed : fallback;
+}
+
+function readBoundedPositiveInt(value: unknown, fallback: number, maximum: number) {
+  return Math.min(readPositiveInt(value, fallback), maximum);
 }
 
 function readEnv(...names: string[]) {
@@ -198,15 +204,19 @@ export async function POST(request: Request) {
       const scan = await scanHarvestEvents({
         wallet,
         fromBlock,
-        maxChunks: readPositiveInt(body.maxChunks, DEFAULT_WALLET_SYNC_CHUNKS),
+        maxChunks: readBoundedPositiveInt(body.maxChunks, DEFAULT_WALLET_SYNC_CHUNKS, MAX_WALLET_SYNC_CHUNKS),
       });
       events = scan.events;
-      await setCheckpoint(checkpointName, scan.toBlock, {
-        latestBlock: scan.latestBlock,
-        complete: scan.complete,
-        nextBlock: scan.nextBlock,
-      });
-      checkpoint = await getCheckpoint(checkpointName);
+      checkpoint = {
+        name: checkpointName,
+        block: String(scan.toBlock),
+        updatedAt: "",
+        meta: {
+          latestBlock: scan.latestBlock,
+          complete: scan.complete,
+          nextBlock: scan.nextBlock,
+        },
+      };
     }
 
     let indexed = 0;
@@ -216,10 +226,17 @@ export async function POST(request: Request) {
       if (result.deduped) deduped += 1;
       else indexed += 1;
     }
+    if (!txHash && checkpoint) {
+      checkpoint = await setCheckpoint(checkpoint.name, checkpoint.block, checkpoint.meta);
+    }
 
     const bankCredit = await creditEnergyBankHarvests(
       events,
-      readPositiveInt(body.bankCreditLimit || process.env.ENERGY_SYNC_BANK_CREDIT_LIMIT, DEFAULT_BANK_CREDIT_LIMIT),
+      readBoundedPositiveInt(
+        body.bankCreditLimit || process.env.ENERGY_SYNC_BANK_CREDIT_LIMIT,
+        DEFAULT_BANK_CREDIT_LIMIT,
+        MAX_BANK_CREDIT_LIMIT,
+      ),
     );
     const pendingRaw = await readPendingEnergyRaw(wallet).catch(() => 0n);
     const balance = await getEnergyBalance(wallet, pendingRaw.toString());

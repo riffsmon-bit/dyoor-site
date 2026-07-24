@@ -32,7 +32,7 @@ async function authorize(request: Request, body: Record<string, unknown>) {
   if (configuredSecret && incomingSecret && secretsEqual(configuredSecret, incomingSecret)) {
     return { mode: "secret" };
   }
-  await verifyAdmin(body, "energy-reconciliation");
+  await verifyAdmin(body, "energy-reconciliation", { route: "/api/admin/energy/reconcile" });
   return { mode: "wallet" };
 }
 

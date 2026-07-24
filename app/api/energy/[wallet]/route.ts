@@ -68,9 +68,21 @@ export async function GET(_request: Request, context: EnergyRouteContext) {
     readEnergyBankBalance(wallet).catch(() => null),
   ]);
   const balance = await getEnergyBalance(wallet, pendingRaw.toString());
-  const spendableRaw = bankBalance?.spendableRaw || balance.spendableRaw;
-  const lifetimeRaw = bankBalance?.lifetimeRaw || balance.lifetimeRaw;
-  const spentRaw = bankBalance?.spentRaw || balance.spentRaw;
+  if (!bankBalance) {
+    return json(503, {
+      ok: false,
+      wallet,
+      error: "Energy Bank balance is temporarily unavailable.",
+      pendingRaw: balance.pendingRaw,
+      pendingEnergy: format(balance.pendingRaw),
+      ledgerSpendableRaw: balance.spendableRaw,
+      ledgerSpendableEnergy: format(balance.spendableRaw),
+      dataSource: "ledger-diagnostic-only",
+    });
+  }
+  const spendableRaw = bankBalance.spendableRaw;
+  const lifetimeRaw = bankBalance.lifetimeRaw;
+  const spentRaw = bankBalance.spentRaw;
 
   return json(200, {
     ok: true,
@@ -100,6 +112,6 @@ export async function GET(_request: Request, context: EnergyRouteContext) {
     lifetimeEnergy: format(lifetimeRaw),
     entryCount: balance.entryCount,
     lastUpdatedAt: balance.lastUpdatedAt,
-    dataSource: bankBalance ? "energy-bank+staking-pending" : "ledger+staking-pending",
+    dataSource: "energy-bank+staking-pending",
   });
 }

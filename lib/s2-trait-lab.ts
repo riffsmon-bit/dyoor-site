@@ -31,6 +31,10 @@ import {
   type S2TraitLabPaymentMode,
 } from "@/lib/s2-trait-lab-config";
 import {
+  traitLabBountiesEnabled,
+  traitLabLeaderboardEnabled,
+} from "@/lib/s2-trait-lab-leaderboard";
+import {
   buildTokenMetadataAsync,
   getRuntimeMetadataConfig,
   getRuntimeTraitOverrides,
@@ -40,12 +44,20 @@ import {
 } from "@/lib/dyoor-s2-metadata.js";
 import { processDueOpenSeaMetadataRefreshes, refreshOpenSeaTokenMetadataNowAndLater } from "@/lib/opensea-metadata-refresh";
 import {
+  traitLabConfirmationAuthorizationMessage,
+  traitLabPreviewAuthorizationMessage,
+} from "@/lib/s2-trait-lab-auth";
+import {
   applyTraitSupplyDeltas,
-  assertTraitSupplyAvailable,
+  deleteTraitSupplyReservation,
   saveBurnedDroidRecord,
+  getTraitLabCompletion,
   getTraitLabRoll,
-  getTraitSupplyLedger,
+  getTraitSupplyAvailabilityLedger,
+  getTraitSupplyEvent,
+  saveTraitLabCompletion,
   saveTraitLabRoll,
+  saveTraitSupplyReservation,
   type TraitLabRollRecord,
   type TraitSupplyDelta,
   type TraitSupplyLedger,
@@ -182,6 +194,7 @@ const ERC721_ABI = [
 ];
 
 const ENERGY_BANK_ABI = [
+  "event EnergySpent(address indexed user,address indexed spender,uint256 amount,bytes32 indexed reason)",
   "function spendEnergy(address user,uint256 amount,bytes32 reason)",
   "function creditEnergy(address user,uint256 amount,bytes32 claimTxHash)",
   "function usedClaimTxHash(bytes32 claimTxHash) view returns (bool)",
@@ -195,6 +208,9 @@ const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
 const DEFAULT_TRAIT_ASSETS_CID = "bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu";
 const PREVIEW_TTL_MS = 5 * 60 * 1000;
 const CONFIRM_WINDOW_MS = 5 * 60 * 1000;
+const PREVIEW_AUTH_WINDOW_MS = 5 * 60 * 1000;
+const PREVIEW_CLAIM_SETTLE_MS = 50;
+const SUPPLY_RESERVATION_SETTLE_MS = 150;
 const TRANSFER_TOPIC = ethers.id("Transfer(address,address,uint256)");
 const DEFAULT_MONAD_MAINNET_RPC_URL = "https://rpc.monad.xyz";
 const DEFAULT_MONAD_MAINNET_EXPLORER_URL = "https://monadscan.com";
@@ -205,6 +221,7 @@ const MIN_OWNED_TOKEN_LOG_SPAN = 10_000;
 const OWNED_TOKEN_CACHE_VERSION = "s2-owned-v11";
 const DEFAULT_OWNER_OF_CONCURRENCY = 4;
 const ALCHEMY_TRANSFER_PAGE_SIZE = "0x3e8";
+const TRAIT_LAB_SPEND_LOOKBACK_BLOCKS = 25_000;
 const CLOTHES_ALLOWED_SPECIALS = new Set([
   "anime mask",
   "gimp",
@@ -214,6 +231,8 @@ const CLOTHES_ALLOWED_SPECIALS = new Set([
 
 const rateLimitBuckets = new Map<string, { count: number; resetAt: number }>();
 const ownedTokenCache = new Map<string, { tokenIds: string[]; expiresAt: number }>();
+const activePreviewAuthorizations = new Set<string>();
+const activeConfirmations = new Set<string>();
 
 function readEnv(...names: string[]) {
   for (const name of names) {
@@ -271,7 +290,9 @@ function firstUsableRpc(names: string[], mainnet: boolean) {
   for (const name of names) {
     const value = readEnv(name);
     if (!value) continue;
-    if (mainnet && isTestnetLikeUrl(value)) continue;
+    if (mainnet && isTestnetLikeUrl(value)) {
+      throw Object.assign(new Error(`${name} points to a testnet RPC; Trait Lab requires Monad mainnet.`), { status: 500 });
+    }
     return value;
   }
   return "";
@@ -304,7 +325,10 @@ function configuredS2LogRpcUrl() {
 
   for (const name of ["DYOOR_S2_RPC_URL", "MONAD_RPC_URL", "NEXT_PUBLIC_DYOOR_S2_RPC_URL", "RPC_URL"]) {
     const value = readEnv(name);
-    if (!value || isTestnetLikeUrl(value) || isAlchemyLikeUrl(value)) continue;
+    if (!value || isAlchemyLikeUrl(value)) continue;
+    if (isTestnetLikeUrl(value)) {
+      throw Object.assign(new Error(`${name} points to a testnet RPC; Trait Lab requires Monad mainnet.`), { status: 500 });
+    }
     return value;
   }
 
@@ -313,7 +337,10 @@ function configuredS2LogRpcUrl() {
 
 function configuredS2ExplorerUrl() {
   const configured = readEnv("NEXT_PUBLIC_DYOOR_S2_EXPLORER_URL");
-  if (configured && !isTestnetLikeUrl(configured)) return configured.replace(/\/+$/, "");
+  if (configured && isTestnetLikeUrl(configured)) {
+    throw Object.assign(new Error("Trait Lab explorer configuration must use Monad mainnet."), { status: 500 });
+  }
+  if (configured) return configured.replace(/\/+$/, "");
   return DEFAULT_MONAD_MAINNET_EXPLORER_URL;
 }
 
@@ -365,15 +392,31 @@ function timingSafeEqualText(left: string, right: string) {
   return a.length === b.length && crypto.timingSafeEqual(a, b);
 }
 
-function randomChoice<T>(items: T[]) {
-  if (!items.length) return null;
-  return items[crypto.randomInt(0, items.length)];
+type RandomInt = (maxExclusive: number) => number;
+
+function deterministicRandomInt(seed: string): RandomInt {
+  let counter = 0;
+  return (maxExclusive: number) => {
+    if (!Number.isSafeInteger(maxExclusive) || maxExclusive <= 0) {
+      throw new Error("Random selection requires a positive safe integer.");
+    }
+    const range = 0x1_0000_0000;
+    const ceiling = Math.floor(range / maxExclusive) * maxExclusive;
+    while (true) {
+      const digest = crypto.createHmac("sha256", traitLabSecret())
+        .update(`${seed}:${counter}`)
+        .digest();
+      counter += 1;
+      const value = digest.readUInt32BE(0);
+      if (value < ceiling) return value % maxExclusive;
+    }
+  };
 }
 
-function shuffle<T>(items: T[]) {
+function shuffle<T>(items: T[], randomInt: RandomInt = (maximum) => crypto.randomInt(0, maximum)) {
   const next = [...items];
   for (let index = next.length - 1; index > 0; index -= 1) {
-    const swapIndex = crypto.randomInt(0, index + 1);
+    const swapIndex = randomInt(index + 1);
     [next[index], next[swapIndex]] = [next[swapIndex], next[index]];
   }
   return next;
@@ -384,7 +427,10 @@ function traitOptionWeight(option: TraitOption) {
   return Number.isFinite(weight) && weight > 0 ? Math.floor(weight) : 0;
 }
 
-function weightedOptionOrder(options: TraitOption[]) {
+function weightedOptionOrder(
+  options: TraitOption[],
+  randomInt: RandomInt = (maximum) => crypto.randomInt(0, maximum),
+) {
   const pool = options.filter((option) => traitOptionWeight(option) > 0);
   const ordered: TraitOption[] = [];
 
@@ -392,7 +438,7 @@ function weightedOptionOrder(options: TraitOption[]) {
     const total = pool.reduce((sum, option) => sum + traitOptionWeight(option), 0);
     if (total <= 0) break;
 
-    let target = crypto.randomInt(total);
+    let target = randomInt(total);
     const index = pool.findIndex((option) => {
       target -= traitOptionWeight(option);
       return target < 0;
@@ -626,6 +672,8 @@ export function traitLabPublicConfig() {
     tokenCooldownMs: traitLabTokenCooldownMs(),
     droidBurnEnabled: traitLabDroidBurnEnabled(),
     droidBurnRewardEnergy: traitLabDroidBurnRewardEnergy(),
+    leaderboardEnabled: traitLabLeaderboardEnabled(),
+    bountyEnabled: traitLabBountiesEnabled(),
     rerollAllCostEnergy: S2_TRAIT_LAB_REROLL_ALL_COST,
     guaranteedTraits: S2_GUARANTEED_TRAITS,
     unlockableTraits: S2_UNLOCKABLE_TRAITS,
@@ -649,25 +697,21 @@ export function assertTraitLabRateLimit(key: string, limit = 20, windowMs = 60_0
 }
 
 export function traitLabMessage(payload: PreviewPayload, timestamp: string, nonce: string) {
-  const lines = [
-    "DYOOR Trait Lab",
-    `Wallet: ${payload.wallet}`,
-    `Token ID: ${payload.tokenId}`,
-    `Trait: ${payload.action === "rerollAll" ? "All Filled Traits" : payload.traitType}`,
-    `Action: ${payload.action}`,
-    `Payment: ${payload.paymentMode}`,
-    `Value: ${payload.proposedValue}`,
-    `Cost: ${payload.costLabel}`,
-    `CostRaw: ${payload.costRaw}`,
-  ];
-  if (payload.rewardLabel) {
-    lines.push(`Reward: ${payload.rewardLabel}`);
-    lines.push(`RewardRaw: ${payload.rewardRaw || "0"}`);
-  }
-  lines.push(`Preview ID: ${encodePreview(payload)}`);
-  lines.push(`Timestamp: ${timestamp}`);
-  lines.push(`Nonce: ${nonce}`);
-  return lines.join("\n");
+  return traitLabConfirmationAuthorizationMessage({
+    wallet: payload.wallet,
+    tokenId: payload.tokenId,
+    traitType: payload.traitType,
+    action: payload.action,
+    paymentMode: payload.paymentMode,
+    proposedValue: payload.proposedValue,
+    costLabel: payload.costLabel,
+    costRaw: payload.costRaw,
+    rewardLabel: payload.rewardLabel,
+    rewardRaw: payload.rewardRaw,
+    previewId: encodePreview(payload),
+    timestamp,
+    nonce,
+  });
 }
 
 export function confirmationMessageFromPreviewId(previewId: string, timestamp: string, nonce: string) {
@@ -821,9 +865,16 @@ function supplyDeltasForPatch(currentTraits: Record<string, string>, proposedAtt
   return deltas;
 }
 
-async function assertSupplyDeltasAvailable(deltas: TraitSupplyDelta[]) {
+async function assertSupplyDeltasAvailable(deltas: TraitSupplyDelta[], excludeRollId = "") {
+  const ledger = await getTraitSupplyAvailabilityLedger({ excludeRollId });
   for (const delta of deltas) {
-    await assertTraitSupplyAvailable(delta);
+    if (delta.delta <= 0) continue;
+    const item = ledger.items[supplyKey(delta.traitType, delta.value)];
+    const activeSupply = item?.activeSupply ?? positiveNumber(delta.initialSupply);
+    const maxActiveSupply = positiveNumber(delta.maxActiveSupply || item?.maxActiveSupply);
+    if (maxActiveSupply > 0 && activeSupply + delta.delta > maxActiveSupply) {
+      throw Object.assign(new Error(`${delta.traitType} ${delta.value} has reached its active supply cap.`), { status: 409 });
+    }
   }
 }
 
@@ -1078,6 +1129,7 @@ function assertValidRequestedChange(traits: Record<string, string>, traitType: S
 function generateRerollAllCandidate(
   traits: Record<string, string>,
   supplyLedger?: TraitSupplyLedger,
+  randomInt?: RandomInt,
 ) {
   const eligibleTraits = rerollAllEligibleTraits(traits, supplyLedger);
   if (!eligibleTraits.length) {
@@ -1088,13 +1140,13 @@ function generateRerollAllCandidate(
     let nextTraits = { ...traits };
     let failed = false;
 
-    for (const traitType of shuffle(eligibleTraits)) {
+    for (const traitType of shuffle(eligibleTraits, randomInt)) {
       const currentValue = nextTraits[traitType];
       const candidates = weightedOptionOrder(optionsForTrait(traitType).filter((option) => (
         isOptionSupplyAvailable(option, supplyLedger)
           && !valuesMatch(option.value, traits[traitType])
           && !valuesMatch(option.value, currentValue)
-      )));
+      )), randomInt);
       const picked = candidates.find((candidate) => {
         const changed = {
           ...nextTraits,
@@ -1149,6 +1201,7 @@ function generateCandidate(
   traitType: S2TraitLabTrait,
   action: S2TraitLabAction,
   supplyLedger?: TraitSupplyLedger,
+  randomInt?: RandomInt,
 ) {
   if (action === "rerollAll") {
     throw Object.assign(new Error("Reroll All uses the bundle generator."), { status: 400 });
@@ -1182,7 +1235,7 @@ function generateCandidate(
 
   const candidates = weightedOptionOrder(optionsForTrait(traitType).filter((option) => {
     return isOptionSupplyAvailable(option, supplyLedger) && (action === "unlock" || !valuesMatch(option.value, currentValue));
-  }));
+  }), randomInt);
 
   for (const option of candidates) {
     const changed = {
@@ -1200,7 +1253,7 @@ function generateCandidate(
     }
   }
 
-  const fallback = randomChoice(optionsForTrait(traitType));
+  const fallback = optionsForTrait(traitType)[0] || null;
   throw Object.assign(new Error(fallback
     ? `No valid ${traitType} result is available with the current trait combination.`
     : `${traitType} does not have approved Trait Lab options.`), { status: 409 });
@@ -1330,17 +1383,21 @@ function provider() {
   if (!rpcUrl) {
     throw Object.assign(new Error("DYOOR_S2_RPC_URL or MONAD_RPC_URL is required before Trait Lab can verify ownership."), { status: 500 });
   }
-  return new ethers.JsonRpcProvider(rpcUrl);
+  return new ethers.JsonRpcProvider(rpcUrl, configuredS2ChainId());
 }
 
 function logProvider() {
-  return new ethers.JsonRpcProvider(configuredS2LogRpcUrl());
+  return new ethers.JsonRpcProvider(configuredS2LogRpcUrl(), configuredS2ChainId());
 }
 
 function energyBankSigner() {
-  const privateKey = normalizePrivateKey(readEnv("ENERGY_BANK_OPERATOR_PRIVATE_KEY", "DEPLOYER_PRIVATE_KEY"));
+  const privateKey = normalizePrivateKey(readEnv(
+    "TRAIT_LAB_ENERGY_SPENDER_PRIVATE_KEY",
+    "ENERGY_BANK_OPERATOR_PRIVATE_KEY",
+    "DEPLOYER_PRIVATE_KEY",
+  ));
   if (!privateKey) {
-    throw Object.assign(new Error("ENERGY_BANK_OPERATOR_PRIVATE_KEY or DEPLOYER_PRIVATE_KEY is required for Energy Trait Lab rolls."), { status: 500 });
+    throw Object.assign(new Error("TRAIT_LAB_ENERGY_SPENDER_PRIVATE_KEY or ENERGY_BANK_OPERATOR_PRIVATE_KEY is required for Energy Trait Lab rolls."), { status: 500 });
   }
   return new ethers.Wallet(privateKey, provider());
 }
@@ -1368,7 +1425,58 @@ function traitLabRecycleCreditClaim(payload: PreviewPayload) {
   ].join(":")));
 }
 
-async function spendTraitLabEnergy(payload: PreviewPayload) {
+type TraitLabEnergySpendSubmission = {
+  txHash: string;
+  reason: string;
+  submittedAt: string;
+};
+
+async function findExistingTraitLabEnergySpend(
+  payload: PreviewPayload,
+  signerAddress: string,
+  toBlock?: number,
+) {
+  const chainProvider = provider();
+  const latestBlock = toBlock ?? await chainProvider.getBlockNumber();
+  const reason = traitLabEnergySpendReason(payload);
+  const logs = await chainProvider.getLogs({
+    address: energyBankContract,
+    topics: [
+      ethers.id("EnergySpent(address,address,uint256,bytes32)"),
+      topicAddress(payload.wallet),
+      topicAddress(signerAddress),
+      reason,
+    ],
+    fromBlock: Math.max(0, latestBlock - TRAIT_LAB_SPEND_LOOKBACK_BLOCKS),
+    toBlock: latestBlock,
+  });
+  const energyInterface = new ethers.Interface(ENERGY_BANK_ABI);
+  for (const log of logs.slice().reverse()) {
+    try {
+      const parsed = energyInterface.parseLog(log);
+      if (
+        parsed?.name === "EnergySpent"
+        && BigInt(parsed.args.amount) === BigInt(payload.costRaw || "0")
+      ) {
+        return {
+          txHash: log.transactionHash,
+          blockNumber: String(log.blockNumber),
+          reason,
+          submittedAt: new Date().toISOString(),
+          deduped: true,
+        };
+      }
+    } catch {}
+  }
+  return null;
+}
+
+async function spendTraitLabEnergy(
+  payload: PreviewPayload,
+  onSubmitted?: (submission: TraitLabEnergySpendSubmission) => Promise<void>,
+  beforeSubmit?: () => Promise<void>,
+  onConfirmed?: () => Promise<void>,
+) {
   const amount = BigInt(payload.costRaw || "0");
   if (amount <= 0n) {
     throw Object.assign(new Error("Invalid Energy roll cost."), { status: 500 });
@@ -1382,16 +1490,58 @@ async function spendTraitLabEnergy(payload: PreviewPayload) {
     throw Object.assign(new Error("Energy Bank operator is missing SPENDER_ROLE."), { status: 500 });
   }
   const reason = traitLabEnergySpendReason(payload);
+  const chainProvider = signer.provider;
+  if (!chainProvider) throw Object.assign(new Error("Energy Bank signer has no RPC provider."), { status: 500 });
+  const nonceSnapshotBlock = await chainProvider.getBlockNumber();
+  const existingSpend = await findExistingTraitLabEnergySpend(payload, signerAddress, nonceSnapshotBlock);
+  if (existingSpend) {
+    await onSubmitted?.(existingSpend);
+    await onConfirmed?.();
+    return existingSpend;
+  }
+  const operatorNonce = await chainProvider.getTransactionCount(signerAddress, nonceSnapshotBlock);
+  const pendingOperatorNonce = await chainProvider.getTransactionCount(signerAddress, "pending");
+  if (pendingOperatorNonce > operatorNonce) {
+    throw Object.assign(new Error("Trait Lab Energy settlement is busy with another transaction. Sign a fresh preview in a moment."), {
+      status: 503,
+    });
+  }
+  await new Promise((resolve) => setTimeout(resolve, SUPPLY_RESERVATION_SETTLE_MS));
+  await beforeSubmit?.();
   await bank.spendEnergy.staticCall(payload.wallet, amount, reason);
-  const tx = await bank.spendEnergy(payload.wallet, amount, reason, { gasLimit: 160000n });
-  const receipt = await tx.wait();
+  const spendAfterSimulation = await findExistingTraitLabEnergySpend(payload, signerAddress);
+  if (spendAfterSimulation) {
+    await onSubmitted?.(spendAfterSimulation);
+    await onConfirmed?.();
+    return spendAfterSimulation;
+  }
+  const tx = await bank.spendEnergy(payload.wallet, amount, reason, {
+    gasLimit: 160000n,
+    nonce: operatorNonce,
+  });
+  const submittedAt = new Date().toISOString();
+  await onSubmitted?.({ txHash: tx.hash, reason, submittedAt });
+  let receipt: ethers.TransactionReceipt | null = null;
+  try {
+    receipt = await tx.wait();
+  } catch (error) {
+    const reconciled = await findExistingTraitLabEnergySpend(payload, signerAddress).catch(() => null);
+    if (reconciled) {
+      await onConfirmed?.();
+      return reconciled;
+    }
+    throw error;
+  }
   if (receipt?.status !== 1) {
     throw Object.assign(new Error("Energy spend transaction failed."), { status: 500 });
   }
+  await onConfirmed?.();
   return {
     txHash: tx.hash,
     blockNumber: String(receipt?.blockNumber || ""),
     reason,
+    submittedAt,
+    deduped: false,
   };
 }
 
@@ -2102,6 +2252,194 @@ function parseAction(value: unknown) {
   return action;
 }
 
+function verifyPreviewAuthorization(
+  input: Record<string, unknown>,
+  wallet: string,
+  tokenId: number,
+  traitType: S2TraitLabTrait,
+  action: S2TraitLabAction,
+) {
+  const timestamp = String(input.authorizationTimestamp || "");
+  const nonce = String(input.authorizationNonce || "");
+  const signature = String(input.authorizationSignature || "");
+  if (!/^\d+$/.test(timestamp) || Math.abs(Date.now() - Number(timestamp)) > PREVIEW_AUTH_WINDOW_MS) {
+    throw Object.assign(new Error("Trait Lab roll authorization expired. Sign again."), { status: 401 });
+  }
+  if (nonce.length < 8 || !signature) {
+    throw Object.assign(new Error("Missing Trait Lab roll authorization."), { status: 400 });
+  }
+
+  const message = traitLabPreviewAuthorizationMessage({
+    wallet,
+    tokenId,
+    traitType,
+    action,
+    timestamp,
+    nonce,
+  });
+  let recovered = "";
+  try {
+    recovered = normalizeWallet(ethers.verifyMessage(message, signature));
+  } catch {}
+  if (!recovered || recovered !== wallet) {
+    throw Object.assign(new Error("Roll authorization does not match the token owner wallet."), { status: 401 });
+  }
+
+  return {
+    rollId: ethers.keccak256(ethers.toUtf8Bytes([
+      "dyoor-trait-lab-roll",
+      wallet,
+      String(tokenId),
+      traitType,
+      action,
+      timestamp,
+      nonce,
+    ].join("|"))),
+  };
+}
+
+function rollChargeConfirmed(roll: TraitLabRollRecord, action: S2TraitLabAction) {
+  if (!roll.chargedAt) return false;
+  return action === "recycle" || Boolean(roll.energySpendTxHash);
+}
+
+function recoveryPreviewFromRoll(roll: TraitLabRollRecord) {
+  return {
+    ok: true,
+    wallet: roll.wallet,
+    tokenId: Number(roll.tokenId),
+    traitType: roll.traitType,
+    action: roll.action,
+    paymentMode: roll.paymentMode,
+    costRaw: roll.costRaw,
+    costLabel: roll.costLabel,
+    rewardRaw: roll.recycleRewardRaw,
+    rewardLabel: roll.recycleRewardLabel,
+    previousValue: roll.previousValue,
+    proposedValue: roll.proposedValue,
+    proposedAttributes: roll.proposedAttributes,
+    rollId: roll.rollId,
+    previewId: roll.previewId,
+    rollCharged: rollChargeConfirmed(roll, roll.action as S2TraitLabAction),
+    energyDebitSkipped: roll.action === "recycle",
+    energyDebitDeduped: Boolean(roll.energyDebitDeduped),
+    paymentTxHash: roll.energySpendTxHash || "",
+    paymentBlockNumber: roll.energySpendBlockNumber || "",
+    expiresAt: roll.expiresAt,
+  };
+}
+
+function receiptContainsTraitLabEnergySpend(receipt: ethers.TransactionReceipt, payload: PreviewPayload) {
+  const expectedReason = traitLabEnergySpendReason(payload).toLowerCase();
+  const expectedAmount = BigInt(payload.costRaw || "0");
+  const energyInterface = new ethers.Interface(ENERGY_BANK_ABI);
+
+  return receipt.logs.some((log) => {
+    if (normalizeWallet(log.address) !== normalizeWallet(energyBankContract)) return false;
+    try {
+      const parsed = energyInterface.parseLog(log);
+      if (parsed?.name !== "EnergySpent") return false;
+      return normalizeWallet(parsed.args.user) === payload.wallet
+        && BigInt(parsed.args.amount) === expectedAmount
+        && String(parsed.args.reason || "").toLowerCase() === expectedReason;
+    } catch {
+      return false;
+    }
+  });
+}
+
+async function ensureTraitLabRollCharged(roll: TraitLabRollRecord, payload: PreviewPayload) {
+  if (payload.action === "recycle") {
+    if (!roll.chargedAt) {
+      throw Object.assign(new Error("This recycle preview was not fully prepared. Generate a fresh preview."), {
+        status: 402,
+        operationId: payload.rollId,
+      });
+    }
+    return roll;
+  }
+
+  const txHash = String(roll.energySpendTxHash || "").trim().toLowerCase();
+  if (!/^0x[a-f0-9]{64}$/.test(txHash)) {
+    throw Object.assign(new Error("This roll has no verifiable Energy spend transaction."), {
+      status: 402,
+      operationId: payload.rollId,
+    });
+  }
+
+  const receipt = await provider().getTransactionReceipt(txHash);
+  if (!receipt) {
+    throw Object.assign(new Error("The Energy spend is still pending or not indexed. Retry confirmation shortly."), {
+      status: 409,
+      operationId: payload.rollId,
+      recoveryRequired: true,
+    });
+  }
+  if (receipt.status !== 1 || !receiptContainsTraitLabEnergySpend(receipt, payload)) {
+    throw Object.assign(new Error("The stored Energy spend transaction does not authorize this Trait Lab change."), {
+      status: 402,
+      operationId: payload.rollId,
+    });
+  }
+
+  const reason = traitLabEnergySpendReason(payload);
+  if (
+    roll.chargedAt
+    && roll.energySpendBlockNumber === String(receipt.blockNumber)
+    && String(roll.energySpendReason || "").toLowerCase() === reason.toLowerCase()
+  ) {
+    return roll;
+  }
+
+  return await saveTraitLabRoll({
+    ...roll,
+    status: roll.status === "charging" || roll.status === "prepared" || roll.status === "failed"
+      ? "charged"
+      : roll.status,
+    chargedAt: roll.chargedAt || new Date().toISOString(),
+    energySpendReason: reason,
+    energySpendTxHash: txHash,
+    energySpendBlockNumber: String(receipt.blockNumber),
+    recoveryRequired: roll.status === "recovery_required" ? true : roll.recoveryRequired,
+  });
+}
+
+async function persistTraitLabCompletion(
+  roll: TraitLabRollRecord,
+  payload: PreviewPayload,
+  result: Record<string, unknown>,
+) {
+  const completedAt = new Date().toISOString();
+  const saved = await saveTraitLabCompletion({
+    version: 1,
+    rollId: payload.rollId,
+    wallet: payload.wallet,
+    tokenId: String(payload.tokenId),
+    traitType: payload.traitType,
+    action: payload.action,
+    paymentMode: payload.paymentMode,
+    costRaw: payload.costRaw,
+    rewardRaw: payload.rewardRaw,
+    completedAt,
+    result: {
+      ...result,
+      operationStatus: "completed",
+    },
+  });
+  await saveTraitLabRoll({
+    ...roll,
+    status: "completed",
+    confirmedAt: roll.confirmedAt || completedAt,
+    completedAt: saved.completion.completedAt,
+    recoveryRequired: false,
+    lastError: undefined,
+  });
+  return {
+    ...saved.completion.result,
+    completionDeduped: saved.deduped,
+  };
+}
+
 export async function createTraitLabPreview(input: Record<string, unknown>) {
   const wallet = normalizeWallet(input.wallet);
   if (!wallet) throw Object.assign(new Error("wallet must be a valid address."), { status: 400 });
@@ -2111,23 +2449,34 @@ export async function createTraitLabPreview(input: Record<string, unknown>) {
   const traitType = parseTraitType(input.traitType);
   const action = parseAction(input.action);
   const paymentMode = action === "recycle" ? "energy" : parsePaymentMode(input.paymentMode);
+  const { rollId } = verifyPreviewAuthorization(input, wallet, tokenId, traitType, action);
+  if (activePreviewAuthorizations.has(rollId) || await getTraitLabRoll(rollId)) {
+    throw Object.assign(new Error("This Trait Lab roll authorization was already used. Sign a fresh roll request."), { status: 409 });
+  }
+  activePreviewAuthorizations.add(rollId);
+  let failureStage: TraitLabRollRecord["failureStage"] = "preview";
+  const energySpendSubmission: { current: TraitLabEnergySpendSubmission | null } = { current: null };
+  let energySpend: Awaited<ReturnType<typeof spendTraitLabEnergy>> | null = null;
+  const previewClaimId = crypto.randomUUID();
+  let previewClaimOwned = false;
 
-  await verifyS2TokenOwner(tokenId, wallet, config.maxSupply);
+  try {
+    await verifyS2TokenOwner(tokenId, wallet, config.maxSupply);
 
-  const { metadata } = await buildTokenMetadataAsync(tokenId, config);
+    const { metadata } = await buildTokenMetadataAsync(tokenId, config);
   const currentOverride = await getRuntimeTraitOverrides(tokenId);
   assertTokenCooldownComplete(currentOverride);
   const traits = traitMapFromMetadata(metadata as MetadataJson);
-  const supplyLedger = await getTraitSupplyLedger();
+  const supplyLedger = await getTraitSupplyAvailabilityLedger();
+  const candidateRandom = deterministicRandomInt(`trait-lab-candidate:${rollId}`);
   const candidate = action === "rerollAll"
-    ? generateRerollAllCandidate(traits, supplyLedger)
-    : generateCandidate(traits, traitType, action, supplyLedger);
+    ? generateRerollAllCandidate(traits, supplyLedger, candidateRandom)
+    : generateCandidate(traits, traitType, action, supplyLedger, candidateRandom);
   const version = metadataVersion(metadata as MetadataJson) + 1;
   const paymentCost = traitLabPaymentCost(traitType, action);
   const { costEnergy, costRaw, costMon, costLabel, rewardEnergy, rewardRaw, rewardLabel } = paymentCost;
   const supplyDeltas = supplyDeltasForPatch(traits, candidate.proposedAttributes);
   await assertSupplyDeltasAvailable(supplyDeltas);
-  const rollId = crypto.randomUUID();
   const energyDebitId = `trait-lab-roll:${rollId}`;
   const changedTraitCount = Object.keys(candidate.proposedAttributes).length;
   const displayPreviousValue = action === "rerollAll"
@@ -2136,6 +2485,10 @@ export async function createTraitLabPreview(input: Record<string, unknown>) {
   const displayProposedValue = action === "rerollAll"
     ? `${changedTraitCount} trait${changedTraitCount === 1 ? "" : "s"} rerolled`
     : candidate.option.value;
+  const previewExpiresAt = Number(input.authorizationTimestamp) + PREVIEW_AUTH_WINDOW_MS + PREVIEW_TTL_MS;
+  const previewNonce = crypto.createHmac("sha256", traitLabSecret())
+    .update(`trait-lab-preview-nonce:${rollId}`)
+    .digest("base64url");
   const recycleCreditClaim = action === "recycle"
     ? traitLabRecycleCreditClaim({
       rollId,
@@ -2157,7 +2510,7 @@ export async function createTraitLabPreview(input: Record<string, unknown>) {
       rewardLabel,
       assetUri: candidate.option.assetUri,
       metadataVersion: version,
-      expiresAt: Date.now() + PREVIEW_TTL_MS,
+      expiresAt: previewExpiresAt,
       nonce: "",
     })
     : undefined;
@@ -2182,8 +2535,8 @@ export async function createTraitLabPreview(input: Record<string, unknown>) {
     recycleCreditClaim,
     assetUri: candidate.option.assetUri,
     metadataVersion: version,
-    expiresAt: Date.now() + PREVIEW_TTL_MS,
-    nonce: crypto.randomUUID(),
+    expiresAt: previewExpiresAt,
+    nonce: previewNonce,
   };
   const previewId = encodePreview(payload);
   const timestamp = String(Date.now());
@@ -2210,10 +2563,11 @@ export async function createTraitLabPreview(input: Record<string, unknown>) {
     },
   };
   let energyDebitDeduped = false;
-  let energySpend: Awaited<ReturnType<typeof spendTraitLabEnergy>> | null = null;
 
-  await saveTraitLabRoll({
+  const createdAt = new Date().toISOString();
+  const baseRoll: TraitLabRollRecord = {
     rollId,
+    previewClaimId,
     previewId,
     wallet,
     tokenId: String(tokenId),
@@ -2229,44 +2583,82 @@ export async function createTraitLabPreview(input: Record<string, unknown>) {
     proposedValue: payload.proposedValue,
     previousAttributes: payload.previousAttributes,
     proposedAttributes: payload.proposedAttributes,
-    status: "created",
-    createdAt: new Date().toISOString(),
+    status: "prepared",
+    createdAt,
+    preparedAt: createdAt,
     expiresAt: new Date(payload.expiresAt).toISOString(),
     energyDebitId: action !== "recycle" ? energyDebitId : undefined,
-  });
+  };
+  if (await getTraitLabRoll(rollId)) {
+    throw Object.assign(new Error("This Trait Lab roll authorization is already being processed."), {
+      status: 409,
+      operationId: rollId,
+    });
+  }
+  await saveTraitLabRoll(baseRoll);
+  await new Promise((resolve) => setTimeout(resolve, PREVIEW_CLAIM_SETTLE_MS));
+  const claimedRoll = await getTraitLabRoll(rollId);
+  if (claimedRoll?.previewClaimId !== previewClaimId) {
+    throw Object.assign(new Error("This Trait Lab roll authorization is already being processed."), {
+      status: 409,
+      operationId: rollId,
+    });
+  }
+  previewClaimOwned = true;
+  const reserveSupply = async () => {
+    if (!supplyDeltas.some((delta) => delta.delta > 0)) return;
+    await saveTraitSupplyReservation({
+      version: 1,
+      rollId,
+      wallet,
+      tokenId: String(tokenId),
+      action,
+      traitType,
+      deltas: supplyDeltas,
+      createdAt: new Date().toISOString(),
+    });
+  };
 
   if (action !== "recycle") {
-    energySpend = await spendTraitLabEnergy(payload);
+    failureStage = "charge";
+    await saveTraitLabRoll({
+      ...baseRoll,
+      status: "charging",
+      chargingAt: new Date().toISOString(),
+    });
+    energySpend = await spendTraitLabEnergy(
+      payload,
+      async (submission) => {
+        energySpendSubmission.current = submission;
+        await saveTraitLabRoll({
+          ...baseRoll,
+          status: "charging",
+          chargingAt: new Date().toISOString(),
+          energySpendReason: submission.reason,
+          energySpendSubmittedAt: submission.submittedAt,
+          energySpendTxHash: submission.txHash,
+        });
+      },
+      async () => assertSupplyDeltasAvailable(supplyDeltas),
+      reserveSupply,
+    );
+    energyDebitDeduped = Boolean(energySpend.deduped);
   }
 
+  await reserveSupply();
+
   await saveTraitLabRoll({
-    rollId,
-    previewId,
-    wallet,
-    tokenId: String(tokenId),
-    traitType,
-    action,
-    paymentMode,
-    costRaw,
-    costLabel,
-    recycleRewardRaw: rewardRaw,
-    recycleRewardLabel: rewardLabel,
-    recycleCreditClaim,
-    previousValue: payload.previousValue,
-    proposedValue: payload.proposedValue,
-    previousAttributes: payload.previousAttributes,
-    proposedAttributes: payload.proposedAttributes,
+    ...baseRoll,
     status: "charged",
-    createdAt: new Date().toISOString(),
     chargedAt: new Date().toISOString(),
-    expiresAt: new Date(payload.expiresAt).toISOString(),
-    energyDebitId: action !== "recycle" ? energyDebitId : undefined,
     energyDebitDeduped,
+    energySpendReason: energySpend?.reason,
+    energySpendSubmittedAt: energySpend?.submittedAt,
     energySpendTxHash: energySpend?.txHash,
     energySpendBlockNumber: energySpend?.blockNumber,
   });
 
-  return {
+    return {
     ok: true,
     wallet,
     tokenId,
@@ -2321,7 +2713,41 @@ export async function createTraitLabPreview(input: Record<string, unknown>) {
       storage: previewImage.storage,
       note: "Preview image was composed by the server before Energy was spent. Confirm Change publishes the same trait stack.",
     },
-  };
+    };
+  } catch (error) {
+    const existing = await getTraitLabRoll(rollId).catch(() => null);
+    const submittedTxHash = energySpendSubmission.current?.txHash || existing?.energySpendTxHash;
+    const chargeMayHaveOccurred = Boolean(existing?.chargedAt || submittedTxHash);
+    if (
+      previewClaimOwned
+      && existing?.previewClaimId === previewClaimId
+      && existing.status !== "completed"
+      && existing.status !== "confirmed"
+    ) {
+      await saveTraitLabRoll({
+        ...existing,
+        status: chargeMayHaveOccurred ? "recovery_required" : "failed",
+        failedAt: new Date().toISOString(),
+        failureStage,
+        lastError: error instanceof Error ? error.message : "Trait Lab preview failed.",
+        recoveryRequired: chargeMayHaveOccurred,
+        energySpendReason: energySpendSubmission.current?.reason || existing.energySpendReason,
+        energySpendSubmittedAt: energySpendSubmission.current?.submittedAt || existing.energySpendSubmittedAt,
+        energySpendTxHash: submittedTxHash,
+      }).catch(() => undefined);
+    }
+    const failure = error instanceof Error ? error : new Error("Trait Lab preview failed.");
+    Object.assign(failure, {
+      operationId: rollId,
+      recoveryRequired: chargeMayHaveOccurred,
+      recoveryPreview: chargeMayHaveOccurred && existing
+        ? recoveryPreviewFromRoll(existing)
+        : undefined,
+    });
+    throw failure;
+  } finally {
+    activePreviewAuthorizations.delete(rollId);
+  }
 }
 
 export async function confirmTraitLabPreview(input: Record<string, unknown>) {
@@ -2339,9 +2765,9 @@ export async function confirmTraitLabPreview(input: Record<string, unknown>) {
   if (payload.wallet !== wallet || payload.tokenId !== tokenIdInput || payload.traitType !== traitTypeInput || payload.action !== actionInput) {
     throw Object.assign(new Error("Confirm request does not match the preview."), { status: 400 });
   }
-  const paidRoll = await getTraitLabRoll(payload.rollId);
-  if (!paidRoll || paidRoll.previewId !== previewId || paidRoll.status === "created") {
-    throw Object.assign(new Error("This roll was not paid or is no longer available."), { status: 402 });
+  let paidRoll = await getTraitLabRoll(payload.rollId);
+  if (!paidRoll || paidRoll.previewId !== previewId) {
+    throw Object.assign(new Error("This roll does not exist or is no longer available."), { status: 404 });
   }
   if (payload.paymentMode !== "energy") {
     throw Object.assign(new Error("This Trait Lab preview used a disabled payment method. Generate a fresh Energy preview."), { status: 402 });
@@ -2366,38 +2792,74 @@ export async function confirmTraitLabPreview(input: Record<string, unknown>) {
     throw Object.assign(new Error("Signature does not match connected wallet."), { status: 401 });
   }
 
+  const completed = await getTraitLabCompletion(payload.rollId);
+  if (completed) {
+    return {
+      ...completed.result,
+      operationStatus: "completed",
+      completionDeduped: true,
+    };
+  }
+  if (activeConfirmations.has(payload.rollId)) {
+    throw Object.assign(new Error("This Trait Lab operation is already confirming. Retry status in a moment."), {
+      status: 409,
+      operationId: payload.rollId,
+      recoveryRequired: true,
+    });
+  }
+  activeConfirmations.add(payload.rollId);
+  let failureStage: TraitLabRollRecord["failureStage"] = "confirm";
+
+  try {
+  paidRoll = await ensureTraitLabRollCharged(paidRoll, payload);
+  await saveTraitLabRoll({
+    ...paidRoll,
+    status: "confirming",
+    confirmingAt: new Date().toISOString(),
+    recoveryRequired: false,
+  });
   const config = await getRuntimeMetadataConfig();
   const tokenId = parseInputTokenId(payload.tokenId, config.maxSupply);
   await verifyS2TokenOwner(tokenId, wallet, config.maxSupply);
 
   const { metadata } = await buildTokenMetadataAsync(tokenId, config);
   const currentTraits = traitMapFromMetadata(metadata as MetadataJson);
-  const recyclePatchApplied = payload.action === "recycle" && proposedPatchAlreadyApplied(currentTraits, payload);
+  const patchAlreadyApplied = proposedPatchAlreadyApplied(currentTraits, payload);
   const currentMetadataVersion = metadataVersion(metadata as MetadataJson);
   const expectedCurrentMetadataVersion = Math.max(Number(payload.metadataVersion || 1) - 1, 1);
-  if (currentMetadataVersion !== expectedCurrentMetadataVersion && !recyclePatchApplied) {
+  if (currentMetadataVersion !== expectedCurrentMetadataVersion && !patchAlreadyApplied) {
     throw Object.assign(new Error("Metadata changed since preview. Generate a new preview."), { status: 409 });
   }
-  if (!recyclePatchApplied && payload.action !== "rerollAll") {
+  if (!patchAlreadyApplied && payload.action !== "rerollAll") {
     assertValidRequestedChange(currentTraits, payload.traitType, payload.action);
   }
-  if (!recyclePatchApplied) {
+  if (!patchAlreadyApplied) {
     assertPreviewTraitsStillCurrent(currentTraits, payload);
   }
-  if (!recyclePatchApplied) {
+  if (!patchAlreadyApplied) {
     validateProposedPatch(currentTraits, payload);
   }
-  const supplyDeltas = recyclePatchApplied ? supplyDeltasForPayload(payload) : supplyDeltasForPatch(currentTraits, payload.proposedAttributes);
-  await assertSupplyDeltasAvailable(supplyDeltas);
+  const supplyDeltas = patchAlreadyApplied ? supplyDeltasForPayload(payload) : supplyDeltasForPatch(currentTraits, payload.proposedAttributes);
+  const supplyEventId = `trait-lab-confirm:${payload.rollId}`;
+  const existingSupplyEvent = await getTraitSupplyEvent(supplyEventId);
+  if (!existingSupplyEvent) await assertSupplyDeltasAvailable(supplyDeltas, payload.rollId);
 
   const currentOverride = await getRuntimeTraitOverrides(tokenId);
   if (currentOverride?.frozen) {
     throw Object.assign(new Error("Token metadata is frozen."), { status: 409 });
   }
 
-  if (recyclePatchApplied) {
+  if (patchAlreadyApplied) {
+    await saveTraitLabRoll({
+      ...paidRoll,
+      status: "metadata_committed",
+      confirmingAt: paidRoll.confirmingAt || new Date().toISOString(),
+      metadataCommittedAt: new Date().toISOString(),
+      recoveryRequired: true,
+    });
+    failureStage = "supply";
     const supplyEvent = await applyTraitSupplyDeltas({
-      id: `trait-lab-confirm:${payload.rollId}`,
+      id: supplyEventId,
       rollId: payload.rollId,
       wallet,
       tokenId: String(tokenId),
@@ -2406,24 +2868,28 @@ export async function confirmTraitLabPreview(input: Record<string, unknown>) {
       deltas: supplyDeltas,
       createdAt: new Date().toISOString(),
     });
-    const recycleCredit = await creditTraitLabRecycleEnergy(payload, paidRoll);
+    await deleteTraitSupplyReservation(payload.rollId).catch(() => undefined);
+    failureStage = "reward";
+    const recycleCredit = payload.action === "recycle"
+      ? await creditTraitLabRecycleEnergy(payload, paidRoll)
+      : null;
     const rollRecord: TraitLabRollRecord = {
       ...paidRoll,
       status: "confirmed",
       confirmedAt: new Date().toISOString(),
       recycleRewardRaw: payload.rewardRaw,
       recycleRewardLabel: payload.rewardLabel,
-      recycleCreditClaim: recycleCredit.claim,
-      recycleCreditTxHash: recycleCredit.txHash || paidRoll.recycleCreditTxHash,
-      recycleCreditBlockNumber: recycleCredit.blockNumber || paidRoll.recycleCreditBlockNumber,
-      recycleCreditDeduped: recycleCredit.deduped,
+      recycleCreditClaim: recycleCredit?.claim || paidRoll.recycleCreditClaim,
+      recycleCreditTxHash: recycleCredit?.txHash || paidRoll.recycleCreditTxHash,
+      recycleCreditBlockNumber: recycleCredit?.blockNumber || paidRoll.recycleCreditBlockNumber,
+      recycleCreditDeduped: recycleCredit?.deduped || paidRoll.recycleCreditDeduped,
     };
     await saveTraitLabRoll(rollRecord);
     const updated = await buildTokenMetadataAsync(tokenId, config);
     await processDueOpenSeaMetadataRefreshes().catch(() => undefined);
     const openSeaMetadataRefresh = await refreshOpenSeaTokenMetadataNowAndLater({
       tokenId,
-      reason: "trait_lab_recycle_recovery",
+      reason: `trait_lab_${payload.action}_recovery`,
     }).catch((error) => ({
       status: "failed" as const,
       chain: "monad",
@@ -2432,7 +2898,7 @@ export async function confirmTraitLabPreview(input: Record<string, unknown>) {
       error: error instanceof Error ? error.message : "refresh_failed",
     }));
 
-    return {
+    const result = {
       ok: true,
       wallet,
       tokenId,
@@ -2449,11 +2915,11 @@ export async function confirmTraitLabPreview(input: Record<string, unknown>) {
       rollId: payload.rollId,
       rollCharged: true,
       debitDeduped: Boolean(paidRoll.energyDebitDeduped),
-      energyDebitSkipped: true,
-      paymentTxHash: recycleCredit.txHash || paidRoll.recycleCreditTxHash || "",
-      paymentAmountRaw: payload.rewardRaw || "",
-      paymentBlockNumber: recycleCredit.blockNumber || paidRoll.recycleCreditBlockNumber || "",
-      recycleCreditDeduped: recycleCredit.deduped,
+      energyDebitSkipped: payload.action === "recycle",
+      paymentTxHash: recycleCredit?.txHash || paidRoll.energySpendTxHash || paidRoll.recycleCreditTxHash || "",
+      paymentAmountRaw: recycleCredit ? payload.rewardRaw || "" : paidRoll.energySpendTxHash ? payload.costRaw : "",
+      paymentBlockNumber: recycleCredit?.blockNumber || paidRoll.energySpendBlockNumber || paidRoll.recycleCreditBlockNumber || "",
+      recycleCreditDeduped: recycleCredit?.deduped || false,
       supplyDeltas,
       supplyEventDeduped: supplyEvent.deduped,
       override: currentOverride,
@@ -2462,9 +2928,11 @@ export async function confirmTraitLabPreview(input: Record<string, unknown>) {
       imageRecomposition: {
         status: "unchanged",
         imageUrl: String((updated.metadata as MetadataJson).image || ""),
-        note: "Recycle metadata was already applied; Energy reward was reconciled without another metadata version bump.",
+        note: "Metadata was already applied; remaining Trait Lab side effects were reconciled without another metadata version bump.",
       },
     };
+    failureStage = "completion";
+    return await persistTraitLabCompletion(rollRecord, payload, result);
   }
 
   const nextVersion = Math.max(Number(currentOverride?.version || metadataVersion(metadata as MetadataJson)) + 1, 2);
@@ -2494,9 +2962,17 @@ export async function confirmTraitLabPreview(input: Record<string, unknown>) {
       renderedAt: new Date().toISOString(),
     },
   };
+  failureStage = "metadata";
   const override = await saveRuntimeTraitOverride(tokenId, nextOverride);
+  await saveTraitLabRoll({
+    ...paidRoll,
+    status: "metadata_committed",
+    metadataCommittedAt: new Date().toISOString(),
+    recoveryRequired: true,
+  });
+  failureStage = "supply";
   const supplyEvent = await applyTraitSupplyDeltas({
-    id: `trait-lab-confirm:${payload.rollId}`,
+    id: supplyEventId,
     rollId: payload.rollId,
     wallet,
     tokenId: String(tokenId),
@@ -2505,6 +2981,8 @@ export async function confirmTraitLabPreview(input: Record<string, unknown>) {
     deltas: supplyDeltas,
     createdAt: new Date().toISOString(),
   });
+  await deleteTraitSupplyReservation(payload.rollId).catch(() => undefined);
+  failureStage = "reward";
   const recycleCredit = payload.action === "recycle" ? await creditTraitLabRecycleEnergy(payload, paidRoll) : null;
   const rollRecord: TraitLabRollRecord = {
     ...paidRoll,
@@ -2531,7 +3009,7 @@ export async function confirmTraitLabPreview(input: Record<string, unknown>) {
     error: error instanceof Error ? error.message : "refresh_failed",
   }));
 
-  return {
+  const result = {
     ok: true,
     wallet,
     tokenId,
@@ -2571,8 +3049,89 @@ export async function confirmTraitLabPreview(input: Record<string, unknown>) {
         : "No matching layer assets were found, so the existing token image URL was preserved.",
     },
   };
+  failureStage = "completion";
+  return await persistTraitLabCompletion(rollRecord, payload, result);
+  } catch (error) {
+    const latest = await getTraitLabRoll(payload.rollId).catch(() => paidRoll) || paidRoll;
+    if (latest.status !== "completed") {
+      await saveTraitLabRoll({
+        ...latest,
+        status: "recovery_required",
+        failedAt: new Date().toISOString(),
+        failureStage,
+        lastError: error instanceof Error ? error.message : "Trait Lab confirmation failed.",
+        recoveryRequired: true,
+      }).catch(() => undefined);
+    }
+    const failure = error instanceof Error ? error : new Error("Trait Lab confirmation failed.");
+    Object.assign(failure, {
+      operationId: payload.rollId,
+      recoveryRequired: true,
+    });
+    throw failure;
+  } finally {
+    activeConfirmations.delete(payload.rollId);
+  }
 }
 
 export function zeroAddress() {
   return ZERO_ADDRESS;
+}
+
+export async function getTraitLabOperationStatus(rollIdInput: unknown, walletInput?: unknown) {
+  const rollId = String(rollIdInput || "").trim();
+  if (!/^0x[a-fA-F0-9]{64}$/.test(rollId)) {
+    throw Object.assign(new Error("Invalid Trait Lab operation ID."), { status: 400 });
+  }
+  let roll = await getTraitLabRoll(rollId);
+  if (!roll) {
+    throw Object.assign(new Error("Trait Lab operation was not found."), { status: 404 });
+  }
+  const wallet = walletInput === undefined ? "" : normalizeWallet(walletInput);
+  if (walletInput !== undefined && (!wallet || wallet !== roll.wallet)) {
+    throw Object.assign(new Error("Trait Lab operation does not match this wallet."), { status: 403 });
+  }
+  const completion = await getTraitLabCompletion(rollId);
+  let chargeVerificationError = "";
+  if (!completion && roll.energySpendTxHash && !rollChargeConfirmed(roll, roll.action as S2TraitLabAction)) {
+    try {
+      roll = await ensureTraitLabRollCharged(roll, decodePreview(roll.previewId));
+    } catch (error) {
+      chargeVerificationError = error instanceof Error ? error.message : "Energy spend could not be verified.";
+    }
+  }
+  const charged = rollChargeConfirmed(roll, roll.action as S2TraitLabAction);
+  const chargeSubmitted = Boolean(roll.energySpendTxHash);
+  return {
+    ok: true,
+    operation: {
+      rollId,
+      wallet: roll.wallet,
+      tokenId: roll.tokenId,
+      traitType: roll.traitType,
+      action: roll.action,
+      paymentMode: roll.paymentMode,
+      status: completion ? "completed" : roll.status,
+      createdAt: roll.createdAt,
+      updatedAt: roll.updatedAt,
+      preparedAt: roll.preparedAt,
+      chargingAt: roll.chargingAt,
+      chargedAt: roll.chargedAt,
+      confirmingAt: roll.confirmingAt,
+      metadataCommittedAt: roll.metadataCommittedAt,
+      completedAt: completion?.completedAt || roll.completedAt || roll.confirmedAt,
+      expiresAt: roll.expiresAt,
+      paymentTxHash: roll.energySpendTxHash || roll.recycleCreditTxHash || "",
+      paymentBlockNumber: roll.energySpendBlockNumber || roll.recycleCreditBlockNumber || "",
+      chargeStatus: completion || charged ? "confirmed" : chargeSubmitted ? "pending_or_unverified" : "not_charged",
+      recoveryRequired: !completion && Boolean(roll.recoveryRequired || charged || chargeSubmitted),
+      canRetryConfirmation: !completion && charged,
+      failureStage: roll.failureStage,
+      lastError: roll.lastError || chargeVerificationError,
+    },
+    completion: completion?.result,
+    retryPreview: !completion && (charged || chargeSubmitted)
+      ? recoveryPreviewFromRoll(roll)
+      : undefined,
+  };
 }
