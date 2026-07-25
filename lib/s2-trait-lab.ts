@@ -48,19 +48,24 @@ import {
 import { processDueOpenSeaMetadataRefreshes, refreshOpenSeaTokenMetadataNowAndLater } from "@/lib/opensea-metadata-refresh";
 import {
   traitLabConfirmationAuthorizationMessage,
+  traitLabForfeitAuthorizationMessage,
   traitLabPreviewAuthorizationMessage,
 } from "@/lib/s2-trait-lab-auth";
 import {
   applyTraitSupplyDeltas,
   deleteTraitSupplyReservation,
   saveBurnedDroidRecord,
+  getTraitLabActiveRoll,
   getTraitLabCompletion,
   getTraitLabRoll,
   getTraitSupplyAvailabilityLedger,
   getTraitSupplyEvent,
+  listTraitLabRollsForToken,
+  saveTraitLabActiveRoll,
   saveTraitLabCompletion,
   saveTraitLabRoll,
   saveTraitSupplyReservation,
+  type TraitLabActiveRollRecord,
   type TraitLabRollRecord,
   type TraitSupplyDelta,
   type TraitSupplyLedger,
@@ -505,7 +510,7 @@ function encodePreview(payload: PreviewPayload) {
   return `${encodedPayload}.${previewSignature(encodedPayload)}`;
 }
 
-function decodePreview(previewId: unknown): PreviewPayload {
+function decodePreview(previewId: unknown, { allowExpired = false }: { allowExpired?: boolean } = {}): PreviewPayload {
   const raw = String(previewId || "").trim();
   const [encodedPayload, signature, extra] = raw.split(".");
   if (!encodedPayload || !signature || extra) {
@@ -516,7 +521,10 @@ function decodePreview(previewId: unknown): PreviewPayload {
     throw Object.assign(new Error("Preview ID could not be verified."), { status: 401 });
   }
   const payload = JSON.parse(Buffer.from(encodedPayload, "base64url").toString("utf8")) as PreviewPayload;
-  if (!payload || typeof payload !== "object" || Date.now() > Number(payload.expiresAt || 0)) {
+  if (!payload || typeof payload !== "object") {
+    throw Object.assign(new Error("Invalid preview payload."), { status: 400 });
+  }
+  if (!allowExpired && Date.now() > Number(payload.expiresAt || 0)) {
     throw Object.assign(new Error("Preview expired. Generate a new preview."), { status: 401 });
   }
   return payload;
@@ -539,7 +547,7 @@ export function traitLabPublicErrorMessage(error: unknown, fallback: string) {
   ) {
     const recoveryRequired = Boolean((error as { recoveryRequired?: unknown })?.recoveryRequired);
     return recoveryRequired
-      ? "Monad RPC lost confirmation after the Energy transaction was submitted. Use Retry Confirmation for the saved operation; do not start another roll."
+      ? "Monad RPC lost confirmation after the Energy transaction was submitted. Restore the current result and retry Accept Result; do not start another roll until its status is known."
       : "Monad RPC could not complete the Trait Lab request. No Energy transaction was submitted. Wait a moment and retry.";
   }
   return message || fallback;
@@ -2285,6 +2293,156 @@ function recoveryPreviewFromRoll(roll: TraitLabRollRecord) {
   };
 }
 
+const TERMINAL_TRAIT_LAB_ROLL_STATUSES = new Set<TraitLabRollRecord["status"]>([
+  "completed",
+  "failed",
+  "superseded",
+  "forfeited",
+]);
+
+const FINALIZING_TRAIT_LAB_ROLL_STATUSES = new Set<TraitLabRollRecord["status"]>([
+  "confirming",
+  "metadata_committed",
+  "confirmed",
+]);
+
+function traitLabRollCanBeCurrent(roll: TraitLabRollRecord) {
+  if (TERMINAL_TRAIT_LAB_ROLL_STATUSES.has(roll.status)) return false;
+  return roll.action === "recycle"
+    ? Boolean(roll.chargedAt)
+    : Boolean(roll.chargedAt || roll.energySpendTxHash);
+}
+
+async function initializeTraitLabActiveRoll(tokenId: string) {
+  const existing = await getTraitLabActiveRoll(tokenId);
+  if (existing) return existing;
+
+  const latest = (await listTraitLabRollsForToken(tokenId)).find(traitLabRollCanBeCurrent);
+  return await saveTraitLabActiveRoll({
+    version: 1,
+    tokenId,
+    activeRollId: latest?.rollId || "",
+    activeWallet: latest?.wallet || "",
+    updatedAt: new Date().toISOString(),
+    lastRollId: latest?.rollId,
+  });
+}
+
+async function supersedeTraitLabRoll(roll: TraitLabRollRecord, replacementRollId: string) {
+  if (TERMINAL_TRAIT_LAB_ROLL_STATUSES.has(roll.status)) return roll;
+  const supersededAt = new Date().toISOString();
+  const saved = await saveTraitLabRoll({
+    ...roll,
+    status: "superseded",
+    supersededAt,
+    supersededByRollId: replacementRollId,
+    recoveryRequired: false,
+    lastError: "This result was left behind by a newer roll.",
+  });
+  await deleteTraitSupplyReservation(roll.rollId).catch(() => undefined);
+  return saved;
+}
+
+async function activateTraitLabRoll(roll: TraitLabRollRecord) {
+  const currentPointer = await getTraitLabActiveRoll(roll.tokenId);
+  if (currentPointer?.activeRollId && currentPointer.activeRollId !== roll.rollId) {
+    const currentRoll = await getTraitLabRoll(currentPointer.activeRollId);
+    if (currentRoll && FINALIZING_TRAIT_LAB_ROLL_STATUSES.has(currentRoll.status)) {
+      await supersedeTraitLabRoll(roll, currentRoll.rollId);
+      throw Object.assign(new Error("The current Trait Lab result is already being finalized. Wait for it to finish before rolling again."), {
+        status: 409,
+        operationId: currentRoll.rollId,
+        recoveryRequired: true,
+      });
+    }
+  }
+
+  await saveTraitLabActiveRoll({
+    version: 1,
+    tokenId: roll.tokenId,
+    activeRollId: roll.rollId,
+    activeWallet: roll.wallet,
+    updatedAt: new Date().toISOString(),
+    lastRollId: roll.rollId,
+  });
+  await new Promise((resolve) => setTimeout(resolve, PREVIEW_CLAIM_SETTLE_MS));
+  const active = await getTraitLabActiveRoll(roll.tokenId);
+  if (active?.activeRollId !== roll.rollId) {
+    await supersedeTraitLabRoll(roll, active?.activeRollId || "newer-roll");
+    throw Object.assign(new Error("A newer roll replaced this result. Only the latest paid result can be accepted."), {
+      status: 409,
+      operationId: roll.rollId,
+    });
+  }
+
+  const otherRolls = (await listTraitLabRollsForToken(roll.tokenId))
+    .filter((item) => item.rollId !== roll.rollId && traitLabRollCanBeCurrent(item));
+  await Promise.all(otherRolls.map((item) => supersedeTraitLabRoll(item, roll.rollId)));
+  return active;
+}
+
+async function closeTraitLabActiveRoll(
+  roll: TraitLabRollRecord,
+  disposition: TraitLabActiveRollRecord["lastDisposition"],
+) {
+  const active = await getTraitLabActiveRoll(roll.tokenId);
+  if (!active || active.activeRollId !== roll.rollId) return active;
+  return await saveTraitLabActiveRoll({
+    version: 1,
+    tokenId: roll.tokenId,
+    activeRollId: "",
+    activeWallet: "",
+    updatedAt: new Date().toISOString(),
+    lastRollId: roll.rollId,
+    lastDisposition: disposition,
+  });
+}
+
+async function assertTraitLabRollIsCurrent(roll: TraitLabRollRecord) {
+  const active = await initializeTraitLabActiveRoll(roll.tokenId);
+  if (active.activeRollId !== roll.rollId) {
+    await supersedeTraitLabRoll(roll, active.activeRollId || active.lastRollId || "newer-roll");
+    throw Object.assign(new Error("This result was left behind and cannot be accepted. Only the latest roll is valid."), {
+      status: 409,
+      operationId: roll.rollId,
+    });
+  }
+
+  if (Date.now() > Date.parse(roll.expiresAt)) {
+    const forfeitedAt = new Date().toISOString();
+    await saveTraitLabRoll({
+      ...roll,
+      status: "forfeited",
+      forfeitedAt,
+      recoveryRequired: false,
+      lastError: "This roll expired before it was accepted.",
+    });
+    await deleteTraitSupplyReservation(roll.rollId).catch(() => undefined);
+    await closeTraitLabActiveRoll(roll, "forfeited");
+    throw Object.assign(new Error("This roll expired and was left behind. Generate a new roll."), {
+      status: 410,
+      operationId: roll.rollId,
+    });
+  }
+
+  return active;
+}
+
+async function assertTraitLabTokenIsNotFinalizing(tokenId: string) {
+  const active = await initializeTraitLabActiveRoll(tokenId);
+  if (!active?.activeRollId) return active;
+  const activeRoll = await getTraitLabRoll(active.activeRollId);
+  if (activeRoll && FINALIZING_TRAIT_LAB_ROLL_STATUSES.has(activeRoll.status)) {
+    throw Object.assign(new Error("The current Trait Lab result is already being finalized. Wait for it to finish before rolling again."), {
+      status: 409,
+      operationId: activeRoll.rollId,
+      recoveryRequired: true,
+      recoveryPreview: recoveryPreviewFromRoll(activeRoll),
+    });
+  }
+  return active;
+}
+
 function receiptContainsTraitLabEnergySpend(receipt: ethers.TransactionReceipt, payload: PreviewPayload) {
   const expectedReason = traitLabEnergySpendReason(payload).toLowerCase();
   const expectedAmount = BigInt(payload.costRaw || "0");
@@ -2390,6 +2548,7 @@ async function persistTraitLabCompletion(
     recoveryRequired: false,
     lastError: undefined,
   });
+  await closeTraitLabActiveRoll(roll, "completed");
   const bountySettlements = await settleTraitLabBountiesForCompletion(
     saved.completion,
   ).catch((error) => [{
@@ -2424,15 +2583,18 @@ export async function createTraitLabPreview(input: Record<string, unknown>) {
   let energySpend: Awaited<ReturnType<typeof spendTraitLabEnergy>> | null = null;
   const previewClaimId = crypto.randomUUID();
   let previewClaimOwned = false;
+  let activationAttempted = false;
 
   try {
     await verifyS2TokenOwner(tokenId, wallet, config.maxSupply);
+    const currentRollPointer = await assertTraitLabTokenIsNotFinalizing(String(tokenId));
+    const replacedRollId = currentRollPointer.activeRollId || "";
 
     const { metadata } = await buildTokenMetadataAsync(tokenId, config);
   const currentOverride = await getRuntimeTraitOverrides(tokenId);
   assertTokenCooldownComplete(currentOverride);
   const traits = traitMapFromMetadata(metadata as MetadataJson);
-  const supplyLedger = await getTraitSupplyAvailabilityLedger();
+  const supplyLedger = await getTraitSupplyAvailabilityLedger({ excludeRollId: replacedRollId });
   const candidateRandom = deterministicRandomInt(`trait-lab-candidate:${rollId}`);
   const candidate = action === "rerollAll"
     ? generateRerollAllCandidate(traits, supplyLedger, candidateRandom)
@@ -2441,7 +2603,7 @@ export async function createTraitLabPreview(input: Record<string, unknown>) {
   const paymentCost = traitLabPaymentCost(traitType, action);
   const { costEnergy, costRaw, costMon, costLabel, rewardEnergy, rewardRaw, rewardLabel } = paymentCost;
   const supplyDeltas = supplyDeltasForPatch(traits, candidate.proposedAttributes);
-  await assertSupplyDeltasAvailable(supplyDeltas);
+  await assertSupplyDeltasAvailable(supplyDeltas, replacedRollId);
   const energyDebitId = `trait-lab-roll:${rollId}`;
   const changedTraitCount = Object.keys(candidate.proposedAttributes).length;
   const displayPreviousValue = action === "rerollAll"
@@ -2581,6 +2743,7 @@ export async function createTraitLabPreview(input: Record<string, unknown>) {
       traitType,
       deltas: supplyDeltas,
       createdAt: new Date().toISOString(),
+      expiresAt: baseRoll.expiresAt,
     });
   };
 
@@ -2604,7 +2767,7 @@ export async function createTraitLabPreview(input: Record<string, unknown>) {
           energySpendTxHash: submission.txHash,
         });
       },
-      async () => assertSupplyDeltasAvailable(supplyDeltas),
+      async () => assertSupplyDeltasAvailable(supplyDeltas, replacedRollId),
       reserveSupply,
     );
     energyDebitDeduped = Boolean(energySpend.deduped);
@@ -2612,7 +2775,7 @@ export async function createTraitLabPreview(input: Record<string, unknown>) {
 
   await reserveSupply();
 
-  await saveTraitLabRoll({
+  const chargedRoll = await saveTraitLabRoll({
     ...baseRoll,
     status: "charged",
     chargedAt: new Date().toISOString(),
@@ -2622,6 +2785,8 @@ export async function createTraitLabPreview(input: Record<string, unknown>) {
     energySpendTxHash: energySpend?.txHash,
     energySpendBlockNumber: energySpend?.blockNumber,
   });
+  activationAttempted = true;
+  await activateTraitLabRoll(chargedRoll);
 
     return {
     ok: true,
@@ -2676,20 +2841,26 @@ export async function createTraitLabPreview(input: Record<string, unknown>) {
       imageUrl: previewImage.imageUrl,
       previewDataUrl: previewImage.previewDataUrl,
       storage: previewImage.storage,
-      note: "Preview image was composed by the server before Energy was spent. Confirm Change publishes the same trait stack.",
+      note: "Preview image was composed by the server before Energy was spent. Accept Result publishes the same trait stack.",
     },
     };
   } catch (error) {
     const existing = await getTraitLabRoll(rollId).catch(() => null);
     const submittedTxHash = energySpendSubmission.current?.txHash || existing?.energySpendTxHash;
     const chargeMayHaveOccurred = Boolean(existing?.chargedAt || submittedTxHash);
+    const canRecover = Boolean(
+      chargeMayHaveOccurred
+      && existing
+      && existing.status !== "superseded"
+      && existing.status !== "forfeited",
+    );
     if (
       previewClaimOwned
       && existing?.previewClaimId === previewClaimId
-      && existing.status !== "completed"
+      && !TERMINAL_TRAIT_LAB_ROLL_STATUSES.has(existing.status)
       && existing.status !== "confirmed"
     ) {
-      await saveTraitLabRoll({
+      const recoveryRoll = await saveTraitLabRoll({
         ...existing,
         status: chargeMayHaveOccurred ? "recovery_required" : "failed",
         failedAt: new Date().toISOString(),
@@ -2700,12 +2871,16 @@ export async function createTraitLabPreview(input: Record<string, unknown>) {
         energySpendSubmittedAt: energySpendSubmission.current?.submittedAt || existing.energySpendSubmittedAt,
         energySpendTxHash: submittedTxHash,
       }).catch(() => undefined);
+      if (canRecover && recoveryRoll && !activationAttempted) {
+        activationAttempted = true;
+        await activateTraitLabRoll(recoveryRoll).catch(() => undefined);
+      }
     }
     const failure = error instanceof Error ? error : new Error("Trait Lab preview failed.");
     Object.assign(failure, {
       operationId: rollId,
-      recoveryRequired: chargeMayHaveOccurred,
-      recoveryPreview: chargeMayHaveOccurred && existing
+      recoveryRequired: canRecover,
+      recoveryPreview: canRecover && existing
         ? recoveryPreviewFromRoll(existing)
         : undefined,
     });
@@ -2720,7 +2895,7 @@ export async function confirmTraitLabPreview(input: Record<string, unknown>) {
   if (!wallet) throw Object.assign(new Error("wallet must be a valid address."), { status: 400 });
 
   const previewId = String(input.previewId || "").trim();
-  const payload = decodePreview(previewId);
+  const payload = decodePreview(previewId, { allowExpired: true });
   if (!payload.rollId) {
     throw Object.assign(new Error("Generate a new paid roll before confirming."), { status: 400 });
   }
@@ -2774,6 +2949,7 @@ export async function confirmTraitLabPreview(input: Record<string, unknown>) {
       bountySettlements,
     };
   }
+  await assertTraitLabRollIsCurrent(paidRoll);
   if (activeConfirmations.has(payload.rollId)) {
     throw Object.assign(new Error("This Trait Lab operation is already confirming. Retry status in a moment."), {
       status: 409,
@@ -3048,6 +3224,105 @@ export async function confirmTraitLabPreview(input: Record<string, unknown>) {
   }
 }
 
+export async function forfeitTraitLabPreview(input: Record<string, unknown>) {
+  const wallet = normalizeWallet(input.wallet);
+  if (!wallet) throw Object.assign(new Error("wallet must be a valid address."), { status: 400 });
+
+  const rollId = String(input.rollId || "").trim();
+  const previewId = String(input.previewId || "").trim();
+  if (!/^0x[a-fA-F0-9]{64}$/.test(rollId) || !previewId) {
+    throw Object.assign(new Error("A valid Trait Lab result is required."), { status: 400 });
+  }
+
+  const payload = decodePreview(previewId, { allowExpired: true });
+  const roll = await getTraitLabRoll(rollId);
+  if (
+    !roll
+    || roll.previewId !== previewId
+    || payload.rollId !== rollId
+    || payload.wallet !== wallet
+    || String(payload.tokenId) !== String(roll.tokenId)
+  ) {
+    throw Object.assign(new Error("This Trait Lab result does not match the connected wallet."), { status: 403 });
+  }
+
+  const timestamp = String(input.timestamp || "");
+  const nonce = String(input.nonce || "");
+  const signature = String(input.signature || "");
+  if (!/^\d+$/.test(timestamp) || Math.abs(Date.now() - Number(timestamp)) > CONFIRM_WINDOW_MS) {
+    throw Object.assign(new Error("Leave-result authorization expired. Sign again."), { status: 401 });
+  }
+  if (!nonce || !signature) {
+    throw Object.assign(new Error("Missing wallet signature."), { status: 400 });
+  }
+  const expectedMessage = traitLabForfeitAuthorizationMessage({
+    wallet,
+    tokenId: roll.tokenId,
+    rollId,
+    previewId,
+    timestamp,
+    nonce,
+  });
+  const recovered = normalizeWallet(ethers.verifyMessage(expectedMessage, signature));
+  if (!recovered || recovered !== wallet) {
+    throw Object.assign(new Error("Signature does not match connected wallet."), { status: 401 });
+  }
+
+  if (await getTraitLabCompletion(rollId)) {
+    throw Object.assign(new Error("This result was already accepted and cannot be left behind."), { status: 409 });
+  }
+  if (roll.status === "forfeited" || roll.status === "superseded") {
+    return {
+      ok: true,
+      wallet,
+      tokenId: Number(roll.tokenId),
+      rollId,
+      status: roll.status,
+      deduped: true,
+    };
+  }
+  if (FINALIZING_TRAIT_LAB_ROLL_STATUSES.has(roll.status)) {
+    throw Object.assign(new Error("This result is already being finalized and can no longer be left behind."), {
+      status: 409,
+      operationId: rollId,
+      recoveryRequired: true,
+    });
+  }
+
+  const active = await initializeTraitLabActiveRoll(roll.tokenId);
+  if (active.activeRollId !== rollId) {
+    await supersedeTraitLabRoll(roll, active.activeRollId || active.lastRollId || "newer-roll");
+    return {
+      ok: true,
+      wallet,
+      tokenId: Number(roll.tokenId),
+      rollId,
+      status: "superseded",
+      deduped: true,
+    };
+  }
+
+  const forfeitedAt = new Date().toISOString();
+  await saveTraitLabRoll({
+    ...roll,
+    status: "forfeited",
+    forfeitedAt,
+    recoveryRequired: false,
+    lastError: "The holder left this result behind.",
+  });
+  await deleteTraitSupplyReservation(rollId).catch(() => undefined);
+  await closeTraitLabActiveRoll(roll, "forfeited");
+  return {
+    ok: true,
+    wallet,
+    tokenId: Number(roll.tokenId),
+    rollId,
+    status: "forfeited",
+    forfeitedAt,
+    deduped: false,
+  };
+}
+
 export function zeroAddress() {
   return ZERO_ADDRESS;
 }
@@ -3066,8 +3341,38 @@ export async function getTraitLabOperationStatus(rollIdInput: unknown, walletInp
     throw Object.assign(new Error("Trait Lab operation does not match this wallet."), { status: 403 });
   }
   const completion = await getTraitLabCompletion(rollId);
+  let isCurrent = false;
+  if (!completion) {
+    const active = await initializeTraitLabActiveRoll(roll.tokenId);
+    isCurrent = active.activeRollId === rollId;
+    if (!isCurrent && !TERMINAL_TRAIT_LAB_ROLL_STATUSES.has(roll.status)) {
+      roll = await supersedeTraitLabRoll(roll, active.activeRollId || active.lastRollId || "newer-roll");
+    } else if (
+      isCurrent
+      && !FINALIZING_TRAIT_LAB_ROLL_STATUSES.has(roll.status)
+      && Date.now() > Date.parse(roll.expiresAt)
+    ) {
+      const forfeitedAt = new Date().toISOString();
+      roll = await saveTraitLabRoll({
+        ...roll,
+        status: "forfeited",
+        forfeitedAt,
+        recoveryRequired: false,
+        lastError: "This roll expired before it was accepted.",
+      });
+      await deleteTraitSupplyReservation(rollId).catch(() => undefined);
+      await closeTraitLabActiveRoll(roll, "forfeited");
+      isCurrent = false;
+    }
+  }
   let chargeVerificationError = "";
-  if (!completion && roll.energySpendTxHash && !rollChargeConfirmed(roll, roll.action as S2TraitLabAction)) {
+  if (
+    !completion
+    && isCurrent
+    && !TERMINAL_TRAIT_LAB_ROLL_STATUSES.has(roll.status)
+    && roll.energySpendTxHash
+    && !rollChargeConfirmed(roll, roll.action as S2TraitLabAction)
+  ) {
     try {
       roll = await ensureTraitLabRollCharged(roll, decodePreview(roll.previewId));
     } catch (error) {
@@ -3076,6 +3381,12 @@ export async function getTraitLabOperationStatus(rollIdInput: unknown, walletInp
   }
   const charged = rollChargeConfirmed(roll, roll.action as S2TraitLabAction);
   const chargeSubmitted = Boolean(roll.energySpendTxHash);
+  const canRetryConfirmation = Boolean(
+    !completion
+    && isCurrent
+    && charged
+    && !TERMINAL_TRAIT_LAB_ROLL_STATUSES.has(roll.status),
+  );
   return {
     ok: true,
     operation: {
@@ -3098,13 +3409,14 @@ export async function getTraitLabOperationStatus(rollIdInput: unknown, walletInp
       paymentTxHash: roll.energySpendTxHash || roll.recycleCreditTxHash || "",
       paymentBlockNumber: roll.energySpendBlockNumber || roll.recycleCreditBlockNumber || "",
       chargeStatus: completion || charged ? "confirmed" : chargeSubmitted ? "pending_or_unverified" : "not_charged",
-      recoveryRequired: !completion && Boolean(roll.recoveryRequired || charged || chargeSubmitted),
-      canRetryConfirmation: !completion && charged,
+      isCurrent,
+      recoveryRequired: !completion && isCurrent && Boolean(roll.recoveryRequired || charged || chargeSubmitted),
+      canRetryConfirmation,
       failureStage: roll.failureStage,
       lastError: roll.lastError || chargeVerificationError,
     },
     completion: completion?.result,
-    retryPreview: !completion && (charged || chargeSubmitted)
+    retryPreview: canRetryConfirmation
       ? recoveryPreviewFromRoll(roll)
       : undefined,
   };

@@ -1,6 +1,7 @@
 {
   "schema": "dyoor-s2-trait-reveal-audit-v1",
   "generatedAt": "2026-07-25T02:03:52Z",
+  "displayDate": "July 24, 2026",
   "method": "catalog-vs-public-production-metadata",
   "metadataBase": "https://dyoor.netlify.app/api/metadata/",
   "scanned": {

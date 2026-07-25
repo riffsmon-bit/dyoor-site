@@ -23,6 +23,15 @@ type TraitLabConfirmationAuthorization = {
   nonce: string;
 };
 
+type TraitLabForfeitAuthorization = {
+  wallet: string;
+  tokenId: string | number;
+  rollId: string;
+  previewId: string;
+  timestamp: string;
+  nonce: string;
+};
+
 export function canonicalTraitLabPreviewAction(action: string) {
   if (action === "remove") return "recycle";
   if (action === "reroll-all") return "rerollAll";
@@ -61,4 +70,16 @@ export function traitLabConfirmationAuthorizationMessage(input: TraitLabConfirma
   lines.push(`Timestamp: ${input.timestamp}`);
   lines.push(`Nonce: ${input.nonce}`);
   return lines.join("\n");
+}
+
+export function traitLabForfeitAuthorizationMessage(input: TraitLabForfeitAuthorization) {
+  return [
+    "DYOOR Trait Lab Leave Result",
+    `Wallet: ${input.wallet.toLowerCase()}`,
+    `Token ID: ${String(input.tokenId)}`,
+    `Roll ID: ${input.rollId}`,
+    `Preview ID: ${input.previewId}`,
+    `Timestamp: ${input.timestamp}`,
+    `Nonce: ${input.nonce}`,
+  ].join("\n");
 }

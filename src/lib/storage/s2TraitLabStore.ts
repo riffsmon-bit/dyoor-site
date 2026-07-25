@@ -4,12 +4,14 @@ const STORE_NAME = "dyoor-s2-metadata";
 const SUPPLY_LEDGER_KEY = "trait-lab/supply-ledger.json";
 const BURNED_DROIDS_KEY = "trait-lab/burned-droids.json";
 const ROLL_PREFIX = "trait-lab/rolls";
+const ACTIVE_ROLL_PREFIX = "trait-lab/active-rolls";
 const COMPLETION_PREFIX = "trait-lab/completions";
 const SUPPLY_EVENT_PREFIX = "trait-lab/supply-events";
 const SUPPLY_RESERVATION_PREFIX = "trait-lab/supply-reservations";
 const BURNED_DROID_RECORD_PREFIX = "trait-lab/burned-droid-records";
 const MON_PAYMENT_PREFIX = "trait-lab/mon-payments";
 const MEME_PAYMENT_PREFIX = "trait-lab/meme-payments";
+const LEGACY_SUPPLY_RESERVATION_TTL_MS = 15 * 60 * 1000;
 
 const store = createJsonStore(STORE_NAME);
 
@@ -22,6 +24,8 @@ export type TraitLabRollStatus =
   | "metadata_committed"
   | "recovery_required"
   | "failed"
+  | "superseded"
+  | "forfeited"
   | "confirmed"
   | "completed";
 
@@ -58,6 +62,9 @@ export type TraitLabRollRecord = {
   confirmedAt?: string;
   completedAt?: string;
   failedAt?: string;
+  supersededAt?: string;
+  supersededByRollId?: string;
+  forfeitedAt?: string;
   failureStage?: "preview" | "charge" | "confirm" | "metadata" | "supply" | "reward" | "completion";
   lastError?: string;
   recoveryRequired?: boolean;
@@ -79,6 +86,16 @@ export type TraitLabRollRecord = {
   memePaymentBurnTxHash?: string;
   memePaymentTreasuryBlockNumber?: string;
   memePaymentBurnBlockNumber?: string;
+};
+
+export type TraitLabActiveRollRecord = {
+  version: 1;
+  tokenId: string;
+  activeRollId: string;
+  activeWallet: string;
+  updatedAt: string;
+  lastRollId?: string;
+  lastDisposition?: "completed" | "forfeited" | "superseded";
 };
 
 export type TraitLabCompletionRecord = {
@@ -124,6 +141,7 @@ export type TraitSupplyReservation = {
   traitType: string;
   deltas: TraitSupplyDelta[];
   createdAt: string;
+  expiresAt?: string;
 };
 
 export type TraitSupplyItem = {
@@ -213,6 +231,10 @@ function rollKey(rollId: string) {
   return `${ROLL_PREFIX}/${rollId.replace(/[^a-zA-Z0-9:_-]/g, "-")}.json`;
 }
 
+function activeRollKey(tokenId: string) {
+  return `${ACTIVE_ROLL_PREFIX}/${tokenId.replace(/[^0-9]/g, "") || "invalid"}.json`;
+}
+
 function completionKey(rollId: string) {
   return `${COMPLETION_PREFIX}/${rollId.replace(/[^a-zA-Z0-9:_-]/g, "-")}.json`;
 }
@@ -287,6 +309,33 @@ export async function saveTraitLabRoll(roll: TraitLabRollRecord) {
     updatedAt,
   };
   await store.setJson(rollKey(roll.rollId), next);
+  return next;
+}
+
+export async function listTraitLabRollsForToken(tokenId: string) {
+  const keys = await store.listKeys(`${ROLL_PREFIX}/`);
+  const records = await Promise.all(keys.map((key) => store.getJsonStrict<TraitLabRollRecord>(key)));
+  return records
+    .filter((record): record is TraitLabRollRecord => Boolean(record?.rollId && record.tokenId === tokenId))
+    .sort((left, right) => {
+      const leftTime = left.updatedAt || left.createdAt;
+      const rightTime = right.updatedAt || right.createdAt;
+      return rightTime.localeCompare(leftTime);
+    });
+}
+
+export async function getTraitLabActiveRoll(tokenId: string) {
+  return await store.getJsonStrict<TraitLabActiveRollRecord>(activeRollKey(tokenId));
+}
+
+export async function saveTraitLabActiveRoll(record: TraitLabActiveRollRecord) {
+  const next = {
+    ...record,
+    version: 1 as const,
+    tokenId: String(record.tokenId),
+    updatedAt: nowIso(),
+  };
+  await store.setJson(activeRollKey(next.tokenId), next);
   return next;
 }
 
@@ -426,10 +475,14 @@ export async function getTraitSupplyAvailabilityLedger({
   const items = { ...ledger.items };
 
   for (const reservation of reservations) {
+    const explicitExpiry = Date.parse(String(reservation?.expiresAt || ""));
+    const legacyExpiry = Date.parse(String(reservation?.createdAt || "")) + LEGACY_SUPPLY_RESERVATION_TTL_MS;
+    const expiresAt = Number.isFinite(explicitExpiry) ? explicitExpiry : legacyExpiry;
     if (
       !reservation?.rollId
       || reservation.rollId === excludeRollId
       || committedRollIds.has(reservation.rollId)
+      || (Number.isFinite(expiresAt) && expiresAt <= Date.now())
     ) {
       continue;
     }

@@ -85,8 +85,10 @@ test("bounty teaser radar is backed by a complete metadata audit and real catalo
   }
 
   const clientSource = fs.readFileSync("components/s2/TraitLabClient.tsx", "utf8");
-  assert.match(clientSource, /Unrevealed Trait Radar/);
-  assert.match(clientSource, /0 Confirmed Reveals/);
+  assert.match(clientSource, /Encrypted Discovery Feed/);
+  assert.match(clientSource, /0 Confirmed Discoveries/);
+  assert.match(clientSource, /bounty-signal-scan/);
+  assert.match(clientSource, /First Finder Protocol/);
   assert.match(clientSource, /No live payout campaign/);
 });
 

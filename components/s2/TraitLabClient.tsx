@@ -26,6 +26,7 @@ import {
 import {
   canonicalTraitLabPreviewAction,
   traitLabConfirmationAuthorizationMessage,
+  traitLabForfeitAuthorizationMessage,
   traitLabPreviewAuthorizationMessage,
 } from "@/lib/s2-trait-lab-auth";
 import { useWalletService } from "@/providers/WalletServiceProvider";
@@ -226,8 +227,10 @@ type TraitLabOperationResponse = {
     rollId?: string;
     tokenId?: string;
     action?: string;
+    traitType?: string;
     status?: string;
     chargeStatus?: string;
+    isCurrent?: boolean;
     recoveryRequired?: boolean;
     canRetryConfirmation?: boolean;
     lastError?: string;
@@ -301,6 +304,7 @@ type TraitBountyTeaser = {
 
 type TraitRevealAudit = {
   generatedAt: string;
+  displayDate: string;
   scanned: {
     successful: number;
     failed: number;
@@ -350,6 +354,18 @@ const traitRevealAudit = traitRevealAuditJson as TraitRevealAudit;
 const bountyTeaserImages: Record<string, StaticImageData> = {
   "dyoor-builder/layers/Hat/BOB Mask.png": bobMaskTeaserImage,
 };
+
+function currentPendingTraitLabOperations(items: PendingTraitLabOperation[], now = Date.now()) {
+  const latestByToken = new Map<string, PendingTraitLabOperation>();
+  for (const item of [...items].sort((left, right) => right.savedAt.localeCompare(left.savedAt))) {
+    const expiresAt = Date.parse(String(item.preview.expiresAt || ""));
+    if (Number.isFinite(expiresAt) && expiresAt <= now) continue;
+    if (!latestByToken.has(item.tokenId)) latestByToken.set(item.tokenId, item);
+  }
+  return [...latestByToken.values()]
+    .sort((left, right) => right.savedAt.localeCompare(left.savedAt))
+    .slice(0, MAX_PENDING_TRAIT_LAB_OPERATIONS);
+}
 
 function normalizeAddress(address?: string) {
   return /^0x[a-fA-F0-9]{40}$/.test(address || "") ? String(address).toLowerCase() : "";
@@ -810,15 +826,16 @@ export function TraitLabClient() {
       try {
         const raw = window.localStorage.getItem(pendingTraitLabStorageKey);
         const parsed = raw ? JSON.parse(raw) as unknown : [];
-        const operations = (Array.isArray(parsed) ? parsed : [])
+        const operations = currentPendingTraitLabOperations((Array.isArray(parsed) ? parsed : [])
           .filter((item): item is PendingTraitLabOperation => Boolean(
             item
             && typeof item === "object"
             && (item as PendingTraitLabOperation).wallet === walletAddress
             && /^0x[a-fA-F0-9]{64}$/.test(String((item as PendingTraitLabOperation).rollId || ""))
             && (item as PendingTraitLabOperation).preview?.previewId,
-          ))
-          .slice(0, MAX_PENDING_TRAIT_LAB_OPERATIONS);
+          )));
+        if (operations.length) window.localStorage.setItem(pendingTraitLabStorageKey, JSON.stringify(operations));
+        else window.localStorage.removeItem(pendingTraitLabStorageKey);
         setPendingTraitLabOperations(operations);
       } catch {
         setPendingTraitLabOperations([]);
@@ -1092,15 +1109,15 @@ export function TraitLabClient() {
   function savePendingTraitLabOperation(nextPreview: PreviewResponse) {
     if (!walletAddress || !nextPreview.rollId || !nextPreview.previewId || !pendingTraitLabStorageKey) return;
     setPendingTraitLabOperations((current) => {
-      const next: PendingTraitLabOperation[] = [{
+      const tokenId = String(nextPreview.tokenId || selectedTokenId);
+      const next = currentPendingTraitLabOperations([{
         wallet: walletAddress,
         rollId: nextPreview.rollId as string,
-        tokenId: String(nextPreview.tokenId || selectedTokenId),
+        tokenId,
         savedAt: new Date().toISOString(),
         preview: nextPreview,
       }]
-        .concat(current.filter((item) => item.rollId !== nextPreview.rollId))
-        .slice(0, MAX_PENDING_TRAIT_LAB_OPERATIONS);
+        .concat(current.filter((item) => item.tokenId !== tokenId)));
       window.localStorage.setItem(pendingTraitLabStorageKey, JSON.stringify(next));
       return next;
     });
@@ -1140,6 +1157,17 @@ export function TraitLabClient() {
         return;
       }
 
+      if (
+        data.operation?.isCurrent === false
+        || data.operation?.status === "superseded"
+        || data.operation?.status === "forfeited"
+      ) {
+        clearPendingTraitLabOperation(item.rollId);
+        if (preview?.rollId === item.rollId) setPreview(null);
+        setStatus(`D.Y.O.O.R #${item.tokenId}'s saved result was already left behind. Only its latest roll can be accepted.`);
+        return;
+      }
+
       if (!data.operation?.canRetryConfirmation) {
         throw new Error(data.operation?.lastError
           || (data.operation?.chargeStatus === "pending_or_unverified"
@@ -1152,7 +1180,7 @@ export function TraitLabClient() {
       const recoveredPreview = data.retryPreview || item.preview;
       setPreview(recoveredPreview);
       savePendingTraitLabOperation(recoveredPreview);
-      setStatus(`Recovered paid ${data.operation.action || "Trait Lab"} preview. Confirm the saved change to finish it.`);
+      setStatus(`Restored D.Y.O.O.R #${item.tokenId}'s current result. Accept it, leave it, or pay for one new roll that permanently replaces it.`);
     } catch (err) {
       setError(traitLabErrorMessage(err, "Trait Lab recovery failed."));
     } finally {
@@ -1392,6 +1420,53 @@ export function TraitLabClient() {
     }
   }
 
+  async function leaveCurrentResult() {
+    if (!preview?.previewId || !preview.rollId || !walletAddress) return;
+    const tokenId = String(preview.tokenId || selectedTokenId);
+    setActionLoading("forfeit");
+    setError("");
+    setStatus(`Sign to leave D.Y.O.O.R #${tokenId}'s current result behind. This cannot be undone.`);
+    try {
+      // Leave-result authorizations must be fresh at the moment of the wallet action.
+      const timestamp = String(Date.now());
+      const nonce = crypto.randomUUID();
+      const signature = await wallet.signMessage(traitLabForfeitAuthorizationMessage({
+        wallet: walletAddress,
+        tokenId,
+        rollId: preview.rollId,
+        previewId: preview.previewId,
+        timestamp,
+        nonce,
+      }));
+      const response = await fetch("/api/s2/trait-lab/forfeit", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          wallet: walletAddress,
+          tokenId,
+          rollId: preview.rollId,
+          previewId: preview.previewId,
+          timestamp,
+          nonce,
+          signature,
+        }),
+      });
+      const data = await response.json().catch(() => ({})) as {
+        ok?: boolean;
+        status?: string;
+        error?: string;
+      };
+      if (!response.ok || data.ok === false) throw new Error(data.error || "Could not leave this result.");
+      clearPendingTraitLabOperation(preview.rollId);
+      setPreview(null);
+      setStatus(`Result left behind for D.Y.O.O.R #${tokenId}. Its current metadata was not changed.`);
+    } catch (err) {
+      setError(traitLabErrorMessage(err, "Could not leave this result."));
+    } finally {
+      setActionLoading("");
+    }
+  }
+
   function scheduleOpenSeaRefreshProcessor(refresh?: PreviewResponse["openSeaMetadataRefresh"]) {
     if (!refresh || refresh.status !== "scheduled") return;
     const runAtMs = refresh.runAt ? Date.parse(refresh.runAt) : 0;
@@ -1510,13 +1585,20 @@ export function TraitLabClient() {
       ) : null}
 
       {pendingTraitLabOperations.length ? (
-        <Card className="border-yellow-300/30 bg-yellow-400/10 p-5">
-          <div>
-            <p className="eyebrow text-yellow-100">Paid Change Recovery</p>
-            <h2 className="mt-2 text-2xl font-black uppercase text-white">Finish Saved Trait Lab Operations</h2>
-            <p className="mt-2 max-w-3xl text-sm font-semibold leading-6 text-white/62">
-              Paid previews stay in this browser until the server records completion. Resume a saved operation after a refresh, timeout, or interrupted confirmation.
-            </p>
+        <Card className="border-dyoor-cyan/25 bg-dyoor-cyan/[0.07] p-5">
+          <div className="flex flex-col justify-between gap-3 md:flex-row md:items-start">
+            <div>
+              <p className="eyebrow text-dyoor-cyan">Interrupted Roll Recovery</p>
+              <h2 className="mt-2 text-2xl font-black uppercase text-white">
+                {pendingTraitLabOperations.length === 1 ? "Restore Current Result" : "Restore Current Results"}
+              </h2>
+              <p className="mt-2 max-w-3xl text-sm font-semibold leading-6 text-white/62">
+                This is crash protection, not roll history. Only the latest result for each Droid remains valid; accepting, leaving, or rolling again permanently closes the previous result.
+              </p>
+            </div>
+            <span className="w-fit rounded-full border border-dyoor-cyan/30 bg-black/30 px-3 py-2 text-[0.62rem] font-black uppercase tracking-[0.16em] text-dyoor-cyan">
+              Latest Result Only
+            </span>
           </div>
           <div className="mt-4 grid gap-3">
             {pendingTraitLabOperations.map((item) => (
@@ -1527,9 +1609,10 @@ export function TraitLabClient() {
                 <div className="min-w-0">
                   <p className="text-sm font-black uppercase text-white">
                     D.Y.O.O.R #{item.tokenId} · {item.preview.action === "rerollAll" ? "Reroll All" : item.preview.action || "Trait Change"}
+                    {item.preview.traitType && item.preview.action !== "rerollAll" ? ` · ${item.preview.traitType}` : ""}
                   </p>
                   <p className="mt-1 truncate text-xs font-bold text-white/45">
-                    Operation {item.rollId.slice(0, 10)}…{item.rollId.slice(-8)} · Saved {new Date(item.savedAt).toLocaleString()}
+                    Current result · {item.rollId.slice(0, 10)}…{item.rollId.slice(-8)} · Saved {new Date(item.savedAt).toLocaleString()}
                   </p>
                 </div>
                 <div className="flex flex-wrap gap-2">
@@ -1548,7 +1631,7 @@ export function TraitLabClient() {
                     disabled={Boolean(operationRecoveryLoading || actionLoading)}
                     onClick={() => void recoverPendingTraitLabOperation(item)}
                   >
-                    {operationRecoveryLoading === item.rollId ? "Checking" : "Resume / Check"}
+                    {operationRecoveryLoading === item.rollId ? "Checking" : "Restore Current Result"}
                   </Button>
                 </div>
               </div>
@@ -1557,7 +1640,7 @@ export function TraitLabClient() {
         </Card>
       ) : null}
 
-      <section className="grid gap-5 lg:grid-cols-[minmax(18rem,0.85fr)_minmax(0,1.55fr)]">
+      <section className="grid scroll-mt-24 gap-5 lg:grid-cols-[minmax(18rem,0.85fr)_minmax(0,1.55fr)]" id="trait-workbench">
         <Card className="p-5">
           <div className="flex items-end justify-between gap-3">
             <div>
@@ -1707,7 +1790,7 @@ export function TraitLabClient() {
                         : selectedTraitIsEmpty
                           ? "Rolling spends the selected payment method and creates one approved unlock result."
                           : selectedTraitAction === "recycle"
-                            ? "Recycling burns this optional trait, clears the slot to None, and awards Energy after Confirm Change."
+                            ? "Recycling burns this optional trait, clears the slot to None, and awards Energy after Accept Result."
                           : selectedTraitAction === "remove"
                             ? "Removing spends the selected payment method and clears this optional trait to None."
                             : "Rolling spends Energy and creates one compatible reroll result."}
@@ -1911,7 +1994,7 @@ export function TraitLabClient() {
                           <div className="rounded border border-white/10 bg-black/20 p-3">
                             <p className="text-xs font-black uppercase tracking-[0.14em] text-white/40">Pending Supply Impact</p>
                             <p className="mt-1 text-[0.68rem] font-bold leading-4 text-white/42">
-                              Trait supply changes are recorded only after Confirm Change.
+                              Trait supply changes are recorded only after Accept Result.
                             </p>
                             <div className="mt-2 grid gap-1">
                               {preview.supplyDeltas.map((delta) => (
@@ -1924,16 +2007,21 @@ export function TraitLabClient() {
                           </div>
                         ) : null}
                         {preview.traitType && preview.action && preview.action !== "remove" && preview.action !== "recycle" ? (
-                          <Button
-                            className="w-full py-2 text-xs"
-                            disabled={Boolean(actionLoading)}
-                            variant="secondary"
-                            onClick={() => void previewChange(preview.traitType as S2TraitLabTrait, preview.action as S2TraitLabAction)}
-                          >
-                            {actionLoading === `${preview.action}:${preview.traitType}`
-                              ? "Rolling"
-                            : preview.action === "rerollAll" ? `Reroll All Again · ${preview.costLabel || "Cost"}` : preview.action === "reroll" ? `Reroll Again · ${preview.costLabel || "Cost"}` : `Roll Again · ${preview.costLabel || "Cost"}`}
-                          </Button>
+                          <div className="rounded border border-yellow-300/20 bg-yellow-300/[0.06] p-3">
+                            <p className="text-[0.65rem] font-bold leading-5 text-yellow-50/62">
+                              Rolling again spends Energy and permanently replaces this result. You cannot come back to it.
+                            </p>
+                            <Button
+                              className="mt-3 w-full py-2 text-xs"
+                              disabled={Boolean(actionLoading)}
+                              variant="secondary"
+                              onClick={() => void previewChange(preview.traitType as S2TraitLabTrait, preview.action as S2TraitLabAction)}
+                            >
+                              {actionLoading === `${preview.action}:${preview.traitType}`
+                                ? "Rolling"
+                              : preview.action === "rerollAll" ? `Leave + Reroll All · ${preview.costLabel || "Cost"}` : preview.action === "reroll" ? `Leave + Reroll · ${preview.costLabel || "Cost"}` : `Leave + Roll Again · ${preview.costLabel || "Cost"}`}
+                            </Button>
+                          </div>
                         ) : null}
                       </div>
                     </div>
@@ -1966,13 +2054,19 @@ export function TraitLabClient() {
                   </div>
                 </details>
 
-                <div className="flex flex-wrap gap-3">
-                  <Button variant="primary" disabled={actionLoading === "confirm"} onClick={() => void confirmChange()}>
-                    {actionLoading === "confirm" ? "Confirming" : preview.action === "recycle" ? "Confirm Recycle" : preview.action === "rerollAll" ? "Confirm Reroll All" : "Confirm Change"}
-                  </Button>
-                  <Button variant="secondary" disabled={actionLoading === "confirm"} onClick={() => setPreview(null)}>
-                    Close Preview (Saved)
-                  </Button>
+                <div className="rounded border border-dyoor-cyan/20 bg-dyoor-cyan/[0.055] p-4">
+                  <p className="text-xs font-black uppercase tracking-[0.14em] text-dyoor-cyan">One live result · no roll history</p>
+                  <p className="mt-2 text-xs font-semibold leading-5 text-white/48">
+                    Accept this result, leave it permanently, or pay to roll again. Once left or replaced, this result cannot be restored.
+                  </p>
+                  <div className="mt-4 flex flex-wrap gap-3">
+                    <Button variant="primary" disabled={Boolean(actionLoading)} onClick={() => void confirmChange()}>
+                      {actionLoading === "confirm" ? "Accepting" : preview.action === "recycle" ? "Accept Recycle" : preview.action === "rerollAll" ? "Accept Reroll All" : "Accept Result"}
+                    </Button>
+                    <Button variant="secondary" disabled={Boolean(actionLoading)} onClick={() => void leaveCurrentResult()}>
+                      {actionLoading === "forfeit" ? "Leaving" : "Leave Result"}
+                    </Button>
+                  </div>
                 </div>
               </div>
             )}
@@ -1996,80 +2090,135 @@ export function TraitLabClient() {
           ) : null}
         </div>
 
-        <div className="mt-5 overflow-hidden rounded border border-dyoor-purple/30 bg-[radial-gradient(circle_at_top_left,rgba(128,92,255,0.18),transparent_46%),rgba(0,0,0,0.3)]">
-          <div className="flex flex-col justify-between gap-3 border-b border-white/10 px-4 py-4 sm:flex-row sm:items-end">
-            <div>
-              <p className="text-[0.65rem] font-black uppercase tracking-[0.2em] text-dyoor-cyan">Unrevealed Trait Radar</p>
-              <h3 className="mt-2 text-xl font-black uppercase text-white">
-                {traitRevealAudit.unrevealed.length} Undiscovered {traitRevealAudit.unrevealed.length === 1 ? "Signal" : "Signals"}
-              </h3>
+        <div className="bounty-signal-shell mt-5 overflow-hidden rounded-2xl border border-dyoor-purple/35 bg-[#050611]">
+          <div className="relative z-[2] flex flex-col justify-between gap-3 border-b border-white/10 bg-black/30 px-4 py-4 sm:flex-row sm:items-center sm:px-5">
+            <div className="flex items-center gap-3">
+              <span className="relative flex h-3 w-3">
+                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-dyoor-cyan opacity-60" />
+                <span className="relative inline-flex h-3 w-3 rounded-full bg-dyoor-cyan shadow-[0_0_16px_rgba(57,255,226,.95)]" />
+              </span>
+              <div>
+                <p className="text-[0.62rem] font-black uppercase tracking-[0.22em] text-dyoor-cyan">Encrypted Discovery Feed</p>
+                <p className="mt-1 text-sm font-black uppercase tracking-[0.08em] text-white">
+                  {traitRevealAudit.unrevealed.length} Classified {traitRevealAudit.unrevealed.length === 1 ? "Signal Detected" : "Signals Detected"}
+                </p>
+              </div>
             </div>
-            <p className="max-w-md text-xs font-semibold leading-5 text-white/42 sm:text-right">
-              Audited {traitRevealAudit.scanned.successful.toLocaleString()} issued metadata records with {traitRevealAudit.scanned.failed} failures on{" "}
-              {new Date(traitRevealAudit.generatedAt).toLocaleDateString()}.
+            <p className="text-[0.62rem] font-black uppercase leading-5 tracking-[0.14em] text-white/40 sm:text-right">
+              {traitRevealAudit.scanned.successful.toLocaleString()} metadata nodes scanned · {traitRevealAudit.scanned.failed} failures
+              <span className="block text-white/25">Audit locked {traitRevealAudit.displayDate}</span>
             </p>
           </div>
 
-          <div className="grid gap-4 p-4 lg:grid-cols-2">
+          <div className="relative z-[2] p-3 sm:p-5">
             {traitRevealAudit.unrevealed.map((signal, index) => {
               const teaserImage = bountyTeaserImages[signal.imageAsset];
+              const activeSignalBounty = traitBounties.find((bounty) => (
+                bounty.status === "active"
+                && bounty.traitType === signal.traitType
+                && bounty.traitValue === signal.traitValue
+              ));
               return (
-                <article
-                  className="group overflow-hidden rounded border border-dyoor-cyan/20 bg-[#070818]/90 shadow-[0_0_35px_rgba(78,229,255,0.08)]"
-                  key={signal.id}
-                >
-                  <div className="relative aspect-[16/9] overflow-hidden bg-[radial-gradient(circle_at_70%_35%,rgba(79,232,255,0.3),transparent_34%),linear-gradient(135deg,#171135,#070818_68%)]">
-                    {teaserImage ? (
-                      <Image
-                        alt="Redacted preview of an undiscovered orange headwear trait."
-                        className="object-cover object-center brightness-[0.72] saturate-[0.72] blur-[1px] transition duration-500 group-hover:scale-[1.025] group-hover:brightness-[0.86]"
-                        fill
-                        sizes="(min-width: 1024px) 44vw, 92vw"
-                        src={teaserImage}
-                      />
-                    ) : null}
-                    <div
-                      aria-hidden="true"
-                      className="absolute inset-0 opacity-30"
-                      style={{ backgroundImage: "repeating-linear-gradient(0deg, transparent 0, transparent 6px, rgba(97, 255, 238, 0.16) 7px)" }}
-                    />
-                    <div aria-hidden="true" className="absolute inset-0 bg-gradient-to-t from-[#070818] via-transparent to-black/30" />
-                    <div aria-hidden="true" className="absolute left-[13%] top-[35%] h-3 w-[31%] -rotate-2 bg-black/85 shadow-[0_0_18px_rgba(0,0,0,0.9)]" />
-                    <div aria-hidden="true" className="absolute right-[10%] top-[58%] h-3 w-[26%] rotate-2 bg-black/85 shadow-[0_0_18px_rgba(0,0,0,0.9)]" />
-                    <div className="absolute inset-x-0 top-0 flex items-start justify-between gap-3 p-3">
-                      <span className="rounded border border-dyoor-cyan/35 bg-black/65 px-2 py-1 text-[0.62rem] font-black uppercase tracking-[0.16em] text-dyoor-cyan backdrop-blur">
-                        Signal {String(index + 1).padStart(2, "0")}
-                      </span>
-                      <span className="rounded border border-dyoor-purple/40 bg-black/65 px-2 py-1 text-[0.62rem] font-black uppercase tracking-[0.16em] text-purple-200 backdrop-blur">
-                        {signal.rarity}
-                      </span>
-                    </div>
-                    <p className="absolute bottom-3 left-3 rounded border border-white/15 bg-black/70 px-3 py-2 text-2xl font-black uppercase tracking-[0.14em] text-white backdrop-blur">
-                      {signal.maskedLabel}
-                    </p>
-                  </div>
+                <article className="bounty-signal-card group overflow-hidden rounded-xl border border-dyoor-cyan/30" key={signal.id}>
+                  <div className="relative grid min-h-[31rem] overflow-hidden bg-[#070818] lg:grid-cols-[minmax(0,1.16fr)_minmax(23rem,0.84fr)]">
+                    <div className="relative min-h-[24rem] overflow-hidden border-b border-white/10 bg-[radial-gradient(circle_at_52%_46%,rgba(57,255,226,.28),transparent_28%),radial-gradient(circle_at_78%_22%,rgba(255,79,227,.26),transparent_31%),linear-gradient(145deg,#15103c,#070818_64%)] lg:min-h-[31rem] lg:border-b-0 lg:border-r">
+                      <div aria-hidden="true" className="absolute -left-24 top-10 h-72 w-72 rounded-full bg-dyoor-purple/25 blur-3xl" />
+                      <div aria-hidden="true" className="absolute -right-20 bottom-0 h-72 w-72 rounded-full bg-dyoor-magenta/15 blur-3xl" />
+                      {teaserImage ? (
+                        <Image
+                          alt="Holographic preview of an undiscovered orange headwear trait."
+                          className="bounty-signal-art object-cover object-center brightness-[0.9] saturate-[1.12] drop-shadow-[0_0_32px_rgba(57,255,226,.18)] transition duration-700 group-hover:scale-[1.035] group-hover:brightness-105"
+                          fill
+                          priority
+                          sizes="(min-width: 1024px) 52vw, 94vw"
+                          src={teaserImage}
+                        />
+                      ) : null}
 
-                  <div className="grid gap-3 p-4 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end">
-                    <div>
-                      <p className="text-xs font-black uppercase tracking-[0.16em] text-white/38">{signal.traitType} Pool · Weight {signal.weight}</p>
-                      <p className="mt-2 text-sm font-bold leading-6 text-white/72">{signal.hint}</p>
+                      <div aria-hidden="true" className="bounty-signal-grid absolute inset-0 opacity-45" />
+                      <div aria-hidden="true" className="bounty-signal-scan absolute inset-x-0 top-0 h-24 bg-gradient-to-b from-transparent via-dyoor-cyan/20 to-transparent blur-sm" />
+                      <div aria-hidden="true" className="absolute inset-0 bg-[linear-gradient(90deg,rgba(7,8,24,.76),transparent_22%,transparent_74%,rgba(7,8,24,.64)),linear-gradient(0deg,rgba(7,8,24,.86),transparent_40%)]" />
+
+                      <span aria-hidden="true" className="absolute left-4 top-4 h-9 w-9 border-l-2 border-t-2 border-dyoor-cyan/75" />
+                      <span aria-hidden="true" className="absolute right-4 top-4 h-9 w-9 border-r-2 border-t-2 border-dyoor-magenta/70" />
+                      <span aria-hidden="true" className="absolute bottom-4 left-4 h-9 w-9 border-b-2 border-l-2 border-dyoor-magenta/70" />
+                      <span aria-hidden="true" className="absolute bottom-4 right-4 h-9 w-9 border-b-2 border-r-2 border-dyoor-cyan/75" />
+
+                      <div className="absolute inset-x-0 top-0 flex items-start justify-between gap-3 p-6">
+                        <span className="rounded-full border border-dyoor-cyan/40 bg-black/60 px-3 py-2 text-[0.62rem] font-black uppercase tracking-[0.18em] text-dyoor-cyan shadow-[0_0_22px_rgba(57,255,226,.14)] backdrop-blur">
+                          Signal {String(index + 1).padStart(2, "0")} · Visual Fragment
+                        </span>
+                        <span className="rounded-full border border-dyoor-magenta/40 bg-dyoor-magenta/10 px-3 py-2 text-[0.62rem] font-black uppercase tracking-[0.18em] text-pink-100 shadow-[0_0_22px_rgba(255,79,227,.14)] backdrop-blur">
+                          {signal.rarity}
+                        </span>
+                      </div>
+
+                      <div className="absolute inset-x-0 bottom-0 p-6 sm:p-8">
+                        <p className="text-[0.62rem] font-black uppercase tracking-[0.22em] text-dyoor-cyan/80">Identity Encryption Active</p>
+                        <p className="mt-2 bg-gradient-to-r from-white via-dyoor-cyan to-dyoor-magenta bg-clip-text text-4xl font-black uppercase tracking-[0.08em] text-transparent drop-shadow-[0_0_28px_rgba(57,255,226,.2)] sm:text-5xl">
+                          {signal.maskedLabel}
+                        </p>
+                      </div>
                     </div>
-                    <span className="w-fit rounded border border-yellow-300/25 bg-yellow-300/10 px-3 py-2 text-[0.62rem] font-black uppercase tracking-[0.14em] text-yellow-100">
-                      0 Confirmed Reveals
-                    </span>
+
+                    <div className="relative flex flex-col justify-center overflow-hidden p-6 sm:p-8 lg:p-10">
+                      <div aria-hidden="true" className="absolute -right-20 -top-20 h-64 w-64 rounded-full bg-dyoor-purple/20 blur-3xl" />
+                      <div aria-hidden="true" className="absolute -bottom-20 -left-20 h-64 w-64 rounded-full bg-dyoor-cyan/10 blur-3xl" />
+                      <div className="relative">
+                        <p className="text-[0.62rem] font-black uppercase tracking-[0.24em] text-dyoor-magenta">First Finder Protocol</p>
+                        <h3 className="mt-3 text-3xl font-black uppercase leading-[0.95] text-white sm:text-4xl">
+                          The first reveal writes collection history.
+                        </h3>
+                        <p className="mt-5 text-sm font-bold leading-7 text-white/62">{signal.hint}</p>
+
+                        <div className="mt-6 grid grid-cols-3 gap-2">
+                          {[
+                            ["Discoveries", "0"],
+                            ["Pool Weight", String(signal.weight)],
+                            ["Rarity", signal.rarity],
+                          ].map(([label, value]) => (
+                            <div className="rounded-lg border border-white/10 bg-white/[0.045] p-3 shadow-[inset_0_1px_0_rgba(255,255,255,.05)]" key={label}>
+                              <p className="text-[0.55rem] font-black uppercase leading-4 tracking-[0.14em] text-white/34">{label}</p>
+                              <p className="mt-2 truncate text-lg font-black text-white">{value}</p>
+                            </div>
+                          ))}
+                        </div>
+
+                        <div className={`mt-6 rounded-lg border p-4 ${activeSignalBounty ? "border-dyoor-cyan/40 bg-dyoor-cyan/10" : "border-yellow-300/25 bg-yellow-300/[0.07]"}`}>
+                          <p className={`text-[0.62rem] font-black uppercase tracking-[0.18em] ${activeSignalBounty ? "text-dyoor-cyan" : "text-yellow-100"}`}>
+                            {activeSignalBounty ? `Bounty Live · +${activeSignalBounty.rewardEnergy} Energy` : "Signal Only · Bounty Not Armed"}
+                          </p>
+                          <p className="mt-2 text-xs font-semibold leading-5 text-white/48">
+                            {activeSignalBounty
+                              ? "Land the matching trait through an eligible completed operation to enter on-chain settlement."
+                              : "Hunt the signal now. Energy becomes payable only if the owner activates a matching on-chain campaign."}
+                          </p>
+                        </div>
+
+                        <div className="mt-6 flex flex-wrap items-center gap-3">
+                          <a className="btn-primary bounty-signal-cta min-w-44" href="#trait-workbench">
+                            Enter The Hunt
+                          </a>
+                          <span className="text-[0.6rem] font-black uppercase tracking-[0.16em] text-white/28">Trait Lab · Monad Mainnet</span>
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 </article>
               );
             })}
+          </div>
 
-            <div className="grid min-h-48 place-items-center rounded border border-dashed border-white/12 bg-black/20 p-6 text-center">
-              <div>
-                <p className="text-[0.65rem] font-black uppercase tracking-[0.2em] text-white/32">Next Transmission</p>
-                <p className="mt-3 text-lg font-black uppercase text-white/72">More signals unlock when the catalog expands.</p>
-                <p className="mx-auto mt-2 max-w-sm text-xs font-semibold leading-5 text-white/40">
-                  Revealed traits are excluded by the metadata audit before publication.
-                </p>
-              </div>
+          <div className="relative z-[2] overflow-hidden border-t border-white/10 bg-black/55 py-2">
+            <div className="bounty-signal-ticker flex w-max items-center gap-10 whitespace-nowrap text-[0.58rem] font-black uppercase tracking-[0.2em] text-white/34">
+              {[0, 1].map((copy) => (
+                <div className="flex items-center gap-10" aria-hidden={copy === 1} key={copy}>
+                  <span className="text-dyoor-cyan">Signal 01 Online</span>
+                  <span>Mythic Frequency Detected</span>
+                  <span className="text-dyoor-magenta">0 Confirmed Discoveries</span>
+                  <span>Next Transmission Locked</span>
+                </div>
+              ))}
             </div>
           </div>
         </div>

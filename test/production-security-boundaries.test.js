@@ -255,7 +255,27 @@ test("Trait Lab Energy settlement does not depend on broad historical log scans"
   for (const route of [
     "app/api/s2/trait-lab/preview/route.ts",
     "app/api/s2/trait-lab/confirm/route.ts",
+    "app/api/s2/trait-lab/forfeit/route.ts",
   ]) {
     assert.match(fs.readFileSync(route, "utf8"), /traitLabPublicErrorMessage/);
   }
+});
+
+test("Trait Lab gacha flow keeps only one server-authorized result per Droid", () => {
+  const traitLabSource = fs.readFileSync("lib/s2-trait-lab.ts", "utf8");
+  const storeSource = fs.readFileSync("src/lib/storage/s2TraitLabStore.ts", "utf8");
+  const clientSource = fs.readFileSync("components/s2/TraitLabClient.tsx", "utf8");
+  const forfeitRoute = fs.readFileSync("app/api/s2/trait-lab/forfeit/route.ts", "utf8");
+
+  assert.match(storeSource, /ACTIVE_ROLL_PREFIX = "trait-lab\/active-rolls"/);
+  assert.match(storeSource, /"superseded"/);
+  assert.match(storeSource, /"forfeited"/);
+  assert.match(traitLabSource, /activateTraitLabRoll\(chargedRoll\)/);
+  assert.match(traitLabSource, /await assertTraitLabRollIsCurrent\(paidRoll\)/);
+  assert.match(traitLabSource, /Only the latest roll is valid/);
+  assert.match(traitLabSource, /export async function forfeitTraitLabPreview/);
+  assert.match(forfeitRoute, /forfeitTraitLabPreview/);
+  assert.match(clientSource, /This is crash protection, not roll history/);
+  assert.match(clientSource, /Leave Result/);
+  assert.doesNotMatch(clientSource, /Close Preview \(Saved\)/);
 });

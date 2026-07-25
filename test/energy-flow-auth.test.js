@@ -4,6 +4,7 @@ import { ethers } from "ethers";
 import {
   canonicalTraitLabPreviewAction,
   traitLabConfirmationAuthorizationMessage,
+  traitLabForfeitAuthorizationMessage,
   traitLabPreviewAuthorizationMessage,
 } from "../lib/s2-trait-lab-auth.ts";
 
@@ -73,6 +74,36 @@ test("Trait Lab confirmation authorization binds the paid preview and proposed r
     ethers.verifyMessage(traitLabConfirmationAuthorizationMessage({
       ...input,
       previewId: "different.preview.signature",
+    }), signature),
+    signer.address,
+  );
+});
+
+test("Trait Lab leave-result authorization binds the exact roll and preview", async () => {
+  const signer = ethers.Wallet.createRandom();
+  const input = {
+    wallet: signer.address,
+    tokenId: 42,
+    rollId: `0x${"a".repeat(64)}`,
+    previewId: "preview.payload.signature",
+    timestamp: "1784682000000",
+    nonce: "161d9e38-5d4e-473e-a2bb-a92242dc91fd",
+  };
+  const message = traitLabForfeitAuthorizationMessage(input);
+  const signature = await signer.signMessage(message);
+
+  assert.equal(ethers.verifyMessage(message, signature), signer.address);
+  assert.notEqual(
+    ethers.verifyMessage(traitLabForfeitAuthorizationMessage({
+      ...input,
+      rollId: `0x${"b".repeat(64)}`,
+    }), signature),
+    signer.address,
+  );
+  assert.notEqual(
+    ethers.verifyMessage(traitLabForfeitAuthorizationMessage({
+      ...input,
+      previewId: "another.preview.signature",
     }), signature),
     signer.address,
   );
