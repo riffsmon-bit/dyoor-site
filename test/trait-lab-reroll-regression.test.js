@@ -91,3 +91,12 @@ test("legacy UUID-era confirmations are retired instead of hijacking a new trait
   assert.match(clientSource, /Your \$\{traitType\} roll was not created or charged/);
   assert.match(clientSource, /Signature request/);
 });
+
+test("token metadata and restore responses cannot overwrite a newer Droid selection", () => {
+  const clientSource = fs.readFileSync("components/s2/TraitLabClient.tsx", "utf8");
+
+  assert.match(clientSource, /metadataRequestRef/);
+  assert.match(clientSource, /activeRestoreRequestRef/);
+  assert.match(clientSource, /selectedTokenIdRef\.current !== tokenId/);
+  assert.match(clientSource, /if \(selectedTokenIdRef\.current === tokenId\)/);
+});

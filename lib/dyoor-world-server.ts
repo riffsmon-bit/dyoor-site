@@ -1,15 +1,18 @@
-import { randomUUID } from "node:crypto";
+import { createHmac, randomUUID, timingSafeEqual } from "node:crypto";
 import { ethers } from "ethers";
 import {
   DYOOR_WORLD_CHALLENGE_TTL_MS,
   DYOOR_WORLD_CHANNELS,
   DYOOR_WORLD_SESSION_COOKIE,
   DYOOR_WORLD_SESSION_TTL_SECONDS,
+  type DyoorWorldAvatar,
+  type DyoorWorldChannelId,
   type DyoorWorldMessage,
   type DyoorWorldMessageView,
   type DyoorWorldNameClaim,
   type DyoorWorldProfile,
   isWorldChannel,
+  isWorldWritableChannel,
   normalizeWorldLabel,
   normalizeWorldWallet,
   resolveWorldNameClaims,
@@ -17,6 +20,16 @@ import {
   validateWorldLabel,
   worldProfileFromClaim,
 } from "@/lib/dyoor-world";
+import {
+  DYOOR_WORLD_CHAT_REWARD_COOLDOWN_MS,
+  DYOOR_WORLD_CHAT_REWARD_DAILY_CAP,
+  DYOOR_WORLD_CHAT_REWARD_ENERGY,
+  type DyoorWorldRewardClaim,
+  type DyoorWorldRewardRecord,
+  dyoorWorldDailyPrize,
+  dyoorWorldUtcDate,
+  qualifiesForDyoorWorldChatReward,
+} from "@/lib/dyoor-world-rewards";
 import {
   createDyoorWorldSessionToken,
   dyoorWorldChallengeMessage,
@@ -26,11 +39,30 @@ import {
   type DyoorWorldChallenge,
   type DyoorWorldSession,
 } from "@/lib/dyoor-world-auth";
-import { dyoorS2Contract, optionalContractAddress } from "@/lib/contracts/addresses";
+import {
+  dyoorS2Contract,
+  energyBankContract,
+  optionalContractAddress,
+} from "@/lib/contracts/addresses";
 import { createJsonStore } from "@/src/lib/storage/fileStore";
 
 const worldStore = createJsonStore("dyoor-world");
 const ERC721_BALANCE_ABI = ["function balanceOf(address owner) view returns (uint256)"];
+const ERC721_OWNER_ABI = ["function ownerOf(uint256 tokenId) view returns (address)"];
+const ENERGY_BANK_ABI = [
+  "function creditEnergy(address user,uint256 amount,bytes32 claimTxHash)",
+  "function usedClaimTxHash(bytes32 claimTxHash) view returns (bool)",
+  "function CREDIT_ROLE() view returns (bytes32)",
+  "function hasRole(bytes32 role,address account) view returns (bool)",
+];
+const WORLD_TRADE_ABI = [
+  "event TradeCreated(uint256 indexed tradeId,address indexed maker,address indexed taker,uint256 offeredTokenId,uint256 requestedTokenId,uint256 monOffered,uint256 monRequested,uint64 expiresAt)",
+  "event TradeCompleted(uint256 indexed tradeId,address indexed maker,address indexed taker)",
+  "event TradeCancelled(uint256 indexed tradeId,address indexed maker)",
+  "event TradeExpired(uint256 indexed tradeId,address indexed maker)",
+  "function S2_COLLECTION() view returns (address)",
+  "function trades(uint256 tradeId) view returns (address maker,address taker,uint256 offeredTokenId,uint256 requestedTokenId,uint256 monOffered,uint256 monRequested,uint64 expiresAt,uint8 status)",
+];
 const WORLD_NAMES_ABI = [
   "function nameOf(address wallet) view returns (string)",
   "function ownerOfName(string label) view returns (address)",
@@ -41,6 +73,22 @@ const WORLD_NAMES_ABI = [
 ];
 const holderCache = new Map<string, { allowed: boolean; expiresAt: number }>();
 const rateLimitBuckets = new Map<string, { count: number; resetAt: number }>();
+let rewardClaimQueue = Promise.resolve();
+
+type DyoorWorldAvatarRecord = DyoorWorldAvatar & {
+  version: 1;
+  wallet: string;
+};
+
+type DyoorWorldTipRecord = {
+  version: 1;
+  txHash: string;
+  from: string;
+  to: string;
+  amountWei: string;
+  amountMon: string;
+  createdAt: string;
+};
 
 type RequestSession = {
   session: DyoorWorldSession;
@@ -62,6 +110,15 @@ function readEnv(...names: string[]) {
     if (value) return value;
   }
   return "";
+}
+
+function envFlag(...names: string[]) {
+  return /^(1|true|yes|on)$/i.test(readEnv(...names));
+}
+
+function normalizePrivateKey(value: string) {
+  if (!value) return "";
+  return value.startsWith("0x") ? value : `0x${value}`;
 }
 
 function worldRpcUrl() {
@@ -89,6 +146,21 @@ export function dyoorWorldNamesContractAddress() {
     process.env.DYOOR_WORLD_NAMES_CONTRACT
       || process.env.NEXT_PUBLIC_DYOOR_WORLD_NAMES_CONTRACT,
   );
+}
+
+export function dyoorWorldTradeEscrowAddress() {
+  return optionalContractAddress(
+    process.env.DYOOR_WORLD_TRADE_ESCROW_ADDRESS
+      || process.env.NEXT_PUBLIC_DYOOR_WORLD_TRADE_ESCROW_ADDRESS,
+  );
+}
+
+export function dyoorWorldRewardsEnabled() {
+  return envFlag("DYOOR_WORLD_REWARDS_ENABLED");
+}
+
+export function dyoorWorldSalesBotEnabled() {
+  return envFlag("DYOOR_WORLD_SALES_BOT_ENABLED");
 }
 
 function namesContract() {
@@ -433,6 +505,79 @@ export async function getDyoorWorldProfile(walletValue: unknown) {
   return claim ? worldProfileFromClaim(claim) : null;
 }
 
+function avatarKey(wallet: string) {
+  return `profiles/${wallet}.json`;
+}
+
+async function requireOwnedS2Token(wallet: string, tokenIdValue: unknown) {
+  const tokenIdText = String(tokenIdValue || "").trim();
+  const maxSupply = Math.max(
+    1,
+    Number(readEnv("DYOOR_S2_MAX_SUPPLY", "NEXT_PUBLIC_DYOOR_S2_MAX_SUPPLY") || 3_333),
+  );
+  if (!/^\d+$/.test(tokenIdText)) {
+    throw dyoorWorldError("Choose a valid S2 Droid token ID.", 400);
+  }
+  const tokenId = Number(tokenIdText);
+  if (!Number.isSafeInteger(tokenId) || tokenId < 1 || tokenId > maxSupply) {
+    throw dyoorWorldError("That S2 Droid token ID is out of range.", 400);
+  }
+  const contract = new ethers.Contract(dyoorS2Contract, ERC721_OWNER_ABI, provider());
+  let owner = "";
+  try {
+    owner = normalizeWorldWallet(await contract.ownerOf(tokenId));
+  } catch {
+    throw dyoorWorldError("That S2 Droid does not currently exist.", 404);
+  }
+  if (owner !== wallet) {
+    throw dyoorWorldError("You can only use an S2 Droid owned by this holder wallet.", 403);
+  }
+  return tokenId;
+}
+
+export async function getDyoorWorldAvatar(walletValue: unknown): Promise<DyoorWorldAvatar | null> {
+  const wallet = normalizeWorldWallet(walletValue);
+  if (!wallet) return null;
+  const record = await worldStore.getJsonStrict<DyoorWorldAvatarRecord>(avatarKey(wallet));
+  if (!record || record.version !== 1 || record.wallet !== wallet) return null;
+  try {
+    const tokenId = await requireOwnedS2Token(wallet, record.tokenId);
+    return {
+      tokenId: String(tokenId),
+      imageUrl: `/api/dyoor-world/pfp-image/${tokenId}`,
+      updatedAt: record.updatedAt,
+    };
+  } catch {
+    return null;
+  }
+}
+
+export async function setDyoorWorldAvatar(walletValue: unknown, tokenIdValue: unknown) {
+  const wallet = normalizeWorldWallet(walletValue);
+  if (!wallet) throw dyoorWorldError("wallet must be a valid address.", 400);
+  const tokenId = await requireOwnedS2Token(wallet, tokenIdValue);
+  const record: DyoorWorldAvatarRecord = {
+    version: 1,
+    wallet,
+    tokenId: String(tokenId),
+    imageUrl: `/api/dyoor-world/pfp-image/${tokenId}`,
+    updatedAt: new Date().toISOString(),
+  };
+  await worldStore.setJson(avatarKey(wallet), record);
+  return {
+    tokenId: record.tokenId,
+    imageUrl: record.imageUrl,
+    updatedAt: record.updatedAt,
+  } satisfies DyoorWorldAvatar;
+}
+
+export async function clearDyoorWorldAvatar(walletValue: unknown) {
+  const wallet = normalizeWorldWallet(walletValue);
+  if (!wallet) throw dyoorWorldError("wallet must be a valid address.", 400);
+  await worldStore.deleteJson(avatarKey(wallet));
+  return null;
+}
+
 export async function reserveDyoorWorldName(walletValue: unknown, labelValue: unknown) {
   const wallet = normalizeWorldWallet(walletValue);
   if (!wallet) throw dyoorWorldError("wallet must be a valid address.", 400);
@@ -469,12 +614,29 @@ export async function reserveDyoorWorldName(walletValue: unknown, labelValue: un
 }
 
 async function worldProfilesForWallets(wallets: string[]) {
-  const unique = Array.from(new Set(wallets.map(normalizeWorldWallet).filter(Boolean)));
+  const unique = Array.from(new Set(
+    wallets
+      .map(normalizeWorldWallet)
+      .filter((wallet) => wallet && wallet !== ethers.ZeroAddress.toLowerCase()),
+  ));
   const profiles = await Promise.all(unique.map(async (wallet) => [
     wallet,
     await getDyoorWorldProfile(wallet),
   ] as const));
   return new Map(profiles);
+}
+
+async function worldAvatarsForWallets(wallets: string[]) {
+  const unique = Array.from(new Set(
+    wallets
+      .map(normalizeWorldWallet)
+      .filter((wallet) => wallet && wallet !== ethers.ZeroAddress.toLowerCase()),
+  ));
+  const avatars = await Promise.all(unique.map(async (wallet) => [
+    wallet,
+    await getDyoorWorldAvatar(wallet),
+  ] as const));
+  return new Map(avatars);
 }
 
 function messagePrefix(channelId: string) {
@@ -489,7 +651,7 @@ async function loadRawWorldMessages(channelId: string, limit = 100) {
   return messages
     .filter((message): message is DyoorWorldMessage => Boolean(
       message
-        && message.version === 1
+        && (message.version === 1 || message.version === 2)
         && isWorldChannel(message.channelId)
         && normalizeWorldWallet(message.wallet)
         && message.content
@@ -505,11 +667,48 @@ export async function listDyoorWorldMessages(channelValue: unknown) {
     throw dyoorWorldError("channel must identify a dYOOR World stream.", 400);
   }
   const messages = await loadRawWorldMessages(channelId);
-  const profiles = await worldProfilesForWallets(messages.map((message) => message.wallet));
+  const [profiles, avatars] = await Promise.all([
+    worldProfilesForWallets(messages.map((message) => message.wallet)),
+    worldAvatarsForWallets(messages.map((message) => message.wallet)),
+  ]);
   return messages.map((message): DyoorWorldMessageView => ({
     ...message,
-    author: profiles.get(message.wallet)?.displayName || shortWorldWallet(message.wallet),
+    kind: message.kind || "user",
+    author: message.systemAuthor
+      || profiles.get(message.wallet)?.displayName
+      || shortWorldWallet(message.wallet),
+    avatar: avatars.get(message.wallet) || null,
   }));
+}
+
+async function createDyoorWorldSystemMessage(input: {
+  id: string;
+  channelId: DyoorWorldChannelId;
+  content: string;
+  kind: Exclude<NonNullable<DyoorWorldMessage["kind"]>, "user">;
+  systemAuthor: string;
+  data?: DyoorWorldMessage["data"];
+  createdAt?: string;
+}) {
+  const id = String(input.id || "").replace(/[^a-zA-Z0-9._:-]/g, "").slice(0, 180);
+  if (!id) throw dyoorWorldError("System message ID is invalid.", 500);
+  const message: DyoorWorldMessage = {
+    version: 2,
+    id,
+    channelId: input.channelId,
+    wallet: ethers.ZeroAddress.toLowerCase(),
+    content: String(input.content || "").trim().slice(0, 800),
+    createdAt: input.createdAt || new Date().toISOString(),
+    kind: input.kind,
+    systemAuthor: input.systemAuthor,
+    data: input.data,
+  };
+  await worldStore.setJson(`${messagePrefix(input.channelId)}${id}.json`, message);
+  return {
+    ...message,
+    author: input.systemAuthor,
+    avatar: null,
+  } satisfies DyoorWorldMessageView;
 }
 
 export async function createDyoorWorldMessage(input: {
@@ -520,7 +719,10 @@ export async function createDyoorWorldMessage(input: {
   const wallet = normalizeWorldWallet(input.wallet);
   const channelId = String(input.channelId || "");
   if (!wallet) throw dyoorWorldError("wallet must be a valid address.", 400);
-  if (!isWorldChannel(channelId)) {
+  if (!isWorldWritableChannel(channelId)) {
+    if (isWorldChannel(channelId)) {
+      throw dyoorWorldError("This stream is maintained by verified World bots.", 403);
+    }
     throw dyoorWorldError("channel must identify a dYOOR World stream.", 400);
   }
   const content = String(input.content || "")
@@ -541,19 +743,642 @@ export async function createDyoorWorldMessage(input: {
   const createdAt = new Date().toISOString();
   const id = `${Date.now().toString().padStart(13, "0")}-${randomUUID()}`;
   const message: DyoorWorldMessage = {
-    version: 1,
+    version: 2,
     id,
     channelId,
     wallet,
     content,
     createdAt,
+    kind: "user",
   };
   await worldStore.setJson(`${messagePrefix(channelId)}${id}.json`, message);
-  const profile = await getDyoorWorldProfile(wallet);
+  const [profile, avatar, reward] = await Promise.all([
+    getDyoorWorldProfile(wallet),
+    getDyoorWorldAvatar(wallet),
+    createDyoorWorldChatReward(wallet, message).catch((error) => {
+      console.error("dYOOR World chat reward creation failed", error);
+      return null;
+    }),
+  ]);
   return {
     ...message,
     author: profile?.displayName || shortWorldWallet(wallet),
+    avatar,
+    energyReward: reward?.amountEnergy,
   } satisfies DyoorWorldMessageView;
+}
+
+function rewardPrefix(wallet: string, utcDate?: string) {
+  return `rewards/${wallet}/${utcDate ? `${utcDate}/` : ""}`;
+}
+
+function rewardClaimPrefix(wallet: string) {
+  return `reward-claims/${wallet}/`;
+}
+
+function validRewardRecord(record: DyoorWorldRewardRecord | null, wallet: string) {
+  return Boolean(
+    record
+      && record.version === 1
+      && record.wallet === wallet
+      && (record.kind === "chat" || record.kind === "daily")
+      && Number.isSafeInteger(record.amountEnergy)
+      && record.amountEnergy > 0
+      && /^\d+$/.test(record.amountRaw)
+      && Number.isFinite(Date.parse(record.createdAt)),
+  );
+}
+
+async function loadDyoorWorldRewards(wallet: string, utcDate?: string) {
+  const keys = await worldStore.listKeys(rewardPrefix(wallet, utcDate));
+  const records = await Promise.all(
+    keys.map((key) => worldStore.getJsonStrict<DyoorWorldRewardRecord>(key)),
+  );
+  return records
+    .filter((record): record is DyoorWorldRewardRecord => validRewardRecord(record, wallet))
+    .sort((left, right) => Date.parse(left.createdAt) - Date.parse(right.createdAt));
+}
+
+async function loadDyoorWorldRewardClaims(wallet: string) {
+  const keys = await worldStore.listKeys(rewardClaimPrefix(wallet));
+  const records = await Promise.all(
+    keys.map((key) => worldStore.getJsonStrict<DyoorWorldRewardClaim>(key)),
+  );
+  return records.filter((record): record is DyoorWorldRewardClaim => Boolean(
+    record
+      && record.version === 1
+      && record.wallet === wallet
+      && /^0x[a-f0-9]{64}$/.test(record.claimHash),
+  ));
+}
+
+async function createDyoorWorldChatReward(wallet: string, message: DyoorWorldMessage) {
+  if (!dyoorWorldRewardsEnabled() || !qualifiesForDyoorWorldChatReward(message.content)) {
+    return null;
+  }
+  const utcDate = dyoorWorldUtcDate(message.createdAt);
+  const todaysRewards = await loadDyoorWorldRewards(wallet, utcDate);
+  const chatRewards = todaysRewards.filter((reward) => reward.kind === "chat");
+  if (chatRewards.length >= DYOOR_WORLD_CHAT_REWARD_DAILY_CAP) return null;
+  const last = chatRewards.at(-1);
+  if (
+    last
+      && Date.parse(message.createdAt) - Date.parse(last.createdAt)
+        < DYOOR_WORLD_CHAT_REWARD_COOLDOWN_MS
+  ) {
+    return null;
+  }
+
+  const id = `chat-${message.id}`;
+  const record: DyoorWorldRewardRecord = {
+    version: 1,
+    id,
+    wallet,
+    kind: "chat",
+    amountEnergy: DYOOR_WORLD_CHAT_REWARD_ENERGY,
+    amountRaw: ethers.parseUnits(String(DYOOR_WORLD_CHAT_REWARD_ENERGY), 18).toString(),
+    createdAt: message.createdAt,
+    utcDate,
+    messageId: message.id,
+  };
+  await worldStore.setJson(`${rewardPrefix(wallet, utcDate)}${id}.json`, record);
+  return record;
+}
+
+export async function checkInDyoorWorldDailyReward(walletValue: unknown) {
+  const wallet = normalizeWorldWallet(walletValue);
+  if (!wallet) throw dyoorWorldError("wallet must be a valid address.", 400);
+  if (!dyoorWorldRewardsEnabled()) {
+    throw dyoorWorldError("World Energy rewards are not enabled yet.", 503);
+  }
+  const secret = readEnv("DYOOR_WORLD_REWARD_SECRET");
+  if (secret.length < 32) {
+    throw dyoorWorldError("The daily World reward engine is not configured.", 503);
+  }
+  const utcDate = dyoorWorldUtcDate();
+  const key = `${rewardPrefix(wallet, utcDate)}daily.json`;
+  const existing = await worldStore.getJsonStrict<DyoorWorldRewardRecord>(key);
+  if (validRewardRecord(existing, wallet) && existing?.kind === "daily") {
+    return { reward: existing, alreadyCheckedIn: true };
+  }
+
+  const digest = createHmac("sha256", secret)
+    .update(`dyoor-world:daily:v1:${wallet}:${utcDate}`)
+    .digest();
+  const sample = digest.readUInt32BE(0) % 100;
+  const amountEnergy = dyoorWorldDailyPrize(sample);
+  const record: DyoorWorldRewardRecord = {
+    version: 1,
+    id: `daily-${utcDate}`,
+    wallet,
+    kind: "daily",
+    amountEnergy,
+    amountRaw: ethers.parseUnits(String(amountEnergy), 18).toString(),
+    createdAt: new Date().toISOString(),
+    utcDate,
+  };
+  await worldStore.setJson(key, record);
+  return { reward: record, alreadyCheckedIn: false };
+}
+
+async function unclaimedDyoorWorldRewards(wallet: string) {
+  const [rewards, claims] = await Promise.all([
+    loadDyoorWorldRewards(wallet),
+    loadDyoorWorldRewardClaims(wallet),
+  ]);
+  const claimedIds = new Set(
+    claims
+      .filter((claim) => claim.status === "credited")
+      .flatMap((claim) => claim.rewardIds),
+  );
+  return {
+    rewards,
+    claims,
+    pending: rewards.filter((reward) => !claimedIds.has(reward.id)),
+  };
+}
+
+export async function getDyoorWorldRewardStatus(walletValue: unknown) {
+  const wallet = normalizeWorldWallet(walletValue);
+  if (!wallet) throw dyoorWorldError("wallet must be a valid address.", 400);
+  const utcDate = dyoorWorldUtcDate();
+  const { pending } = await unclaimedDyoorWorldRewards(wallet);
+  const todaysRewards = await loadDyoorWorldRewards(wallet, utcDate);
+  const daily = todaysRewards.find((reward) => reward.kind === "daily") || null;
+  const chatRewards = todaysRewards.filter((reward) => reward.kind === "chat");
+  const lastChatReward = chatRewards.at(-1);
+  const nextChatRewardAt = lastChatReward
+    ? new Date(
+      Date.parse(lastChatReward.createdAt) + DYOOR_WORLD_CHAT_REWARD_COOLDOWN_MS,
+    ).toISOString()
+    : null;
+  return {
+    enabled: dyoorWorldRewardsEnabled(),
+    claimReady: Boolean(
+      dyoorWorldRewardsEnabled()
+        && normalizePrivateKey(readEnv("ENERGY_BANK_OPERATOR_PRIVATE_KEY")),
+    ),
+    pendingEnergy: pending.reduce((sum, reward) => sum + reward.amountEnergy, 0),
+    pendingRewardCount: pending.length,
+    daily,
+    utcDate,
+    chat: {
+      rewardEnergy: DYOOR_WORLD_CHAT_REWARD_ENERGY,
+      rewardedToday: chatRewards.length,
+      dailyCap: DYOOR_WORLD_CHAT_REWARD_DAILY_CAP,
+      nextRewardAt: nextChatRewardAt,
+    },
+  };
+}
+
+async function creditDyoorWorldRewards(wallet: string) {
+  if (!dyoorWorldRewardsEnabled()) {
+    throw dyoorWorldError("World Energy rewards are not enabled yet.", 503);
+  }
+  const signerKey = normalizePrivateKey(readEnv("ENERGY_BANK_OPERATOR_PRIVATE_KEY"));
+  if (!signerKey) {
+    throw dyoorWorldError("World Energy claiming is not configured yet.", 503);
+  }
+  const { pending, claims } = await unclaimedDyoorWorldRewards(wallet);
+  if (pending.length === 0) {
+    return { alreadyCredited: true, status: await getDyoorWorldRewardStatus(wallet) };
+  }
+
+  const selected = pending.slice(0, 100);
+  const rewardIds = selected.map((reward) => reward.id).sort();
+  const amountRaw = selected
+    .reduce((sum, reward) => sum + BigInt(reward.amountRaw), 0n);
+  const amountEnergy = selected.reduce((sum, reward) => sum + reward.amountEnergy, 0);
+  const claimHash = ethers.keccak256(ethers.toUtf8Bytes(
+    `dyoor-world:rewards:v1:${wallet}:${rewardIds.join(",")}`,
+  ));
+  const existing = claims.find((claim) => claim.claimHash === claimHash);
+  if (existing?.status === "credited") {
+    return {
+      alreadyCredited: true,
+      claim: existing,
+      status: await getDyoorWorldRewardStatus(wallet),
+    };
+  }
+
+  const now = new Date().toISOString();
+  const key = `${rewardClaimPrefix(wallet)}${claimHash}.json`;
+  const claim: DyoorWorldRewardClaim = {
+    version: 1,
+    id: claimHash,
+    wallet,
+    rewardIds,
+    amountEnergy,
+    amountRaw: amountRaw.toString(),
+    claimHash,
+    status: "pending",
+    createdAt: existing?.createdAt || now,
+    updatedAt: now,
+    txHash: existing?.txHash,
+  };
+  await worldStore.setJson(key, claim);
+
+  try {
+    const signer = new ethers.Wallet(signerKey, provider());
+    const bank = new ethers.Contract(energyBankContract, ENERGY_BANK_ABI, signer);
+    const [creditRole, used] = await Promise.all([
+      bank.CREDIT_ROLE(),
+      bank.usedClaimTxHash(claimHash).then(Boolean),
+    ]);
+    if (!(await bank.hasRole(creditRole, signer.address))) {
+      throw new Error("The World reward operator is missing Energy Bank CREDIT_ROLE.");
+    }
+
+    let txHash = claim.txHash || "";
+    if (!used) {
+      await bank.creditEnergy.staticCall(wallet, amountRaw, claimHash);
+      const transaction = await bank.creditEnergy(
+        wallet,
+        amountRaw,
+        claimHash,
+        { gasLimit: 160_000n },
+      );
+      txHash = transaction.hash;
+      await worldStore.setJson(key, {
+        ...claim,
+        txHash,
+        updatedAt: new Date().toISOString(),
+      });
+      const receipt = await transaction.wait();
+      if (!receipt || receipt.status !== 1) {
+        throw new Error("The World Energy credit transaction failed.");
+      }
+    }
+
+    const credited: DyoorWorldRewardClaim = {
+      ...claim,
+      status: "credited",
+      txHash,
+      updatedAt: new Date().toISOString(),
+    };
+    await worldStore.setJson(key, credited);
+    return {
+      alreadyCredited: used,
+      claim: credited,
+      status: await getDyoorWorldRewardStatus(wallet),
+    };
+  } catch (error) {
+    const failed: DyoorWorldRewardClaim = {
+      ...claim,
+      status: "failed",
+      error: (error as Error)?.message || "World Energy credit failed.",
+      updatedAt: new Date().toISOString(),
+    };
+    await worldStore.setJson(key, failed);
+    throw dyoorWorldError(failed.error || "World Energy credit failed.", 503);
+  }
+}
+
+export async function claimDyoorWorldRewards(walletValue: unknown) {
+  const wallet = normalizeWorldWallet(walletValue);
+  if (!wallet) throw dyoorWorldError("wallet must be a valid address.", 400);
+  const run = rewardClaimQueue.then(
+    () => creditDyoorWorldRewards(wallet),
+    () => creditDyoorWorldRewards(wallet),
+  );
+  rewardClaimQueue = run.then(() => undefined, () => undefined);
+  return await run;
+}
+
+function requireTransactionHash(value: unknown) {
+  const hash = String(value || "").trim().toLowerCase();
+  if (!/^0x[a-f0-9]{64}$/.test(hash)) {
+    throw dyoorWorldError("txHash must be a Monad transaction hash.", 400);
+  }
+  return hash;
+}
+
+export async function verifyDyoorWorldTip(input: {
+  wallet: unknown;
+  recipient: unknown;
+  txHash: unknown;
+}) {
+  const wallet = normalizeWorldWallet(input.wallet);
+  const recipient = normalizeWorldWallet(input.recipient);
+  const txHash = requireTransactionHash(input.txHash);
+  if (!wallet || !recipient) {
+    throw dyoorWorldError("Tip sender and recipient must be valid wallet addresses.", 400);
+  }
+  if (wallet === recipient) throw dyoorWorldError("Choose another holder to tip.", 400);
+  if (!(await hasDyoorWorldAccess(recipient))) {
+    throw dyoorWorldError("MON tips in dYOOR World can only target a current S2 holder.", 403);
+  }
+
+  const key = `tips/${txHash}.json`;
+  const existing = await worldStore.getJsonStrict<DyoorWorldTipRecord>(key);
+  if (existing) {
+    if (existing.from !== wallet || existing.to !== recipient) {
+      throw dyoorWorldError("This tip transaction was already recorded differently.", 409);
+    }
+    return { tip: existing, alreadyRecorded: true };
+  }
+
+  const [transaction, receipt] = await Promise.all([
+    provider().getTransaction(txHash),
+    provider().getTransactionReceipt(txHash),
+  ]);
+  if (!transaction || !receipt) {
+    throw dyoorWorldError("The MON tip is not confirmed yet. Check again in a moment.", 409);
+  }
+  if (receipt.status !== 1) throw dyoorWorldError("The MON tip transaction failed.", 400);
+  if (
+    normalizeWorldWallet(transaction.from) !== wallet
+      || normalizeWorldWallet(transaction.to) !== recipient
+      || transaction.value <= 0n
+      || (transaction.data && transaction.data !== "0x")
+  ) {
+    throw dyoorWorldError("This transaction is not a direct MON tip between these holders.", 400);
+  }
+
+  const amountMon = ethers.formatEther(transaction.value);
+  const record: DyoorWorldTipRecord = {
+    version: 1,
+    txHash,
+    from: wallet,
+    to: recipient,
+    amountWei: transaction.value.toString(),
+    amountMon,
+    createdAt: new Date().toISOString(),
+  };
+  const [sender, receiver] = await Promise.all([
+    getDyoorWorldProfile(wallet),
+    getDyoorWorldProfile(recipient),
+  ]);
+  await createDyoorWorldSystemMessage({
+    id: `tip-${txHash.slice(2)}`,
+    channelId: "tip-ledger",
+    kind: "tip",
+    systemAuthor: "World Tip Relay",
+    content: `${sender?.displayName || shortWorldWallet(wallet)} tipped ${receiver?.displayName || shortWorldWallet(recipient)} ${amountMon} MON.`,
+    data: {
+      txHash,
+      from: wallet,
+      to: recipient,
+      amountWei: transaction.value.toString(),
+      amountMon,
+    },
+  });
+  await worldStore.setJson(key, record);
+  return { tip: record, alreadyRecorded: false };
+}
+
+export function requireDyoorWorldAutomationRequest(request: Request) {
+  const expected = readEnv("DYOOR_WORLD_AUTOMATION_SECRET");
+  const supplied = String(request.headers.get("authorization") || "")
+    .replace(/^Bearer\s+/i, "")
+    .trim();
+  if (expected.length < 32 || supplied.length !== expected.length) {
+    throw dyoorWorldError("World automation authorization failed.", 401);
+  }
+  const allowed = timingSafeEqual(Buffer.from(supplied), Buffer.from(expected));
+  if (!allowed) throw dyoorWorldError("World automation authorization failed.", 401);
+}
+
+type OpenSeaSaleEvent = {
+  event_type?: string;
+  event_timestamp?: number | string;
+  transaction?: string;
+  order_hash?: string;
+  seller?: string;
+  buyer?: string;
+  payment?: {
+    quantity?: string;
+    decimals?: number;
+    symbol?: string;
+  };
+  nft?: {
+    identifier?: string;
+    contract?: string;
+    name?: string;
+    display_image_url?: string;
+    image_url?: string;
+    opensea_url?: string;
+  };
+};
+
+function openSeaHeaders() {
+  const apiKey = readEnv("OPENSEA_API_KEY");
+  if (!apiKey) throw dyoorWorldError("OPENSEA_API_KEY is required for the sales bot.", 503);
+  return { accept: "application/json", "x-api-key": apiKey };
+}
+
+async function dyoorOpenSeaCollectionSlug() {
+  const stored = await worldStore.getJsonStrict<{ slug?: string }>("automation/sales/collection.json");
+  if (stored?.slug) return stored.slug;
+  const response = await fetch(
+    `https://api.opensea.io/api/v2/chain/monad/contract/${dyoorS2Contract}`,
+    { headers: openSeaHeaders(), signal: AbortSignal.timeout(8_000) },
+  );
+  if (!response.ok) {
+    throw dyoorWorldError(`OpenSea collection lookup failed (${response.status}).`, 503);
+  }
+  const data = await response.json().catch(() => ({})) as {
+    collection?: string | { slug?: string };
+  };
+  const slug = typeof data.collection === "string"
+    ? data.collection
+    : String(data.collection?.slug || "");
+  if (!/^[a-z0-9-]{2,120}$/.test(slug)) {
+    throw dyoorWorldError("OpenSea did not return the D.Y.O.O.R collection slug.", 503);
+  }
+  await worldStore.setJson("automation/sales/collection.json", { slug });
+  return slug;
+}
+
+function openSeaSaleTime(value: OpenSeaSaleEvent["event_timestamp"]) {
+  if (typeof value === "number") {
+    const milliseconds = value < 10_000_000_000 ? value * 1_000 : value;
+    return new Date(milliseconds).toISOString();
+  }
+  const parsed = Date.parse(String(value || ""));
+  return Number.isFinite(parsed) ? new Date(parsed).toISOString() : new Date().toISOString();
+}
+
+function safeOpenSeaUrl(value: unknown) {
+  try {
+    const url = new URL(String(value || ""));
+    return url.protocol === "https:" && (
+      url.hostname === "opensea.io" || url.hostname.endsWith(".opensea.io")
+    ) ? url.toString() : "";
+  } catch {
+    return "";
+  }
+}
+
+function safeMarketplaceImageUrl(value: unknown) {
+  const url = String(value || "").trim();
+  return url.startsWith("ipfs://") || /^https:\/\//i.test(url) ? url : "";
+}
+
+export async function processDyoorWorldSales() {
+  if (!dyoorWorldSalesBotEnabled()) {
+    return { enabled: false, inspected: 0, posted: 0 };
+  }
+  const slug = await dyoorOpenSeaCollectionSlug();
+  const response = await fetch(
+    `https://api.opensea.io/api/v2/events/collection/${encodeURIComponent(slug)}?event_type=sale&limit=20`,
+    { headers: openSeaHeaders(), signal: AbortSignal.timeout(10_000) },
+  );
+  if (!response.ok) throw dyoorWorldError(`OpenSea sales lookup failed (${response.status}).`, 503);
+  const data = await response.json().catch(() => ({})) as { asset_events?: OpenSeaSaleEvent[] };
+  const cutoff = Date.now() - (7 * 24 * 60 * 60 * 1_000);
+  const events = (Array.isArray(data.asset_events) ? data.asset_events : [])
+    .filter((event) => (
+      event.event_type === "sale"
+        && normalizeWorldWallet(event.nft?.contract) === String(dyoorS2Contract).toLowerCase()
+        && Date.parse(openSeaSaleTime(event.event_timestamp)) >= cutoff
+    ))
+    .sort(
+      (left, right) => Date.parse(openSeaSaleTime(left.event_timestamp))
+        - Date.parse(openSeaSaleTime(right.event_timestamp)),
+    );
+
+  let posted = 0;
+  for (const event of events) {
+    const txHash = requireTransactionHash(event.transaction);
+    const tokenId = String(event.nft?.identifier || "").trim();
+    if (!/^\d+$/.test(tokenId)) continue;
+    const eventId = ethers.keccak256(ethers.toUtf8Bytes(
+      `${txHash}:${event.order_hash || ""}:${tokenId}`,
+    )).slice(2);
+    const key = `automation/sales/events/${eventId}.json`;
+    if (await worldStore.getJsonStrict(key)) continue;
+
+    const decimals = Number.isInteger(event.payment?.decimals) ? Number(event.payment?.decimals) : 18;
+    const quantity = /^\d+$/.test(String(event.payment?.quantity || ""))
+      ? BigInt(String(event.payment?.quantity))
+      : 0n;
+    const amount = quantity > 0n ? ethers.formatUnits(quantity, decimals) : "0";
+    const symbol = String(event.payment?.symbol || "MON").slice(0, 12);
+    const buyer = normalizeWorldWallet(event.buyer);
+    const seller = normalizeWorldWallet(event.seller);
+    const createdAt = openSeaSaleTime(event.event_timestamp);
+    await createDyoorWorldSystemMessage({
+      id: `sale-${eventId}`,
+      channelId: "sales-feed",
+      kind: "sale",
+      systemAuthor: "D.Y.O.O.R Sales Bot",
+      content: `${event.nft?.name || `D.Y.O.O.R #${tokenId}`} sold for ${amount} ${symbol}.`,
+      createdAt,
+      data: {
+        tokenId,
+        txHash,
+        orderHash: String(event.order_hash || ""),
+        buyer,
+        seller,
+        amount,
+        symbol,
+        imageUrl: safeMarketplaceImageUrl(
+          event.nft?.display_image_url || event.nft?.image_url,
+        ),
+        openSeaUrl: safeOpenSeaUrl(event.nft?.opensea_url),
+      },
+    });
+    await worldStore.setJson(key, { version: 1, eventId, txHash, tokenId, createdAt });
+    posted += 1;
+  }
+  return { enabled: true, inspected: events.length, posted };
+}
+
+async function validatedTradeContract() {
+  const address = dyoorWorldTradeEscrowAddress();
+  if (!address) throw dyoorWorldError("The World trade escrow is not deployed yet.", 503);
+  const contract = new ethers.Contract(address, WORLD_TRADE_ABI, provider());
+  const collection = normalizeWorldWallet(await contract.S2_COLLECTION().catch(() => ""));
+  if (collection !== String(dyoorS2Contract).toLowerCase()) {
+    throw dyoorWorldError("The configured trade escrow does not use the production S2 collection.", 503);
+  }
+  return contract;
+}
+
+export async function verifyDyoorWorldTradeTransaction(input: {
+  wallet: unknown;
+  txHash: unknown;
+}) {
+  const wallet = normalizeWorldWallet(input.wallet);
+  const txHash = requireTransactionHash(input.txHash);
+  if (!wallet) throw dyoorWorldError("wallet must be a valid address.", 400);
+  const contract = await validatedTradeContract();
+  const [transaction, receipt] = await Promise.all([
+    provider().getTransaction(txHash),
+    provider().getTransactionReceipt(txHash),
+  ]);
+  if (!transaction || !receipt) {
+    throw dyoorWorldError("The escrow transaction is not confirmed yet. Check again in a moment.", 409);
+  }
+  if (receipt.status !== 1) throw dyoorWorldError("The escrow transaction failed.", 400);
+  const contractAddress = String(await contract.getAddress()).toLowerCase();
+  if (normalizeWorldWallet(transaction.to) !== contractAddress) {
+    throw dyoorWorldError("This transaction did not call the configured World escrow.", 400);
+  }
+  const relayer = normalizeWorldWallet(transaction.from);
+  const iface = new ethers.Interface(WORLD_TRADE_ABI);
+  const recorded: DyoorWorldMessageView[] = [];
+
+  for (const log of receipt.logs) {
+    if (log.address.toLowerCase() !== contractAddress) continue;
+    let parsed: ethers.LogDescription | null = null;
+    try {
+      parsed = iface.parseLog(log);
+    } catch {
+      continue;
+    }
+    if (!parsed || ![
+      "TradeCreated",
+      "TradeCompleted",
+      "TradeCancelled",
+      "TradeExpired",
+    ].includes(parsed.name)) continue;
+
+    const tradeId = BigInt(parsed.args.tradeId).toString();
+    const trade = await contract.trades(tradeId);
+    const maker = normalizeWorldWallet(trade.maker);
+    const taker = normalizeWorldWallet(trade.taker);
+    const eventTaker = normalizeWorldWallet(parsed.args.taker);
+    const involved = [maker, taker, eventTaker, relayer].includes(wallet);
+    if (!involved) {
+      throw dyoorWorldError("This holder wallet is not a party to the escrow event.", 403);
+    }
+
+    const offeredTokenId = BigInt(trade.offeredTokenId).toString();
+    const requestedTokenId = BigInt(trade.requestedTokenId).toString();
+    const monOffered = ethers.formatEther(trade.monOffered);
+    const monRequested = ethers.formatEther(trade.monRequested);
+    const action = parsed.name.replace(/^Trade/, "").toLowerCase();
+    const content = parsed.name === "TradeCreated"
+      ? `Trade #${tradeId}: S2 #${offeredTokenId} offered for S2 #${requestedTokenId}${BigInt(trade.monOffered) > 0n ? ` + ${monOffered} MON` : ""}${BigInt(trade.monRequested) > 0n ? `; asks ${monRequested} MON` : ""}.`
+      : `Trade #${tradeId} ${action} on the non-custodial World escrow.`;
+    const message = await createDyoorWorldSystemMessage({
+      id: `trade-${txHash.slice(2)}-${log.index}`,
+      channelId: "trade-desk",
+      kind: "trade",
+      systemAuthor: "World Trade Relay",
+      content,
+      data: {
+        tradeId,
+        action,
+        txHash,
+        maker,
+        taker,
+        offeredTokenId,
+        requestedTokenId,
+        monOffered,
+        monRequested,
+        expiresAt: Number(trade.expiresAt),
+        status: Number(trade.status),
+      },
+    });
+    recorded.push(message);
+  }
+  if (recorded.length === 0) {
+    throw dyoorWorldError("No World escrow event was found in this transaction.", 400);
+  }
+  return { txHash, messages: recorded };
 }
 
 export async function dyoorWorldPublicConfig() {
@@ -573,6 +1398,9 @@ export async function dyoorWorldPublicConfig() {
     registryAddress,
     registryMode: registryAddress ? "monad" : "preview-reservation",
     claimsOpen,
+    tradeEscrowAddress: dyoorWorldTradeEscrowAddress(),
+    rewardsEnabled: dyoorWorldRewardsEnabled(),
+    salesBotEnabled: dyoorWorldSalesBotEnabled(),
     channels: DYOOR_WORLD_CHANNELS,
   };
 }

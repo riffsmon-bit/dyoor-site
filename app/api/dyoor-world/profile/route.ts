@@ -3,9 +3,12 @@ import {
   dyoorWorldClientIp,
   dyoorWorldErrorStatus,
   dyoorWorldPublicConfig,
+  clearDyoorWorldAvatar,
+  getDyoorWorldAvatar,
   getDyoorWorldProfile,
   requireDyoorWorldRequest,
   reserveDyoorWorldName,
+  setDyoorWorldAvatar,
 } from "@/lib/dyoor-world-server";
 
 export const runtime = "nodejs";
@@ -21,14 +24,16 @@ function json(status: number, body: Record<string, unknown>) {
 export async function GET(request: Request) {
   try {
     const { wallet } = await requireDyoorWorldRequest(request);
-    const [profile, config] = await Promise.all([
+    const [profile, avatar, config] = await Promise.all([
       getDyoorWorldProfile(wallet),
+      getDyoorWorldAvatar(wallet),
       dyoorWorldPublicConfig(),
     ]);
     return json(200, {
       ok: true,
       wallet,
       profile,
+      avatar,
       config,
     });
   } catch (error) {
@@ -48,11 +53,36 @@ export async function POST(request: Request) {
       60_000,
     );
     const body = await request.json().catch(() => ({}));
+    const action = String(body?.action || (body?.label ? "reserve-name" : ""));
+    if (action === "set-pfp") {
+      const avatar = await setDyoorWorldAvatar(wallet, body?.tokenId);
+      return json(200, {
+        ok: true,
+        wallet,
+        profile: await getDyoorWorldProfile(wallet),
+        avatar,
+        config: await dyoorWorldPublicConfig(),
+      });
+    }
+    if (action === "clear-pfp") {
+      await clearDyoorWorldAvatar(wallet);
+      return json(200, {
+        ok: true,
+        wallet,
+        profile: await getDyoorWorldProfile(wallet),
+        avatar: null,
+        config: await dyoorWorldPublicConfig(),
+      });
+    }
+    if (action !== "reserve-name") {
+      throw Object.assign(new Error("Choose a supported World profile action."), { status: 400 });
+    }
     const profile = await reserveDyoorWorldName(wallet, body?.label);
     return json(201, {
       ok: true,
       wallet,
       profile,
+      avatar: await getDyoorWorldAvatar(wallet),
       config: await dyoorWorldPublicConfig(),
     });
   } catch (error) {

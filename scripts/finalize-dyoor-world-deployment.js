@@ -116,10 +116,25 @@ const sessionSecret = String(
     || localValues.DYOOR_WORLD_SESSION_SECRET
     || "",
 ).trim();
+const automationSecret = String(
+  masterValues.DYOOR_WORLD_AUTOMATION_SECRET
+    || localValues.DYOOR_WORLD_AUTOMATION_SECRET
+    || "",
+).trim();
+const rewardSecret = String(
+  masterValues.DYOOR_WORLD_REWARD_SECRET
+    || localValues.DYOOR_WORLD_REWARD_SECRET
+    || "",
+).trim();
 if (!processorKey || new ethers.Wallet(processorKey).address !== processor) {
   throw new Error("The stored bounty operator key does not match the dedicated processor.");
 }
-if (processorSecret.length < 32 || sessionSecret.length < 32) {
+if (
+  processorSecret.length < 32
+    || sessionSecret.length < 32
+    || automationSecret.length < 32
+    || rewardSecret.length < 32
+) {
   throw new Error("Deployment secrets were not prepared.");
 }
 
@@ -234,6 +249,10 @@ for (const [key, value] of Object.entries(localUpdates)) {
   localSource = upsertEnv(localSource, key, value);
 }
 const netlifyUpdates = {
+  DYOOR_WORLD_AUTOMATION_SECRET: automationSecret,
+  DYOOR_WORLD_REWARD_SECRET: rewardSecret,
+  DYOOR_WORLD_REWARDS_ENABLED: "false",
+  DYOOR_WORLD_SALES_BOT_ENABLED: "false",
   NEXT_PUBLIC_DYOOR_WORLD_NAMES_CONTRACT: worldAddress,
   NEXT_PUBLIC_DYOOR_TRAIT_BOUNTIES_CONTRACT: bountyAddress,
   NEXT_PUBLIC_DYOOR_TRAIT_LAB_ENABLE_LEADERBOARD: "true",
@@ -247,6 +266,10 @@ writeAtomic(masterEnvPath, masterSource, 0o600);
 
 const functionsSource = [
   "# Import into Netlify deploy-preview context with Functions scope.",
+  `DYOOR_WORLD_AUTOMATION_SECRET=${automationSecret}`,
+  `DYOOR_WORLD_REWARD_SECRET=${rewardSecret}`,
+  "DYOOR_WORLD_REWARDS_ENABLED=false",
+  "DYOOR_WORLD_SALES_BOT_ENABLED=false",
   `DYOOR_WORLD_SESSION_SECRET=${sessionSecret}`,
   `DYOOR_TRAIT_BOUNTY_OPERATOR_PRIVATE_KEY=${processorKey}`,
   `DYOOR_TRAIT_BOUNTY_PROCESSOR_SECRET=${processorSecret}`,

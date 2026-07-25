@@ -101,6 +101,16 @@ const sessionSecret = envValue(
   localValues.DYOOR_WORLD_SESSION_SECRET,
   randomBytes(32).toString("hex"),
 );
+const automationSecret = envValue(
+  netlifyValues.DYOOR_WORLD_AUTOMATION_SECRET,
+  localValues.DYOOR_WORLD_AUTOMATION_SECRET,
+  randomBytes(32).toString("hex"),
+);
+const rewardSecret = envValue(
+  netlifyValues.DYOOR_WORLD_REWARD_SECRET,
+  localValues.DYOOR_WORLD_REWARD_SECRET,
+  randomBytes(32).toString("hex"),
+);
 const processorSecret = envValue(
   localValues.DYOOR_TRAIT_BOUNTY_PROCESSOR_SECRET,
   netlifyValues.DYOOR_TRAIT_BOUNTY_PROCESSOR_SECRET,
@@ -113,8 +123,12 @@ const metadataBaseUri = envValue(
 
 const localUpdates = {
   DYOOR_OWNER_ADDRESS: deployer.address,
+  DYOOR_WORLD_AUTOMATION_SECRET: automationSecret,
   DYOOR_WORLD_NAMES_METADATA_BASE_URI: metadataBaseUri,
   DYOOR_WORLD_OPEN_CLAIMS: "false",
+  DYOOR_WORLD_REWARD_SECRET: rewardSecret,
+  DYOOR_WORLD_REWARDS_ENABLED: "false",
+  DYOOR_WORLD_SALES_BOT_ENABLED: "false",
   DYOOR_TRAIT_BOUNTY_PROCESSOR_ADDRESS: processor.address,
   DYOOR_TRAIT_BOUNTY_OPERATOR_PRIVATE_KEY: processorKey,
   DYOOR_TRAIT_BOUNTY_PROCESSOR_SECRET: processorSecret,
@@ -126,6 +140,10 @@ for (const [key, value] of Object.entries(localUpdates)) {
 }
 
 const netlifyUpdates = {
+  DYOOR_WORLD_AUTOMATION_SECRET: automationSecret,
+  DYOOR_WORLD_REWARD_SECRET: rewardSecret,
+  DYOOR_WORLD_REWARDS_ENABLED: "false",
+  DYOOR_WORLD_SALES_BOT_ENABLED: "false",
   DYOOR_WORLD_SESSION_SECRET: sessionSecret,
   DYOOR_TRAIT_BOUNTY_OPERATOR_PRIVATE_KEY: processorKey,
   DYOOR_TRAIT_BOUNTY_PROCESSOR_SECRET: processorSecret,

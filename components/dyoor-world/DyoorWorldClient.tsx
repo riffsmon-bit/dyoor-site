@@ -1,10 +1,17 @@
 "use client";
 
-import { encodeFunctionData } from "viem";
+/* eslint-disable @next/next/no-img-element */
+
+import {
+  encodeFunctionData,
+  parseEther,
+  toHex,
+} from "viem";
 import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   DYOOR_WORLD_CHANNELS,
+  type DyoorWorldAvatar,
   type DyoorWorldChannelId,
   type DyoorWorldMessageView,
   type DyoorWorldProfile,
@@ -20,14 +27,41 @@ type WorldConfig = {
   registryAddress: string;
   registryMode: "monad" | "preview-reservation";
   claimsOpen: boolean;
+  tradeEscrowAddress: string;
+  rewardsEnabled: boolean;
+  salesBotEnabled: boolean;
 };
 
 type ProfileResponse = {
   ok?: boolean;
   profile?: DyoorWorldProfile | null;
+  avatar?: DyoorWorldAvatar | null;
   config?: WorldConfig;
   error?: string;
 };
+
+type RewardStatus = {
+  enabled: boolean;
+  claimReady: boolean;
+  pendingEnergy: number;
+  pendingRewardCount: number;
+  daily: {
+    amountEnergy: number;
+    createdAt: string;
+  } | null;
+  utcDate: string;
+  chat: {
+    rewardEnergy: number;
+    rewardedToday: number;
+    dailyCap: number;
+    nextRewardAt: string | null;
+  };
+};
+
+type TipTarget = {
+  wallet: string;
+  author: string;
+} | null;
 
 const WORLD_NAMES_ABI = [{
   type: "function",
@@ -37,9 +71,87 @@ const WORLD_NAMES_ABI = [{
   outputs: [{ name: "tokenId", type: "uint256" }],
 }] as const;
 
+const S2_APPROVAL_ABI = [{
+  type: "function",
+  name: "approve",
+  stateMutability: "nonpayable",
+  inputs: [
+    { name: "to", type: "address" },
+    { name: "tokenId", type: "uint256" },
+  ],
+  outputs: [],
+}] as const;
+
+const WORLD_TRADE_ABI = [
+  {
+    type: "function",
+    name: "createTrade",
+    stateMutability: "payable",
+    inputs: [
+      { name: "taker", type: "address" },
+      { name: "offeredTokenId", type: "uint256" },
+      { name: "requestedTokenId", type: "uint256" },
+      { name: "monRequested", type: "uint256" },
+      { name: "expiresAt", type: "uint64" },
+    ],
+    outputs: [{ name: "tradeId", type: "uint256" }],
+  },
+  {
+    type: "function",
+    name: "acceptTrade",
+    stateMutability: "payable",
+    inputs: [{ name: "tradeId", type: "uint256" }],
+    outputs: [],
+  },
+  {
+    type: "function",
+    name: "cancelTrade",
+    stateMutability: "nonpayable",
+    inputs: [{ name: "tradeId", type: "uint256" }],
+    outputs: [],
+  },
+  {
+    type: "function",
+    name: "expireTrade",
+    stateMutability: "nonpayable",
+    inputs: [{ name: "tradeId", type: "uint256" }],
+    outputs: [],
+  },
+] as const;
+
+const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
+
 function normalizeAddress(value?: string) {
   const wallet = String(value || "").toLowerCase();
   return /^0x[a-f0-9]{40}$/.test(wallet) ? wallet : "";
+}
+
+function tokenId(value: string, label: string) {
+  const normalized = value.trim();
+  if (!/^\d+$/.test(normalized) || BigInt(normalized) < 1n) {
+    throw new Error(`${label} must be a valid S2 Droid token ID.`);
+  }
+  return BigInt(normalized);
+}
+
+function monAmount(value: string, label: string) {
+  const normalized = value.trim() || "0";
+  try {
+    const parsed = parseEther(normalized);
+    if (parsed < 0n) throw new Error();
+    return parsed;
+  } catch {
+    throw new Error(`${label} must be a valid MON amount.`);
+  }
+}
+
+function mediaUrl(uri?: string) {
+  const value = String(uri || "").trim();
+  if (!value) return "";
+  if (value.startsWith("ipfs://")) {
+    return `https://jade-efficient-beaver-697.mypinata.cloud/ipfs/${value.slice(7)}`;
+  }
+  return value;
 }
 
 async function readResponse<T>(response: Response): Promise<T> {
@@ -55,6 +167,11 @@ function messageTime(value: string) {
     : "";
 }
 
+function shortenedHash(value?: unknown) {
+  const hash = String(value || "");
+  return hash.length > 14 ? `${hash.slice(0, 8)}…${hash.slice(-5)}` : hash;
+}
+
 export function DyoorWorldClient({ sessionWallet }: { sessionWallet: string }) {
   const router = useRouter();
   const wallet = useWalletService();
@@ -62,18 +179,40 @@ export function DyoorWorldClient({ sessionWallet }: { sessionWallet: string }) {
   const normalizedSessionWallet = normalizeAddress(sessionWallet);
   const [channelId, setChannelId] = useState<DyoorWorldChannelId>("world-lobby");
   const [profile, setProfile] = useState<DyoorWorldProfile | null>(null);
+  const [avatar, setAvatar] = useState<DyoorWorldAvatar | null>(null);
   const [config, setConfig] = useState<WorldConfig | null>(null);
   const [messages, setMessages] = useState<DyoorWorldMessageView[]>([]);
+  const [rewards, setRewards] = useState<RewardStatus | null>(null);
+  const [ownedTokenIds, setOwnedTokenIds] = useState<string[]>([]);
+  const [avatarTokenId, setAvatarTokenId] = useState("");
+  const [avatarPreview, setAvatarPreview] = useState("");
   const [label, setLabel] = useState("");
   const [draft, setDraft] = useState("");
   const [loadingMessages, setLoadingMessages] = useState(true);
   const [sending, setSending] = useState(false);
   const [claiming, setClaiming] = useState(false);
+  const [savingAvatar, setSavingAvatar] = useState(false);
+  const [rewardAction, setRewardAction] = useState("");
+  const [wheelSpinning, setWheelSpinning] = useState(false);
+  const [tipTarget, setTipTarget] = useState<TipTarget>(null);
+  const [tipAmount, setTipAmount] = useState("1");
+  const [tipping, setTipping] = useState(false);
+  const [tradeBusy, setTradeBusy] = useState("");
+  const [tradeCounterparty, setTradeCounterparty] = useState("");
+  const [tradeOfferedToken, setTradeOfferedToken] = useState("");
+  const [tradeRequestedToken, setTradeRequestedToken] = useState("");
+  const [tradeMonOffered, setTradeMonOffered] = useState("0");
+  const [tradeMonRequested, setTradeMonRequested] = useState("0");
+  const [tradeExpiryHours, setTradeExpiryHours] = useState("24");
+  const [tradeId, setTradeId] = useState("");
+  const [tradeAcceptToken, setTradeAcceptToken] = useState("");
+  const [tradeAcceptMon, setTradeAcceptMon] = useState("0");
   const [notice, setNotice] = useState("");
   const [error, setError] = useState("");
   const messageEndRef = useRef<HTMLDivElement>(null);
   const selectedChannel = useMemo(
-    () => DYOOR_WORLD_CHANNELS.find((channel) => channel.id === channelId) || DYOOR_WORLD_CHANNELS[0],
+    () => DYOOR_WORLD_CHANNELS.find((channel) => channel.id === channelId)
+      || DYOOR_WORLD_CHANNELS[0],
     [channelId],
   );
 
@@ -81,9 +220,31 @@ export function DyoorWorldClient({ sessionWallet }: { sessionWallet: string }) {
     const response = await fetch("/api/dyoor-world/profile", { cache: "no-store" });
     const data = await readResponse<ProfileResponse>(response);
     setProfile(data.profile || null);
+    setAvatar(data.avatar || null);
+    setAvatarTokenId(data.avatar?.tokenId || "");
+    setAvatarPreview(mediaUrl(data.avatar?.imageUrl));
     setConfig(data.config || null);
     return data;
   }, []);
+
+  const loadRewards = useCallback(async () => {
+    const response = await fetch("/api/dyoor-world/rewards", { cache: "no-store" });
+    const data = await readResponse<{ status?: RewardStatus }>(response);
+    setRewards(data.status || null);
+    return data.status || null;
+  }, []);
+
+  const loadOwnedTokens = useCallback(async () => {
+    const response = await fetch(
+      `/api/s2/owned-tokens?wallet=${encodeURIComponent(normalizedSessionWallet)}`,
+      { cache: "no-store" },
+    );
+    const data = await readResponse<{ tokenIds?: string[] }>(response);
+    const ids = Array.isArray(data.tokenIds) ? data.tokenIds.map(String) : [];
+    setOwnedTokenIds(ids);
+    if (ids[0]) setAvatarTokenId((current) => current || ids[0]);
+    return ids;
+  }, [normalizedSessionWallet]);
 
   const loadMessages = useCallback(async (silent = false) => {
     if (!silent) setLoadingMessages(true);
@@ -104,12 +265,36 @@ export function DyoorWorldClient({ sessionWallet }: { sessionWallet: string }) {
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
-      void loadProfile().catch((caught) => {
+      void Promise.all([loadProfile(), loadRewards(), loadOwnedTokens()]).catch((caught) => {
         setError(caught instanceof Error ? caught.message : "Could not load the World identity.");
       });
     }, 0);
     return () => window.clearTimeout(timer);
-  }, [loadProfile]);
+  }, [loadOwnedTokens, loadProfile, loadRewards]);
+
+  useEffect(() => {
+    if (!avatarTokenId) {
+      setAvatarPreview("");
+      return;
+    }
+    let active = true;
+    const timer = window.setTimeout(async () => {
+      try {
+        const response = await fetch(
+          `/api/metadata/${encodeURIComponent(avatarTokenId)}`,
+          { cache: "no-store" },
+        );
+        const metadata = await readResponse<{ image?: string }>(response);
+        if (active) setAvatarPreview(mediaUrl(metadata.image));
+      } catch {
+        if (active && avatar?.tokenId !== avatarTokenId) setAvatarPreview("");
+      }
+    }, 150);
+    return () => {
+      active = false;
+      window.clearTimeout(timer);
+    };
+  }, [avatar?.tokenId, avatarTokenId]);
 
   useEffect(() => {
     const initialTimer = window.setTimeout(() => void loadMessages(), 0);
@@ -126,6 +311,33 @@ export function DyoorWorldClient({ sessionWallet }: { sessionWallet: string }) {
     messageEndRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
   }, [messages.length]);
 
+  async function ensureActiveWallet() {
+    if (!connectedWallet) throw new Error("Connect the authenticated holder wallet first.");
+    if (connectedWallet !== normalizedSessionWallet) {
+      throw new Error("The connected wallet must match this holder session.");
+    }
+    if (wallet.status === "wrong-network") await wallet.switchChain();
+    return connectedWallet;
+  }
+
+  async function waitForTransaction(txHash: string) {
+    const activeProvider = await wallet.getProvider();
+    for (let attempt = 0; attempt < 60; attempt += 1) {
+      const receipt = await activeProvider.request({
+        method: "eth_getTransactionReceipt",
+        params: [txHash],
+      }) as { status?: string } | null;
+      if (receipt) {
+        if (String(receipt.status || "").toLowerCase() !== "0x1") {
+          throw new Error("The Monad transaction failed.");
+        }
+        return receipt;
+      }
+      await new Promise((resolve) => window.setTimeout(resolve, 1_000));
+    }
+    throw new Error("The Monad transaction is still pending. Check the wallet activity.");
+  }
+
   async function claimName(event: FormEvent) {
     event.preventDefault();
     const normalizedLabel = normalizeWorldLabel(label);
@@ -140,24 +352,18 @@ export function DyoorWorldClient({ sessionWallet }: { sessionWallet: string }) {
         if (!liveConfig.claimsOpen) {
           throw new Error("dYOOR World name claims are currently closed.");
         }
-        if (!connectedWallet) throw new Error("Connect the holder wallet before claiming on Monad.");
-        if (connectedWallet !== normalizedSessionWallet) {
-          throw new Error("The connected wallet must match the authenticated holder session.");
-        }
-        if (wallet.status === "wrong-network") {
-          await wallet.switchChain();
-        }
+        const from = await ensureActiveWallet();
         const data = encodeFunctionData({
           abi: WORLD_NAMES_ABI,
           functionName: "claim",
           args: [normalizedLabel],
         });
         const txHash = await wallet.sendTransaction({
-          from: connectedWallet,
+          from,
           to: liveConfig.registryAddress,
           data,
         });
-        setNotice(`Monad claim submitted: ${txHash.slice(0, 10)}…`);
+        setNotice(`Monad claim submitted: ${shortenedHash(txHash)}`);
         for (let attempt = 0; attempt < 12; attempt += 1) {
           await new Promise((resolve) => window.setTimeout(resolve, 1_500));
           const result = await loadProfile();
@@ -167,7 +373,7 @@ export function DyoorWorldClient({ sessionWallet }: { sessionWallet: string }) {
         const response = await fetch("/api/dyoor-world/profile", {
           method: "POST",
           headers: { "content-type": "application/json" },
-          body: JSON.stringify({ label: normalizedLabel }),
+          body: JSON.stringify({ action: "reserve-name", label: normalizedLabel }),
         });
         const data = await readResponse<ProfileResponse>(response);
         setProfile(data.profile || null);
@@ -179,6 +385,28 @@ export function DyoorWorldClient({ sessionWallet }: { sessionWallet: string }) {
       setError(caught instanceof Error ? caught.message : "Could not claim this World name.");
     } finally {
       setClaiming(false);
+    }
+  }
+
+  async function saveAvatar() {
+    if (!avatarTokenId) return;
+    setSavingAvatar(true);
+    setError("");
+    try {
+      const response = await fetch("/api/dyoor-world/profile", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ action: "set-pfp", tokenId: avatarTokenId }),
+      });
+      const data = await readResponse<ProfileResponse>(response);
+      setAvatar(data.avatar || null);
+      setAvatarPreview(mediaUrl(data.avatar?.imageUrl));
+      setNotice(`S2 Droid #${data.avatar?.tokenId} is now your World PFP.`);
+      await loadMessages(true);
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : "Could not save the World PFP.");
+    } finally {
+      setSavingAvatar(false);
     }
   }
 
@@ -195,12 +423,200 @@ export function DyoorWorldClient({ sessionWallet }: { sessionWallet: string }) {
         body: JSON.stringify({ channelId, content }),
       });
       const data = await readResponse<{ message?: DyoorWorldMessageView }>(response);
-      if (data.message) setMessages((current) => [...current, data.message!]);
+      if (data.message) {
+        setMessages((current) => [...current, data.message!]);
+        if (data.message.energyReward) {
+          setNotice(`Signal accepted · +${data.message.energyReward} Energy pending.`);
+          await loadRewards();
+        }
+      }
       setDraft("");
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "Could not send the World message.");
     } finally {
       setSending(false);
+    }
+  }
+
+  async function runRewardAction(action: "check-in" | "claim") {
+    setRewardAction(action);
+    setError("");
+    if (action === "check-in") setWheelSpinning(true);
+    try {
+      const response = await fetch("/api/dyoor-world/rewards", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ action }),
+      });
+      const data = await readResponse<{
+        reward?: { amountEnergy?: number };
+        status?: RewardStatus;
+        claim?: { amountEnergy?: number; txHash?: string };
+      }>(response);
+      if (action === "check-in") {
+        await new Promise((resolve) => window.setTimeout(resolve, 900));
+        setNotice(`Daily signal landed on ${data.reward?.amountEnergy || 0} Energy.`);
+      } else {
+        setNotice(
+          `Claimed ${data.claim?.amountEnergy || 0} Energy to the Energy Bank${data.claim?.txHash ? ` · ${shortenedHash(data.claim.txHash)}` : ""}.`,
+        );
+      }
+      setRewards(data.status || await loadRewards());
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : "World Energy request failed.");
+    } finally {
+      setRewardAction("");
+      setWheelSpinning(false);
+    }
+  }
+
+  async function sendTip() {
+    if (!tipTarget) return;
+    setTipping(true);
+    setError("");
+    try {
+      const from = await ensureActiveWallet();
+      const value = monAmount(tipAmount, "Tip");
+      if (value <= 0n) throw new Error("Choose a MON tip greater than zero.");
+      const txHash = await wallet.sendTransaction({
+        from,
+        to: tipTarget.wallet,
+        value: toHex(value),
+      });
+      await waitForTransaction(txHash);
+      const response = await fetch("/api/dyoor-world/tips", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ recipient: tipTarget.wallet, txHash }),
+      });
+      await readResponse(response);
+      setNotice(`Tipped ${tipTarget.author} ${tipAmount} MON · ${shortenedHash(txHash)}`);
+      setTipTarget(null);
+      setChannelId("tip-ledger");
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : "Could not send the MON tip.");
+    } finally {
+      setTipping(false);
+    }
+  }
+
+  async function verifyTrade(txHash: string) {
+    await waitForTransaction(txHash);
+    const response = await fetch("/api/dyoor-world/trades", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ txHash }),
+    });
+    await readResponse(response);
+    await loadMessages(true);
+  }
+
+  async function approveDroid(from: string, escrow: string, id: bigint) {
+    const approvalHash = await wallet.sendTransaction({
+      from,
+      to: config!.s2ContractAddress,
+      data: encodeFunctionData({
+        abi: S2_APPROVAL_ABI,
+        functionName: "approve",
+        args: [escrow as `0x${string}`, id],
+      }),
+    });
+    await waitForTransaction(approvalHash);
+  }
+
+  async function createTrade(event: FormEvent) {
+    event.preventDefault();
+    if (!config?.tradeEscrowAddress) return;
+    setTradeBusy("create");
+    setError("");
+    try {
+      const from = await ensureActiveWallet();
+      const offered = tokenId(tradeOfferedToken, "Offered Droid");
+      const requested = tokenId(tradeRequestedToken, "Requested Droid");
+      const taker = tradeCounterparty.trim()
+        ? normalizeAddress(tradeCounterparty)
+        : ZERO_ADDRESS;
+      if (!taker) throw new Error("Counterparty must be a valid wallet or left blank.");
+      const monOffered = monAmount(tradeMonOffered, "MON offered");
+      const monRequested = monAmount(tradeMonRequested, "MON requested");
+      const hours = Number(tradeExpiryHours);
+      if (!Number.isFinite(hours) || hours < 1 || hours > 720) {
+        throw new Error("Trade expiry must be between 1 and 720 hours.");
+      }
+      await approveDroid(from, config.tradeEscrowAddress, offered);
+      const expiresAt = BigInt(Math.floor(Date.now() / 1_000) + Math.floor(hours * 3_600));
+      const txHash = await wallet.sendTransaction({
+        from,
+        to: config.tradeEscrowAddress,
+        data: encodeFunctionData({
+          abi: WORLD_TRADE_ABI,
+          functionName: "createTrade",
+          args: [taker as `0x${string}`, offered, requested, monRequested, expiresAt],
+        }),
+        ...(monOffered > 0n ? { value: toHex(monOffered) } : {}),
+      });
+      await verifyTrade(txHash);
+      setNotice(`Trade escrow created · ${shortenedHash(txHash)}`);
+      setTradeOfferedToken("");
+      setTradeRequestedToken("");
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : "Could not create the World trade.");
+    } finally {
+      setTradeBusy("");
+    }
+  }
+
+  async function acceptTrade() {
+    if (!config?.tradeEscrowAddress) return;
+    setTradeBusy("accept");
+    setError("");
+    try {
+      const from = await ensureActiveWallet();
+      const id = tokenId(tradeId, "Trade ID");
+      const requestedToken = tokenId(tradeAcceptToken, "Your requested-side Droid");
+      const requestedMon = monAmount(tradeAcceptMon, "Requested MON");
+      await approveDroid(from, config.tradeEscrowAddress, requestedToken);
+      const txHash = await wallet.sendTransaction({
+        from,
+        to: config.tradeEscrowAddress,
+        data: encodeFunctionData({
+          abi: WORLD_TRADE_ABI,
+          functionName: "acceptTrade",
+          args: [id],
+        }),
+        ...(requestedMon > 0n ? { value: toHex(requestedMon) } : {}),
+      });
+      await verifyTrade(txHash);
+      setNotice(`Trade #${id} completed atomically · ${shortenedHash(txHash)}`);
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : "Could not accept the World trade.");
+    } finally {
+      setTradeBusy("");
+    }
+  }
+
+  async function closeTrade(action: "cancelTrade" | "expireTrade") {
+    if (!config?.tradeEscrowAddress) return;
+    setTradeBusy(action);
+    setError("");
+    try {
+      const from = await ensureActiveWallet();
+      const id = tokenId(tradeId, "Trade ID");
+      const txHash = await wallet.sendTransaction({
+        from,
+        to: config.tradeEscrowAddress,
+        data: encodeFunctionData({
+          abi: WORLD_TRADE_ABI,
+          functionName: action,
+          args: [id],
+        }),
+      });
+      await verifyTrade(txHash);
+      setNotice(`Trade #${id} ${action === "cancelTrade" ? "cancelled" : "expired"} · ${shortenedHash(txHash)}`);
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : "Could not close the World trade.");
+    } finally {
+      setTradeBusy("");
     }
   }
 
@@ -210,12 +626,10 @@ export function DyoorWorldClient({ sessionWallet }: { sessionWallet: string }) {
   }
 
   const identity = profile?.displayName || shortWorldWallet(normalizedSessionWallet);
-  const walletMismatch = Boolean(
-    connectedWallet && connectedWallet !== normalizedSessionWallet,
-  );
+  const walletMismatch = Boolean(connectedWallet && connectedWallet !== normalizedSessionWallet);
 
   return (
-    <main className="mx-auto min-h-[calc(100vh-5rem)] max-w-[1600px] px-3 py-4 sm:px-5 sm:py-6">
+    <main className="mx-auto min-h-[calc(100vh-5rem)] max-w-[1680px] px-3 py-4 sm:px-5 sm:py-6">
       <section className="overflow-hidden rounded border border-dyoor-purple/30 bg-[#070818]/90 shadow-[0_24px_80px_rgba(0,0,0,.38)] backdrop-blur-xl">
         <header className="flex min-h-16 flex-wrap items-center gap-3 border-b border-dyoor-purple/25 bg-black/25 px-4 py-3 sm:px-5">
           <div className="flex min-w-0 items-center gap-3">
@@ -239,7 +653,7 @@ export function DyoorWorldClient({ sessionWallet }: { sessionWallet: string }) {
 
         {walletMismatch ? (
           <div className="border-b border-yellow-300/30 bg-yellow-300/10 px-4 py-3 text-sm font-bold text-yellow-100">
-            Connected wallet does not match this holder session. Exit and authenticate the connected wallet before making an on-chain name claim.
+            Connected wallet does not match this holder session. Exit and authenticate the connected wallet before using on-chain features.
           </div>
         ) : null}
         {error ? (
@@ -249,7 +663,7 @@ export function DyoorWorldClient({ sessionWallet }: { sessionWallet: string }) {
           <div className="border-b border-dyoor-cyan/25 bg-dyoor-cyan/[0.07] px-4 py-3 text-sm font-bold text-dyoor-cyan">{notice}</div>
         ) : null}
 
-        <div className="grid min-h-[680px] lg:grid-cols-[250px_minmax(0,1fr)_300px]">
+        <div className="grid min-h-[760px] lg:grid-cols-[250px_minmax(0,1fr)_330px]">
           <aside className="border-b border-dyoor-purple/20 bg-black/20 p-3 lg:border-b-0 lg:border-r">
             <p className="px-2 py-2 text-[0.62rem] font-black uppercase tracking-[0.2em] text-white/35">World streams</p>
             <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 lg:grid-cols-1">
@@ -275,16 +689,71 @@ export function DyoorWorldClient({ sessionWallet }: { sessionWallet: string }) {
             <div className="mt-4 hidden rounded border border-dyoor-purple/20 bg-dyoor-purple/[0.07] p-4 lg:block">
               <p className="text-[0.62rem] font-black uppercase tracking-[0.17em] text-dyoor-monad">Adapted from M3SH</p>
               <p className="mt-2 text-xs font-bold leading-5 text-white/42">
-                The node-and-stream model, rebuilt with server-verified holder access and immutable message writes.
+                The node-and-stream model, rebuilt with verified holder access, S2 identity, and immutable system relays.
               </p>
             </div>
           </aside>
 
-          <section className="flex min-h-[560px] min-w-0 flex-col">
+          <section className="flex min-h-[620px] min-w-0 flex-col">
             <div className="border-b border-dyoor-purple/20 px-4 py-4 sm:px-5">
-              <p className="text-sm font-black text-white"># {selectedChannel.label}</p>
-              <p className="mt-1 text-xs font-bold text-white/38">{selectedChannel.description}</p>
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <p className="text-sm font-black text-white"># {selectedChannel.label}</p>
+                  <p className="mt-1 text-xs font-bold text-white/38">{selectedChannel.description}</p>
+                </div>
+                {selectedChannel.readOnly ? (
+                  <span className="rounded-full border border-dyoor-monad/30 bg-dyoor-monad/10 px-2.5 py-1 text-[0.56rem] font-black uppercase tracking-[0.12em] text-dyoor-monad">
+                    Verified feed
+                  </span>
+                ) : null}
+              </div>
             </div>
+
+            {channelId === "trade-desk" ? (
+              <div className="border-b border-dyoor-purple/20 bg-gradient-to-r from-dyoor-purple/[0.08] to-dyoor-cyan/[0.05] p-4">
+                {config?.tradeEscrowAddress ? (
+                  <div className="grid gap-3 xl:grid-cols-2">
+                    <form className="rounded border border-dyoor-cyan/20 bg-black/25 p-3" onSubmit={createTrade}>
+                      <p className="text-xs font-black uppercase tracking-[0.14em] text-dyoor-cyan">Create atomic S2 trade</p>
+                      <div className="mt-3 grid grid-cols-2 gap-2">
+                        <input className="field-control text-xs" list="owned-world-droids" onChange={(event) => setTradeOfferedToken(event.target.value)} placeholder="Your Droid #" value={tradeOfferedToken} />
+                        <input className="field-control text-xs" onChange={(event) => setTradeRequestedToken(event.target.value)} placeholder="Requested Droid #" value={tradeRequestedToken} />
+                        <input className="field-control text-xs" onChange={(event) => setTradeMonOffered(event.target.value)} placeholder="MON offered" value={tradeMonOffered} />
+                        <input className="field-control text-xs" onChange={(event) => setTradeMonRequested(event.target.value)} placeholder="MON requested" value={tradeMonRequested} />
+                      </div>
+                      <input className="field-control mt-2 w-full text-xs" onChange={(event) => setTradeCounterparty(event.target.value)} placeholder="Counterparty wallet (blank = open)" value={tradeCounterparty} />
+                      <div className="mt-2 flex gap-2">
+                        <input className="field-control min-w-0 flex-1 text-xs" max="720" min="1" onChange={(event) => setTradeExpiryHours(event.target.value)} placeholder="Hours" type="number" value={tradeExpiryHours} />
+                        <button className="btn-primary shrink-0 px-3 text-[0.65rem]" disabled={Boolean(tradeBusy)} type="submit">
+                          {tradeBusy === "create" ? "Approving / creating" : "Approve + escrow"}
+                        </button>
+                      </div>
+                    </form>
+                    <div className="rounded border border-dyoor-purple/25 bg-black/25 p-3">
+                      <p className="text-xs font-black uppercase tracking-[0.14em] text-dyoor-monad">Manage trade</p>
+                      <div className="mt-3 grid grid-cols-3 gap-2">
+                        <input className="field-control text-xs" onChange={(event) => setTradeId(event.target.value)} placeholder="Trade ID" value={tradeId} />
+                        <input className="field-control text-xs" list="owned-world-droids" onChange={(event) => setTradeAcceptToken(event.target.value)} placeholder="Your Droid #" value={tradeAcceptToken} />
+                        <input className="field-control text-xs" onChange={(event) => setTradeAcceptMon(event.target.value)} placeholder="MON due" value={tradeAcceptMon} />
+                      </div>
+                      <div className="mt-2 flex flex-wrap gap-2">
+                        <button className="btn-secondary px-3 text-[0.62rem]" disabled={Boolean(tradeBusy)} onClick={() => void acceptTrade()} type="button">Accept atomically</button>
+                        <button className="btn-ghost px-3 text-[0.62rem]" disabled={Boolean(tradeBusy)} onClick={() => void closeTrade("cancelTrade")} type="button">Cancel mine</button>
+                        <button className="btn-ghost px-3 text-[0.62rem]" disabled={Boolean(tradeBusy)} onClick={() => void closeTrade("expireTrade")} type="button">Recover expired</button>
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="rounded border border-yellow-300/20 bg-yellow-300/[0.06] p-4">
+                    <p className="text-sm font-black text-yellow-100">Trade desk staged safely</p>
+                    <p className="mt-1 text-xs font-bold leading-5 text-yellow-100/55">
+                      The fee-free escrow must be deployed and added to the preview environment before trade controls unlock. The relay bot never holds assets or a custody key.
+                    </p>
+                  </div>
+                )}
+              </div>
+            ) : null}
+
             <div className="flex-1 space-y-1 overflow-y-auto px-3 py-4 sm:px-5">
               {loadingMessages ? (
                 <div className="space-y-3">
@@ -294,52 +763,145 @@ export function DyoorWorldClient({ sessionWallet }: { sessionWallet: string }) {
                 <div className="flex min-h-80 items-center justify-center text-center">
                   <div>
                     <DyoorWorldGlyph className="mx-auto h-10 w-10 text-dyoor-purple" />
-                    <p className="mt-4 text-sm font-black uppercase text-white/65">No transmissions yet</p>
-                    <p className="mt-2 text-xs font-bold text-white/35">Be the first holder to signal in this stream.</p>
+                    <p className="mt-4 text-sm font-black uppercase text-white/65">
+                      {selectedChannel.readOnly ? "Waiting for verified activity" : "No transmissions yet"}
+                    </p>
+                    <p className="mt-2 text-xs font-bold text-white/35">
+                      {selectedChannel.readOnly
+                        ? "The World relay will post the next confirmed event automatically."
+                        : "Be the first holder to signal in this stream."}
+                    </p>
                   </div>
                 </div>
-              ) : messages.map((message) => (
-                <article className="group rounded px-2 py-3 transition hover:bg-white/[0.025]" key={message.id}>
-                  <div className="flex items-baseline gap-2">
-                    <span className="text-xs font-black text-dyoor-cyan">{message.author}</span>
-                    <span className="text-[0.62rem] font-bold text-white/25">{messageTime(message.createdAt)}</span>
-                  </div>
-                  <p className="mt-1 whitespace-pre-wrap break-words text-sm font-medium leading-6 text-white/72">{message.content}</p>
-                </article>
-              ))}
+              ) : messages.map((message) => {
+                const imageUrl = String(message.data?.imageUrl || "");
+                const isSystem = (message.kind || "user") !== "user";
+                return (
+                  <article
+                    className={`group rounded border px-3 py-3 transition ${
+                      isSystem
+                        ? "border-dyoor-purple/15 bg-gradient-to-r from-dyoor-purple/[0.07] to-transparent"
+                        : "border-transparent hover:border-white/[0.04] hover:bg-white/[0.025]"
+                    }`}
+                    key={message.id}
+                  >
+                    <div className="flex gap-3">
+                      <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded border border-white/10 bg-black/30">
+                        {message.avatar?.imageUrl ? (
+                          <img alt={`S2 #${message.avatar.tokenId}`} className="h-full w-full object-cover" src={mediaUrl(message.avatar.imageUrl)} />
+                        ) : imageUrl ? (
+                          <img alt="" className="h-full w-full object-cover" src={mediaUrl(imageUrl)} />
+                        ) : (
+                          <DyoorWorldGlyph className={`h-5 w-5 ${isSystem ? "text-dyoor-monad" : "text-white/30"}`} />
+                        )}
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex flex-wrap items-baseline gap-2">
+                          <span className={`text-xs font-black ${isSystem ? "text-dyoor-monad" : "text-dyoor-cyan"}`}>{message.author}</span>
+                          <span className="text-[0.62rem] font-bold text-white/25">{messageTime(message.createdAt)}</span>
+                          {isSystem ? <span className="text-[0.53rem] font-black uppercase tracking-[0.12em] text-white/28">verified {message.kind}</span> : null}
+                        </div>
+                        <p className="mt-1 whitespace-pre-wrap break-words text-sm font-medium leading-6 text-white/72">{message.content}</p>
+                        <div className="mt-2 flex flex-wrap gap-2">
+                          {message.data?.openSeaUrl ? (
+                            <a className="text-[0.6rem] font-black uppercase tracking-[0.1em] text-dyoor-cyan hover:text-white" href={String(message.data.openSeaUrl)} rel="noreferrer" target="_blank">
+                              View on OpenSea ↗
+                            </a>
+                          ) : null}
+                          {message.data?.txHash ? (
+                            <a className="text-[0.6rem] font-black uppercase tracking-[0.1em] text-white/35 hover:text-white" href={`https://monadscan.com/tx/${String(message.data.txHash)}`} rel="noreferrer" target="_blank">
+                              {shortenedHash(message.data.txHash)} ↗
+                            </a>
+                          ) : null}
+                          {!isSystem && message.wallet !== normalizedSessionWallet ? (
+                            <button
+                              className="text-[0.6rem] font-black uppercase tracking-[0.1em] text-emerald-300/70 hover:text-emerald-200"
+                              onClick={() => setTipTarget({ wallet: message.wallet, author: message.author })}
+                              type="button"
+                            >
+                              Tip MON
+                            </button>
+                          ) : null}
+                        </div>
+                      </div>
+                    </div>
+                  </article>
+                );
+              })}
               <div ref={messageEndRef} />
             </div>
-            <form className="border-t border-dyoor-purple/20 bg-black/20 p-3 sm:p-4" onSubmit={sendMessage}>
-              <div className="flex items-end gap-2 rounded border border-dyoor-purple/25 bg-black/35 p-2 focus-within:border-dyoor-cyan/55">
-                <textarea
-                  aria-label={`Message ${selectedChannel.label}`}
-                  className="min-h-12 flex-1 resize-none bg-transparent px-2 py-2 text-sm font-bold text-white outline-none placeholder:text-white/25"
-                  maxLength={800}
-                  onChange={(event) => setDraft(event.target.value)}
-                  placeholder={`Message #${selectedChannel.label} as ${identity}`}
-                  rows={2}
-                  value={draft}
-                />
-                <button className="btn-primary min-h-10 shrink-0 px-4 py-2 text-xs" disabled={sending || !draft.trim()} type="submit">
-                  {sending ? "Sending" : "Send"}
-                </button>
+
+            {tipTarget ? (
+              <div className="border-t border-emerald-300/20 bg-emerald-300/[0.05] p-3 sm:px-4">
+                <div className="flex flex-wrap items-center gap-2">
+                  <p className="mr-auto text-xs font-black text-emerald-200">
+                    Direct tip to {tipTarget.author}
+                  </p>
+                  <input className="field-control w-28 text-xs" min="0" onChange={(event) => setTipAmount(event.target.value)} step="0.01" type="number" value={tipAmount} />
+                  <span className="text-xs font-black text-white/50">MON</span>
+                  <button className="btn-primary px-3 text-xs" disabled={tipping} onClick={() => void sendTip()} type="button">{tipping ? "Confirming" : "Send direct"}</button>
+                  <button className="btn-ghost px-3 text-xs" onClick={() => setTipTarget(null)} type="button">Cancel</button>
+                </div>
+                <p className="mt-2 text-[0.6rem] font-bold text-white/30">Wallet-to-wallet on Monad. dYOOR World never takes custody.</p>
               </div>
-              <p className="mt-2 px-1 text-[0.62rem] font-bold text-white/25">{draft.length}/800 · holder session verified server-side</p>
-            </form>
+            ) : null}
+
+            {!selectedChannel.readOnly ? (
+              <form className="border-t border-dyoor-purple/20 bg-black/20 p-3 sm:p-4" onSubmit={sendMessage}>
+                <div className="flex items-end gap-2 rounded border border-dyoor-purple/25 bg-black/35 p-2 focus-within:border-dyoor-cyan/55">
+                  <textarea
+                    aria-label={`Message ${selectedChannel.label}`}
+                    className="min-h-12 flex-1 resize-none bg-transparent px-2 py-2 text-sm font-bold text-white outline-none placeholder:text-white/25"
+                    maxLength={800}
+                    onChange={(event) => setDraft(event.target.value)}
+                    placeholder={`Message #${selectedChannel.label} as ${identity}`}
+                    rows={2}
+                    value={draft}
+                  />
+                  <button className="btn-primary min-h-10 shrink-0 px-4 py-2 text-xs" disabled={sending || !draft.trim()} type="submit">
+                    {sending ? "Sending" : "Send"}
+                  </button>
+                </div>
+                <p className="mt-2 px-1 text-[0.62rem] font-bold text-white/25">
+                  {draft.length}/800 · meaningful signals can earn {rewards?.chat.rewardEnergy || 5} Energy · holder session verified
+                </p>
+              </form>
+            ) : null}
           </section>
 
           <aside className="border-t border-dyoor-purple/20 bg-black/20 p-4 lg:border-l lg:border-t-0">
             <p className="text-[0.62rem] font-black uppercase tracking-[0.2em] text-white/35">World identity</p>
-            {profile ? (
-              <div className="mt-3 rounded border border-dyoor-cyan/30 bg-dyoor-cyan/[0.07] p-4">
-                <p className="break-words text-xl font-black text-dyoor-cyan">{profile.displayName}</p>
-                <p className="mt-2 break-all text-[0.65rem] font-bold uppercase tracking-[0.1em] text-white/35">{shortWorldWallet(profile.wallet)}</p>
-                <span className="mt-4 inline-flex rounded-full border border-white/10 px-2.5 py-1 text-[0.58rem] font-black uppercase tracking-[0.12em] text-white/52">
-                  {profile.registryStatus === "monad-active" ? "Monad on-chain name" : "Preview reservation"}
-                </span>
+            <div className="mt-3 overflow-hidden rounded border border-dyoor-cyan/25 bg-gradient-to-br from-dyoor-cyan/[0.09] via-transparent to-dyoor-purple/[0.12]">
+              <div className="flex items-center gap-3 p-3">
+                <div className="h-16 w-16 shrink-0 overflow-hidden rounded border border-dyoor-cyan/35 bg-black/35 shadow-[0_0_24px_rgba(76,255,229,.12)]">
+                  {avatarPreview ? (
+                    <img alt="Selected World PFP" className="h-full w-full object-cover" src={avatarPreview} />
+                  ) : (
+                    <DyoorWorldGlyph className="m-5 h-6 w-6 text-dyoor-cyan/50" />
+                  )}
+                </div>
+                <div className="min-w-0">
+                  <p className="break-words text-lg font-black text-dyoor-cyan">{identity}</p>
+                  <p className="mt-1 text-[0.6rem] font-bold uppercase tracking-[0.1em] text-white/35">{shortWorldWallet(normalizedSessionWallet)}</p>
+                  {avatarTokenId ? <p className="mt-1 text-[0.58rem] font-black text-dyoor-monad">S2 DROID #{avatarTokenId}</p> : null}
+                </div>
               </div>
-            ) : (
-              <form className="mt-3 rounded border border-dyoor-purple/25 bg-dyoor-purple/[0.06] p-4" onSubmit={claimName}>
+              <div className="border-t border-white/[0.06] p-3">
+                <label className="text-[0.58rem] font-black uppercase tracking-[0.12em] text-white/35" htmlFor="world-pfp">Choose owned S2 PFP</label>
+                <div className="mt-2 flex gap-2">
+                  <select className="field-control min-w-0 flex-1 text-xs" id="world-pfp" onChange={(event) => setAvatarTokenId(event.target.value)} value={avatarTokenId}>
+                    <option value="">Select Droid</option>
+                    {ownedTokenIds.map((id) => <option key={id} value={id}>D.Y.O.O.R #{id}</option>)}
+                  </select>
+                  <button className="btn-secondary px-3 text-[0.62rem]" disabled={savingAvatar || !avatarTokenId} onClick={() => void saveAvatar()} type="button">
+                    {savingAvatar ? "Saving" : "Set PFP"}
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {!profile ? (
+              <form className="mt-4 rounded border border-dyoor-purple/25 bg-dyoor-purple/[0.06] p-4" onSubmit={claimName}>
                 <p className="text-sm font-black text-white">Create your .dYOOR name</p>
                 <p className="mt-2 text-xs font-bold leading-5 text-white/42">
                   {config?.registryMode === "monad"
@@ -348,14 +910,10 @@ export function DyoorWorldClient({ sessionWallet }: { sessionWallet: string }) {
                       : "On-chain name claims are currently closed by the registry owner."
                     : "Reserve the name in this preview. On-chain activation follows registry deployment."}
                 </p>
-                <label className="mt-4 block text-[0.62rem] font-black uppercase tracking-[0.15em] text-white/40" htmlFor="world-label">
-                  Name
-                </label>
-                <div className="mt-2 flex rounded border border-white/10 bg-black/35 focus-within:border-dyoor-cyan/55">
+                <div className="mt-3 flex rounded border border-white/10 bg-black/35 focus-within:border-dyoor-cyan/55">
                   <input
                     autoComplete="off"
                     className="min-w-0 flex-1 bg-transparent px-3 py-3 text-sm font-black text-white outline-none placeholder:text-white/20"
-                    id="world-label"
                     maxLength={24}
                     minLength={3}
                     onChange={(event) => setLabel(event.target.value)}
@@ -367,31 +925,59 @@ export function DyoorWorldClient({ sessionWallet }: { sessionWallet: string }) {
                 </div>
                 <button
                   className="btn-secondary mt-3 w-full text-xs"
-                  disabled={
-                    claiming
-                      || normalizeWorldLabel(label).length < 3
-                      || (config?.registryMode === "monad" && !config.claimsOpen)
-                  }
+                  disabled={claiming || normalizeWorldLabel(label).length < 3 || (config?.registryMode === "monad" && !config.claimsOpen)}
                   type="submit"
                 >
-                  {claiming
-                    ? "Claiming"
-                    : config?.registryMode === "monad"
-                      ? config.claimsOpen
-                        ? "Claim on Monad"
-                        : "Claims closed"
-                      : "Reserve preview name"}
+                  {claiming ? "Claiming" : config?.registryMode === "monad" ? config.claimsOpen ? "Claim on Monad" : "Claims closed" : "Reserve preview name"}
                 </button>
               </form>
-            )}
+            ) : null}
+
+            <div className="relative mt-4 overflow-hidden rounded border border-dyoor-monad/30 bg-gradient-to-br from-[#251146] via-[#10102b] to-[#082f34] p-4">
+              <div className="pointer-events-none absolute -right-8 -top-8 h-28 w-28 rounded-full bg-dyoor-cyan/10 blur-2xl" />
+              <p className="relative text-[0.62rem] font-black uppercase tracking-[0.18em] text-dyoor-monad">Daily Energy signal</p>
+              <div className="relative mt-3 flex items-center gap-4">
+                <div className={`relative h-24 w-24 shrink-0 rounded-full border-4 border-white/15 bg-[conic-gradient(#6bf8e8_0_60%,#8b5cf6_60%_85%,#facc15_85%_95%,#fb7185_95%_99%,#fff_99%)] shadow-[0_0_30px_rgba(139,92,246,.25)] ${wheelSpinning ? "animate-spin" : ""}`}>
+                  <div className="absolute inset-3 flex items-center justify-center rounded-full bg-[#0b0b1c] text-center">
+                    <span className="text-base font-black text-white">{rewards?.daily ? `+${rewards.daily.amountEnergy}` : "SPIN"}</span>
+                  </div>
+                </div>
+                <div className="min-w-0">
+                  <p className="text-2xl font-black text-white">{rewards?.pendingEnergy || 0}</p>
+                  <p className="text-[0.58rem] font-black uppercase tracking-[0.13em] text-white/40">Pending Energy</p>
+                  <p className="mt-2 text-[0.62rem] font-bold leading-4 text-white/40">Free once per UTC day. Rare 1% signal: 1,000 Energy.</p>
+                </div>
+              </div>
+              {rewards?.enabled ? (
+                <div className="relative mt-3 grid grid-cols-2 gap-2">
+                  <button className="btn-secondary px-2 text-[0.62rem]" disabled={Boolean(rewardAction) || Boolean(rewards.daily)} onClick={() => void runRewardAction("check-in")} type="button">
+                    {rewards.daily ? "Checked in" : rewardAction === "check-in" ? "Receiving" : "Daily check-in"}
+                  </button>
+                  <button className="btn-primary px-2 text-[0.62rem]" disabled={Boolean(rewardAction) || rewards.pendingEnergy <= 0 || !rewards.claimReady} onClick={() => void runRewardAction("claim")} type="button">
+                    {rewardAction === "claim" ? "Claiming" : "Claim to Bank"}
+                  </button>
+                </div>
+              ) : (
+                <p className="relative mt-3 rounded border border-yellow-300/20 bg-yellow-300/[0.06] p-2 text-[0.6rem] font-bold leading-4 text-yellow-100/60">
+                  Reward accounting is staged but off until the preview reward secret and operator flag are enabled.
+                </p>
+              )}
+              <p className="relative mt-2 text-[0.56rem] font-bold text-white/25">
+                Chat: +{rewards?.chat.rewardEnergy || 5} · {rewards?.chat.rewardedToday || 0}/{rewards?.chat.dailyCap || 5} rewarded today · 10m cooldown
+              </p>
+            </div>
+
             <div className="mt-4 rounded border border-white/[0.07] bg-white/[0.025] p-4">
-              <p className="text-[0.62rem] font-black uppercase tracking-[0.16em] text-dyoor-monad">Name system</p>
+              <p className="text-[0.62rem] font-black uppercase tracking-[0.16em] text-dyoor-monad">Safety model</p>
               <p className="mt-2 text-xs font-bold leading-5 text-white/40">
-                `.dYOOR` is a Monad-native World identity. It is not public DNS or Ethereum ENS. The registry exposes forward and reverse resolution for DYOOR integrations.
+                Tips travel wallet-to-wallet. Trades settle atomically in a fee-free S2 escrow. Sales and trade bots only verify and relay public events—no bot custody key exists.
               </p>
             </div>
           </aside>
         </div>
+        <datalist id="owned-world-droids">
+          {ownedTokenIds.map((id) => <option key={id} value={id} />)}
+        </datalist>
       </section>
     </main>
   );

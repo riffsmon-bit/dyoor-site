@@ -29,6 +29,7 @@ import {
   traitLabForfeitAuthorizationMessage,
   traitLabPreviewAuthorizationMessage,
 } from "@/lib/s2-trait-lab-auth";
+import { getStorageItem, removeStorageItem, setStorageJson } from "@/lib/browser-storage";
 import { useWalletService } from "@/providers/WalletServiceProvider";
 
 type MetadataAttribute = {
@@ -368,6 +369,23 @@ function currentPendingTraitLabOperations(items: PendingTraitLabOperation[]) {
   return [...latestByToken.values()]
     .sort((left, right) => right.savedAt.localeCompare(left.savedAt))
     .slice(0, MAX_PENDING_TRAIT_LAB_OPERATIONS);
+}
+
+function browserLocalStorage() {
+  if (typeof window === "undefined") return null;
+  try {
+    return window.localStorage;
+  } catch {
+    return null;
+  }
+}
+
+function persistPendingTraitLabOperations(key: string, operations: PendingTraitLabOperation[]) {
+  const storage = browserLocalStorage();
+  if (!storage || !key) return false;
+  return operations.length
+    ? setStorageJson(storage, key, operations)
+    : removeStorageItem(storage, key);
 }
 
 function normalizeAddress(address?: string) {
@@ -737,6 +755,8 @@ export function TraitLabClient() {
   const [status, setStatus] = useState("Connect wallet to load D.Y.O.O.R Season 2 droids.");
   const [error, setError] = useState("");
   const selectedTokenIdRef = useRef("");
+  const metadataRequestRef = useRef(0);
+  const activeRestoreRequestRef = useRef(0);
 
   const selectedTraits = useMemo(() => traitMap(metadata), [metadata]);
   const emptySlots = useMemo(() => S2_EDITABLE_TRAITS.filter((trait) => isEmptyTraitValue(selectedTraits[trait])), [selectedTraits]);
@@ -816,7 +836,7 @@ export function TraitLabClient() {
       }
 
       try {
-        const raw = window.localStorage.getItem(pendingBurnStorageKey);
+        const raw = getStorageItem(browserLocalStorage(), pendingBurnStorageKey);
         const parsed = raw ? JSON.parse(raw) as PendingBurnClaim : null;
         setPendingBurnClaim(parsed?.wallet === walletAddress && parsed.burnTxHash ? parsed : null);
       } catch {
@@ -834,7 +854,7 @@ export function TraitLabClient() {
       }
 
       try {
-        const raw = window.localStorage.getItem(pendingTraitLabStorageKey);
+        const raw = getStorageItem(browserLocalStorage(), pendingTraitLabStorageKey);
         const parsed = raw ? JSON.parse(raw) as unknown : [];
         const operations = currentPendingTraitLabOperations((Array.isArray(parsed) ? parsed : [])
           .filter((item): item is PendingTraitLabOperation => Boolean(
@@ -844,8 +864,7 @@ export function TraitLabClient() {
             && isTraitLabOperationId((item as PendingTraitLabOperation).rollId)
             && (item as PendingTraitLabOperation).preview?.previewId,
           )));
-        if (operations.length) window.localStorage.setItem(pendingTraitLabStorageKey, JSON.stringify(operations));
-        else window.localStorage.removeItem(pendingTraitLabStorageKey);
+        persistPendingTraitLabOperations(pendingTraitLabStorageKey, operations);
         setPendingTraitLabOperations(operations);
       } catch {
         setPendingTraitLabOperations([]);
@@ -941,8 +960,9 @@ export function TraitLabClient() {
   }, [traitLabConfig?.bountyEnabled]);
 
   const loadTokenMetadata = useCallback(async (tokenId: string) => {
+    const requestId = ++metadataRequestRef.current;
     if (!tokenId) {
-      setMetadata(null);
+      if (requestId === metadataRequestRef.current) setMetadata(null);
       return;
     }
     setMetadataLoading(true);
@@ -951,19 +971,22 @@ export function TraitLabClient() {
       const response = await fetch(`/api/metadata/${encodeURIComponent(tokenId)}`, { cache: "no-store" });
       const data = await response.json().catch(() => ({})) as MetadataJson & { error?: string };
       if (!response.ok) throw new Error(data.error || "Could not load token metadata.");
+      if (requestId !== metadataRequestRef.current || selectedTokenIdRef.current !== tokenId) return;
       setMetadata(data);
       setStatus(`Loaded live metadata for D.Y.O.O.R #${tokenId}.`);
       setError("");
     } catch (err) {
+      if (requestId !== metadataRequestRef.current || selectedTokenIdRef.current !== tokenId) return;
       setMetadata(null);
       setError(err instanceof Error ? err.message : "Could not load token metadata.");
     } finally {
-      setMetadataLoading(false);
+      if (requestId === metadataRequestRef.current) setMetadataLoading(false);
     }
   }, []);
 
   const restoreActiveTraitLabOperation = useCallback(async (tokenId: string, silent = false) => {
     if (!walletAddress || !tokenId) return;
+    const requestId = ++activeRestoreRequestRef.current;
     try {
       const response = await fetch(
         `/api/s2/trait-lab/active?wallet=${encodeURIComponent(walletAddress)}&tokenId=${encodeURIComponent(tokenId)}`,
@@ -971,13 +994,11 @@ export function TraitLabClient() {
       );
       const data = await response.json().catch(() => ({})) as TraitLabOperationResponse;
       if (!response.ok || data.ok === false) throw new Error(data.error || "Could not check the current Trait Lab result.");
+      if (requestId !== activeRestoreRequestRef.current || selectedTokenIdRef.current !== tokenId) return;
       if (!data.active || !data.retryPreview?.rollId || !data.retryPreview.previewId) {
         setPendingTraitLabOperations((current) => {
           const next = current.filter((item) => item.tokenId !== tokenId);
-          if (pendingTraitLabStorageKey) {
-            if (next.length) window.localStorage.setItem(pendingTraitLabStorageKey, JSON.stringify(next));
-            else window.localStorage.removeItem(pendingTraitLabStorageKey);
-          }
+          persistPendingTraitLabOperations(pendingTraitLabStorageKey, next);
           return next;
         });
         return;
@@ -994,14 +1015,18 @@ export function TraitLabClient() {
       };
       setPendingTraitLabOperations((current) => {
         const next = currentPendingTraitLabOperations([pending].concat(current.filter((item) => item.tokenId !== tokenId)));
-        if (pendingTraitLabStorageKey) window.localStorage.setItem(pendingTraitLabStorageKey, JSON.stringify(next));
+        persistPendingTraitLabOperations(pendingTraitLabStorageKey, next);
         return next;
       });
       setPreview(recoveredPreview);
       setError("");
       setStatus(`Restored D.Y.O.O.R #${tokenId}'s current result from the server. Accept it to finish, or leave it behind if it is not already finalizing.`);
     } catch (restoreError) {
-      if (!silent) {
+      if (
+        !silent
+        && requestId === activeRestoreRequestRef.current
+        && selectedTokenIdRef.current === tokenId
+      ) {
         setError(restoreError instanceof Error ? restoreError.message : "Could not check the current Trait Lab result.");
       }
     }
@@ -1011,6 +1036,7 @@ export function TraitLabClient() {
     if (!walletAddress) {
       setOwnedTokenIds([]);
       setTokenCards([]);
+      selectedTokenIdRef.current = "";
       setSelectedTokenId("");
       setMetadata(null);
       setStatus("Connect wallet to load D.Y.O.O.R Season 2 droids.");
@@ -1046,14 +1072,18 @@ export function TraitLabClient() {
       setTokenCards(cards);
       const currentSelected = selectedTokenIdRef.current;
       const nextSelected = currentSelected && tokenIds.includes(currentSelected) ? currentSelected : tokenIds[0] || "";
+      selectedTokenIdRef.current = nextSelected;
       setSelectedTokenId(nextSelected);
       if (nextSelected) {
         await loadTokenMetadata(nextSelected);
-        await restoreActiveTraitLabOperation(nextSelected, true);
+        if (selectedTokenIdRef.current === nextSelected) {
+          await restoreActiveTraitLabOperation(nextSelected, true);
+        }
       }
     } catch (err) {
       setOwnedTokenIds([]);
       setTokenCards([]);
+      selectedTokenIdRef.current = "";
       setSelectedTokenId("");
       setMetadata(null);
       setError(err instanceof Error ? err.message : "Could not load owned Season 2 tokens.");
@@ -1099,9 +1129,12 @@ export function TraitLabClient() {
   }
 
   async function selectToken(tokenId: string) {
+    selectedTokenIdRef.current = tokenId;
     setSelectedTokenId(tokenId);
     await loadTokenMetadata(tokenId);
-    await restoreActiveTraitLabOperation(tokenId, true);
+    if (selectedTokenIdRef.current === tokenId) {
+      await restoreActiveTraitLabOperation(tokenId, true);
+    }
   }
 
   async function refreshConfirmedToken(tokenId: string, fallbackMetadata?: MetadataJson | null) {
@@ -1177,7 +1210,7 @@ export function TraitLabClient() {
         preview: nextPreview,
       }]
         .concat(current.filter((item) => item.tokenId !== tokenId)));
-      window.localStorage.setItem(pendingTraitLabStorageKey, JSON.stringify(next));
+      persistPendingTraitLabOperations(pendingTraitLabStorageKey, next);
       return next;
     });
   }
@@ -1186,10 +1219,7 @@ export function TraitLabClient() {
     if (!rollId) return;
     setPendingTraitLabOperations((current) => {
       const next = current.filter((item) => item.rollId !== rollId);
-      if (pendingTraitLabStorageKey) {
-        if (next.length) window.localStorage.setItem(pendingTraitLabStorageKey, JSON.stringify(next));
-        else window.localStorage.removeItem(pendingTraitLabStorageKey);
-      }
+      persistPendingTraitLabOperations(pendingTraitLabStorageKey, next);
       return next;
     });
   }
@@ -1234,6 +1264,7 @@ export function TraitLabClient() {
             : "This operation was not charged. Generate a fresh preview."));
       }
 
+      selectedTokenIdRef.current = item.tokenId;
       setSelectedTokenId(item.tokenId);
       await loadTokenMetadata(item.tokenId);
       const recoveredPreview = data.retryPreview || item.preview;
@@ -1251,21 +1282,20 @@ export function TraitLabClient() {
   }
 
   function savePendingBurnClaim(claim: PendingBurnClaim) {
-    if (typeof window !== "undefined") {
-      window.localStorage.setItem(`dyoor:s2:pending-droid-burn:${claim.wallet}`, JSON.stringify(claim));
-    }
+    setStorageJson(browserLocalStorage(), `dyoor:s2:pending-droid-burn:${claim.wallet}`, claim);
     setPendingBurnClaim(claim);
   }
 
   function clearPendingBurnClaim(claim: PendingBurnClaim) {
-    if (typeof window !== "undefined") {
+    const storage = browserLocalStorage();
+    if (storage) {
       const key = `dyoor:s2:pending-droid-burn:${claim.wallet}`;
-      const raw = window.localStorage.getItem(key);
+      const raw = getStorageItem(storage, key);
       try {
         const parsed = raw ? JSON.parse(raw) as PendingBurnClaim : null;
-        if (!parsed || parsed.burnTxHash === claim.burnTxHash) window.localStorage.removeItem(key);
+        if (!parsed || parsed.burnTxHash === claim.burnTxHash) removeStorageItem(storage, key);
       } catch {
-        window.localStorage.removeItem(key);
+        removeStorageItem(storage, key);
       }
     }
     setPendingBurnClaim(null);
@@ -1294,6 +1324,7 @@ export function TraitLabClient() {
     setOwnedTokenIds((tokenIds) => tokenIds.filter((tokenId) => tokenId !== claim.tokenId));
     setTokenCards((cards) => cards.filter((card) => card.tokenId !== claim.tokenId));
     if (selectedTokenIdRef.current === claim.tokenId) {
+      selectedTokenIdRef.current = "";
       setSelectedTokenId("");
       setMetadata(null);
     }

@@ -7,6 +7,8 @@ const SITE_ID = "e2a951cd-7e5b-49ac-a39a-391f68b69964";
 const FUNCTIONS_FILE = "netlify-dyoor-world-functions.env";
 const BUILDS_FILE = "netlify-dyoor-world-builds.env";
 const SECRET_KEYS = new Set([
+  "DYOOR_WORLD_AUTOMATION_SECRET",
+  "DYOOR_WORLD_REWARD_SECRET",
   "DYOOR_WORLD_SESSION_SECRET",
   "DYOOR_TRAIT_BOUNTY_OPERATOR_PRIVATE_KEY",
   "DYOOR_TRAIT_BOUNTY_PROCESSOR_SECRET",
@@ -17,10 +19,19 @@ const FUNCTIONS_KEYS = [
   "DYOOR_TRAIT_BOUNTY_PROCESSOR_SECRET",
   "DYOOR_TRAIT_LAB_ENABLE_BOUNTIES",
 ];
+const OPTIONAL_FUNCTIONS_KEYS = [
+  "DYOOR_WORLD_AUTOMATION_SECRET",
+  "DYOOR_WORLD_REWARD_SECRET",
+  "DYOOR_WORLD_REWARDS_ENABLED",
+  "DYOOR_WORLD_SALES_BOT_ENABLED",
+];
 const BUILDS_KEYS = [
   "NEXT_PUBLIC_DYOOR_WORLD_NAMES_CONTRACT",
   "NEXT_PUBLIC_DYOOR_TRAIT_BOUNTIES_CONTRACT",
   "NEXT_PUBLIC_DYOOR_TRAIT_LAB_ENABLE_LEADERBOARD",
+];
+const OPTIONAL_BUILDS_KEYS = [
+  "NEXT_PUBLIC_DYOOR_WORLD_TRADE_ESCROW_ADDRESS",
 ];
 
 if (process.env.APPLY_DYOOR_WORLD_NETLIFY_PREVIEW !== "1") {
@@ -37,6 +48,15 @@ function loadAllowlisted(filePath, keys) {
     }
   }
   return Object.fromEntries(keys.map((key) => [key, values[key]]));
+}
+
+function loadOptional(filePath, keys) {
+  const values = parse(readFileSync(filePath, "utf8"));
+  return Object.fromEntries(
+    keys
+      .filter((key) => String(values[key] || "").trim())
+      .map((key) => [key, values[key]]),
+  );
 }
 
 function publicValue(value) {
@@ -162,8 +182,14 @@ async function setVariable({
   );
 }
 
-const functionsValues = loadAllowlisted(FUNCTIONS_FILE, FUNCTIONS_KEYS);
-const buildsValues = loadAllowlisted(BUILDS_FILE, BUILDS_KEYS);
+const functionsValues = {
+  ...loadAllowlisted(FUNCTIONS_FILE, FUNCTIONS_KEYS),
+  ...loadOptional(FUNCTIONS_FILE, OPTIONAL_FUNCTIONS_KEYS),
+};
+const buildsValues = {
+  ...loadAllowlisted(BUILDS_FILE, BUILDS_KEYS),
+  ...loadOptional(BUILDS_FILE, OPTIONAL_BUILDS_KEYS),
+};
 const token = await getAPIToken();
 if (!token) {
   throw new Error("No authenticated Netlify API token is available.");

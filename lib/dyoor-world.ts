@@ -10,25 +10,54 @@ export const DYOOR_WORLD_CHANNELS = [
     id: "world-lobby",
     label: "world-lobby",
     description: "The holder-only commons for D.Y.O.O.R.",
+    readOnly: false,
   },
   {
     id: "trait-lab",
     label: "trait-lab",
     description: "Dynamic trait rolls, rarity finds, and build discussion.",
+    readOnly: false,
   },
   {
     id: "energy-grid",
     label: "energy-grid",
     description: "Energy flywheel strategy, harvests, and ecosystem signals.",
+    readOnly: false,
+  },
+  {
+    id: "trade-desk",
+    label: "trade-desk",
+    description: "Non-custodial S2 swaps coordinated by the World escrow.",
+    readOnly: false,
+  },
+  {
+    id: "sales-feed",
+    label: "sales-feed",
+    description: "Verified D.Y.O.O.R sales transmitted by the World sales bot.",
+    readOnly: true,
+  },
+  {
+    id: "tip-ledger",
+    label: "tip-ledger",
+    description: "Verified direct MON tips between World holders.",
+    readOnly: true,
   },
   {
     id: "burn-log",
     label: "burn-log",
     description: "Permanent S2 burns and deflationary collection history.",
+    readOnly: false,
   },
 ] as const;
 
 export type DyoorWorldChannelId = (typeof DYOOR_WORLD_CHANNELS)[number]["id"];
+export type DyoorWorldMessageKind = "user" | "system" | "sale" | "tip" | "trade";
+
+export type DyoorWorldAvatar = {
+  tokenId: string;
+  imageUrl: string;
+  updatedAt: string;
+};
 
 export type DyoorWorldNameClaim = {
   version: 1;
@@ -48,16 +77,21 @@ export type DyoorWorldProfile = {
 };
 
 export type DyoorWorldMessage = {
-  version: 1;
+  version: 1 | 2;
   id: string;
   channelId: DyoorWorldChannelId;
   wallet: string;
   content: string;
   createdAt: string;
+  kind?: DyoorWorldMessageKind;
+  systemAuthor?: string;
+  data?: Record<string, string | number | boolean | null>;
 };
 
 export type DyoorWorldMessageView = DyoorWorldMessage & {
   author: string;
+  avatar?: DyoorWorldAvatar | null;
+  energyReward?: number;
 };
 
 const RESERVED_WORLD_LABELS = new Set([
@@ -66,6 +100,7 @@ const RESERVED_WORLD_LABELS = new Set([
   "api",
   "app",
   "ascension",
+  "bot",
   "burn",
   "dyoor",
   "dyoorworld",
@@ -78,11 +113,19 @@ const RESERVED_WORLD_LABELS = new Set([
   "moderator",
   "official",
   "owner",
+  "reward",
+  "rewards",
   "root",
+  "sales",
+  "salesbot",
   "security",
   "staff",
   "support",
   "system",
+  "tip",
+  "tips",
+  "trade",
+  "trades",
   "traitlab",
   "treasury",
   "verify",
@@ -132,6 +175,10 @@ export function formatWorldCanonicalName(label: string) {
 
 export function isWorldChannel(value: unknown): value is DyoorWorldChannelId {
   return DYOOR_WORLD_CHANNELS.some((channel) => channel.id === value);
+}
+
+export function isWorldWritableChannel(value: unknown): value is DyoorWorldChannelId {
+  return DYOOR_WORLD_CHANNELS.some((channel) => channel.id === value && !channel.readOnly);
 }
 
 function validClaim(claim: DyoorWorldNameClaim) {

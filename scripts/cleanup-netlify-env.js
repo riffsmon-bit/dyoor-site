@@ -35,6 +35,12 @@ const PROTECT_KEYS = [
   "SUPABASE_SERVICE_ROLE",
   "VERIFY_SESSION_SECRET",
 ];
+const OPTIONAL_PROTECT_KEYS = [
+  "DYOOR_WORLD_AUTOMATION_SECRET",
+  "DYOOR_WORLD_REWARD_SECRET",
+  "DYOOR_WORLD_SESSION_SECRET",
+];
+const ALL_PROTECT_KEYS = [...PROTECT_KEYS, ...OPTIONAL_PROTECT_KEYS];
 
 if (process.env.APPLY_NETLIFY_ENV_CLEANUP !== "1") {
   throw new Error(
@@ -95,9 +101,10 @@ const failures = [];
 const protectedKeys = [];
 const removedKeys = [];
 
-for (const key of PROTECT_KEYS) {
+for (const key of ALL_PROTECT_KEYS) {
   const existing = variables.find((entry) => entry.key === key);
   if (!existing) {
+    if (OPTIONAL_PROTECT_KEYS.includes(key)) continue;
     failures.push(`${key}: variable is missing`);
     continue;
   }
@@ -142,8 +149,9 @@ for (const [key, reason] of REMOVE_KEYS) {
 }
 
 variables = await api.getEnvVars({ accountId, siteId: SITE_ID });
-for (const key of PROTECT_KEYS) {
+for (const key of ALL_PROTECT_KEYS) {
   const variable = variables.find((entry) => entry.key === key);
+  if (!variable && OPTIONAL_PROTECT_KEYS.includes(key)) continue;
   if (!variable?.is_secret) {
     failures.push(`${key}: secret classification did not verify`);
   } else if ((variable.scopes || []).includes("post_processing")) {

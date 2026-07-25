@@ -285,7 +285,12 @@ export async function refreshOpenSeaTokenMetadata({
 
   const apiKey = readEnv("OPENSEA_API_KEY");
   if (!apiKey) {
-    return { ...base, status: "skipped", note: "OPENSEA_API_KEY is not configured." };
+    return {
+      ...base,
+      status: "failed",
+      error: "OPENSEA_API_KEY is not configured.",
+      note: "The refresh remains queued so the scheduled processor can retry after configuration is restored.",
+    };
   }
 
   const controller = new AbortController();
