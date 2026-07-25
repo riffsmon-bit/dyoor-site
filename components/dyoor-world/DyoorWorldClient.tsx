@@ -375,6 +375,7 @@ export function DyoorWorldClient({ sessionWallet }: { sessionWallet: string }) {
   const [error, setError] = useState("");
   const [mobileThreadsOpen, setMobileThreadsOpen] = useState(false);
   const messageEndRef = useRef<HTMLDivElement>(null);
+  const tipAmountRef = useRef<HTMLInputElement>(null);
   const selectedChannel = useMemo(
     () => DYOOR_WORLD_CHANNELS.find((channel) => channel.id === channelId)
       || DYOOR_WORLD_CHANNELS[0],
@@ -481,6 +482,15 @@ export function DyoorWorldClient({ sessionWallet }: { sessionWallet: string }) {
     document.addEventListener("keydown", closeOnEscape);
     return () => document.removeEventListener("keydown", closeOnEscape);
   }, [mobileThreadsOpen]);
+
+  useEffect(() => {
+    if (!tipTarget) return;
+    const frame = window.requestAnimationFrame(() => {
+      tipAmountRef.current?.focus();
+      tipAmountRef.current?.select();
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, [tipTarget]);
 
   async function ensureActiveWallet() {
     if (!connectedWallet) throw new Error("Connect the authenticated holder wallet first.");
@@ -1247,7 +1257,24 @@ export function DyoorWorldClient({ sessionWallet }: { sessionWallet: string }) {
                       </div>
                       <div className="min-w-0 flex-1">
                         <div className="flex flex-wrap items-baseline gap-2">
-                          <span className={`text-xs font-black ${isSystem ? "text-dyoor-monad" : "text-dyoor-cyan"}`}>{message.author}</span>
+                          {isSystem || message.wallet === normalizedSessionWallet ? (
+                            <span className={`text-xs font-black ${isSystem ? "text-dyoor-monad" : "text-dyoor-cyan"}`}>
+                              {message.author}
+                            </span>
+                          ) : (
+                            <button
+                              aria-label={`Tip ${message.author} in MON`}
+                              className="text-xs font-black text-dyoor-cyan underline decoration-transparent underline-offset-4 transition hover:text-emerald-200 hover:decoration-emerald-200/70"
+                              onClick={() => setTipTarget({
+                                wallet: message.wallet,
+                                author: message.author,
+                              })}
+                              title={`Tip ${message.author} in MON`}
+                              type="button"
+                            >
+                              {message.author}
+                            </button>
+                          )}
                           <span className="text-[0.62rem] font-bold text-white/25">{messageTime(message.createdAt)}</span>
                           {isSystem ? <span className="text-[0.53rem] font-black uppercase tracking-[0.12em] text-white/28">verified {message.kind}</span> : null}
                         </div>
@@ -1288,15 +1315,6 @@ export function DyoorWorldClient({ sessionWallet }: { sessionWallet: string }) {
                               {shortenedHash(message.data.txHash)} ↗
                             </a>
                           ) : null}
-                          {!isSystem && message.wallet !== normalizedSessionWallet ? (
-                            <button
-                              className="text-[0.6rem] font-black uppercase tracking-[0.1em] text-emerald-300/70 hover:text-emerald-200"
-                              onClick={() => setTipTarget({ wallet: message.wallet, author: message.author })}
-                              type="button"
-                            >
-                              Tip MON
-                            </button>
-                          ) : null}
                         </div>
                       </div>
                     </div>
@@ -1308,15 +1326,30 @@ export function DyoorWorldClient({ sessionWallet }: { sessionWallet: string }) {
 
             {tipTarget ? (
               <div className="border-t border-emerald-300/20 bg-emerald-300/[0.05] p-3 sm:px-4">
-                <div className="flex flex-wrap items-center gap-2">
+                <form
+                  className="flex flex-wrap items-center gap-2"
+                  onSubmit={(event) => {
+                    event.preventDefault();
+                    void sendTip();
+                  }}
+                >
                   <p className="mr-auto text-xs font-black text-emerald-200">
                     Direct tip to {tipTarget.author}
                   </p>
-                  <input className="field-control w-28 text-xs" min="0" onChange={(event) => setTipAmount(event.target.value)} step="0.01" type="number" value={tipAmount} />
+                  <input
+                    aria-label={`MON tip amount for ${tipTarget.author}`}
+                    className="field-control w-28 text-xs"
+                    min="0"
+                    onChange={(event) => setTipAmount(event.target.value)}
+                    ref={tipAmountRef}
+                    step="0.01"
+                    type="number"
+                    value={tipAmount}
+                  />
                   <span className="text-xs font-black text-white/50">MON</span>
-                  <button className="btn-primary px-3 text-xs" disabled={tipping} onClick={() => void sendTip()} type="button">{tipping ? "Confirming" : "Send direct"}</button>
+                  <button className="btn-primary px-3 text-xs" disabled={tipping} type="submit">{tipping ? "Confirming" : "Send direct"}</button>
                   <button className="btn-ghost px-3 text-xs" onClick={() => setTipTarget(null)} type="button">Cancel</button>
-                </div>
+                </form>
                 <p className="mt-2 text-[0.6rem] font-bold text-white/30">
                   Wallet-to-wallet on Monad. Tips of {rewards?.tips.minimumMon || "0.1"} MON or more can earn +{rewards?.tips.rewardEnergy || 10} Energy, capped daily. dYOOR World never takes custody.
                 </p>

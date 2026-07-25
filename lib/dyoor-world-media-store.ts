@@ -93,7 +93,7 @@ async function normalizeUploadedImage(input: Buffer) {
     }
     if (Number(metadata.pages || 1) > 1) {
       throw Object.assign(
-        new Error("Upload a static image; use Tenor search for animated GIFs."),
+        new Error("Upload a static image; animated GIF uploads are not supported."),
         { status: 400 },
       );
     }

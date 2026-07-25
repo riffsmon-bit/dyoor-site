@@ -2,7 +2,7 @@
 
 /* eslint-disable @next/next/no-img-element */
 
-import { ChangeEvent, KeyboardEvent, useState } from "react";
+import { ChangeEvent, useState } from "react";
 import { DyoorWorldGlyph } from "@/components/dyoor-world/DyoorWorldDiscovery";
 import {
   DYOOR_WORLD_STICKERS,
@@ -12,20 +12,10 @@ import {
   type DyoorWorldStickerId,
 } from "@/lib/dyoor-world-media";
 
-type TenorGif = {
-  id: string;
-  title: string;
-  url: string;
-  previewUrl: string;
-  width: number;
-  height: number;
-};
-
 type MediaResponse = {
   ok?: boolean;
   error?: string;
   attachment?: DyoorWorldMessageAttachment;
-  results?: TenorGif[];
 };
 
 async function readResponse<T>(response: Response): Promise<T> {
@@ -84,53 +74,14 @@ export function DyoorWorldMediaComposer({
   disabled?: boolean;
   onChange: (attachment: DyoorWorldMessageAttachment | null) => void;
 }) {
-  const [mode, setMode] = useState<"" | "tenor" | "upload" | "stickers">("");
-  const [tenorQuery, setTenorQuery] = useState("");
-  const [tenorResults, setTenorResults] = useState<TenorGif[]>([]);
-  const [tenorSearching, setTenorSearching] = useState(false);
-  const [selectedTenorId, setSelectedTenorId] = useState("");
+  const [mode, setMode] = useState<"" | "upload" | "stickers">("");
   const [uploading, setUploading] = useState(false);
   const [mediaError, setMediaError] = useState("");
 
-  async function searchTenor(query = tenorQuery) {
-    setTenorSearching(true);
-    setMediaError("");
-    try {
-      const response = await fetch(
-        `/api/dyoor-world/media/tenor?q=${encodeURIComponent(query.trim())}`,
-        { cache: "no-store" },
-      );
-      const data = await readResponse<MediaResponse>(response);
-      setTenorResults(Array.isArray(data.results) ? data.results : []);
-    } catch (error) {
-      setTenorResults([]);
-      setMediaError(error instanceof Error ? error.message : "Could not search Tenor.");
-    } finally {
-      setTenorSearching(false);
-    }
-  }
-
-  function openMode(next: "tenor" | "upload" | "stickers") {
+  function openMode(next: "upload" | "stickers") {
     const opening = mode !== next;
     setMode(opening ? next : "");
     setMediaError("");
-    if (opening && next === "tenor" && tenorResults.length === 0) {
-      void searchTenor("");
-    }
-  }
-
-  function selectTenorGif(gif: TenorGif) {
-    setSelectedTenorId(gif.id);
-    onChange({
-      kind: "gif",
-      url: gif.url,
-      alt: gif.title || "Tenor GIF",
-    });
-    void fetch("/api/dyoor-world/media/tenor", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ id: gif.id, query: tenorQuery.trim() }),
-    }).catch(() => undefined);
   }
 
   async function uploadImage(event: ChangeEvent<HTMLInputElement>) {
@@ -151,7 +102,6 @@ export function DyoorWorldMediaComposer({
       if (!normalized || normalized.kind !== "image") {
         throw new Error("The uploaded image response was invalid.");
       }
-      setSelectedTenorId("");
       onChange(normalized);
     } catch (error) {
       setMediaError(error instanceof Error ? error.message : "Could not upload this image.");
@@ -160,28 +110,9 @@ export function DyoorWorldMediaComposer({
     }
   }
 
-  function tenorSearchKeyDown(event: KeyboardEvent<HTMLInputElement>) {
-    if (event.key !== "Enter") return;
-    event.preventDefault();
-    if (!tenorSearching) void searchTenor();
-  }
-
   return (
     <div className="mt-2">
       <div className="flex flex-wrap items-center gap-2">
-        <button
-          aria-pressed={mode === "tenor"}
-          className={`rounded border px-3 py-2 text-[0.58rem] font-black uppercase tracking-[0.12em] transition ${
-            mode === "tenor"
-              ? "border-dyoor-cyan/55 bg-dyoor-cyan/10 text-dyoor-cyan"
-              : "border-white/10 bg-white/[0.03] text-white/40 hover:text-white"
-          }`}
-          disabled={disabled}
-          onClick={() => openMode("tenor")}
-          type="button"
-        >
-          Search GIFs
-        </button>
         <button
           aria-pressed={mode === "upload"}
           className={`rounded border px-3 py-2 text-[0.58rem] font-black uppercase tracking-[0.12em] transition ${
@@ -212,74 +143,13 @@ export function DyoorWorldMediaComposer({
           <button
             className="ml-auto text-[0.55rem] font-black uppercase tracking-[0.1em] text-white/30 hover:text-rose-200"
             disabled={disabled}
-            onClick={() => {
-              setSelectedTenorId("");
-              onChange(null);
-            }}
+            onClick={() => onChange(null)}
             type="button"
           >
             Clear attachment
           </button>
         ) : null}
       </div>
-
-      {mode === "tenor" ? (
-        <div className="mt-2 rounded border border-dyoor-cyan/20 bg-dyoor-cyan/[0.04] p-3">
-          <div className="flex gap-2">
-            <input
-              aria-label="Search Tenor GIFs"
-              className="field-control min-w-0 flex-1 text-xs"
-              maxLength={80}
-              onChange={(event) => setTenorQuery(event.target.value)}
-              onKeyDown={tenorSearchKeyDown}
-              placeholder="Search Tenor"
-              value={tenorQuery}
-            />
-            <button
-              className="btn-secondary shrink-0 px-3 text-[0.62rem]"
-              disabled={tenorSearching}
-              onClick={() => void searchTenor()}
-              type="button"
-            >
-              {tenorSearching ? "Searching" : "Search"}
-            </button>
-          </div>
-          {mediaError ? (
-            <p className="mt-2 text-[0.62rem] font-bold text-rose-200/85">{mediaError}</p>
-          ) : null}
-          <div className="mt-3 grid max-h-72 grid-cols-3 gap-2 overflow-y-auto pr-1 sm:grid-cols-4 xl:grid-cols-6">
-            {tenorResults.map((gif) => (
-              <button
-                aria-label={`Use ${gif.title}`}
-                className={`relative aspect-square overflow-hidden rounded border bg-black/40 transition ${
-                  selectedTenorId === gif.id
-                    ? "border-dyoor-cyan ring-2 ring-dyoor-cyan/45"
-                    : "border-white/10 hover:border-dyoor-purple/60"
-                }`}
-                key={gif.id}
-                onClick={() => selectTenorGif(gif)}
-                type="button"
-              >
-                <img
-                  alt={gif.title}
-                  className="h-full w-full object-cover"
-                  loading="lazy"
-                  referrerPolicy="no-referrer"
-                  src={gif.previewUrl}
-                />
-              </button>
-            ))}
-          </div>
-          <a
-            className="mt-3 inline-flex text-[0.56rem] font-black uppercase tracking-[0.12em] text-white/35 hover:text-white"
-            href="https://tenor.com"
-            rel="noreferrer"
-            target="_blank"
-          >
-            Powered by Tenor ↗
-          </a>
-        </div>
-      ) : null}
 
       {mode === "upload" ? (
         <div className="mt-2 rounded border border-emerald-300/20 bg-emerald-300/[0.04] p-3">
@@ -318,7 +188,6 @@ export function DyoorWorldMediaComposer({
               }`}
               key={sticker.id}
               onClick={() => {
-                setSelectedTenorId("");
                 onChange(
                   attachment?.kind === "sticker" && attachment.stickerId === sticker.id
                     ? null

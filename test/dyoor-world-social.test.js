@@ -114,7 +114,6 @@ test("verified streams are bot-only while the trade desk remains conversational"
 test("World social APIs remain holder-gated and financial relays verify chain receipts", () => {
   for (const file of [
     "app/api/dyoor-world/media/[wallet]/[mediaId]/route.ts",
-    "app/api/dyoor-world/media/tenor/route.ts",
     "app/api/dyoor-world/media/upload/route.ts",
     "app/api/dyoor-world/profile/route.ts",
     "app/api/dyoor-world/rewards/route.ts",
@@ -149,13 +148,9 @@ test("World social APIs remain holder-gated and financial relays verify chain re
   assert.match(client, /Wallet-to-wallet on Monad/);
 });
 
-test("World media search and uploads keep provider keys server-side and sanitize files", () => {
+test("World image uploads are holder-only, bounded, and sanitized", () => {
   const client = fs.readFileSync(
     "components/dyoor-world/DyoorWorldMediaComposer.tsx",
-    "utf8",
-  );
-  const tenor = fs.readFileSync(
-    "app/api/dyoor-world/media/tenor/route.ts",
     "utf8",
   );
   const upload = fs.readFileSync(
@@ -163,23 +158,15 @@ test("World media search and uploads keep provider keys server-side and sanitize
     "utf8",
   );
   const store = fs.readFileSync("lib/dyoor-world-media-store.ts", "utf8");
-  const envTemplate = fs.readFileSync(
-    "netlify-dyoor-world-social.env.example",
-    "utf8",
-  );
-
-  assert.match(client, /Search Tenor/);
-  assert.match(client, /Powered by Tenor/);
-  assert.doesNotMatch(client, /TENOR_API_KEY|GOOGLE_TENOR_API_KEY/);
-  assert.match(tenor, /https:\/\/tenor\.googleapis\.com\/v2/);
-  assert.match(tenor, /contentfilter: "high"/);
-  assert.match(tenor, /"registershare"/);
+  assert.match(client, /Upload image/);
+  assert.match(client, /World stickers/);
+  assert.doesNotMatch(client, /Tenor|Search GIFs/);
+  assert.equal(fs.existsSync("app/api/dyoor-world/media/tenor/route.ts"), false);
   assert.match(upload, /file\.size > 5 \* 1024 \* 1024/);
   assert.match(upload, /saveDyoorWorldImage/);
   assert.match(store, /limitInputPixels: MAX_INPUT_PIXELS/);
   assert.match(store, /\.webp\(\{ quality: 82/);
   assert.match(store, /MAX_UPLOADS_PER_WALLET = 40/);
-  assert.match(envTemplate, /TENOR_API_KEY=CHANGE_ME/);
 });
 
 test("World mobile threads and atomic trade desk stay streamlined", () => {
@@ -199,4 +186,14 @@ test("World mobile threads and atomic trade desk stay streamlined", () => {
   assert.match(server, /export async function getDyoorWorldTrade/);
   assert.match(server, /monRequestedWei: BigInt\(trade\.monRequested\)\.toString\(\)/);
   assert.match(server, /expired: expiresAt <= Math\.floor\(Date\.now\(\) \/ 1_000\)/);
+});
+
+test("another holder's username opens the direct MON tip flow", () => {
+  const client = fs.readFileSync("components/dyoor-world/DyoorWorldClient.tsx", "utf8");
+
+  assert.match(client, /aria-label=\{`Tip \$\{message\.author\} in MON`\}/);
+  assert.match(client, /message\.wallet === normalizedSessionWallet/);
+  assert.match(client, /ref=\{tipAmountRef\}/);
+  assert.match(client, /void sendTip\(\)/);
+  assert.doesNotMatch(client, />\s*Tip MON\s*</);
 });
