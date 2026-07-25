@@ -56,6 +56,17 @@ type RewardStatus = {
     dailyCap: number;
     nextRewardAt: string | null;
   };
+  tips: {
+    rewardEnergy: number;
+    minimumMon: string;
+    rewardedToday: number;
+    dailyCap: number;
+  };
+  trades: {
+    rewardEnergy: number;
+    rewardedToday: number;
+    dailyCap: number;
+  };
 };
 
 type TipTarget = {
@@ -273,10 +284,7 @@ export function DyoorWorldClient({ sessionWallet }: { sessionWallet: string }) {
   }, [loadOwnedTokens, loadProfile, loadRewards]);
 
   useEffect(() => {
-    if (!avatarTokenId) {
-      setAvatarPreview("");
-      return;
-    }
+    if (!avatarTokenId) return;
     let active = true;
     const timer = window.setTimeout(async () => {
       try {
@@ -489,8 +497,15 @@ export function DyoorWorldClient({ sessionWallet }: { sessionWallet: string }) {
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ recipient: tipTarget.wallet, txHash }),
       });
-      await readResponse(response);
-      setNotice(`Tipped ${tipTarget.author} ${tipAmount} MON · ${shortenedHash(txHash)}`);
+      const data = await readResponse<{
+        reward?: { amountEnergy?: number };
+      }>(response);
+      if (data.reward?.amountEnergy) await loadRewards();
+      setNotice(
+        `Tipped ${tipTarget.author} ${tipAmount} MON · ${shortenedHash(txHash)}${
+          data.reward?.amountEnergy ? ` · +${data.reward.amountEnergy} Energy pending` : ""
+        }`,
+      );
       setTipTarget(null);
       setChannelId("tip-ledger");
     } catch (caught) {
@@ -507,8 +522,12 @@ export function DyoorWorldClient({ sessionWallet }: { sessionWallet: string }) {
       headers: { "content-type": "application/json" },
       body: JSON.stringify({ txHash }),
     });
-    await readResponse(response);
+    const data = await readResponse<{
+      rewards?: Array<{ wallet?: string; amountEnergy?: number }>;
+    }>(response);
+    if (data.rewards?.length) await loadRewards();
     await loadMessages(true);
+    return data;
   }
 
   async function approveDroid(from: string, escrow: string, id: bigint) {
@@ -586,8 +605,15 @@ export function DyoorWorldClient({ sessionWallet }: { sessionWallet: string }) {
         }),
         ...(requestedMon > 0n ? { value: toHex(requestedMon) } : {}),
       });
-      await verifyTrade(txHash);
-      setNotice(`Trade #${id} completed atomically · ${shortenedHash(txHash)}`);
+      const result = await verifyTrade(txHash);
+      const ownReward = result.rewards?.find(
+        (reward) => normalizeAddress(reward.wallet) === normalizedSessionWallet,
+      );
+      setNotice(
+        `Trade #${id} completed atomically · ${shortenedHash(txHash)}${
+          ownReward?.amountEnergy ? ` · +${ownReward.amountEnergy} Energy pending` : ""
+        }`,
+      );
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "Could not accept the World trade.");
     } finally {
@@ -842,7 +868,9 @@ export function DyoorWorldClient({ sessionWallet }: { sessionWallet: string }) {
                   <button className="btn-primary px-3 text-xs" disabled={tipping} onClick={() => void sendTip()} type="button">{tipping ? "Confirming" : "Send direct"}</button>
                   <button className="btn-ghost px-3 text-xs" onClick={() => setTipTarget(null)} type="button">Cancel</button>
                 </div>
-                <p className="mt-2 text-[0.6rem] font-bold text-white/30">Wallet-to-wallet on Monad. dYOOR World never takes custody.</p>
+                <p className="mt-2 text-[0.6rem] font-bold text-white/30">
+                  Wallet-to-wallet on Monad. Tips of {rewards?.tips.minimumMon || "0.1"} MON or more can earn +{rewards?.tips.rewardEnergy || 10} Energy, capped daily. dYOOR World never takes custody.
+                </p>
               </div>
             ) : null}
 
@@ -889,7 +917,16 @@ export function DyoorWorldClient({ sessionWallet }: { sessionWallet: string }) {
               <div className="border-t border-white/[0.06] p-3">
                 <label className="text-[0.58rem] font-black uppercase tracking-[0.12em] text-white/35" htmlFor="world-pfp">Choose owned S2 PFP</label>
                 <div className="mt-2 flex gap-2">
-                  <select className="field-control min-w-0 flex-1 text-xs" id="world-pfp" onChange={(event) => setAvatarTokenId(event.target.value)} value={avatarTokenId}>
+                  <select
+                    className="field-control min-w-0 flex-1 text-xs"
+                    id="world-pfp"
+                    onChange={(event) => {
+                      const nextTokenId = event.target.value;
+                      setAvatarTokenId(nextTokenId);
+                      if (!nextTokenId) setAvatarPreview("");
+                    }}
+                    value={avatarTokenId}
+                  >
                     <option value="">Select Droid</option>
                     {ownedTokenIds.map((id) => <option key={id} value={id}>D.Y.O.O.R #{id}</option>)}
                   </select>
@@ -965,12 +1002,18 @@ export function DyoorWorldClient({ sessionWallet }: { sessionWallet: string }) {
               <p className="relative mt-2 text-[0.56rem] font-bold text-white/25">
                 Chat: +{rewards?.chat.rewardEnergy || 5} · {rewards?.chat.rewardedToday || 0}/{rewards?.chat.dailyCap || 5} rewarded today · 10m cooldown
               </p>
+              <p className="relative mt-1 text-[0.56rem] font-bold text-white/25">
+                Tips: +{rewards?.tips.rewardEnergy || 10} at {rewards?.tips.minimumMon || "0.1"}+ MON · {rewards?.tips.rewardedToday || 0}/{rewards?.tips.dailyCap || 3} today
+              </p>
+              <p className="relative mt-1 text-[0.56rem] font-bold text-white/25">
+                Completed trades: +{rewards?.trades.rewardEnergy || 100} each · {rewards?.trades.rewardedToday || 0}/{rewards?.trades.dailyCap || 1} today
+              </p>
             </div>
 
             <div className="mt-4 rounded border border-white/[0.07] bg-white/[0.025] p-4">
               <p className="text-[0.62rem] font-black uppercase tracking-[0.16em] text-dyoor-monad">Safety model</p>
               <p className="mt-2 text-xs font-bold leading-5 text-white/40">
-                Tips travel wallet-to-wallet. Trades settle atomically in a fee-free S2 escrow. Sales and trade bots only verify and relay public events—no bot custody key exists.
+                Tips travel wallet-to-wallet. Trades settle atomically in a fee-free S2 escrow. Energy is earned only from meaningful messages, qualifying verified tips, and completed swaps. Sales, burn, and trade bots only verify and relay public events—no bot custody key exists.
               </p>
             </div>
           </aside>

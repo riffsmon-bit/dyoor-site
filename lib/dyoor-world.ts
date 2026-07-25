@@ -46,12 +46,12 @@ export const DYOOR_WORLD_CHANNELS = [
     id: "burn-log",
     label: "burn-log",
     description: "Permanent S2 burns and deflationary collection history.",
-    readOnly: false,
+    readOnly: true,
   },
 ] as const;
 
 export type DyoorWorldChannelId = (typeof DYOOR_WORLD_CHANNELS)[number]["id"];
-export type DyoorWorldMessageKind = "user" | "system" | "sale" | "tip" | "trade";
+export type DyoorWorldMessageKind = "user" | "system" | "sale" | "tip" | "trade" | "burn";
 
 export type DyoorWorldAvatar = {
   tokenId: string;

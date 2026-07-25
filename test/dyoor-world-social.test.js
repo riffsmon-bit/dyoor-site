@@ -6,6 +6,13 @@ import {
   isWorldWritableChannel,
 } from "../lib/dyoor-world.ts";
 import {
+  DYOOR_WORLD_CHAT_REWARD_DAILY_CAP,
+  DYOOR_WORLD_CHAT_REWARD_ENERGY,
+  DYOOR_WORLD_TIP_REWARD_DAILY_CAP,
+  DYOOR_WORLD_TIP_REWARD_ENERGY,
+  DYOOR_WORLD_TIP_REWARD_MIN_MON,
+  DYOOR_WORLD_TRADE_REWARD_DAILY_CAP,
+  DYOOR_WORLD_TRADE_REWARD_ENERGY,
   dyoorWorldDailyPrize,
   qualifiesForDyoorWorldChatReward,
 } from "../lib/dyoor-world-rewards.ts";
@@ -30,9 +37,20 @@ test("chat rewards require meaningful content instead of message spam", () => {
   );
 });
 
-test("sales and tip streams are bot-only while the trade desk remains conversational", () => {
+test("activity rewards are useful but capped against low-effort farming", () => {
+  assert.equal(DYOOR_WORLD_CHAT_REWARD_ENERGY, 5);
+  assert.equal(DYOOR_WORLD_CHAT_REWARD_DAILY_CAP, 5);
+  assert.equal(DYOOR_WORLD_TIP_REWARD_ENERGY, 10);
+  assert.equal(DYOOR_WORLD_TIP_REWARD_MIN_MON, "0.1");
+  assert.equal(DYOOR_WORLD_TIP_REWARD_DAILY_CAP, 3);
+  assert.equal(DYOOR_WORLD_TRADE_REWARD_ENERGY, 100);
+  assert.equal(DYOOR_WORLD_TRADE_REWARD_DAILY_CAP, 1);
+});
+
+test("verified streams are bot-only while the trade desk remains conversational", () => {
   assert.equal(isWorldWritableChannel("sales-feed"), false);
   assert.equal(isWorldWritableChannel("tip-ledger"), false);
+  assert.equal(isWorldWritableChannel("burn-log"), false);
   assert.equal(isWorldWritableChannel("trade-desk"), true);
   assert.equal(DYOOR_WORLD_CHANNELS.some((channel) => channel.id === "sales-feed"), true);
   assert.equal(DYOOR_WORLD_CHANNELS.some((channel) => channel.id === "trade-desk"), true);
@@ -52,7 +70,15 @@ test("World social APIs remain holder-gated and financial relays verify chain re
   assert.match(server, /transaction\.value <= 0n/);
   assert.match(server, /DYOOR_WORLD_CHAT_REWARD_COOLDOWN_MS/);
   assert.match(server, /DYOOR_WORLD_CHAT_REWARD_DAILY_CAP/);
+  assert.match(server, /BigInt\(record\.amountWei\) < ethers\.parseEther\(DYOOR_WORLD_TIP_REWARD_MIN_MON\)/);
+  assert.match(server, /parsed\.name === "TradeCompleted"/);
+  assert.match(server, /processDyoorWorldBurns/);
+  assert.match(server, /verifyExplorerBurnOnChain/);
   assert.match(server, /ENERGY_BANK_OPERATOR_PRIVATE_KEY/);
+  assert.match(
+    fs.readFileSync("app/api/dyoor-world/automation/burns/route.ts", "utf8"),
+    /requireDyoorWorldAutomationRequest/,
+  );
 
   const client = fs.readFileSync("components/dyoor-world/DyoorWorldClient.tsx", "utf8");
   assert.doesNotMatch(client, /DYOOR_WORLD_REWARD_SECRET/);

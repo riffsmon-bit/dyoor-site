@@ -3,6 +3,13 @@ export const DYOOR_WORLD_CHAT_REWARD_MIN_LENGTH = 20;
 export const DYOOR_WORLD_CHAT_REWARD_COOLDOWN_MS = 10 * 60 * 1000;
 export const DYOOR_WORLD_CHAT_REWARD_DAILY_CAP = 5;
 
+export const DYOOR_WORLD_TIP_REWARD_ENERGY = 10;
+export const DYOOR_WORLD_TIP_REWARD_MIN_MON = "0.1";
+export const DYOOR_WORLD_TIP_REWARD_DAILY_CAP = 3;
+
+export const DYOOR_WORLD_TRADE_REWARD_ENERGY = 100;
+export const DYOOR_WORLD_TRADE_REWARD_DAILY_CAP = 1;
+
 export const DYOOR_WORLD_DAILY_REWARD_TABLE = [
   { upperBound: 60, energy: 50 },
   { upperBound: 85, energy: 100 },
@@ -11,7 +18,7 @@ export const DYOOR_WORLD_DAILY_REWARD_TABLE = [
   { upperBound: 100, energy: 1_000 },
 ] as const;
 
-export type DyoorWorldRewardKind = "chat" | "daily";
+export type DyoorWorldRewardKind = "chat" | "daily" | "tip" | "trade";
 
 export type DyoorWorldRewardRecord = {
   version: 1;
@@ -23,6 +30,7 @@ export type DyoorWorldRewardRecord = {
   createdAt: string;
   utcDate: string;
   messageId?: string;
+  referenceId?: string;
 };
 
 export type DyoorWorldRewardClaim = {
