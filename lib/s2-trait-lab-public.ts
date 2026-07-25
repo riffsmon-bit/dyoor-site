@@ -592,6 +592,8 @@ export function traitLabPublicConfig() {
     tokenCooldownMs: traitLabTokenCooldownMs(),
     droidBurnEnabled: traitLabDroidBurnEnabled(),
     droidBurnRewardEnergy: traitLabDroidBurnRewardEnergy(),
+    rerollSettlementMode: "server-ledger",
+    rerollRequiresTransaction: false,
     leaderboardEnabled: traitLabLeaderboardEnabled(),
     bountyEnabled: traitBountyEngineEnabled(),
     guaranteedTraits: S2_GUARANTEED_TRAITS,

@@ -47,6 +47,7 @@ test("a later pending debit can never displace a charge that already returned", 
 
 test("new rerolls use the server ledger while legacy transaction receipt recovery remains supported", () => {
   const source = fs.readFileSync("lib/s2-trait-lab.ts", "utf8");
+  const publicSource = fs.readFileSync("lib/s2-trait-lab-public.ts", "utf8");
   const debitStart = source.indexOf("async function debitTraitLabEnergy");
   const debitEnd = source.indexOf("async function creditTraitLabRecycleEnergy", debitStart);
   const debitSource = source.slice(debitStart, debitEnd);
@@ -56,6 +57,8 @@ test("new rerolls use the server ledger while legacy transaction receipt recover
   assert.doesNotMatch(debitSource, /spendEnergy|sendTransaction|getTransactionCount|\.wait\(/);
   assert.match(source, /energySettlementMode === "server-ledger"/);
   assert.match(source, /receiptContainsTraitLabEnergySpend/);
+  assert.match(publicSource, /rerollSettlementMode:\s*"server-ledger"/);
+  assert.match(publicSource, /rerollRequiresTransaction:\s*false/);
 });
 
 test("restore-required preview errors preserve and rediscover the actual active operation", () => {
