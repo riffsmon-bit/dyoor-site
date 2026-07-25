@@ -73,3 +73,21 @@ test("restore-required preview errors preserve and rediscover the actual active 
   assert.match(clientSource, /\/api\/s2\/trait-lab\/active/);
   assert.match(clientSource, /setPreview\(data\.recoveryPreview\)/);
 });
+
+test("legacy UUID-era confirmations are retired instead of hijacking a new trait roll", () => {
+  const traitLabSource = fs.readFileSync("lib/s2-trait-lab.ts", "utf8");
+  const clientSource = fs.readFileSync("components/s2/TraitLabClient.tsx", "utf8");
+  const initializeStart = traitLabSource.indexOf("async function initializeTraitLabActiveRoll");
+  const initializeEnd = traitLabSource.indexOf("async function supersedeTraitLabRoll", initializeStart);
+  const activateStart = traitLabSource.indexOf("async function activateTraitLabRoll");
+  const activateEnd = traitLabSource.indexOf("async function closeTraitLabActiveRoll", activateStart);
+
+  assert.match(traitLabSource, /LEGACY_TRAIT_LAB_ROLL_ID/);
+  assert.match(traitLabSource, /isLegacyCompletedTraitLabRoll/);
+  assert.match(traitLabSource, /status:\s*"completed"/);
+  assert.match(traitLabSource, /if \(!isTraitLabRollId\(rollId\)\)/);
+  assert.doesNotMatch(traitLabSource.slice(initializeStart, initializeEnd), /listTraitLabRollsForToken/);
+  assert.doesNotMatch(traitLabSource.slice(activateStart, activateEnd), /listTraitLabRollsForToken/);
+  assert.match(clientSource, /Your \$\{traitType\} roll was not created or charged/);
+  assert.match(clientSource, /Signature request/);
+});

@@ -513,6 +513,12 @@ function sleep(ms: number) {
   return new Promise((resolve) => window.setTimeout(resolve, ms));
 }
 
+function isTraitLabOperationId(value: unknown) {
+  const operationId = String(value || "");
+  return /^0x[a-f0-9]{64}$/i.test(operationId)
+    || /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(operationId);
+}
+
 function traitLabErrorMessage(error: unknown, fallback: string) {
   const message = error instanceof Error ? error.message : fallback;
   if (/Trait image composition failed/i.test(message)) {
@@ -835,7 +841,7 @@ export function TraitLabClient() {
             item
             && typeof item === "object"
             && (item as PendingTraitLabOperation).wallet === walletAddress
-            && /^0x[a-fA-F0-9]{64}$/.test(String((item as PendingTraitLabOperation).rollId || ""))
+            && isTraitLabOperationId((item as PendingTraitLabOperation).rollId)
             && (item as PendingTraitLabOperation).preview?.previewId,
           )));
         if (operations.length) window.localStorage.setItem(pendingTraitLabStorageKey, JSON.stringify(operations));
@@ -965,7 +971,17 @@ export function TraitLabClient() {
       );
       const data = await response.json().catch(() => ({})) as TraitLabOperationResponse;
       if (!response.ok || data.ok === false) throw new Error(data.error || "Could not check the current Trait Lab result.");
-      if (!data.active || !data.retryPreview?.rollId || !data.retryPreview.previewId) return;
+      if (!data.active || !data.retryPreview?.rollId || !data.retryPreview.previewId) {
+        setPendingTraitLabOperations((current) => {
+          const next = current.filter((item) => item.tokenId !== tokenId);
+          if (pendingTraitLabStorageKey) {
+            if (next.length) window.localStorage.setItem(pendingTraitLabStorageKey, JSON.stringify(next));
+            else window.localStorage.removeItem(pendingTraitLabStorageKey);
+          }
+          return next;
+        });
+        return;
+      }
 
       const recoveredPreview = data.retryPreview;
       const recoveredRollId = String(recoveredPreview.rollId);
@@ -1359,6 +1375,10 @@ export function TraitLabClient() {
           setPreview(data.recoveryPreview);
           savePendingTraitLabOperation(data.recoveryPreview);
           setStatus(`Restored D.Y.O.O.R #${data.recoveryPreview.tokenId || selectedTokenId}'s current result. Accept it to finish recovery.`);
+          const restoredTrait = String(data.recoveryPreview.traitType || "earlier");
+          throw new Error(
+            `Your ${traitType} roll was not created or charged. The panel below is the saved ${restoredTrait} result that must be finished first.`,
+          );
         }
         throw new Error(data.error || "Preview failed.");
       }
@@ -1767,6 +1787,10 @@ export function TraitLabClient() {
                 </div>
 
                 <Alert tone="idle" className="mt-3 py-3">Locked traits cannot be changed.</Alert>
+                <p className="mt-2 text-xs font-semibold leading-5 text-dyoor-cyan/75">
+                  MetaMask will show a <span className="font-black text-dyoor-cyan">Signature request</span> to authorize a roll or accept a result.
+                  It is not a blockchain transaction: there is no gas fee, MON charge, or contract confirmation.
+                </p>
 
                 <div className="mt-3 rounded border border-dyoor-cyan/20 bg-black/30 p-3">
                   <div className="grid gap-3">
@@ -1784,7 +1808,7 @@ export function TraitLabClient() {
                       {rerollAllTraits.length ? (
                         <Button
                           className="w-full px-3 py-2.5 text-[0.7rem] leading-tight"
-                          disabled={!metadata || Boolean(actionLoading)}
+                          disabled={!metadata || Boolean(actionLoading) || previewIsFinalizing}
                           variant="secondary"
                           onClick={() => {
                             setSelectedAction("rerollAll");
@@ -1805,7 +1829,7 @@ export function TraitLabClient() {
                           <Button
                             key={action}
                             className="w-full px-3 py-2.5 text-[0.7rem] leading-tight"
-                            disabled={!metadata || Boolean(actionLoading)}
+                            disabled={!metadata || Boolean(actionLoading) || previewIsFinalizing}
                             variant={action === "unlock" ? "primary" : "secondary"}
                             onClick={() => {
                               setSelectedAction(action);

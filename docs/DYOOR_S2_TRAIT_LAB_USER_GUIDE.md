@@ -101,6 +101,9 @@ Trait Lab uses spendable Energy.
   append-only Trait Lab debits settled by the server.
 - Reroll, Reroll All, and Unlock require a gasless wallet signature but do not
   submit an Energy transaction or wait for an operator nonce/receipt.
+- MetaMask labels these prompts **Signature request**. The roll authorization
+  and the later Accept Result authorization are messages, not transactions;
+  neither prompt charges MON or gas.
 - Spent Energy combines historical on-chain Energy Bank spending with the new
   server-settled Trait Lab debits.
 - Recycle rewards and Droid burn rewards credit Energy back to the wallet.

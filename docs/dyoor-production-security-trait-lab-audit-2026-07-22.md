@@ -161,3 +161,9 @@ verification path. New server-settled rolls verify their exact persisted debit
 record instead. Active results are discoverable from the server by token and
 wallet, and restore-required preview errors preserve the actual active
 operation ID and recovery payload.
+
+UUID-era records used `confirmed` as their terminal success state before
+completion records existed. Active-result initialization now retires those
+records instead of reviving them as unfinished rolls. The active pointer is
+canonical and no longer scans the unbounded historical roll archive on each
+preview.

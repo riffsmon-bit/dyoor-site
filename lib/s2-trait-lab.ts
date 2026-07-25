@@ -62,7 +62,6 @@ import {
   getTraitLabRoll,
   getTraitSupplyAvailabilityLedger,
   getTraitSupplyEvent,
-  listTraitLabRollsForToken,
   saveTraitLabActiveRoll,
   saveTraitLabCompletion,
   saveTraitLabRoll,
@@ -2289,8 +2288,27 @@ const FINALIZING_TRAIT_LAB_ROLL_STATUSES = new Set<TraitLabRollRecord["status"]>
   "confirmed",
 ]);
 
+const LEGACY_TRAIT_LAB_ROLL_ID = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+const SIGNED_TRAIT_LAB_ROLL_ID = /^0x[a-f0-9]{64}$/i;
+
+function isTraitLabRollId(value: unknown) {
+  const rollId = String(value || "").trim();
+  return SIGNED_TRAIT_LAB_ROLL_ID.test(rollId) || LEGACY_TRAIT_LAB_ROLL_ID.test(rollId);
+}
+
+function isLegacyCompletedTraitLabRoll(roll: TraitLabRollRecord) {
+  // Before completion records existed, `confirmed` was the terminal success
+  // state and UUIDs were used for roll IDs. Those records must not be
+  // resurrected as pending results by the newer active-roll index.
+  return Boolean(
+    roll.status === "confirmed"
+    && roll.confirmedAt
+    && LEGACY_TRAIT_LAB_ROLL_ID.test(String(roll.rollId || "")),
+  );
+}
+
 function traitLabRollCanBeCurrent(roll: TraitLabRollRecord) {
-  if (TERMINAL_TRAIT_LAB_ROLL_STATUSES.has(roll.status)) return false;
+  if (TERMINAL_TRAIT_LAB_ROLL_STATUSES.has(roll.status) || isLegacyCompletedTraitLabRoll(roll)) return false;
   return roll.action === "recycle"
     ? Boolean(roll.chargedAt)
     : Boolean(roll.chargedAt || roll.energyDebitId || roll.energySpendTxHash);
@@ -2298,16 +2316,46 @@ function traitLabRollCanBeCurrent(roll: TraitLabRollRecord) {
 
 async function initializeTraitLabActiveRoll(tokenId: string) {
   const existing = await getTraitLabActiveRoll(tokenId);
-  if (existing) return existing;
+  if (existing) {
+    if (!existing.activeRollId) return existing;
+    const activeRoll = await getTraitLabRoll(existing.activeRollId);
+    if (activeRoll && isLegacyCompletedTraitLabRoll(activeRoll)) {
+      await saveTraitLabRoll({
+        ...activeRoll,
+        status: "completed",
+        completedAt: activeRoll.confirmedAt,
+        recoveryRequired: false,
+        lastError: undefined,
+      });
+      await deleteTraitSupplyReservation(activeRoll.rollId).catch(() => undefined);
+    }
+    if (!activeRoll || TERMINAL_TRAIT_LAB_ROLL_STATUSES.has(activeRoll.status) || isLegacyCompletedTraitLabRoll(activeRoll)) {
+      return await saveTraitLabActiveRoll({
+        version: 1,
+        tokenId,
+        activeRollId: "",
+        activeWallet: "",
+        updatedAt: new Date().toISOString(),
+        lastRollId: activeRoll?.rollId || existing.activeRollId,
+        lastDisposition: activeRoll?.status === "forfeited"
+          ? "forfeited"
+          : activeRoll?.status === "superseded"
+            ? "superseded"
+            : "completed",
+      });
+    }
+    return existing;
+  }
 
-  const latest = (await listTraitLabRollsForToken(tokenId)).find(traitLabRollCanBeCurrent);
+  // The active pointer is canonical. Scanning every historical roll here
+  // resurrected terminal UUID-era operations and became unbounded as the
+  // archive grew. New paid results explicitly claim this pointer.
   return await saveTraitLabActiveRoll({
     version: 1,
     tokenId,
-    activeRollId: latest?.rollId || "",
-    activeWallet: latest?.wallet || "",
+    activeRollId: "",
+    activeWallet: "",
     updatedAt: new Date().toISOString(),
-    lastRollId: latest?.rollId,
   });
 }
 
@@ -2328,6 +2376,7 @@ async function supersedeTraitLabRoll(roll: TraitLabRollRecord, replacementRollId
 
 async function activateTraitLabRoll(roll: TraitLabRollRecord) {
   const currentPointer = await getTraitLabActiveRoll(roll.tokenId);
+  let replacedRoll: TraitLabRollRecord | null = null;
   if (currentPointer?.activeRollId && currentPointer.activeRollId !== roll.rollId) {
     const currentRoll = await getTraitLabRoll(currentPointer.activeRollId);
     if (currentRoll && FINALIZING_TRAIT_LAB_ROLL_STATUSES.has(currentRoll.status)) {
@@ -2339,6 +2388,7 @@ async function activateTraitLabRoll(roll: TraitLabRollRecord) {
         recoveryPreview: recoveryPreviewFromRoll(currentRoll),
       });
     }
+    replacedRoll = currentRoll;
   }
 
   await saveTraitLabActiveRoll({
@@ -2359,9 +2409,9 @@ async function activateTraitLabRoll(roll: TraitLabRollRecord) {
     });
   }
 
-  const otherRolls = (await listTraitLabRollsForToken(roll.tokenId))
-    .filter((item) => item.rollId !== roll.rollId && traitLabRollCanBeCurrent(item));
-  await Promise.all(otherRolls.map((item) => supersedeTraitLabRoll(item, roll.rollId)));
+  if (replacedRoll && traitLabRollCanBeCurrent(replacedRoll)) {
+    await supersedeTraitLabRoll(replacedRoll, roll.rollId);
+  }
   return active;
 }
 
@@ -3405,7 +3455,7 @@ export async function getActiveTraitLabOperationStatus(tokenIdInput: unknown, wa
 
 export async function getTraitLabOperationStatus(rollIdInput: unknown, walletInput?: unknown) {
   const rollId = String(rollIdInput || "").trim();
-  if (!/^0x[a-fA-F0-9]{64}$/.test(rollId)) {
+  if (!isTraitLabRollId(rollId)) {
     throw Object.assign(new Error("Invalid Trait Lab operation ID."), { status: 400 });
   }
   let roll = await getTraitLabRoll(rollId);
