@@ -1,3 +1,5 @@
+import type { DyoorWorldMessageAttachment } from "@/lib/dyoor-world-media";
+
 export const DYOOR_WORLD_CHAIN_ID = 143;
 export const DYOOR_WORLD_DISPLAY_SUFFIX = ".dYOOR";
 export const DYOOR_WORLD_CANONICAL_SUFFIX = ".dyoor";
@@ -77,7 +79,7 @@ export type DyoorWorldProfile = {
 };
 
 export type DyoorWorldMessage = {
-  version: 1 | 2;
+  version: 1 | 2 | 3;
   id: string;
   channelId: DyoorWorldChannelId;
   wallet: string;
@@ -86,6 +88,7 @@ export type DyoorWorldMessage = {
   kind?: DyoorWorldMessageKind;
   systemAuthor?: string;
   data?: Record<string, string | number | boolean | null>;
+  attachment?: DyoorWorldMessageAttachment;
 };
 
 export type DyoorWorldMessageView = DyoorWorldMessage & {

@@ -6,6 +6,11 @@ import {
   isWorldWritableChannel,
 } from "../lib/dyoor-world.ts";
 import {
+  dyoorWorldSticker,
+  normalizeDyoorWorldAttachment,
+  normalizeDyoorWorldMediaUrl,
+} from "../lib/dyoor-world-media.ts";
+import {
   DYOOR_WORLD_CHAT_REWARD_DAILY_CAP,
   DYOOR_WORLD_CHAT_REWARD_ENERGY,
   DYOOR_WORLD_TIP_REWARD_DAILY_CAP,
@@ -35,6 +40,41 @@ test("chat rewards require meaningful content instead of message spam", () => {
     qualifiesForDyoorWorldChatReward("The Energy flywheel strategy is looking strong today."),
     true,
   );
+});
+
+test("World media accepts direct HTTPS images and GIFs while blocking unsafe URLs", () => {
+  assert.deepEqual(normalizeDyoorWorldMediaUrl("https://cdn.example.com/droid.png?size=large"), {
+    kind: "image",
+    url: "https://cdn.example.com/droid.png?size=large",
+  });
+  assert.equal(
+    normalizeDyoorWorldMediaUrl("https://media.giphy.com/media/abc123/giphy.gif")?.kind,
+    "gif",
+  );
+  assert.equal(
+    normalizeDyoorWorldMediaUrl("https://media.tenor.com/example")?.kind,
+    "gif",
+  );
+  assert.equal(normalizeDyoorWorldMediaUrl("http://cdn.example.com/droid.png"), null);
+  assert.equal(normalizeDyoorWorldMediaUrl("https://localhost/droid.png"), null);
+  assert.equal(normalizeDyoorWorldMediaUrl("https://192.168.1.4/droid.png"), null);
+  assert.equal(normalizeDyoorWorldMediaUrl("https://[::1]/droid.png"), null);
+  assert.equal(normalizeDyoorWorldMediaUrl("https://cdn.example.com/vector.svg"), null);
+});
+
+test("World stickers are curated and unknown sticker payloads are rejected", () => {
+  assert.equal(dyoorWorldSticker("charged-up")?.label, "CHARGED UP");
+  assert.deepEqual(normalizeDyoorWorldAttachment({
+    kind: "sticker",
+    stickerId: "burn-verified",
+  }), {
+    kind: "sticker",
+    stickerId: "burn-verified",
+  });
+  assert.equal(normalizeDyoorWorldAttachment({
+    kind: "sticker",
+    stickerId: "user-controlled-html",
+  }), null);
 });
 
 test("activity rewards are useful but capped against low-effort farming", () => {
@@ -70,6 +110,8 @@ test("World social APIs remain holder-gated and financial relays verify chain re
   assert.match(server, /transaction\.value <= 0n/);
   assert.match(server, /DYOOR_WORLD_CHAT_REWARD_COOLDOWN_MS/);
   assert.match(server, /DYOOR_WORLD_CHAT_REWARD_DAILY_CAP/);
+  assert.match(server, /qualifiesForDyoorWorldChatReward\(message\.content\)/);
+  assert.match(server, /normalizeDyoorWorldAttachment\(input\.attachment\)/);
   assert.match(server, /BigInt\(record\.amountWei\) < ethers\.parseEther\(DYOOR_WORLD_TIP_REWARD_MIN_MON\)/);
   assert.match(server, /parsed\.name === "TradeCompleted"/);
   assert.match(server, /processDyoorWorldBurns/);

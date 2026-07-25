@@ -41,6 +41,7 @@ export async function POST(request: Request) {
         wallet,
         channelId: body?.channelId,
         content: body?.content,
+        attachment: body?.attachment,
       }),
     });
   } catch (error) {

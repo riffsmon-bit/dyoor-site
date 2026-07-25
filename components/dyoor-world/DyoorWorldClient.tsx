@@ -18,6 +18,14 @@ import {
   normalizeWorldLabel,
   shortWorldWallet,
 } from "@/lib/dyoor-world";
+import {
+  DYOOR_WORLD_STICKERS,
+  dyoorWorldSticker,
+  normalizeDyoorWorldAttachment,
+  normalizeDyoorWorldMediaUrl,
+  type DyoorWorldMessageAttachment,
+  type DyoorWorldStickerId,
+} from "@/lib/dyoor-world-media";
 import { DyoorWorldGlyph } from "@/components/dyoor-world/DyoorWorldDiscovery";
 import { useWalletService } from "@/providers/WalletServiceProvider";
 
@@ -183,6 +191,47 @@ function shortenedHash(value?: unknown) {
   return hash.length > 14 ? `${hash.slice(0, 8)}…${hash.slice(-5)}` : hash;
 }
 
+function WorldStickerCard({
+  stickerId,
+  compact = false,
+}: {
+  stickerId: DyoorWorldStickerId;
+  compact?: boolean;
+}) {
+  const sticker = dyoorWorldSticker(stickerId);
+  if (!sticker) return null;
+  const tone = stickerId === "burn-verified"
+    ? "border-orange-300/35 from-orange-400/20 via-rose-500/10 to-black text-orange-100"
+    : stickerId === "charged-up"
+      ? "border-emerald-300/35 from-emerald-300/20 via-dyoor-cyan/10 to-black text-emerald-100"
+      : stickerId === "diamond-droid"
+        ? "border-sky-300/35 from-sky-300/20 via-dyoor-purple/15 to-black text-sky-100"
+        : "border-dyoor-purple/40 from-dyoor-purple/25 via-dyoor-cyan/10 to-black text-white";
+  return (
+    <div
+      className={`relative overflow-hidden rounded-lg border bg-gradient-to-br shadow-[0_0_32px_rgba(128,92,255,.15)] ${tone} ${
+        compact ? "min-h-20 p-3" : "min-h-36 w-full max-w-sm p-5"
+      }`}
+    >
+      <div className="absolute -right-7 -top-8 h-24 w-24 rounded-full bg-white/10 blur-2xl" />
+      <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/65 to-transparent" />
+      <div className="relative flex h-full items-center gap-3">
+        <div className={`flex shrink-0 items-center justify-center rounded-full border border-white/25 bg-black/25 shadow-[0_0_25px_rgba(76,255,229,.18)] ${compact ? "h-10 w-10" : "h-16 w-16"}`}>
+          <DyoorWorldGlyph className={compact ? "h-5 w-5" : "h-8 w-8"} />
+        </div>
+        <div className="min-w-0">
+          <p className={`${compact ? "text-[0.5rem]" : "text-[0.6rem]"} font-black uppercase tracking-[0.22em] text-current opacity-55`}>
+            {sticker.signal}
+          </p>
+          <p className={`${compact ? "mt-1 text-sm" : "mt-2 text-2xl"} break-words font-black uppercase leading-none tracking-[-0.02em]`}>
+            {sticker.label}
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export function DyoorWorldClient({ sessionWallet }: { sessionWallet: string }) {
   const router = useRouter();
   const wallet = useWalletService();
@@ -199,6 +248,9 @@ export function DyoorWorldClient({ sessionWallet }: { sessionWallet: string }) {
   const [avatarPreview, setAvatarPreview] = useState("");
   const [label, setLabel] = useState("");
   const [draft, setDraft] = useState("");
+  const [composerMode, setComposerMode] = useState<"" | "media" | "stickers">("");
+  const [mediaDraft, setMediaDraft] = useState("");
+  const [selectedStickerId, setSelectedStickerId] = useState<DyoorWorldStickerId | "">("");
   const [loadingMessages, setLoadingMessages] = useState(true);
   const [sending, setSending] = useState(false);
   const [claiming, setClaiming] = useState(false);
@@ -226,6 +278,17 @@ export function DyoorWorldClient({ sessionWallet }: { sessionWallet: string }) {
       || DYOOR_WORLD_CHANNELS[0],
     [channelId],
   );
+  const normalizedMediaAttachment = useMemo(
+    () => normalizeDyoorWorldMediaUrl(mediaDraft),
+    [mediaDraft],
+  );
+  const composerAttachment = useMemo<DyoorWorldMessageAttachment | null>(() => {
+    if (selectedStickerId) {
+      return { kind: "sticker", stickerId: selectedStickerId };
+    }
+    return normalizedMediaAttachment;
+  }, [normalizedMediaAttachment, selectedStickerId]);
+  const invalidMediaDraft = Boolean(mediaDraft.trim() && !normalizedMediaAttachment);
 
   const loadProfile = useCallback(async () => {
     const response = await fetch("/api/dyoor-world/profile", { cache: "no-store" });
@@ -421,14 +484,22 @@ export function DyoorWorldClient({ sessionWallet }: { sessionWallet: string }) {
   async function sendMessage(event: FormEvent) {
     event.preventDefault();
     const content = draft.trim();
-    if (!content) return;
+    if (!content && !composerAttachment) return;
+    if (invalidMediaDraft) {
+      setError("Paste a direct HTTPS image or GIF URL from a supported media host.");
+      return;
+    }
     setSending(true);
     setError("");
     try {
       const response = await fetch("/api/dyoor-world/messages", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ channelId, content }),
+        body: JSON.stringify({
+          channelId,
+          content,
+          attachment: composerAttachment,
+        }),
       });
       const data = await readResponse<{ message?: DyoorWorldMessageView }>(response);
       if (data.message) {
@@ -439,6 +510,9 @@ export function DyoorWorldClient({ sessionWallet }: { sessionWallet: string }) {
         }
       }
       setDraft("");
+      setMediaDraft("");
+      setSelectedStickerId("");
+      setComposerMode("");
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "Could not send the World message.");
     } finally {
@@ -802,6 +876,7 @@ export function DyoorWorldClient({ sessionWallet }: { sessionWallet: string }) {
               ) : messages.map((message) => {
                 const imageUrl = String(message.data?.imageUrl || "");
                 const isSystem = (message.kind || "user") !== "user";
+                const attachment = normalizeDyoorWorldAttachment(message.attachment);
                 return (
                   <article
                     className={`group rounded border px-3 py-3 transition ${
@@ -827,7 +902,32 @@ export function DyoorWorldClient({ sessionWallet }: { sessionWallet: string }) {
                           <span className="text-[0.62rem] font-bold text-white/25">{messageTime(message.createdAt)}</span>
                           {isSystem ? <span className="text-[0.53rem] font-black uppercase tracking-[0.12em] text-white/28">verified {message.kind}</span> : null}
                         </div>
-                        <p className="mt-1 whitespace-pre-wrap break-words text-sm font-medium leading-6 text-white/72">{message.content}</p>
+                        {message.content ? (
+                          <p className="mt-1 whitespace-pre-wrap break-words text-sm font-medium leading-6 text-white/72">{message.content}</p>
+                        ) : null}
+                        {attachment?.kind === "image" || attachment?.kind === "gif" ? (
+                          <a
+                            className="relative mt-3 block w-fit max-w-full overflow-hidden rounded-lg border border-dyoor-purple/25 bg-black/35 shadow-[0_0_30px_rgba(128,92,255,.12)] transition hover:border-dyoor-cyan/45"
+                            href={attachment.url}
+                            rel="noreferrer"
+                            target="_blank"
+                          >
+                            <img
+                              alt={attachment.alt || `${message.author} shared ${attachment.kind}`}
+                              className="max-h-96 max-w-full object-contain"
+                              loading="lazy"
+                              referrerPolicy="no-referrer"
+                              src={attachment.url}
+                            />
+                            <span className="absolute right-2 top-2 rounded border border-white/15 bg-black/70 px-2 py-1 text-[0.5rem] font-black uppercase tracking-[0.14em] text-white/65 backdrop-blur">
+                              {attachment.kind}
+                            </span>
+                          </a>
+                        ) : attachment?.kind === "sticker" ? (
+                          <div className="mt-3">
+                            <WorldStickerCard stickerId={attachment.stickerId} />
+                          </div>
+                        ) : null}
                         <div className="mt-2 flex flex-wrap gap-2">
                           {message.data?.openSeaUrl ? (
                             <a className="text-[0.6rem] font-black uppercase tracking-[0.1em] text-dyoor-cyan hover:text-white" href={String(message.data.openSeaUrl)} rel="noreferrer" target="_blank">
@@ -886,12 +986,112 @@ export function DyoorWorldClient({ sessionWallet }: { sessionWallet: string }) {
                     rows={2}
                     value={draft}
                   />
-                  <button className="btn-primary min-h-10 shrink-0 px-4 py-2 text-xs" disabled={sending || !draft.trim()} type="submit">
+                  <button
+                    className="btn-primary min-h-10 shrink-0 px-4 py-2 text-xs"
+                    disabled={sending || invalidMediaDraft || (!draft.trim() && !composerAttachment)}
+                    type="submit"
+                  >
                     {sending ? "Sending" : "Send"}
                   </button>
                 </div>
+                <div className="mt-2 flex flex-wrap items-center gap-2">
+                  <button
+                    aria-pressed={composerMode === "media"}
+                    className={`rounded border px-3 py-2 text-[0.58rem] font-black uppercase tracking-[0.12em] transition ${
+                      composerMode === "media"
+                        ? "border-dyoor-cyan/55 bg-dyoor-cyan/10 text-dyoor-cyan"
+                        : "border-white/10 bg-white/[0.03] text-white/40 hover:text-white"
+                    }`}
+                    onClick={() => {
+                      setComposerMode((current) => current === "media" ? "" : "media");
+                      setSelectedStickerId("");
+                    }}
+                    type="button"
+                  >
+                    GIF / image
+                  </button>
+                  <button
+                    aria-pressed={composerMode === "stickers"}
+                    className={`rounded border px-3 py-2 text-[0.58rem] font-black uppercase tracking-[0.12em] transition ${
+                      composerMode === "stickers"
+                        ? "border-dyoor-purple/60 bg-dyoor-purple/15 text-white"
+                        : "border-white/10 bg-white/[0.03] text-white/40 hover:text-white"
+                    }`}
+                    onClick={() => {
+                      setComposerMode((current) => current === "stickers" ? "" : "stickers");
+                      setMediaDraft("");
+                    }}
+                    type="button"
+                  >
+                    World stickers
+                  </button>
+                  {composerAttachment ? (
+                    <button
+                      className="ml-auto text-[0.55rem] font-black uppercase tracking-[0.1em] text-white/30 hover:text-rose-200"
+                      onClick={() => {
+                        setMediaDraft("");
+                        setSelectedStickerId("");
+                        setComposerMode("");
+                      }}
+                      type="button"
+                    >
+                      Clear attachment
+                    </button>
+                  ) : null}
+                </div>
+                {composerMode === "media" ? (
+                  <div className="mt-2 rounded border border-dyoor-cyan/20 bg-dyoor-cyan/[0.04] p-3">
+                    <label className="text-[0.55rem] font-black uppercase tracking-[0.14em] text-dyoor-cyan/65" htmlFor="world-media-url">
+                      Direct HTTPS image or GIF URL
+                    </label>
+                    <div className="mt-2 flex gap-2">
+                      <input
+                        className="field-control min-w-0 flex-1 text-xs"
+                        id="world-media-url"
+                        onChange={(event) => setMediaDraft(event.target.value)}
+                        placeholder="https://media.giphy.com/.../giphy.gif"
+                        type="url"
+                        value={mediaDraft}
+                      />
+                      {normalizedMediaAttachment ? (
+                        <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded border border-dyoor-cyan/30 bg-black/40">
+                          <img
+                            alt="Attachment preview"
+                            className="h-full w-full object-cover"
+                            referrerPolicy="no-referrer"
+                            src={normalizedMediaAttachment.url}
+                          />
+                        </div>
+                      ) : null}
+                    </div>
+                    <p className={`mt-2 text-[0.58rem] font-bold ${invalidMediaDraft ? "text-rose-200/80" : "text-white/30"}`}>
+                      {invalidMediaDraft
+                        ? "Use HTTPS and a direct PNG, JPG, WEBP, AVIF, or GIF link."
+                        : "Giphy, Tenor, Imgur, Discord CDN, and direct image links are supported."}
+                    </p>
+                  </div>
+                ) : null}
+                {composerMode === "stickers" ? (
+                  <div className="mt-2 grid grid-cols-2 gap-2 rounded border border-dyoor-purple/25 bg-dyoor-purple/[0.04] p-3 sm:grid-cols-3 xl:grid-cols-5">
+                    {DYOOR_WORLD_STICKERS.map((sticker) => (
+                      <button
+                        aria-pressed={selectedStickerId === sticker.id}
+                        className={`rounded-lg text-left transition ${
+                          selectedStickerId === sticker.id
+                            ? "ring-2 ring-dyoor-cyan/70 ring-offset-2 ring-offset-black"
+                            : "opacity-65 hover:opacity-100"
+                        }`}
+                        key={sticker.id}
+                        onClick={() => setSelectedStickerId((current) => current === sticker.id ? "" : sticker.id)}
+                        type="button"
+                      >
+                        <WorldStickerCard compact stickerId={sticker.id} />
+                      </button>
+                    ))}
+                  </div>
+                ) : null}
                 <p className="mt-2 px-1 text-[0.62rem] font-bold text-white/25">
-                  {draft.length}/800 · meaningful signals can earn {rewards?.chat.rewardEnergy || 5} Energy · holder session verified
+                  {draft.length}/800 · meaningful text can earn {rewards?.chat.rewardEnergy || 5} Energy · media and stickers alone do not earn · holder session verified
                 </p>
               </form>
             ) : null}

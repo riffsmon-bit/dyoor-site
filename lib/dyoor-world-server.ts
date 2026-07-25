@@ -21,6 +21,10 @@ import {
   worldProfileFromClaim,
 } from "@/lib/dyoor-world";
 import {
+  normalizeDyoorWorldAttachment,
+  type DyoorWorldMessageAttachment,
+} from "@/lib/dyoor-world-media";
+import {
   DYOOR_WORLD_CHAT_REWARD_COOLDOWN_MS,
   DYOOR_WORLD_CHAT_REWARD_DAILY_CAP,
   DYOOR_WORLD_CHAT_REWARD_ENERGY,
@@ -686,10 +690,11 @@ async function loadRawWorldMessages(channelId: string, limit = 100) {
   return messages
     .filter((message): message is DyoorWorldMessage => Boolean(
       message
-        && (message.version === 1 || message.version === 2)
+        && (message.version === 1 || message.version === 2 || message.version === 3)
         && isWorldChannel(message.channelId)
         && normalizeWorldWallet(message.wallet)
-        && message.content
+        && (message.content || normalizeDyoorWorldAttachment(message.attachment))
+        && (!message.attachment || normalizeDyoorWorldAttachment(message.attachment))
         && Number.isFinite(Date.parse(message.createdAt)),
     ))
     .sort((left, right) => Date.parse(left.createdAt) - Date.parse(right.createdAt))
@@ -750,6 +755,7 @@ export async function createDyoorWorldMessage(input: {
   wallet: unknown;
   channelId: unknown;
   content: unknown;
+  attachment?: unknown;
 }) {
   const wallet = normalizeWorldWallet(input.wallet);
   const channelId = String(input.channelId || "");
@@ -763,7 +769,13 @@ export async function createDyoorWorldMessage(input: {
   const content = String(input.content || "")
     .replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/g, "")
     .trim();
-  if (!content) throw dyoorWorldError("Write a message before transmitting.", 400);
+  const attachment = normalizeDyoorWorldAttachment(input.attachment);
+  if (input.attachment != null && !attachment) {
+    throw dyoorWorldError("Use a supported HTTPS image, GIF, or World sticker.", 400);
+  }
+  if (!content && !attachment) {
+    throw dyoorWorldError("Write a message or attach media before transmitting.", 400);
+  }
   if (content.length > 800) {
     throw dyoorWorldError("World messages must contain 800 characters or fewer.", 400);
   }
@@ -778,13 +790,14 @@ export async function createDyoorWorldMessage(input: {
   const createdAt = new Date().toISOString();
   const id = `${Date.now().toString().padStart(13, "0")}-${randomUUID()}`;
   const message: DyoorWorldMessage = {
-    version: 2,
+    version: 3,
     id,
     channelId,
     wallet,
     content,
     createdAt,
     kind: "user",
+    ...(attachment ? { attachment: attachment as DyoorWorldMessageAttachment } : {}),
   };
   await worldStore.setJson(`${messagePrefix(channelId)}${id}.json`, message);
   const [profile, avatar, reward] = await Promise.all([
