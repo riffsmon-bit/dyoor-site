@@ -273,9 +273,17 @@ test("Trait Lab gacha flow keeps only one server-authorized result per Droid", (
   assert.match(traitLabSource, /activateTraitLabRoll\(chargedRoll\)/);
   assert.match(traitLabSource, /await assertTraitLabRollIsCurrent\(paidRoll\)/);
   assert.match(traitLabSource, /Only the latest roll is valid/);
+  assert.match(
+    traitLabSource,
+    /!FINALIZING_TRAIT_LAB_ROLL_STATUSES\.has\(roll\.status\)\s*&& Date\.now\(\) > Date\.parse\(roll\.expiresAt\)/,
+  );
   assert.match(traitLabSource, /export async function forfeitTraitLabPreview/);
   assert.match(forfeitRoute, /forfeitTraitLabPreview/);
   assert.match(clientSource, /This is crash protection, not roll history/);
   assert.match(clientSource, /Leave Result/);
   assert.doesNotMatch(clientSource, /Close Preview \(Saved\)/);
+  const pendingHelperStart = clientSource.indexOf("function currentPendingTraitLabOperations(");
+  const pendingHelperEnd = clientSource.indexOf("function normalizeAddress(", pendingHelperStart);
+  assert.ok(pendingHelperStart >= 0 && pendingHelperEnd > pendingHelperStart);
+  assert.doesNotMatch(clientSource.slice(pendingHelperStart, pendingHelperEnd), /expiresAt/);
 });

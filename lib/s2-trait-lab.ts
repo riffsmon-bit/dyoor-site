@@ -547,7 +547,7 @@ export function traitLabPublicErrorMessage(error: unknown, fallback: string) {
   ) {
     const recoveryRequired = Boolean((error as { recoveryRequired?: unknown })?.recoveryRequired);
     return recoveryRequired
-      ? "Monad RPC lost confirmation after the Energy transaction was submitted. Restore the current result and retry Accept Result; do not start another roll until its status is known."
+      ? "Monad RPC lost confirmation after the Energy transaction was submitted. Use Restore Current Result and retry Accept Result; do not start another roll until its status is known."
       : "Monad RPC could not complete the Trait Lab request. No Energy transaction was submitted. Wait a moment and retry.";
   }
   return message || fallback;
@@ -2349,7 +2349,7 @@ async function activateTraitLabRoll(roll: TraitLabRollRecord) {
     const currentRoll = await getTraitLabRoll(currentPointer.activeRollId);
     if (currentRoll && FINALIZING_TRAIT_LAB_ROLL_STATUSES.has(currentRoll.status)) {
       await supersedeTraitLabRoll(roll, currentRoll.rollId);
-      throw Object.assign(new Error("The current Trait Lab result is already being finalized. Wait for it to finish before rolling again."), {
+      throw Object.assign(new Error("An earlier Trait Lab result is still finalizing. Use Restore Current Result to finish it before rolling again."), {
         status: 409,
         operationId: currentRoll.rollId,
         recoveryRequired: true,
@@ -2408,7 +2408,10 @@ async function assertTraitLabRollIsCurrent(roll: TraitLabRollRecord) {
     });
   }
 
-  if (Date.now() > Date.parse(roll.expiresAt)) {
+  if (
+    !FINALIZING_TRAIT_LAB_ROLL_STATUSES.has(roll.status)
+    && Date.now() > Date.parse(roll.expiresAt)
+  ) {
     const forfeitedAt = new Date().toISOString();
     await saveTraitLabRoll({
       ...roll,
@@ -2433,7 +2436,7 @@ async function assertTraitLabTokenIsNotFinalizing(tokenId: string) {
   if (!active?.activeRollId) return active;
   const activeRoll = await getTraitLabRoll(active.activeRollId);
   if (activeRoll && FINALIZING_TRAIT_LAB_ROLL_STATUSES.has(activeRoll.status)) {
-    throw Object.assign(new Error("The current Trait Lab result is already being finalized. Wait for it to finish before rolling again."), {
+    throw Object.assign(new Error("An earlier Trait Lab result is still finalizing. Use Restore Current Result to finish it before rolling again."), {
       status: 409,
       operationId: activeRoll.rollId,
       recoveryRequired: true,

@@ -355,11 +355,9 @@ const bountyTeaserImages: Record<string, StaticImageData> = {
   "dyoor-builder/layers/Hat/BOB Mask.png": bobMaskTeaserImage,
 };
 
-function currentPendingTraitLabOperations(items: PendingTraitLabOperation[], now = Date.now()) {
+function currentPendingTraitLabOperations(items: PendingTraitLabOperation[]) {
   const latestByToken = new Map<string, PendingTraitLabOperation>();
   for (const item of [...items].sort((left, right) => right.savedAt.localeCompare(left.savedAt))) {
-    const expiresAt = Date.parse(String(item.preview.expiresAt || ""));
-    if (Number.isFinite(expiresAt) && expiresAt <= now) continue;
     if (!latestByToken.has(item.tokenId)) latestByToken.set(item.tokenId, item);
   }
   return [...latestByToken.values()]
