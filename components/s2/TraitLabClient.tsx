@@ -1,9 +1,12 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import Image, { type StaticImageData } from "next/image";
 import { encodeFunctionData } from "viem";
 import { Alert, Button, Card, EmptyState, LoadingSkeleton, PageShell, SectionHeader, StatCard } from "@/components/ui/DyoorUi";
 import { WalletButton } from "@/components/wallet/WalletButton";
+import bobMaskTeaserImage from "@/dyoor-builder/layers/Hat/BOB Mask.png";
+import traitRevealAuditJson from "@/data/dyoor-s2-trait-reveal-audit.json";
 import {
   S2_EDITABLE_TRAITS,
   S2_GUARANTEED_TRAITS,
@@ -285,6 +288,26 @@ type TraitBountyWinner = {
   txHash?: string;
 };
 
+type TraitBountyTeaser = {
+  id: string;
+  traitType: string;
+  traitValue: string;
+  maskedLabel: string;
+  rarity: string;
+  weight: number;
+  imageAsset: string;
+  hint: string;
+};
+
+type TraitRevealAudit = {
+  generatedAt: string;
+  scanned: {
+    successful: number;
+    failed: number;
+  };
+  unrevealed: TraitBountyTeaser[];
+};
+
 type TraitBountyResponse = {
   ok?: boolean;
   configured?: boolean;
@@ -323,6 +346,10 @@ const renderTraits = [
 ];
 const TOKEN_CARD_METADATA_CONCURRENCY = 6;
 const MAX_PENDING_TRAIT_LAB_OPERATIONS = 8;
+const traitRevealAudit = traitRevealAuditJson as TraitRevealAudit;
+const bountyTeaserImages: Record<string, StaticImageData> = {
+  "dyoor-builder/layers/Hat/BOB Mask.png": bobMaskTeaserImage,
+};
 
 function normalizeAddress(address?: string) {
   return /^0x[a-fA-F0-9]{40}$/.test(address || "") ? String(address).toLowerCase() : "";
@@ -1953,86 +1980,179 @@ export function TraitLabClient() {
         </div>
       </section>
 
-      {traitLabConfig?.bountyEnabled ? (
-        <Card className="p-5">
-          <div className="flex flex-col justify-between gap-3 md:flex-row md:items-end">
-            <div>
-              <p className="eyebrow">Verified Reveal Rewards</p>
-              <h2 className="mt-2 text-2xl font-black uppercase text-white">Live Trait Bounties</h2>
-              <p className="mt-2 max-w-3xl text-sm font-semibold leading-6 text-white/58">
-                Complete an eligible reroll, unlock, or Reroll All during the campaign window. The on-chain payout engine enforces every winner limit and credits Energy only after the Trait Lab completion record is final.
-              </p>
-            </div>
+      <Card className="scroll-mt-24 p-5" id="trait-bounties">
+        <div className="flex flex-col justify-between gap-3 md:flex-row md:items-end">
+          <div>
+            <p className="eyebrow">Verified Rewards + Encrypted Signals</p>
+            <h2 className="mt-2 text-2xl font-black uppercase text-white">Trait Bounties</h2>
+            <p className="mt-2 max-w-3xl text-sm font-semibold leading-6 text-white/58">
+              Signals tease catalog traits that have not appeared in issued metadata. A signal is intelligence only; Energy is payable only when a campaign card is marked active and the on-chain payout engine verifies the completed reveal.
+            </p>
+          </div>
+          {traitLabConfig?.bountyEnabled ? (
             <Button variant="secondary" disabled={traitBountyLoading} onClick={() => void loadTraitBounties()}>
               {traitBountyLoading ? "Loading" : "Refresh"}
             </Button>
-          </div>
-
-          <div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-            {traitBountyLoading && !traitBounties.length ? (
-              <div className="md:col-span-2 xl:col-span-3"><LoadingSkeleton lines={4} /></div>
-            ) : traitBounties.filter((bounty) => (
-              bounty.status === "active" || bounty.status === "upcoming"
-            )).length ? traitBounties.filter((bounty) => (
-              bounty.status === "active" || bounty.status === "upcoming"
-            )).map((bounty) => (
-              <div className="rounded border border-dyoor-purple/25 bg-black/30 p-4" key={bounty.id}>
-                <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <p className="text-xs font-black uppercase tracking-[0.14em] text-white/40">{bounty.label}</p>
-                    <h3 className="mt-2 text-lg font-black text-dyoor-cyan">{bounty.traitType}: {bounty.traitValue}</h3>
-                  </div>
-                  <span className={`rounded border px-2 py-1 text-[0.62rem] font-black uppercase tracking-[0.12em] ${bounty.status === "active" ? "border-dyoor-cyan/35 bg-dyoor-cyan/10 text-dyoor-cyan" : "border-yellow-300/25 bg-yellow-300/10 text-yellow-100"}`}>
-                    {bounty.status}
-                  </span>
-                </div>
-                <p className="mt-4 text-3xl font-black text-white">+{bounty.rewardEnergy} <span className="text-sm uppercase text-white/45">Energy</span></p>
-                <div className="mt-4 grid gap-2 text-xs font-bold text-white/55 sm:grid-cols-2">
-                  <span>Remaining: <strong className="text-white">{bounty.remainingClaims}/{bounty.maxClaims}</strong></span>
-                  <span>Wallet cap: <strong className="text-white">{bounty.perWalletLimit}</strong></span>
-                  <span>Droid cap: <strong className="text-white">{bounty.perTokenLimit}</strong></span>
-                  <span>Actions: <strong className="text-white">{bounty.actions.join(", ")}</strong></span>
-                </div>
-                <div className="mt-3 border-t border-white/10 pt-3 text-[0.68rem] font-semibold leading-5 text-white/38">
-                  {bounty.status === "upcoming" && bounty.startsAt ? <p>Starts {new Date(bounty.startsAt).toLocaleString()}</p> : null}
-                  <p>{bounty.endsAt ? `Ends ${new Date(bounty.endsAt).toLocaleString()}` : "No scheduled end"}</p>
-                </div>
-              </div>
-            )) : (
-              <div className="md:col-span-2 xl:col-span-3">
-                <EmptyState title="No Active Bounties" copy="The owner can publish a new immutable campaign from the Admin Command Center." />
-              </div>
-            )}
-          </div>
-
-          {traitBountyWinners.length ? (
-            <div className="mt-6 overflow-x-auto rounded border border-white/10">
-              <div className="grid min-w-[46rem] grid-cols-[minmax(9rem,1fr)_8rem_5rem_minmax(12rem,1.4fr)_7rem] gap-2 border-b border-white/10 bg-white/[0.04] px-3 py-2 text-[0.65rem] font-black uppercase tracking-[0.12em] text-white/40">
-                <span>Campaign</span>
-                <span>Wallet</span>
-                <span>Droid</span>
-                <span>Reveal</span>
-                <span>Reward</span>
-              </div>
-              {traitBountyWinners.slice(0, 15).map((winner) => (
-                <div
-                  className="grid min-w-[46rem] grid-cols-[minmax(9rem,1fr)_8rem_5rem_minmax(12rem,1.4fr)_7rem] gap-2 border-b border-white/10 px-3 py-3 text-sm font-bold text-white/65 last:border-b-0"
-                  key={winner.settlementKey}
-                >
-                  <span className="font-black text-white">{winner.bountyLabel}</span>
-                  <span>{shortAddress(winner.wallet)}</span>
-                  <span>#{winner.tokenId}</span>
-                  <span className="text-dyoor-cyan">{winner.traitType}: {winner.traitValue}</span>
-                  <span className="font-black text-white">+{winner.rewardEnergy}</span>
-                </div>
-              ))}
-            </div>
           ) : null}
-        </Card>
-      ) : null}
+        </div>
+
+        <div className="mt-5 overflow-hidden rounded border border-dyoor-purple/30 bg-[radial-gradient(circle_at_top_left,rgba(128,92,255,0.18),transparent_46%),rgba(0,0,0,0.3)]">
+          <div className="flex flex-col justify-between gap-3 border-b border-white/10 px-4 py-4 sm:flex-row sm:items-end">
+            <div>
+              <p className="text-[0.65rem] font-black uppercase tracking-[0.2em] text-dyoor-cyan">Unrevealed Trait Radar</p>
+              <h3 className="mt-2 text-xl font-black uppercase text-white">
+                {traitRevealAudit.unrevealed.length} Undiscovered {traitRevealAudit.unrevealed.length === 1 ? "Signal" : "Signals"}
+              </h3>
+            </div>
+            <p className="max-w-md text-xs font-semibold leading-5 text-white/42 sm:text-right">
+              Audited {traitRevealAudit.scanned.successful.toLocaleString()} issued metadata records with {traitRevealAudit.scanned.failed} failures on{" "}
+              {new Date(traitRevealAudit.generatedAt).toLocaleDateString()}.
+            </p>
+          </div>
+
+          <div className="grid gap-4 p-4 lg:grid-cols-2">
+            {traitRevealAudit.unrevealed.map((signal, index) => {
+              const teaserImage = bountyTeaserImages[signal.imageAsset];
+              return (
+                <article
+                  className="group overflow-hidden rounded border border-dyoor-cyan/20 bg-[#070818]/90 shadow-[0_0_35px_rgba(78,229,255,0.08)]"
+                  key={signal.id}
+                >
+                  <div className="relative aspect-[16/9] overflow-hidden bg-[radial-gradient(circle_at_70%_35%,rgba(79,232,255,0.3),transparent_34%),linear-gradient(135deg,#171135,#070818_68%)]">
+                    {teaserImage ? (
+                      <Image
+                        alt="Redacted preview of an undiscovered orange headwear trait."
+                        className="object-cover object-center brightness-[0.72] saturate-[0.72] blur-[1px] transition duration-500 group-hover:scale-[1.025] group-hover:brightness-[0.86]"
+                        fill
+                        sizes="(min-width: 1024px) 44vw, 92vw"
+                        src={teaserImage}
+                      />
+                    ) : null}
+                    <div
+                      aria-hidden="true"
+                      className="absolute inset-0 opacity-30"
+                      style={{ backgroundImage: "repeating-linear-gradient(0deg, transparent 0, transparent 6px, rgba(97, 255, 238, 0.16) 7px)" }}
+                    />
+                    <div aria-hidden="true" className="absolute inset-0 bg-gradient-to-t from-[#070818] via-transparent to-black/30" />
+                    <div aria-hidden="true" className="absolute left-[13%] top-[35%] h-3 w-[31%] -rotate-2 bg-black/85 shadow-[0_0_18px_rgba(0,0,0,0.9)]" />
+                    <div aria-hidden="true" className="absolute right-[10%] top-[58%] h-3 w-[26%] rotate-2 bg-black/85 shadow-[0_0_18px_rgba(0,0,0,0.9)]" />
+                    <div className="absolute inset-x-0 top-0 flex items-start justify-between gap-3 p-3">
+                      <span className="rounded border border-dyoor-cyan/35 bg-black/65 px-2 py-1 text-[0.62rem] font-black uppercase tracking-[0.16em] text-dyoor-cyan backdrop-blur">
+                        Signal {String(index + 1).padStart(2, "0")}
+                      </span>
+                      <span className="rounded border border-dyoor-purple/40 bg-black/65 px-2 py-1 text-[0.62rem] font-black uppercase tracking-[0.16em] text-purple-200 backdrop-blur">
+                        {signal.rarity}
+                      </span>
+                    </div>
+                    <p className="absolute bottom-3 left-3 rounded border border-white/15 bg-black/70 px-3 py-2 text-2xl font-black uppercase tracking-[0.14em] text-white backdrop-blur">
+                      {signal.maskedLabel}
+                    </p>
+                  </div>
+
+                  <div className="grid gap-3 p-4 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end">
+                    <div>
+                      <p className="text-xs font-black uppercase tracking-[0.16em] text-white/38">{signal.traitType} Pool · Weight {signal.weight}</p>
+                      <p className="mt-2 text-sm font-bold leading-6 text-white/72">{signal.hint}</p>
+                    </div>
+                    <span className="w-fit rounded border border-yellow-300/25 bg-yellow-300/10 px-3 py-2 text-[0.62rem] font-black uppercase tracking-[0.14em] text-yellow-100">
+                      0 Confirmed Reveals
+                    </span>
+                  </div>
+                </article>
+              );
+            })}
+
+            <div className="grid min-h-48 place-items-center rounded border border-dashed border-white/12 bg-black/20 p-6 text-center">
+              <div>
+                <p className="text-[0.65rem] font-black uppercase tracking-[0.2em] text-white/32">Next Transmission</p>
+                <p className="mt-3 text-lg font-black uppercase text-white/72">More signals unlock when the catalog expands.</p>
+                <p className="mx-auto mt-2 max-w-sm text-xs font-semibold leading-5 text-white/40">
+                  Revealed traits are excluded by the metadata audit before publication.
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {traitLabConfig?.bountyEnabled ? (
+          <>
+            <div className="mt-6 flex items-center justify-between gap-3 border-b border-white/10 pb-3">
+              <div>
+                <p className="text-[0.65rem] font-black uppercase tracking-[0.18em] text-dyoor-cyan">On-Chain Campaigns</p>
+                <h3 className="mt-1 text-lg font-black uppercase text-white">Live Reveal Rewards</h3>
+              </div>
+            </div>
+
+            <div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+              {traitBountyLoading && !traitBounties.length ? (
+                <div className="md:col-span-2 xl:col-span-3"><LoadingSkeleton lines={4} /></div>
+              ) : traitBounties.filter((bounty) => (
+                bounty.status === "active" || bounty.status === "upcoming"
+              )).length ? traitBounties.filter((bounty) => (
+                bounty.status === "active" || bounty.status === "upcoming"
+              )).map((bounty) => (
+                <div className="rounded border border-dyoor-purple/25 bg-black/30 p-4" key={bounty.id}>
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <p className="text-xs font-black uppercase tracking-[0.14em] text-white/40">{bounty.label}</p>
+                      <h3 className="mt-2 text-lg font-black text-dyoor-cyan">{bounty.traitType}: {bounty.traitValue}</h3>
+                    </div>
+                    <span className={`rounded border px-2 py-1 text-[0.62rem] font-black uppercase tracking-[0.12em] ${bounty.status === "active" ? "border-dyoor-cyan/35 bg-dyoor-cyan/10 text-dyoor-cyan" : "border-yellow-300/25 bg-yellow-300/10 text-yellow-100"}`}>
+                      {bounty.status}
+                    </span>
+                  </div>
+                  <p className="mt-4 text-3xl font-black text-white">+{bounty.rewardEnergy} <span className="text-sm uppercase text-white/45">Energy</span></p>
+                  <div className="mt-4 grid gap-2 text-xs font-bold text-white/55 sm:grid-cols-2">
+                    <span>Remaining: <strong className="text-white">{bounty.remainingClaims}/{bounty.maxClaims}</strong></span>
+                    <span>Wallet cap: <strong className="text-white">{bounty.perWalletLimit}</strong></span>
+                    <span>Droid cap: <strong className="text-white">{bounty.perTokenLimit}</strong></span>
+                    <span>Actions: <strong className="text-white">{bounty.actions.join(", ")}</strong></span>
+                  </div>
+                  <div className="mt-3 border-t border-white/10 pt-3 text-[0.68rem] font-semibold leading-5 text-white/38">
+                    {bounty.status === "upcoming" && bounty.startsAt ? <p>Starts {new Date(bounty.startsAt).toLocaleString()}</p> : null}
+                    <p>{bounty.endsAt ? `Ends ${new Date(bounty.endsAt).toLocaleString()}` : "No scheduled end"}</p>
+                  </div>
+                </div>
+              )) : (
+                <div className="md:col-span-2 xl:col-span-3">
+                  <EmptyState title="No Active Bounties" copy="The owner can publish a new immutable campaign from the Admin Command Center." />
+                </div>
+              )}
+            </div>
+
+            {traitBountyWinners.length ? (
+              <div className="mt-6 overflow-x-auto rounded border border-white/10">
+                <div className="grid min-w-[46rem] grid-cols-[minmax(9rem,1fr)_8rem_5rem_minmax(12rem,1.4fr)_7rem] gap-2 border-b border-white/10 bg-white/[0.04] px-3 py-2 text-[0.65rem] font-black uppercase tracking-[0.12em] text-white/40">
+                  <span>Campaign</span>
+                  <span>Wallet</span>
+                  <span>Droid</span>
+                  <span>Reveal</span>
+                  <span>Reward</span>
+                </div>
+                {traitBountyWinners.slice(0, 15).map((winner) => (
+                  <div
+                    className="grid min-w-[46rem] grid-cols-[minmax(9rem,1fr)_8rem_5rem_minmax(12rem,1.4fr)_7rem] gap-2 border-b border-white/10 px-3 py-3 text-sm font-bold text-white/65 last:border-b-0"
+                    key={winner.settlementKey}
+                  >
+                    <span className="font-black text-white">{winner.bountyLabel}</span>
+                    <span>{shortAddress(winner.wallet)}</span>
+                    <span>#{winner.tokenId}</span>
+                    <span className="text-dyoor-cyan">{winner.traitType}: {winner.traitValue}</span>
+                    <span className="font-black text-white">+{winner.rewardEnergy}</span>
+                  </div>
+                ))}
+              </div>
+            ) : null}
+          </>
+        ) : (
+          <Alert className="mt-5" tone="idle">
+            <strong className="text-white">No live payout campaign.</strong> The signal above is a preview, not a promise of Energy, until the owner publishes and activates an on-chain bounty.
+          </Alert>
+        )}
+      </Card>
 
       {traitLabConfig?.leaderboardEnabled ? (
-        <Card className="p-5">
+        <Card className="scroll-mt-24 p-5" id="trait-lab-leaderboard">
           <div className="flex flex-col justify-between gap-3 md:flex-row md:items-end">
             <div>
               <p className="eyebrow">Completed Operations Only</p>

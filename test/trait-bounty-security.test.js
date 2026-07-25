@@ -54,6 +54,42 @@ test("action masks expose only supported reveal operations", () => {
   assert.deepEqual(traitBountyActions(0), []);
 });
 
+test("bounty teaser radar is backed by a complete metadata audit and real catalog art", () => {
+  const audit = JSON.parse(fs.readFileSync("data/dyoor-s2-trait-reveal-audit.json", "utf8"));
+  const catalog = JSON.parse(fs.readFileSync("data/dyoor-s2-trait-catalog.json", "utf8"));
+
+  assert.equal(audit.method, "catalog-vs-public-production-metadata");
+  assert.equal(audit.scanned.successful, audit.scanned.throughTokenId - audit.scanned.fromTokenId + 1);
+  assert.equal(audit.scanned.failed, 0);
+  assert.deepEqual(
+    audit.unrevealed.map((item) => `${item.traitType}::${item.traitValue}`),
+    ["Hat::BOB Mask"],
+  );
+  assert.deepEqual(audit.excludedCandidates, [{
+    traitType: "Special",
+    traitValue: "Pink Ski Mask Laser",
+    reason: "revealed",
+    tokenId: "1040",
+  }]);
+
+  for (const signal of audit.unrevealed) {
+    const catalogTrait = catalog.traits?.[signal.traitType]?.find(
+      (item) => item.name === signal.traitValue,
+    );
+    assert.ok(catalogTrait, `${signal.traitType} ${signal.traitValue} must exist in the catalog`);
+    assert.equal(catalogTrait.selectable, true);
+    assert.equal(catalogTrait.mutable, true);
+    assert.equal(catalogTrait.weight, signal.weight);
+    assert.notEqual(signal.maskedLabel, signal.traitValue);
+    assert.ok(fs.existsSync(signal.imageAsset), `${signal.imageAsset} must exist`);
+  }
+
+  const clientSource = fs.readFileSync("components/s2/TraitLabClient.tsx", "utf8");
+  assert.match(clientSource, /Unrevealed Trait Radar/);
+  assert.match(clientSource, /0 Confirmed Reveals/);
+  assert.match(clientSource, /No live payout campaign/);
+});
+
 test("bounty mutation is processor-secret protected and completion payout is best effort", () => {
   const processRoute = fs.readFileSync(
     "app/api/s2/trait-lab/bounties/process/route.ts",

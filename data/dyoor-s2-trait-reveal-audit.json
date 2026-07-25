@@ -1,0 +1,32 @@
+{
+  "schema": "dyoor-s2-trait-reveal-audit-v1",
+  "generatedAt": "2026-07-25T02:03:52Z",
+  "method": "catalog-vs-public-production-metadata",
+  "metadataBase": "https://dyoor.netlify.app/api/metadata/",
+  "scanned": {
+    "fromTokenId": 1,
+    "throughTokenId": 1096,
+    "successful": 1096,
+    "failed": 0
+  },
+  "unrevealed": [
+    {
+      "id": "signal-001",
+      "traitType": "Hat",
+      "traitValue": "BOB Mask",
+      "maskedLabel": "B•• M•••",
+      "rarity": "Mythic",
+      "weight": 1,
+      "imageAsset": "dyoor-builder/layers/Hat/BOB Mask.png",
+      "hint": "A builder-native orange signal is hiding in the headwear pool."
+    }
+  ],
+  "excludedCandidates": [
+    {
+      "traitType": "Special",
+      "traitValue": "Pink Ski Mask Laser",
+      "reason": "revealed",
+      "tokenId": "1040"
+    }
+  ]
+}
