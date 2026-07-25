@@ -27,6 +27,7 @@ import {
 import {
   DYOOR_WORLD_CHAT_REWARD_COOLDOWN_MS,
   DYOOR_WORLD_CHAT_REWARD_DAILY_CAP,
+  DYOOR_WORLD_CHAT_REWARD_DAILY_ENERGY_CAP,
   DYOOR_WORLD_CHAT_REWARD_ENERGY,
   DYOOR_WORLD_TIP_REWARD_DAILY_CAP,
   DYOOR_WORLD_TIP_REWARD_ENERGY,
@@ -906,7 +907,16 @@ async function createDyoorWorldChatReward(wallet: string, message: DyoorWorldMes
   const utcDate = dyoorWorldUtcDate(message.createdAt);
   const todaysRewards = await loadDyoorWorldRewards(wallet, utcDate);
   const chatRewards = todaysRewards.filter((reward) => reward.kind === "chat");
-  if (chatRewards.length >= DYOOR_WORLD_CHAT_REWARD_DAILY_CAP) return null;
+  const chatEnergyToday = chatRewards.reduce(
+    (total, reward) => total + reward.amountEnergy,
+    0,
+  );
+  if (
+    chatEnergyToday + DYOOR_WORLD_CHAT_REWARD_ENERGY
+      > DYOOR_WORLD_CHAT_REWARD_DAILY_ENERGY_CAP
+  ) {
+    return null;
+  }
   const last = chatRewards.at(-1);
   if (
     last
@@ -1001,6 +1011,10 @@ export async function getDyoorWorldRewardStatus(walletValue: unknown) {
       Date.parse(lastChatReward.createdAt) + DYOOR_WORLD_CHAT_REWARD_COOLDOWN_MS,
     ).toISOString()
     : null;
+  const chatEnergyToday = chatRewards.reduce(
+    (total, reward) => total + reward.amountEnergy,
+    0,
+  );
   return {
     enabled: dyoorWorldRewardsEnabled(),
     claimReady: Boolean(
@@ -1015,6 +1029,8 @@ export async function getDyoorWorldRewardStatus(walletValue: unknown) {
       rewardEnergy: DYOOR_WORLD_CHAT_REWARD_ENERGY,
       rewardedToday: chatRewards.length,
       dailyCap: DYOOR_WORLD_CHAT_REWARD_DAILY_CAP,
+      earnedEnergyToday: chatEnergyToday,
+      dailyEnergyCap: DYOOR_WORLD_CHAT_REWARD_DAILY_ENERGY_CAP,
       nextRewardAt: nextChatRewardAt,
     },
     tips: {

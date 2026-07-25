@@ -12,6 +12,7 @@ import {
 } from "../lib/dyoor-world-media.ts";
 import {
   DYOOR_WORLD_CHAT_REWARD_DAILY_CAP,
+  DYOOR_WORLD_CHAT_REWARD_DAILY_ENERGY_CAP,
   DYOOR_WORLD_CHAT_REWARD_ENERGY,
   DYOOR_WORLD_TIP_REWARD_DAILY_CAP,
   DYOOR_WORLD_TIP_REWARD_ENERGY,
@@ -23,14 +24,23 @@ import {
 } from "../lib/dyoor-world-rewards.ts";
 
 test("daily World Energy table preserves the advertised one-percent jackpot", () => {
-  assert.equal(dyoorWorldDailyPrize(0), 50);
-  assert.equal(dyoorWorldDailyPrize(59), 50);
-  assert.equal(dyoorWorldDailyPrize(60), 100);
-  assert.equal(dyoorWorldDailyPrize(84), 100);
-  assert.equal(dyoorWorldDailyPrize(85), 250);
-  assert.equal(dyoorWorldDailyPrize(95), 500);
+  assert.equal(dyoorWorldDailyPrize(0), 10);
+  assert.equal(dyoorWorldDailyPrize(44), 10);
+  assert.equal(dyoorWorldDailyPrize(45), 25);
+  assert.equal(dyoorWorldDailyPrize(69), 25);
+  assert.equal(dyoorWorldDailyPrize(70), 50);
+  assert.equal(dyoorWorldDailyPrize(86), 50);
+  assert.equal(dyoorWorldDailyPrize(87), 100);
+  assert.equal(dyoorWorldDailyPrize(94), 100);
+  assert.equal(dyoorWorldDailyPrize(95), 250);
+  assert.equal(dyoorWorldDailyPrize(97), 250);
   assert.equal(dyoorWorldDailyPrize(98), 500);
   assert.equal(dyoorWorldDailyPrize(99), 1_000);
+  const allBuckets = Array.from({ length: 100 }, (_, sample) =>
+    dyoorWorldDailyPrize(sample));
+  assert.equal(Math.min(...allBuckets), 10);
+  assert.equal(Math.max(...allBuckets), 1_000);
+  assert.equal(allBuckets.filter((amount) => amount === 1_000).length, 1);
 });
 
 test("chat rewards require meaningful content instead of message spam", () => {
@@ -94,7 +104,8 @@ test("World stickers are curated and unknown sticker payloads are rejected", () 
 
 test("activity rewards are useful but capped against low-effort farming", () => {
   assert.equal(DYOOR_WORLD_CHAT_REWARD_ENERGY, 5);
-  assert.equal(DYOOR_WORLD_CHAT_REWARD_DAILY_CAP, 5);
+  assert.equal(DYOOR_WORLD_CHAT_REWARD_DAILY_ENERGY_CAP, 200);
+  assert.equal(DYOOR_WORLD_CHAT_REWARD_DAILY_CAP, 40);
   assert.equal(DYOOR_WORLD_TIP_REWARD_ENERGY, 10);
   assert.equal(DYOOR_WORLD_TIP_REWARD_MIN_MON, "0.1");
   assert.equal(DYOOR_WORLD_TIP_REWARD_DAILY_CAP, 3);
@@ -127,6 +138,8 @@ test("World social APIs remain holder-gated and financial relays verify chain re
   assert.match(server, /transaction\.value <= 0n/);
   assert.match(server, /DYOOR_WORLD_CHAT_REWARD_COOLDOWN_MS/);
   assert.match(server, /DYOOR_WORLD_CHAT_REWARD_DAILY_CAP/);
+  assert.match(server, /DYOOR_WORLD_CHAT_REWARD_DAILY_ENERGY_CAP/);
+  assert.match(server, /chatEnergyToday \+ DYOOR_WORLD_CHAT_REWARD_ENERGY/);
   assert.match(server, /qualifiesForDyoorWorldChatReward\(message\.content\)/);
   assert.match(server, /normalizeDyoorWorldAttachment\(input\.attachment\)/);
   assert.match(server, /BigInt\(record\.amountWei\) < ethers\.parseEther\(DYOOR_WORLD_TIP_REWARD_MIN_MON\)/);
@@ -196,4 +209,26 @@ test("another holder's username opens the direct MON tip flow", () => {
   assert.match(client, /ref=\{tipAmountRef\}/);
   assert.match(client, /void sendTip\(\)/);
   assert.doesNotMatch(client, />\s*Tip MON\s*</);
+});
+
+test("desktop Enter sends World messages while Shift+Enter keeps a newline", () => {
+  const client = fs.readFileSync("components/dyoor-world/DyoorWorldClient.tsx", "utf8");
+
+  assert.match(client, /window\.matchMedia\("\(min-width: 768px\)"\)\.matches/);
+  assert.match(client, /event\.nativeEvent\.isComposing/);
+  assert.match(client, /event\.currentTarget\.form\?\.requestSubmit\(\)/);
+  assert.match(client, /Enter sends · Shift\+Enter newline/);
+});
+
+test("World wheel UI exposes the full reward range and polished spin treatment", () => {
+  const client = fs.readFileSync("components/dyoor-world/DyoorWorldClient.tsx", "utf8");
+  const styles = fs.readFileSync("app/globals.css", "utf8");
+
+  assert.match(client, /WORLD_WHEEL_PRIZES = \[10, 25, 50, 100, 250, 500, 1_000\]/);
+  assert.match(client, /1% jackpot/);
+  assert.match(client, /Every spin awards at least 10/);
+  assert.match(client, /200 Energy daily cap/);
+  assert.match(styles, /world-energy-wheel-disc/);
+  assert.match(styles, /@keyframes world-energy-wheel-spin/);
+  assert.match(styles, /world-energy-wheel-aura/);
 });

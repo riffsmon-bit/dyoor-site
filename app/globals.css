@@ -168,6 +168,60 @@ a {
     mask-image: linear-gradient(180deg, rgba(0, 0, 0, 0.75), transparent);
   }
 
+  .world-energy-wheel-disc {
+    isolation: isolate;
+    background:
+      conic-gradient(
+        from -90deg,
+        #39ffe2 0 45%,
+        #6f7cff 45% 70%,
+        #a855f7 70% 87%,
+        #ff4fe3 87% 95%,
+        #fb923c 95% 98%,
+        #facc15 98% 99%,
+        #ffffff 99% 100%
+      );
+    border: 2px solid rgba(255, 255, 255, 0.36);
+    box-shadow:
+      inset 0 0 0 5px rgba(5, 5, 18, 0.70),
+      inset 0 0 26px rgba(255, 255, 255, 0.20),
+      0 0 0 4px rgba(131, 110, 249, 0.18),
+      0 0 34px rgba(57, 255, 226, 0.28);
+  }
+
+  .world-energy-wheel-disc::before {
+    content: "";
+    position: absolute;
+    inset: 5px;
+    z-index: 2;
+    border-radius: 999px;
+    background: repeating-conic-gradient(
+      from -90deg,
+      rgba(3, 3, 10, 0.72) 0 0.65deg,
+      transparent 0.65deg 3.6deg
+    );
+    mask-image: radial-gradient(circle, transparent 0 68%, #000 69%);
+  }
+
+  .world-energy-wheel-disc::after {
+    content: "";
+    position: absolute;
+    inset: 13px;
+    z-index: 3;
+    border: 1px solid rgba(255, 255, 255, 0.20);
+    border-radius: 999px;
+    background: radial-gradient(circle at 38% 30%, rgba(255, 255, 255, 0.20), transparent 30%);
+    box-shadow: inset 0 0 18px rgba(3, 3, 10, 0.55);
+  }
+
+  .world-energy-wheel-spinning {
+    animation: world-energy-wheel-spin 1.6s cubic-bezier(0.12, 0.76, 0.18, 1) both;
+  }
+
+  .world-energy-wheel-aura {
+    animation: world-energy-wheel-aura 3.2s ease-in-out infinite;
+  }
+
   .bounty-signal-shell {
     position: relative;
     isolation: isolate;
@@ -286,6 +340,32 @@ a {
   }
 }
 
+@keyframes world-energy-wheel-spin {
+  0% {
+    transform: rotate(0deg) scale(1);
+    filter: saturate(1);
+  }
+  70% {
+    transform: rotate(1260deg) scale(1.035);
+    filter: saturate(1.45);
+  }
+  100% {
+    transform: rotate(1512deg) scale(1);
+    filter: saturate(1.08);
+  }
+}
+
+@keyframes world-energy-wheel-aura {
+  0%, 100% {
+    opacity: 0.52;
+    transform: scale(0.94);
+  }
+  50% {
+    opacity: 0.95;
+    transform: scale(1.06);
+  }
+}
+
 @keyframes bounty-signal-orbit {
   to {
     transform: rotate(360deg);
@@ -352,7 +432,9 @@ a {
   .bounty-signal-scan,
   .bounty-signal-art,
   .bounty-signal-cta::after,
-  .bounty-signal-ticker {
+  .bounty-signal-ticker,
+  .world-energy-wheel-aura,
+  .world-energy-wheel-spinning {
     animation: none;
   }
 }

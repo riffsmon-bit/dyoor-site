@@ -1,7 +1,10 @@
 export const DYOOR_WORLD_CHAT_REWARD_ENERGY = 5;
 export const DYOOR_WORLD_CHAT_REWARD_MIN_LENGTH = 20;
 export const DYOOR_WORLD_CHAT_REWARD_COOLDOWN_MS = 10 * 60 * 1000;
-export const DYOOR_WORLD_CHAT_REWARD_DAILY_CAP = 5;
+export const DYOOR_WORLD_CHAT_REWARD_DAILY_ENERGY_CAP = 200;
+export const DYOOR_WORLD_CHAT_REWARD_DAILY_CAP = Math.floor(
+  DYOOR_WORLD_CHAT_REWARD_DAILY_ENERGY_CAP / DYOOR_WORLD_CHAT_REWARD_ENERGY,
+);
 
 export const DYOOR_WORLD_TIP_REWARD_ENERGY = 10;
 export const DYOOR_WORLD_TIP_REWARD_MIN_MON = "0.1";
@@ -11,9 +14,11 @@ export const DYOOR_WORLD_TRADE_REWARD_ENERGY = 100;
 export const DYOOR_WORLD_TRADE_REWARD_DAILY_CAP = 1;
 
 export const DYOOR_WORLD_DAILY_REWARD_TABLE = [
-  { upperBound: 60, energy: 50 },
-  { upperBound: 85, energy: 100 },
-  { upperBound: 95, energy: 250 },
+  { upperBound: 45, energy: 10 },
+  { upperBound: 70, energy: 25 },
+  { upperBound: 87, energy: 50 },
+  { upperBound: 95, energy: 100 },
+  { upperBound: 98, energy: 250 },
   { upperBound: 99, energy: 500 },
   { upperBound: 100, energy: 1_000 },
 ] as const;
@@ -58,7 +63,7 @@ export function dyoorWorldDailyPrize(sample: number) {
   const normalized = Math.max(0, Math.min(99, Math.floor(sample)));
   return DYOOR_WORLD_DAILY_REWARD_TABLE.find(
     (entry) => normalized < entry.upperBound,
-  )?.energy || 50;
+  )?.energy || 10;
 }
 
 export function qualifiesForDyoorWorldChatReward(content: unknown) {

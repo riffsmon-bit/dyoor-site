@@ -62,6 +62,8 @@ type RewardStatus = {
     rewardEnergy: number;
     rewardedToday: number;
     dailyCap: number;
+    earnedEnergyToday: number;
+    dailyEnergyCap: number;
     nextRewardAt: string | null;
   };
   tips: {
@@ -156,6 +158,7 @@ const WORLD_TRADE_ABI = [
 ] as const;
 
 const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
+const WORLD_WHEEL_PRIZES = [10, 25, 50, 100, 250, 500, 1_000] as const;
 
 function normalizeAddress(value?: string) {
   const wallet = String(value || "").toLowerCase();
@@ -332,6 +335,51 @@ function OwnedDroidPicker({
           </span>
         </button>
       ))}
+    </div>
+  );
+}
+
+function DyoorEnergyWheel({
+  prize,
+  spinning,
+}: {
+  prize?: number;
+  spinning: boolean;
+}) {
+  return (
+    <div
+      aria-label={
+        spinning
+          ? "Daily Energy wheel spinning"
+          : prize
+            ? `Daily Energy wheel awarded ${prize} Energy`
+            : "Daily Energy wheel ready"
+      }
+      className="relative h-36 w-36 shrink-0"
+      role="img"
+    >
+      <div className="world-energy-wheel-aura pointer-events-none absolute -inset-4 rounded-full bg-[radial-gradient(circle,rgba(57,255,226,.24),rgba(131,110,249,.12)_42%,transparent_70%)] blur-xl" />
+      <div className="absolute left-1/2 top-0 z-30 -translate-x-1/2 drop-shadow-[0_0_8px_rgba(255,255,255,.8)]">
+        <div className="h-0 w-0 border-l-[9px] border-r-[9px] border-t-[15px] border-l-transparent border-r-transparent border-t-white" />
+      </div>
+      <div
+        className={`world-energy-wheel-disc absolute inset-3 rounded-full ${
+          spinning ? "world-energy-wheel-spinning" : ""
+        }`}
+      />
+      <div className="absolute inset-[2.45rem] z-20 grid place-items-center rounded-full border border-white/20 bg-[radial-gradient(circle_at_35%_28%,#302c5a,#0a0b1e_58%,#05050d)] text-center shadow-[inset_0_1px_0_rgba(255,255,255,.16),0_0_22px_rgba(57,255,226,.22)]">
+        <div>
+          <span className="block text-[0.48rem] font-black uppercase tracking-[0.18em] text-dyoor-cyan/70">
+            {spinning ? "Routing" : prize ? "Landed" : "Ready"}
+          </span>
+          <span className="mt-0.5 block text-lg font-black leading-none text-white">
+            {spinning ? "•••" : prize ? `+${prize}` : "SPIN"}
+          </span>
+          <span className="mt-1 block text-[0.42rem] font-black uppercase tracking-[0.15em] text-white/30">
+            Energy
+          </span>
+        </div>
+      </div>
     </div>
   );
 }
@@ -640,7 +688,7 @@ export function DyoorWorldClient({ sessionWallet }: { sessionWallet: string }) {
         claim?: { amountEnergy?: number; txHash?: string };
       }>(response);
       if (action === "check-in") {
-        await new Promise((resolve) => window.setTimeout(resolve, 900));
+        await new Promise((resolve) => window.setTimeout(resolve, 1_600));
         setNotice(`Daily signal landed on ${data.reward?.amountEnergy || 0} Energy.`);
       } else {
         setNotice(
@@ -901,6 +949,12 @@ export function DyoorWorldClient({ sessionWallet }: { sessionWallet: string }) {
       && !loadedTradeIsMaker
       && loadedTradeTargetsSession
       && loadedTradeRequestedOwned
+  );
+  const chatEnergyEarnedToday = rewards?.chat.earnedEnergyToday || 0;
+  const chatEnergyDailyCap = rewards?.chat.dailyEnergyCap || 200;
+  const chatEnergyProgress = Math.min(
+    100,
+    Math.max(0, (chatEnergyEarnedToday / chatEnergyDailyCap) * 100),
   );
 
   return (
@@ -1364,6 +1418,15 @@ export function DyoorWorldClient({ sessionWallet }: { sessionWallet: string }) {
                     className="min-h-12 flex-1 resize-none bg-transparent px-2 py-2 text-sm font-bold text-white outline-none placeholder:text-white/25"
                     maxLength={800}
                     onChange={(event) => setDraft(event.target.value)}
+                    onKeyDown={(event) => {
+                      const desktopEnter = event.key === "Enter"
+                        && !event.shiftKey
+                        && window.matchMedia("(min-width: 768px)").matches;
+                      if (!desktopEnter || event.nativeEvent.isComposing) return;
+                      event.preventDefault();
+                      if (event.repeat || sending) return;
+                      event.currentTarget.form?.requestSubmit();
+                    }}
                     placeholder={`Message #${selectedChannel.label} as ${identity}`}
                     rows={2}
                     value={draft}
@@ -1382,7 +1445,7 @@ export function DyoorWorldClient({ sessionWallet }: { sessionWallet: string }) {
                   onChange={setComposerAttachment}
                 />
                 <p className="mt-2 px-1 text-[0.62rem] font-bold text-white/25">
-                  {draft.length}/800 · meaningful text can earn {rewards?.chat.rewardEnergy || 5} Energy · media and stickers alone do not earn · holder session verified
+                  {draft.length}/800 · <span className="hidden md:inline">Enter sends · Shift+Enter newline · </span>meaningful text can earn {rewards?.chat.rewardEnergy || 5} Energy · media and stickers alone do not earn · holder session verified
                 </p>
               </form>
             ) : null}
@@ -1461,20 +1524,48 @@ export function DyoorWorldClient({ sessionWallet }: { sessionWallet: string }) {
               </form>
             ) : null}
 
-            <div className="relative mt-4 overflow-hidden rounded border border-dyoor-monad/30 bg-gradient-to-br from-[#251146] via-[#10102b] to-[#082f34] p-4">
-              <div className="pointer-events-none absolute -right-8 -top-8 h-28 w-28 rounded-full bg-dyoor-cyan/10 blur-2xl" />
-              <p className="relative text-[0.62rem] font-black uppercase tracking-[0.18em] text-dyoor-monad">Daily Energy signal</p>
-              <div className="relative mt-3 flex items-center gap-4">
-                <div className={`relative h-24 w-24 shrink-0 rounded-full border-4 border-white/15 bg-[conic-gradient(#6bf8e8_0_60%,#8b5cf6_60%_85%,#facc15_85%_95%,#fb7185_95%_99%,#fff_99%)] shadow-[0_0_30px_rgba(139,92,246,.25)] ${wheelSpinning ? "animate-spin" : ""}`}>
-                  <div className="absolute inset-3 flex items-center justify-center rounded-full bg-[#0b0b1c] text-center">
-                    <span className="text-base font-black text-white">{rewards?.daily ? `+${rewards.daily.amountEnergy}` : "SPIN"}</span>
+            <div className="relative mt-4 overflow-hidden rounded-xl border border-dyoor-monad/35 bg-[radial-gradient(circle_at_15%_15%,rgba(57,255,226,.12),transparent_34%),radial-gradient(circle_at_90%_5%,rgba(255,79,227,.16),transparent_38%),linear-gradient(145deg,#171035,#08091c_58%,#062526)] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,.08),0_20px_55px_rgba(0,0,0,.35),0_0_36px_rgba(131,110,249,.12)]">
+              <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(rgba(255,255,255,.025)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,.02)_1px,transparent_1px)] bg-[size:18px_18px] [mask-image:linear-gradient(to_bottom,black,transparent_80%)]" />
+              <div className="relative flex items-start justify-between gap-3">
+                <div>
+                  <p className="text-[0.58rem] font-black uppercase tracking-[0.2em] text-dyoor-monad">Daily Energy wheel</p>
+                  <p className="mt-1 text-xs font-black text-white">One verified spin every UTC day</p>
+                </div>
+                <span className="rounded-full border border-emerald-300/25 bg-emerald-300/10 px-2 py-1 text-[0.46rem] font-black uppercase tracking-[0.12em] text-emerald-200">
+                  10–1,000
+                </span>
+              </div>
+              <div className="relative mt-4 grid grid-cols-[9rem_minmax(0,1fr)] items-center gap-4">
+                <DyoorEnergyWheel
+                  prize={rewards?.daily?.amountEnergy}
+                  spinning={wheelSpinning}
+                />
+                <div className="min-w-0">
+                  <p className="text-3xl font-black leading-none text-white">{rewards?.pendingEnergy || 0}</p>
+                  <p className="mt-1 text-[0.52rem] font-black uppercase tracking-[0.15em] text-white/40">Pending Energy</p>
+                  <div className="mt-3 rounded border border-white/10 bg-black/20 p-2">
+                    <p className="text-[0.52rem] font-black uppercase tracking-[0.12em] text-yellow-100/85">
+                      1% jackpot
+                    </p>
+                    <p className="mt-1 text-[0.58rem] font-bold leading-4 text-white/42">
+                      Rare 1,000 Energy signal. Every spin awards at least 10.
+                    </p>
                   </div>
                 </div>
-                <div className="min-w-0">
-                  <p className="text-2xl font-black text-white">{rewards?.pendingEnergy || 0}</p>
-                  <p className="text-[0.58rem] font-black uppercase tracking-[0.13em] text-white/40">Pending Energy</p>
-                  <p className="mt-2 text-[0.62rem] font-bold leading-4 text-white/40">Free once per UTC day. Rare 1% signal: 1,000 Energy.</p>
-                </div>
+              </div>
+              <div className="relative mt-3 flex flex-wrap gap-1">
+                {WORLD_WHEEL_PRIZES.map((amount) => (
+                  <span
+                    className={`rounded border px-1.5 py-1 text-[0.46rem] font-black ${
+                      amount === 1_000
+                        ? "border-yellow-200/35 bg-yellow-200/10 text-yellow-100"
+                        : "border-white/10 bg-black/20 text-white/38"
+                    }`}
+                    key={amount}
+                  >
+                    {amount.toLocaleString()}
+                  </span>
+                ))}
               </div>
               {rewards?.enabled ? (
                 <div className="relative mt-3 grid grid-cols-2 gap-2">
@@ -1490,9 +1581,23 @@ export function DyoorWorldClient({ sessionWallet }: { sessionWallet: string }) {
                   Reward accounting is staged but off until the preview reward secret and operator flag are enabled.
                 </p>
               )}
-              <p className="relative mt-2 text-[0.56rem] font-bold text-white/25">
-                Chat: +{rewards?.chat.rewardEnergy || 5} · {rewards?.chat.rewardedToday || 0}/{rewards?.chat.dailyCap || 5} rewarded today · 10m cooldown
-              </p>
+              <div className="relative mt-3 rounded border border-dyoor-cyan/15 bg-dyoor-cyan/[0.04] p-2.5">
+                <div className="flex items-center justify-between gap-3 text-[0.52rem] font-black uppercase tracking-[0.11em]">
+                  <span className="text-dyoor-cyan">Message rewards</span>
+                  <span className="text-white/55">
+                    {chatEnergyEarnedToday}/{chatEnergyDailyCap} Energy
+                  </span>
+                </div>
+                <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-black/50">
+                  <div
+                    className="h-full rounded-full bg-gradient-to-r from-dyoor-cyan via-dyoor-monad to-fuchsia-400 shadow-[0_0_12px_rgba(57,255,226,.45)] transition-[width] duration-500"
+                    style={{ width: `${chatEnergyProgress}%` }}
+                  />
+                </div>
+                <p className="mt-2 text-[0.54rem] font-bold text-white/32">
+                  +{rewards?.chat.rewardEnergy || 5} per qualifying message · 200 Energy daily cap · 10m cooldown
+                </p>
+              </div>
               <p className="relative mt-1 text-[0.56rem] font-bold text-white/25">
                 Tips: +{rewards?.tips.rewardEnergy || 10} at {rewards?.tips.minimumMon || "0.1"}+ MON · {rewards?.tips.rewardedToday || 0}/{rewards?.tips.dailyCap || 3} today
               </p>
