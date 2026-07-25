@@ -237,20 +237,19 @@ test("public product copy contains no revenue-sharing references", () => {
   assert.match(homeSource, /Energy Flywheel/i);
 });
 
-test("Trait Lab Energy settlement does not depend on broad historical log scans", () => {
+test("Trait Lab rerolls settle without Energy transactions or broad historical log scans", () => {
   const source = fs.readFileSync("lib/s2-trait-lab.ts", "utf8");
   assert.doesNotMatch(source, /TRAIT_LAB_SPEND_LOOKBACK_BLOCKS/);
   assert.doesNotMatch(source, /findExistingTraitLabEnergySpend/);
 
-  const start = source.indexOf("async function spendTraitLabEnergy(");
+  const start = source.indexOf("async function debitTraitLabEnergy(");
   const end = source.indexOf("async function creditTraitLabRecycleEnergy(", start);
   assert.ok(start >= 0 && end > start);
   const spendSource = source.slice(start, end);
   assert.doesNotMatch(spendSource, /\.getLogs\(/);
-  assert.ok(
-    spendSource.indexOf("await onSubmitted?.({ txHash: tx.hash, reason, submittedAt });")
-      < spendSource.indexOf("const receipt = await tx.wait();"),
-  );
+  assert.doesNotMatch(spendSource, /spendEnergy|sendTransaction|getTransactionCount|\.wait\(/);
+  assert.match(spendSource, /claimTraitLabEnergyDebit/);
+  assert.match(source, /receiptContainsTraitLabEnergySpend/);
 
   for (const route of [
     "app/api/s2/trait-lab/preview/route.ts",

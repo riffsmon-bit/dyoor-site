@@ -1,6 +1,7 @@
 import {
   assertTraitLabRateLimit,
   createTraitLabPreview,
+  getTraitLabOperationStatus,
   normalizeWallet,
   traitLabPublicErrorMessage,
 } from "@/lib/s2-trait-lab";
@@ -20,21 +21,27 @@ function clientIp(request: Request) {
 }
 
 export async function POST(request: Request) {
+  let wallet = "";
   try {
     const body = await request.json().catch(() => ({})) as Record<string, unknown>;
-    const wallet = normalizeWallet(body.wallet);
+    wallet = normalizeWallet(body.wallet);
     assertTraitLabRateLimit(`preview:${wallet || "invalid"}:${clientIp(request)}`, 12, 60_000);
     return json(200, await createTraitLabPreview({
       ...body,
       origin: new URL(request.url).origin,
     }));
   } catch (error: any) {
+    let recoveryPreview = error?.recoveryPreview;
+    if (!recoveryPreview && error?.recoveryRequired && error?.operationId && wallet) {
+      const status = await getTraitLabOperationStatus(error.operationId, wallet).catch(() => null);
+      recoveryPreview = status?.retryPreview;
+    }
     return json(Number(error?.status || 500), {
       ok: false,
       error: traitLabPublicErrorMessage(error, "Trait Lab preview failed."),
       operationId: error?.operationId,
       recoveryRequired: Boolean(error?.recoveryRequired),
-      recoveryPreview: error?.recoveryPreview,
+      recoveryPreview,
     });
   }
 }

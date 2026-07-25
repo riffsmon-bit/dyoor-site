@@ -1,7 +1,9 @@
 import { ethers } from "ethers";
 import { DEFAULT_ENERGY_BANK_CONTRACT } from "@/lib/contracts/addresses";
+import { effectiveEnergyBalance } from "@/lib/trait-lab-energy-accounting";
 import { assertMonadMainnet, energyRpcProvider, harvestEventsFromReceipt, readPendingEnergyRaw, scanHarvestEvents } from "@/src/lib/energy/chain";
 import { getCheckpoint, getEnergyBalance, setCheckpoint, upsertHarvestEvent } from "@/src/lib/storage/energyStore";
+import { getTraitLabEnergyDebitSummary } from "@/src/lib/storage/s2TraitLabStore";
 import type { HarvestEvent } from "@/src/lib/storage/types";
 
 export const runtime = "nodejs";
@@ -240,10 +242,18 @@ export async function POST(request: Request) {
     );
     const pendingRaw = await readPendingEnergyRaw(wallet).catch(() => 0n);
     const balance = await getEnergyBalance(wallet, pendingRaw.toString());
-    const bankBalance = await readEnergyBankBalance(wallet).catch(() => null);
-    const spendableRaw = bankBalance?.spendableRaw || balance.spendableRaw;
+    const [bankBalance, traitLabDebits] = await Promise.all([
+      readEnergyBankBalance(wallet).catch(() => null),
+      getTraitLabEnergyDebitSummary(wallet),
+    ]);
+    const effective = effectiveEnergyBalance({
+      energyBankSpendableRaw: bankBalance?.spendableRaw || balance.spendableRaw,
+      energyBankSpentRaw: bankBalance?.spentRaw || balance.spentRaw,
+      serverSettledDebitRaw: traitLabDebits.debitRaw,
+    });
+    const spendableRaw = effective.spendableRaw;
     const lifetimeRaw = bankBalance?.lifetimeRaw || balance.lifetimeRaw;
-    const spentRaw = bankBalance?.spentRaw || balance.spentRaw;
+    const spentRaw = effective.spentRaw;
 
     return json(200, {
       ok: true,
@@ -275,10 +285,17 @@ export async function POST(request: Request) {
       bankedEnergy: format(spendableRaw),
       ledgerSpendableRaw: balance.spendableRaw,
       ledgerSpendableEnergy: format(balance.spendableRaw),
+      energyBankSpendableRaw: bankBalance?.spendableRaw || "",
+      energyBankSpendableEnergy: bankBalance?.spendableRaw ? format(bankBalance.spendableRaw) : "",
+      serverSettledTraitLabDebitRaw: traitLabDebits.debitRaw,
+      serverSettledTraitLabDebitEnergy: format(traitLabDebits.debitRaw),
+      serverSettledTraitLabDebitCount: traitLabDebits.debitCount,
       lifetimeRaw,
       lifetimeEnergy: format(lifetimeRaw),
       lastUpdatedAt: balance.lastUpdatedAt,
-      dataSource: bankBalance ? "energy-bank+ledger+staking-pending" : "ledger+staking-pending",
+      dataSource: bankBalance
+        ? "energy-bank+server-trait-lab-ledger+staking-pending"
+        : "ledger+server-trait-lab-ledger+staking-pending",
     });
   } catch (error: any) {
     return json(Number(error?.status || 500), { ok: false, error: error?.message || "Energy wallet sync failed." });

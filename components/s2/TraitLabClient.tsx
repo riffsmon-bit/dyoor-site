@@ -97,7 +97,9 @@ type PreviewResponse = {
     weight?: number;
   };
   rollId?: string;
+  operationStatus?: string;
   rollCharged?: boolean;
+  energySettlementMode?: "server-ledger" | "energy-bank" | "none";
   paymentTxHash?: string;
   paymentBurnTxHash?: string;
   paymentToken?: string;
@@ -180,6 +182,8 @@ type TraitLabConfigResponse = {
   recycleRewards?: Record<string, number>;
   droidBurnEnabled?: boolean;
   droidBurnRewardEnergy?: number;
+  rerollSettlementMode?: "server-ledger";
+  rerollRequiresTransaction?: boolean;
   rerollAllCostEnergy?: number;
   leaderboardEnabled?: boolean;
   bountyEnabled?: boolean;
@@ -223,6 +227,7 @@ type PendingTraitLabOperation = {
 
 type TraitLabOperationResponse = {
   ok?: boolean;
+  active?: boolean;
   operation?: {
     rollId?: string;
     tokenId?: string;
@@ -770,6 +775,7 @@ export function TraitLabClient() {
   const previewProposedImage = mediaUrl(preview?.imageRecomposition?.previewDataUrl || previewProposedMetadata?.image || previewBeforeImage);
   const previewTraitAssetImage = mediaUrl(preview?.proposedAsset?.uri);
   const previewImageChanged = normalizeTraitValue(previewCurrentMetadata?.image) !== normalizeTraitValue(previewProposedMetadata?.image);
+  const previewIsFinalizing = ["confirming", "metadata_committed", "confirmed"].includes(String(preview?.operationStatus || ""));
 
   useEffect(() => {
     selectedTokenIdRef.current = selectedTokenId;
@@ -950,6 +956,41 @@ export function TraitLabClient() {
     }
   }, []);
 
+  const restoreActiveTraitLabOperation = useCallback(async (tokenId: string, silent = false) => {
+    if (!walletAddress || !tokenId) return;
+    try {
+      const response = await fetch(
+        `/api/s2/trait-lab/active?wallet=${encodeURIComponent(walletAddress)}&tokenId=${encodeURIComponent(tokenId)}`,
+        { cache: "no-store" },
+      );
+      const data = await response.json().catch(() => ({})) as TraitLabOperationResponse;
+      if (!response.ok || data.ok === false) throw new Error(data.error || "Could not check the current Trait Lab result.");
+      if (!data.active || !data.retryPreview?.rollId || !data.retryPreview.previewId) return;
+
+      const recoveredPreview = data.retryPreview;
+      const recoveredRollId = String(recoveredPreview.rollId);
+      const pending: PendingTraitLabOperation = {
+        wallet: walletAddress,
+        rollId: recoveredRollId,
+        tokenId,
+        savedAt: new Date().toISOString(),
+        preview: recoveredPreview,
+      };
+      setPendingTraitLabOperations((current) => {
+        const next = currentPendingTraitLabOperations([pending].concat(current.filter((item) => item.tokenId !== tokenId)));
+        if (pendingTraitLabStorageKey) window.localStorage.setItem(pendingTraitLabStorageKey, JSON.stringify(next));
+        return next;
+      });
+      setPreview(recoveredPreview);
+      setError("");
+      setStatus(`Restored D.Y.O.O.R #${tokenId}'s current result from the server. Accept it to finish, or leave it behind if it is not already finalizing.`);
+    } catch (restoreError) {
+      if (!silent) {
+        setError(restoreError instanceof Error ? restoreError.message : "Could not check the current Trait Lab result.");
+      }
+    }
+  }, [pendingTraitLabStorageKey, walletAddress]);
+
   const loadOwnedTokens = useCallback(async () => {
     if (!walletAddress) {
       setOwnedTokenIds([]);
@@ -990,7 +1031,10 @@ export function TraitLabClient() {
       const currentSelected = selectedTokenIdRef.current;
       const nextSelected = currentSelected && tokenIds.includes(currentSelected) ? currentSelected : tokenIds[0] || "";
       setSelectedTokenId(nextSelected);
-      if (nextSelected) await loadTokenMetadata(nextSelected);
+      if (nextSelected) {
+        await loadTokenMetadata(nextSelected);
+        await restoreActiveTraitLabOperation(nextSelected, true);
+      }
     } catch (err) {
       setOwnedTokenIds([]);
       setTokenCards([]);
@@ -1000,7 +1044,7 @@ export function TraitLabClient() {
     } finally {
       setOwnedLoading(false);
     }
-  }, [loadTokenMetadata, walletAddress]);
+  }, [loadTokenMetadata, restoreActiveTraitLabOperation, walletAddress]);
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
@@ -1041,6 +1085,7 @@ export function TraitLabClient() {
   async function selectToken(tokenId: string) {
     setSelectedTokenId(tokenId);
     await loadTokenMetadata(tokenId);
+    await restoreActiveTraitLabOperation(tokenId, true);
   }
 
   async function refreshConfirmedToken(tokenId: string, fallbackMetadata?: MetadataJson | null) {
@@ -1178,7 +1223,10 @@ export function TraitLabClient() {
       const recoveredPreview = data.retryPreview || item.preview;
       setPreview(recoveredPreview);
       savePendingTraitLabOperation(recoveredPreview);
-      setStatus(`Restored D.Y.O.O.R #${item.tokenId}'s current result. Accept it, leave it, or pay for one new roll that permanently replaces it.`);
+      const finalizing = ["confirming", "metadata_committed", "confirmed"].includes(String(recoveredPreview.operationStatus || ""));
+      setStatus(finalizing
+        ? `Restored D.Y.O.O.R #${item.tokenId}'s finalizing result. Retry Accept Result to finish it.`
+        : `Restored D.Y.O.O.R #${item.tokenId}'s current result. Accept it, leave it, or pay for one new roll that permanently replaces it.`);
     } catch (err) {
       setError(traitLabErrorMessage(err, "Trait Lab recovery failed."));
     } finally {
@@ -1273,10 +1321,9 @@ export function TraitLabClient() {
     setStatus(action === "recycle"
       ? "Sign to authorize the trait recycle preview."
       : action === "rerollAll"
-        ? "Sign to authorize the Reroll All Energy spend."
-      : "Sign to authorize the Energy spend.");
+        ? "Sign to authorize Reroll All. This signature is gasless."
+      : "Sign to authorize the roll. This signature is gasless.");
     try {
-      const payment = {};
       const authorizationTimestamp = String(Date.now());
       const authorizationNonce = crypto.randomUUID();
       const authorizationSignature = await wallet.signMessage(traitLabPreviewAuthorizationMessage({
@@ -1290,49 +1337,42 @@ export function TraitLabClient() {
       setStatus(action === "recycle"
         ? "Preparing trait recycle preview."
         : action === "rerollAll"
-          ? "Spending Energy and generating a Reroll All bundle."
-          : "Spending Energy and generating roll.");
-      let response: Response | null = null;
-      let data = {} as PreviewResponse;
-      for (let attempt = 0; attempt < 4; attempt += 1) {
-        response = await fetch("/api/s2/trait-lab/preview", {
-          method: "POST",
-          headers: { "content-type": "application/json" },
-          body: JSON.stringify({
-            wallet: walletAddress,
-            tokenId: selectedTokenId,
-            traitType,
-            action,
-            paymentMode: effectiveMode,
-            authorizationTimestamp,
-            authorizationNonce,
-            authorizationSignature,
-            ...payment,
-          }),
-        });
-        data = await response.json().catch(() => ({})) as PreviewResponse;
-        if (!(response.status === 409 && ("paymentTxHash" in payment))) break;
-        setStatus("Waiting for roll transaction to index.");
-        await sleep(1500);
-      }
-      if (!response) throw new Error("Preview failed.");
+          ? "Settling Energy instantly and generating a Reroll All bundle."
+          : "Settling Energy instantly and generating roll.");
+      const response = await fetch("/api/s2/trait-lab/preview", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          wallet: walletAddress,
+          tokenId: selectedTokenId,
+          traitType,
+          action,
+          paymentMode: effectiveMode,
+          authorizationTimestamp,
+          authorizationNonce,
+          authorizationSignature,
+        }),
+      });
+      const data = await response.json().catch(() => ({})) as PreviewResponse;
       if (!response.ok || data.ok === false) {
         if (data.recoveryRequired && data.recoveryPreview?.rollId) {
+          setPreview(data.recoveryPreview);
           savePendingTraitLabOperation(data.recoveryPreview);
+          setStatus(`Restored D.Y.O.O.R #${data.recoveryPreview.tokenId || selectedTokenId}'s current result. Accept it to finish recovery.`);
         }
         throw new Error(data.error || "Preview failed.");
       }
       setPreview(data);
       savePendingTraitLabOperation(data);
       setStatus(action === "unlock"
-        ? "Unlock roll ready."
+        ? "Unlock roll ready. Energy settled instantly with no blockchain transaction."
         : action === "remove"
           ? "Remove trait preview ready."
-          : action === "recycle"
+        : action === "recycle"
             ? "Recycle preview ready."
             : action === "rerollAll"
-              ? "Reroll All ready."
-            : "Reroll ready.");
+              ? "Reroll All ready. Energy settled instantly with no blockchain transaction."
+            : "Reroll ready. Energy settled instantly with no blockchain transaction.");
       if (data.paymentMode === "energy") await loadEnergy();
     } catch (err) {
       setError(traitLabErrorMessage(err, "Preview failed."));
@@ -2004,7 +2044,7 @@ export function TraitLabClient() {
                             </div>
                           </div>
                         ) : null}
-                        {preview.traitType && preview.action && preview.action !== "remove" && preview.action !== "recycle" ? (
+                        {!previewIsFinalizing && preview.traitType && preview.action && preview.action !== "remove" && preview.action !== "recycle" ? (
                           <div className="rounded border border-yellow-300/20 bg-yellow-300/[0.06] p-3">
                             <p className="text-[0.65rem] font-bold leading-5 text-yellow-50/62">
                               Rolling again spends Energy and permanently replaces this result. You cannot come back to it.
@@ -2055,15 +2095,19 @@ export function TraitLabClient() {
                 <div className="rounded border border-dyoor-cyan/20 bg-dyoor-cyan/[0.055] p-4">
                   <p className="text-xs font-black uppercase tracking-[0.14em] text-dyoor-cyan">One live result · no roll history</p>
                   <p className="mt-2 text-xs font-semibold leading-5 text-white/48">
-                    Accept this result, leave it permanently, or pay to roll again. Once left or replaced, this result cannot be restored.
+                    {previewIsFinalizing
+                      ? "This result was already accepted and is finishing its saved metadata operation. Retry Accept Result to complete recovery; it can no longer be left or replaced."
+                      : "Accept this result, leave it permanently, or pay to roll again. Once left or replaced, this result cannot be restored."}
                   </p>
                   <div className="mt-4 flex flex-wrap gap-3">
                     <Button variant="primary" disabled={Boolean(actionLoading)} onClick={() => void confirmChange()}>
                       {actionLoading === "confirm" ? "Accepting" : preview.action === "recycle" ? "Accept Recycle" : preview.action === "rerollAll" ? "Accept Reroll All" : "Accept Result"}
                     </Button>
-                    <Button variant="secondary" disabled={Boolean(actionLoading)} onClick={() => void leaveCurrentResult()}>
-                      {actionLoading === "forfeit" ? "Leaving" : "Leave Result"}
-                    </Button>
+                    {!previewIsFinalizing ? (
+                      <Button variant="secondary" disabled={Boolean(actionLoading)} onClick={() => void leaveCurrentResult()}>
+                        {actionLoading === "forfeit" ? "Leaving" : "Leave Result"}
+                      </Button>
+                    ) : null}
                   </div>
                 </div>
               </div>

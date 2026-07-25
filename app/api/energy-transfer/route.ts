@@ -1,7 +1,9 @@
 import { ethers } from "ethers";
 import { energyBankContract } from "@/lib/contracts/addresses";
+import { effectiveEnergyBalance } from "@/lib/trait-lab-energy-accounting";
 import { addEnergyLedgerEntry } from "@/src/lib/storage/energyStore";
 import { createJsonStore } from "@/src/lib/storage/fileStore";
+import { getTraitLabEnergyDebitSummary } from "@/src/lib/storage/s2TraitLabStore";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -185,7 +187,15 @@ async function executeOnChainTransfer(sender: string, recipient: string, amount:
 
   const spendReason = job?.spendReason || transferSpendReason(transferId);
   if (!job?.spendTxHash) {
-    const spendable = BigInt(await bank.spendableEnergy(sender));
+    const [bankSpendable, traitLabDebits] = await Promise.all([
+      bank.spendableEnergy(sender),
+      getTraitLabEnergyDebitSummary(sender),
+    ]);
+    const spendable = BigInt(effectiveEnergyBalance({
+      energyBankSpendableRaw: bankSpendable,
+      energyBankSpentRaw: "0",
+      serverSettledDebitRaw: traitLabDebits.debitRaw,
+    }).spendableRaw);
     if (spendable < amount) throw Object.assign(new Error("Insufficient spendable Energy."), { status: 400 });
     await bank.spendEnergy.staticCall(sender, amount, spendReason);
     let nextJob = await saveTransferJob({

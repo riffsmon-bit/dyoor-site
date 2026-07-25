@@ -1,7 +1,9 @@
 import { ethers } from "ethers";
 import { DEFAULT_ENERGY_BANK_CONTRACT } from "@/lib/contracts/addresses";
+import { effectiveEnergyBalance } from "@/lib/trait-lab-energy-accounting";
 import { getEnergyBalance } from "@/src/lib/storage/energyStore";
 import { energyRpcProvider, readPendingEnergyRaw } from "@/src/lib/energy/chain";
+import { getTraitLabEnergyDebitSummary } from "@/src/lib/storage/s2TraitLabStore";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -63,9 +65,10 @@ export async function GET(_request: Request, context: EnergyRouteContext) {
   const wallet = normalizeWallet(params.wallet);
   if (!wallet) return json(400, { ok: false, error: "Invalid wallet address." });
 
-  const [pendingRaw, bankBalance] = await Promise.all([
+  const [pendingRaw, bankBalance, traitLabDebits] = await Promise.all([
     readPendingEnergyRaw(wallet).catch(() => 0n),
     readEnergyBankBalance(wallet).catch(() => null),
+    getTraitLabEnergyDebitSummary(wallet),
   ]);
   const balance = await getEnergyBalance(wallet, pendingRaw.toString());
   if (!bankBalance) {
@@ -80,9 +83,14 @@ export async function GET(_request: Request, context: EnergyRouteContext) {
       dataSource: "ledger-diagnostic-only",
     });
   }
-  const spendableRaw = bankBalance.spendableRaw;
+  const effective = effectiveEnergyBalance({
+    energyBankSpendableRaw: bankBalance.spendableRaw,
+    energyBankSpentRaw: bankBalance.spentRaw,
+    serverSettledDebitRaw: traitLabDebits.debitRaw,
+  });
+  const spendableRaw = effective.spendableRaw;
   const lifetimeRaw = bankBalance.lifetimeRaw;
-  const spentRaw = bankBalance.spentRaw;
+  const spentRaw = effective.spentRaw;
 
   return json(200, {
     ok: true,
@@ -105,6 +113,11 @@ export async function GET(_request: Request, context: EnergyRouteContext) {
     bankedEnergy: format(spendableRaw),
     ledgerSpendableRaw: balance.spendableRaw,
     ledgerSpendableEnergy: format(balance.spendableRaw),
+    energyBankSpendableRaw: bankBalance.spendableRaw,
+    energyBankSpendableEnergy: format(bankBalance.spendableRaw),
+    serverSettledTraitLabDebitRaw: traitLabDebits.debitRaw,
+    serverSettledTraitLabDebitEnergy: format(traitLabDebits.debitRaw),
+    serverSettledTraitLabDebitCount: traitLabDebits.debitCount,
     missingSpendableRaw: "0",
     missingSpendableEnergy: "0",
     energyBankSyncPending: false,
@@ -112,6 +125,6 @@ export async function GET(_request: Request, context: EnergyRouteContext) {
     lifetimeEnergy: format(lifetimeRaw),
     entryCount: balance.entryCount,
     lastUpdatedAt: balance.lastUpdatedAt,
-    dataSource: "energy-bank+staking-pending",
+    dataSource: "energy-bank+server-trait-lab-ledger+staking-pending",
   });
 }

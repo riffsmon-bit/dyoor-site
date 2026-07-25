@@ -116,9 +116,9 @@ Scope: Monad mainnet (chain ID `143`), Season 2 contract
 ## Production Prerequisites
 
 - Set a dedicated `DYOOR_TRAIT_LAB_SECRET`.
-- Prefer a dedicated `TRAIT_LAB_ENERGY_SPENDER_PRIVATE_KEY` with only
-  `SPENDER_ROLE`. The existing Energy Bank operator key remains a compatibility
-  fallback.
+- `TRAIT_LAB_ENERGY_SPENDER_PRIVATE_KEY` is no longer required for rerolls.
+  `ENERGY_BANK_OPERATOR_PRIVATE_KEY` remains required only for Energy credit
+  operations such as Recycle and Droid-burn rewards.
 - Keep leaderboard and bounty flags false until their product rules and
   operational monitoring are approved.
 - Continue invoking the rate-limited OpenSea refresh processor or its scheduled
@@ -146,3 +146,18 @@ tests used the local Hardhat network.
 - Only completed operations contribute to leaderboard totals.
 - Bounty execution remains disabled by default.
 - Typecheck, focused tests, and production build must pass before any push.
+
+## July 24 Reroll Regression Correction
+
+The per-roll Energy Bank write introduced in `4f362e1` caused operator nonce
+contention, receipt polling, RPC-indexing failures, and recovery states that
+could outlive the browser entry needed to restore them. New paid rolls now use
+one append-only server debit record per deterministic roll ID. The effective
+Energy balance subtracts those records from the live Energy Bank baseline, and
+wallet transfers use the same adjusted balance.
+
+Legacy rolls with an `energySpendTxHash` continue through the original receipt
+verification path. New server-settled rolls verify their exact persisted debit
+record instead. Active results are discoverable from the server by token and
+wallet, and restore-required preview errors preserve the actual active
+operation ID and recovery payload.

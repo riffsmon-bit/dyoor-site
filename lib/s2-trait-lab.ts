@@ -53,10 +53,12 @@ import {
 } from "@/lib/s2-trait-lab-auth";
 import {
   applyTraitSupplyDeltas,
+  claimTraitLabEnergyDebit,
   deleteTraitSupplyReservation,
   saveBurnedDroidRecord,
   getTraitLabActiveRoll,
   getTraitLabCompletion,
+  getTraitLabEnergyDebit,
   getTraitLabRoll,
   getTraitSupplyAvailabilityLedger,
   getTraitSupplyEvent,
@@ -65,6 +67,7 @@ import {
   saveTraitLabCompletion,
   saveTraitLabRoll,
   saveTraitSupplyReservation,
+  voidTraitLabEnergyDebit,
   type TraitLabActiveRollRecord,
   type TraitLabRollRecord,
   type TraitSupplyDelta,
@@ -203,11 +206,9 @@ const ERC721_ABI = [
 
 const ENERGY_BANK_ABI = [
   "event EnergySpent(address indexed user,address indexed spender,uint256 amount,bytes32 indexed reason)",
-  "function spendEnergy(address user,uint256 amount,bytes32 reason)",
   "function creditEnergy(address user,uint256 amount,bytes32 claimTxHash)",
   "function usedClaimTxHash(bytes32 claimTxHash) view returns (bool)",
   "function spendableEnergy(address user) view returns (uint256)",
-  "function SPENDER_ROLE() view returns (bytes32)",
   "function CREDIT_ROLE() view returns (bytes32)",
   "function hasRole(bytes32 role,address account) view returns (bool)",
 ];
@@ -218,7 +219,6 @@ const PREVIEW_TTL_MS = 5 * 60 * 1000;
 const CONFIRM_WINDOW_MS = 5 * 60 * 1000;
 const PREVIEW_AUTH_WINDOW_MS = 5 * 60 * 1000;
 const PREVIEW_CLAIM_SETTLE_MS = 50;
-const SUPPLY_RESERVATION_SETTLE_MS = 150;
 const TRANSFER_TOPIC = ethers.id("Transfer(address,address,uint256)");
 const DEFAULT_MONAD_MAINNET_RPC_URL = "https://rpc.monad.xyz";
 const DEFAULT_MONAD_MAINNET_EXPLORER_URL = "https://monadscan.com";
@@ -547,8 +547,8 @@ export function traitLabPublicErrorMessage(error: unknown, fallback: string) {
   ) {
     const recoveryRequired = Boolean((error as { recoveryRequired?: unknown })?.recoveryRequired);
     return recoveryRequired
-      ? "Monad RPC lost confirmation after the Energy transaction was submitted. Use Restore Current Result and retry Accept Result; do not start another roll until its status is known."
-      : "Monad RPC could not complete the Trait Lab request. No Energy transaction was submitted. Wait a moment and retry.";
+      ? "A Monad read was interrupted after this Trait Lab result was saved. Restore Current Result and retry Accept Result; do not start another roll."
+      : "Monad RPC could not complete a required ownership or metadata read. No Trait Lab result was charged. Wait a moment and retry.";
   }
   return message || fallback;
 }
@@ -696,6 +696,8 @@ export function traitLabPublicConfig() {
     tokenCooldownMs: traitLabTokenCooldownMs(),
     droidBurnEnabled: traitLabDroidBurnEnabled(),
     droidBurnRewardEnergy: traitLabDroidBurnRewardEnergy(),
+    rerollSettlementMode: "server-ledger",
+    rerollRequiresTransaction: false,
     leaderboardEnabled: traitLabLeaderboardEnabled(),
     bountyEnabled: traitBountyEngineEnabled(),
     rerollAllCostEnergy: S2_TRAIT_LAB_REROLL_ALL_COST,
@@ -1414,14 +1416,13 @@ function logProvider() {
   return new ethers.JsonRpcProvider(configuredS2LogRpcUrl(), configuredS2ChainId());
 }
 
-function energyBankSigner() {
+function energyBankCreditSigner() {
   const privateKey = normalizePrivateKey(readEnv(
-    "TRAIT_LAB_ENERGY_SPENDER_PRIVATE_KEY",
     "ENERGY_BANK_OPERATOR_PRIVATE_KEY",
     "DEPLOYER_PRIVATE_KEY",
   ));
   if (!privateKey) {
-    throw Object.assign(new Error("TRAIT_LAB_ENERGY_SPENDER_PRIVATE_KEY or ENERGY_BANK_OPERATOR_PRIVATE_KEY is required for Energy Trait Lab rolls."), { status: 500 });
+    throw Object.assign(new Error("ENERGY_BANK_OPERATOR_PRIVATE_KEY is required for Trait Lab Energy rewards."), { status: 500 });
   }
   return new ethers.Wallet(privateKey, provider());
 }
@@ -1449,63 +1450,28 @@ function traitLabRecycleCreditClaim(payload: PreviewPayload) {
   ].join(":")));
 }
 
-type TraitLabEnergySpendSubmission = {
-  txHash: string;
-  reason: string;
-  submittedAt: string;
-};
+async function readTraitLabEnergyBankSpendable(wallet: string) {
+  const bank = new ethers.Contract(energyBankContract, ENERGY_BANK_ABI, provider());
+  return BigInt(await bank.spendableEnergy(wallet));
+}
 
-async function spendTraitLabEnergy(
-  payload: PreviewPayload,
-  onSubmitted?: (submission: TraitLabEnergySpendSubmission) => Promise<void>,
-  beforeSubmit?: () => Promise<void>,
-  onConfirmed?: () => Promise<void>,
-) {
+async function debitTraitLabEnergy(payload: PreviewPayload) {
   const amount = BigInt(payload.costRaw || "0");
   if (amount <= 0n) {
     throw Object.assign(new Error("Invalid Energy roll cost."), { status: 500 });
   }
-  const signer = energyBankSigner();
-  const signerAddress = await signer.getAddress();
-  const bank = new ethers.Contract(energyBankContract, ENERGY_BANK_ABI, signer);
-  const spenderRole = await bank.SPENDER_ROLE();
-  const hasRole = await bank.hasRole(spenderRole, signerAddress).then(Boolean);
-  if (!hasRole) {
-    throw Object.assign(new Error("Energy Bank operator is missing SPENDER_ROLE."), { status: 500 });
-  }
-  const reason = traitLabEnergySpendReason(payload);
-  const chainProvider = signer.provider;
-  if (!chainProvider) throw Object.assign(new Error("Energy Bank signer has no RPC provider."), { status: 500 });
-  const nonceSnapshotBlock = await chainProvider.getBlockNumber();
-  const operatorNonce = await chainProvider.getTransactionCount(signerAddress, nonceSnapshotBlock);
-  const pendingOperatorNonce = await chainProvider.getTransactionCount(signerAddress, "pending");
-  if (pendingOperatorNonce > operatorNonce) {
-    throw Object.assign(new Error("Trait Lab Energy settlement is busy with another transaction. Sign a fresh preview in a moment."), {
-      status: 503,
-    });
-  }
-  await new Promise((resolve) => setTimeout(resolve, SUPPLY_RESERVATION_SETTLE_MS));
-  await beforeSubmit?.();
-  await bank.spendEnergy.staticCall(payload.wallet, amount, reason);
-  const tx = await bank.spendEnergy(payload.wallet, amount, reason, {
-    gasLimit: 160000n,
-    nonce: operatorNonce,
+  const availableRaw = await readTraitLabEnergyBankSpendable(payload.wallet);
+  const claimed = await claimTraitLabEnergyDebit({
+    rollId: payload.rollId,
+    wallet: payload.wallet,
+    tokenId: String(payload.tokenId),
+    action: payload.action,
+    amountRaw: amount.toString(),
+    availableRaw: availableRaw.toString(),
   });
-  const submittedAt = new Date().toISOString();
-  // Persist the hash before waiting. Recovery verifies this exact receipt,
-  // avoiding provider-specific historical eth_getLogs range requirements.
-  await onSubmitted?.({ txHash: tx.hash, reason, submittedAt });
-  const receipt = await tx.wait();
-  if (receipt?.status !== 1) {
-    throw Object.assign(new Error("Energy spend transaction failed."), { status: 500 });
-  }
-  await onConfirmed?.();
   return {
-    txHash: tx.hash,
-    blockNumber: String(receipt?.blockNumber || ""),
-    reason,
-    submittedAt,
-    deduped: false,
+    debitId: claimed.debit.id,
+    deduped: claimed.deduped,
   };
 }
 
@@ -1515,7 +1481,7 @@ async function creditTraitLabRecycleEnergy(payload: PreviewPayload, paidRoll?: T
   if (amount <= 0n) {
     throw Object.assign(new Error("Invalid Trait Lab recycle reward."), { status: 500 });
   }
-  const signer = energyBankSigner();
+  const signer = energyBankCreditSigner();
   const signerAddress = await signer.getAddress();
   const bank = new ethers.Contract(energyBankContract, ENERGY_BANK_ABI, signer);
   const creditRole = await bank.CREDIT_ROLE();
@@ -1654,7 +1620,7 @@ export async function claimTraitLabDroidBurnReward(input: Record<string, unknown
   const claim = traitLabDroidBurnClaim(wallet, tokenId, burnTxHash, rewardRaw);
   const metadataResult = await buildTokenMetadataAsync(tokenId, config).then((result) => result.metadata as MetadataJson).catch(() => null);
 
-  const signer = energyBankSigner();
+  const signer = energyBankCreditSigner();
   const signerAddress = await signer.getAddress();
   const bank = new ethers.Contract(energyBankContract, ENERGY_BANK_ABI, signer);
   const creditRole = await bank.CREDIT_ROLE();
@@ -2264,10 +2230,16 @@ function verifyPreviewAuthorization(
 
 function rollChargeConfirmed(roll: TraitLabRollRecord, action: S2TraitLabAction) {
   if (!roll.chargedAt) return false;
-  return action === "recycle" || Boolean(roll.energySpendTxHash);
+  if (action === "recycle") return true;
+  if (roll.energySettlementMode === "server-ledger") return Boolean(roll.energyDebitId);
+  return Boolean(roll.energySpendTxHash);
 }
 
 function recoveryPreviewFromRoll(roll: TraitLabRollRecord) {
+  let payload: PreviewPayload | null = null;
+  try {
+    payload = decodePreview(roll.previewId, { allowExpired: true });
+  } catch {}
   return {
     ok: true,
     wallet: roll.wallet,
@@ -2282,9 +2254,20 @@ function recoveryPreviewFromRoll(roll: TraitLabRollRecord) {
     previousValue: roll.previousValue,
     proposedValue: roll.proposedValue,
     proposedAttributes: roll.proposedAttributes,
+    proposedAsset: payload?.assetUri
+      ? {
+          cid: traitAssetCid(),
+          uri: payload.assetUri,
+        }
+      : undefined,
+    supplyDeltas: payload ? supplyDeltasForPayload(payload) : undefined,
     rollId: roll.rollId,
     previewId: roll.previewId,
+    operationStatus: roll.status,
     rollCharged: rollChargeConfirmed(roll, roll.action as S2TraitLabAction),
+    energySettlementMode: roll.action === "recycle"
+      ? "none"
+      : roll.energySettlementMode || (roll.energySpendTxHash ? "energy-bank" : "server-ledger"),
     energyDebitSkipped: roll.action === "recycle",
     energyDebitDeduped: Boolean(roll.energyDebitDeduped),
     paymentTxHash: roll.energySpendTxHash || "",
@@ -2310,7 +2293,7 @@ function traitLabRollCanBeCurrent(roll: TraitLabRollRecord) {
   if (TERMINAL_TRAIT_LAB_ROLL_STATUSES.has(roll.status)) return false;
   return roll.action === "recycle"
     ? Boolean(roll.chargedAt)
-    : Boolean(roll.chargedAt || roll.energySpendTxHash);
+    : Boolean(roll.chargedAt || roll.energyDebitId || roll.energySpendTxHash);
 }
 
 async function initializeTraitLabActiveRoll(tokenId: string) {
@@ -2353,6 +2336,7 @@ async function activateTraitLabRoll(roll: TraitLabRollRecord) {
         status: 409,
         operationId: currentRoll.rollId,
         recoveryRequired: true,
+        recoveryPreview: recoveryPreviewFromRoll(currentRoll),
       });
     }
   }
@@ -2476,6 +2460,32 @@ async function ensureTraitLabRollCharged(roll: TraitLabRollRecord, payload: Prev
     return roll;
   }
 
+  if (roll.energySettlementMode === "server-ledger") {
+    const debit = await getTraitLabEnergyDebit(payload.wallet, payload.rollId);
+    const validDebit = debit?.status === "charged"
+      && debit.id === roll.energyDebitId
+      && debit.wallet === payload.wallet
+      && debit.rollId === payload.rollId
+      && debit.tokenId === String(payload.tokenId)
+      && debit.action === payload.action
+      && debit.amountRaw === payload.costRaw;
+    if (!validDebit) {
+      throw Object.assign(new Error("This roll has no valid server-settled Energy debit."), {
+        status: 402,
+        operationId: payload.rollId,
+      });
+    }
+    if (roll.chargedAt) return roll;
+    return await saveTraitLabRoll({
+      ...roll,
+      status: roll.status === "charging" || roll.status === "prepared" || roll.status === "failed"
+        ? "charged"
+        : roll.status,
+      chargedAt: new Date().toISOString(),
+      recoveryRequired: roll.status === "recovery_required" ? true : roll.recoveryRequired,
+    });
+  }
+
   const txHash = String(roll.energySpendTxHash || "").trim().toLowerCase();
   if (!/^0x[a-f0-9]{64}$/.test(txHash)) {
     throw Object.assign(new Error("This roll has no verifiable Energy spend transaction."), {
@@ -2577,16 +2587,34 @@ export async function createTraitLabPreview(input: Record<string, unknown>) {
   const action = parseAction(input.action);
   const paymentMode = action === "recycle" ? "energy" : parsePaymentMode(input.paymentMode);
   const { rollId } = verifyPreviewAuthorization(input, wallet, tokenId, traitType, action);
-  if (activePreviewAuthorizations.has(rollId) || await getTraitLabRoll(rollId)) {
+  const existingAuthorizedRoll = await getTraitLabRoll(rollId);
+  if (existingAuthorizedRoll) {
+    const recoverable = existingAuthorizedRoll.wallet === wallet
+      && existingAuthorizedRoll.tokenId === String(tokenId)
+      && existingAuthorizedRoll.traitType === traitType
+      && existingAuthorizedRoll.action === action
+      && traitLabRollCanBeCurrent(existingAuthorizedRoll);
+    if (recoverable) {
+      throw Object.assign(new Error("This signed roll already created a result. Restore the current result instead of paying again."), {
+        status: 409,
+        operationId: existingAuthorizedRoll.rollId,
+        recoveryRequired: true,
+        recoveryPreview: recoveryPreviewFromRoll(existingAuthorizedRoll),
+      });
+    }
     throw Object.assign(new Error("This Trait Lab roll authorization was already used. Sign a fresh roll request."), { status: 409 });
+  }
+  if (activePreviewAuthorizations.has(rollId)) {
+    throw Object.assign(new Error("This Trait Lab roll is already being prepared. Wait a moment and try once more."), {
+      status: 409,
+      operationId: rollId,
+    });
   }
   activePreviewAuthorizations.add(rollId);
   let failureStage: TraitLabRollRecord["failureStage"] = "preview";
-  const energySpendSubmission: { current: TraitLabEnergySpendSubmission | null } = { current: null };
-  let energySpend: Awaited<ReturnType<typeof spendTraitLabEnergy>> | null = null;
+  let energyDebitClaimed = false;
   const previewClaimId = crypto.randomUUID();
   let previewClaimOwned = false;
-  let activationAttempted = false;
 
   try {
     await verifyS2TokenOwner(tokenId, wallet, config.maxSupply);
@@ -2717,6 +2745,7 @@ export async function createTraitLabPreview(input: Record<string, unknown>) {
     createdAt,
     preparedAt: createdAt,
     expiresAt: new Date(payload.expiresAt).toISOString(),
+    energySettlementMode: action !== "recycle" ? "server-ledger" : undefined,
     energyDebitId: action !== "recycle" ? energyDebitId : undefined,
   };
   if (await getTraitLabRoll(rollId)) {
@@ -2757,23 +2786,11 @@ export async function createTraitLabPreview(input: Record<string, unknown>) {
       status: "charging",
       chargingAt: new Date().toISOString(),
     });
-    energySpend = await spendTraitLabEnergy(
-      payload,
-      async (submission) => {
-        energySpendSubmission.current = submission;
-        await saveTraitLabRoll({
-          ...baseRoll,
-          status: "charging",
-          chargingAt: new Date().toISOString(),
-          energySpendReason: submission.reason,
-          energySpendSubmittedAt: submission.submittedAt,
-          energySpendTxHash: submission.txHash,
-        });
-      },
-      async () => assertSupplyDeltasAvailable(supplyDeltas, replacedRollId),
-      reserveSupply,
-    );
-    energyDebitDeduped = Boolean(energySpend.deduped);
+    await assertSupplyDeltasAvailable(supplyDeltas, replacedRollId);
+    await reserveSupply();
+    const energyDebit = await debitTraitLabEnergy(payload);
+    energyDebitClaimed = true;
+    energyDebitDeduped = Boolean(energyDebit.deduped);
   }
 
   await reserveSupply();
@@ -2783,12 +2800,7 @@ export async function createTraitLabPreview(input: Record<string, unknown>) {
     status: "charged",
     chargedAt: new Date().toISOString(),
     energyDebitDeduped,
-    energySpendReason: energySpend?.reason,
-    energySpendSubmittedAt: energySpend?.submittedAt,
-    energySpendTxHash: energySpend?.txHash,
-    energySpendBlockNumber: energySpend?.blockNumber,
   });
-  activationAttempted = true;
   await activateTraitLabRoll(chargedRoll);
 
     return {
@@ -2818,17 +2830,19 @@ export async function createTraitLabPreview(input: Record<string, unknown>) {
       weight: candidate.option.weight || 0,
     },
     rollId,
+    operationStatus: "charged",
     rollCharged: true,
+    energySettlementMode: action === "recycle" ? "none" : "server-ledger",
     energyDebitSkipped: action === "recycle",
     energyDebitDeduped,
-    paymentTxHash: energySpend?.txHash || "",
+    paymentTxHash: "",
     paymentBurnTxHash: "",
     paymentToken: "",
     paymentTokenSymbol: "",
     paymentTreasuryAmountRaw: "",
     paymentBurnAmountRaw: "",
-    paymentAmountRaw: energySpend ? costRaw : "",
-    paymentBlockNumber: energySpend?.blockNumber || "",
+    paymentAmountRaw: action === "recycle" ? "" : costRaw,
+    paymentBlockNumber: "",
     supplyDeltas,
     previewId,
     expiresAt: new Date(payload.expiresAt).toISOString(),
@@ -2849,8 +2863,16 @@ export async function createTraitLabPreview(input: Record<string, unknown>) {
     };
   } catch (error) {
     const existing = await getTraitLabRoll(rollId).catch(() => null);
-    const submittedTxHash = energySpendSubmission.current?.txHash || existing?.energySpendTxHash;
-    const chargeMayHaveOccurred = Boolean(existing?.chargedAt || submittedTxHash);
+    const persistedServerDebit = existing?.energySettlementMode === "server-ledger"
+      ? await getTraitLabEnergyDebit(wallet, rollId).catch(() => null)
+      : null;
+    const serverDebitCharged = persistedServerDebit?.status === "charged";
+    const chargeMayHaveOccurred = Boolean(
+      energyDebitClaimed
+      || serverDebitCharged
+      || existing?.chargedAt
+      || existing?.energySpendTxHash,
+    );
     const canRecover = Boolean(
       chargeMayHaveOccurred
       && existing
@@ -2870,20 +2892,30 @@ export async function createTraitLabPreview(input: Record<string, unknown>) {
         failureStage,
         lastError: error instanceof Error ? error.message : "Trait Lab preview failed.",
         recoveryRequired: chargeMayHaveOccurred,
-        energySpendReason: energySpendSubmission.current?.reason || existing.energySpendReason,
-        energySpendSubmittedAt: energySpendSubmission.current?.submittedAt || existing.energySpendSubmittedAt,
-        energySpendTxHash: submittedTxHash,
       }).catch(() => undefined);
-      if (canRecover && recoveryRoll && !activationAttempted) {
-        activationAttempted = true;
+      if (canRecover && recoveryRoll) {
         await activateTraitLabRoll(recoveryRoll).catch(() => undefined);
       }
     }
+    if ((energyDebitClaimed || serverDebitCharged) && (!canRecover || existing?.status === "superseded")) {
+      await voidTraitLabEnergyDebit(wallet, rollId, "The roll could not become the holder's current result.").catch(() => undefined);
+      await deleteTraitSupplyReservation(rollId).catch(() => undefined);
+    } else if (!chargeMayHaveOccurred) {
+      await deleteTraitSupplyReservation(rollId).catch(() => undefined);
+    }
     const failure = error instanceof Error ? error : new Error("Trait Lab preview failed.");
+    const upstream = error as {
+      operationId?: string;
+      recoveryRequired?: boolean;
+      recoveryPreview?: ReturnType<typeof recoveryPreviewFromRoll>;
+    };
+    const upstreamRecovery = Boolean(upstream?.recoveryRequired && upstream?.operationId);
     Object.assign(failure, {
-      operationId: rollId,
-      recoveryRequired: canRecover,
-      recoveryPreview: canRecover && existing
+      operationId: upstreamRecovery ? upstream.operationId : rollId,
+      recoveryRequired: upstreamRecovery || canRecover,
+      recoveryPreview: upstreamRecovery
+        ? upstream.recoveryPreview
+        : canRecover && existing
         ? recoveryPreviewFromRoll(existing)
         : undefined,
     });
@@ -3067,10 +3099,11 @@ export async function confirmTraitLabPreview(input: Record<string, unknown>) {
       rewardLabel: payload.rewardLabel,
       rollId: payload.rollId,
       rollCharged: true,
+      energySettlementMode: paidRoll.energySettlementMode || (paidRoll.energySpendTxHash ? "energy-bank" : "server-ledger"),
       debitDeduped: Boolean(paidRoll.energyDebitDeduped),
       energyDebitSkipped: payload.action === "recycle",
       paymentTxHash: recycleCredit?.txHash || paidRoll.energySpendTxHash || paidRoll.recycleCreditTxHash || "",
-      paymentAmountRaw: recycleCredit ? payload.rewardRaw || "" : paidRoll.energySpendTxHash ? payload.costRaw : "",
+      paymentAmountRaw: recycleCredit ? payload.rewardRaw || "" : payload.action === "recycle" ? "" : payload.costRaw,
       paymentBlockNumber: recycleCredit?.blockNumber || paidRoll.energySpendBlockNumber || paidRoll.recycleCreditBlockNumber || "",
       recycleCreditDeduped: recycleCredit?.deduped || false,
       supplyDeltas,
@@ -3178,6 +3211,7 @@ export async function confirmTraitLabPreview(input: Record<string, unknown>) {
     rewardLabel: payload.rewardLabel,
     rollId: payload.rollId,
     rollCharged: true,
+    energySettlementMode: paidRoll.energySettlementMode || (paidRoll.energySpendTxHash ? "energy-bank" : "server-ledger"),
     debitDeduped: Boolean(paidRoll.energyDebitDeduped),
     energyDebitSkipped: payload.action === "recycle",
     paymentTxHash: recycleCredit?.txHash || paidRoll.energySpendTxHash || "",
@@ -3186,7 +3220,7 @@ export async function confirmTraitLabPreview(input: Record<string, unknown>) {
     paymentTokenSymbol: "",
     paymentTreasuryAmountRaw: "",
     paymentBurnAmountRaw: "",
-    paymentAmountRaw: recycleCredit ? payload.rewardRaw || "" : paidRoll.energySpendTxHash ? payload.costRaw : "",
+    paymentAmountRaw: recycleCredit ? payload.rewardRaw || "" : payload.action === "recycle" ? "" : payload.costRaw,
     paymentBlockNumber: recycleCredit?.blockNumber || paidRoll.energySpendBlockNumber || "",
     recycleCreditDeduped: recycleCredit?.deduped || false,
     supplyDeltas,
@@ -3330,6 +3364,45 @@ export function zeroAddress() {
   return ZERO_ADDRESS;
 }
 
+export async function getActiveTraitLabOperationStatus(tokenIdInput: unknown, walletInput: unknown) {
+  const wallet = normalizeWallet(walletInput);
+  if (!wallet) {
+    throw Object.assign(new Error("A valid wallet is required."), { status: 400 });
+  }
+  const config = await getRuntimeMetadataConfig();
+  const tokenId = parseInputTokenId(tokenIdInput, config.maxSupply);
+  await verifyS2TokenOwner(tokenId, wallet, config.maxSupply);
+
+  const active = await initializeTraitLabActiveRoll(String(tokenId));
+  if (!active.activeRollId) {
+    return { ok: true, active: false, tokenId: String(tokenId) };
+  }
+  const roll = await getTraitLabRoll(active.activeRollId);
+  if (!roll || TERMINAL_TRAIT_LAB_ROLL_STATUSES.has(roll.status)) {
+    await saveTraitLabActiveRoll({
+      version: 1,
+      tokenId: String(tokenId),
+      activeRollId: "",
+      activeWallet: "",
+      updatedAt: new Date().toISOString(),
+      lastRollId: active.activeRollId,
+      lastDisposition: roll?.status === "superseded" ? "superseded" : roll?.status === "forfeited" ? "forfeited" : "completed",
+    });
+    return { ok: true, active: false, tokenId: String(tokenId) };
+  }
+  if (roll.wallet !== wallet) {
+    await supersedeTraitLabRoll(roll, "ownership-transfer");
+    await closeTraitLabActiveRoll(roll, "superseded");
+    return { ok: true, active: false, tokenId: String(tokenId) };
+  }
+
+  const status = await getTraitLabOperationStatus(roll.rollId, wallet);
+  return {
+    ...status,
+    active: Boolean(status.operation.isCurrent && status.retryPreview),
+  };
+}
+
 export async function getTraitLabOperationStatus(rollIdInput: unknown, walletInput?: unknown) {
   const rollId = String(rollIdInput || "").trim();
   if (!/^0x[a-fA-F0-9]{64}$/.test(rollId)) {
@@ -3373,7 +3446,7 @@ export async function getTraitLabOperationStatus(rollIdInput: unknown, walletInp
     !completion
     && isCurrent
     && !TERMINAL_TRAIT_LAB_ROLL_STATUSES.has(roll.status)
-    && roll.energySpendTxHash
+    && (roll.energySpendTxHash || (roll.energySettlementMode === "server-ledger" && roll.energyDebitId))
     && !rollChargeConfirmed(roll, roll.action as S2TraitLabAction)
   ) {
     try {
@@ -3383,7 +3456,10 @@ export async function getTraitLabOperationStatus(rollIdInput: unknown, walletInp
     }
   }
   const charged = rollChargeConfirmed(roll, roll.action as S2TraitLabAction);
-  const chargeSubmitted = Boolean(roll.energySpendTxHash);
+  const chargeSubmitted = Boolean(
+    roll.energySpendTxHash
+    || (roll.energySettlementMode === "server-ledger" && roll.energyDebitId),
+  );
   const canRetryConfirmation = Boolean(
     !completion
     && isCurrent
@@ -3411,6 +3487,9 @@ export async function getTraitLabOperationStatus(rollIdInput: unknown, walletInp
       expiresAt: roll.expiresAt,
       paymentTxHash: roll.energySpendTxHash || roll.recycleCreditTxHash || "",
       paymentBlockNumber: roll.energySpendBlockNumber || roll.recycleCreditBlockNumber || "",
+      energySettlementMode: roll.action === "recycle"
+        ? "none"
+        : roll.energySettlementMode || (roll.energySpendTxHash ? "energy-bank" : "server-ledger"),
       chargeStatus: completion || charged ? "confirmed" : chargeSubmitted ? "pending_or_unverified" : "not_charged",
       isCurrent,
       recoveryRequired: !completion && isCurrent && Boolean(roll.recoveryRequired || charged || chargeSubmitted),

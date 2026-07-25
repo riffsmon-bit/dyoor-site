@@ -97,10 +97,15 @@ Trait Lab uses spendable Energy.
 - Harvested Energy is Energy emitted by Ascension harvest events. After a
   confirmed harvest, the site verifies the transaction and credits the on-chain
   Energy Bank automatically.
-- Energy Balance is the live spendable Energy Bank balance Trait Lab can debit.
-- Spent Energy is the cumulative Energy already spent through Energy Bank debits.
+- Energy Balance starts from the live Energy Bank balance and subtracts
+  append-only Trait Lab debits settled by the server.
+- Reroll, Reroll All, and Unlock require a gasless wallet signature but do not
+  submit an Energy transaction or wait for an operator nonce/receipt.
+- Spent Energy combines historical on-chain Energy Bank spending with the new
+  server-settled Trait Lab debits.
 - Recycle rewards and Droid burn rewards credit Energy back to the wallet.
-- Lend to a fren transfers spendable Energy from one wallet to another through a server-verified spend and credit flow.
+- Lend to a fren subtracts server-settled Trait Lab debits before authorizing an
+  on-chain wallet-to-wallet Energy transfer.
 
 If a wallet has old harvested Energy but cannot reroll, that harvested amount
 still needs to be represented in the spendable Energy Bank balance. The

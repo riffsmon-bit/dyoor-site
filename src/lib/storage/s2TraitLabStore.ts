@@ -1,4 +1,5 @@
 import { createJsonStore } from "./fileStore";
+import { admittedServerEnergyDebitIds } from "@/lib/trait-lab-energy-accounting";
 
 const STORE_NAME = "dyoor-s2-metadata";
 const SUPPLY_LEDGER_KEY = "trait-lab/supply-ledger.json";
@@ -11,7 +12,9 @@ const SUPPLY_RESERVATION_PREFIX = "trait-lab/supply-reservations";
 const BURNED_DROID_RECORD_PREFIX = "trait-lab/burned-droid-records";
 const MON_PAYMENT_PREFIX = "trait-lab/mon-payments";
 const MEME_PAYMENT_PREFIX = "trait-lab/meme-payments";
+const ENERGY_DEBIT_PREFIX = "trait-lab/energy-debits-v2";
 const LEGACY_SUPPLY_RESERVATION_TTL_MS = 15 * 60 * 1000;
+const ENERGY_DEBIT_CLAIM_SETTLE_MS = 75;
 
 const store = createJsonStore(STORE_NAME);
 
@@ -68,6 +71,7 @@ export type TraitLabRollRecord = {
   failureStage?: "preview" | "charge" | "confirm" | "metadata" | "supply" | "reward" | "completion";
   lastError?: string;
   recoveryRequired?: boolean;
+  energySettlementMode?: "server-ledger" | "energy-bank";
   energyDebitId?: string;
   energyDebitDeduped?: boolean;
   energySpendReason?: string;
@@ -86,6 +90,28 @@ export type TraitLabRollRecord = {
   memePaymentBurnTxHash?: string;
   memePaymentTreasuryBlockNumber?: string;
   memePaymentBurnBlockNumber?: string;
+};
+
+export type TraitLabEnergyDebitRecord = {
+  version: 1;
+  id: string;
+  rollId: string;
+  wallet: string;
+  tokenId: string;
+  action: string;
+  amountRaw: string;
+  status: "pending" | "charged" | "voided";
+  createdAt: string;
+  updatedAt: string;
+  voidedAt?: string;
+  voidReason?: string;
+};
+
+export type TraitLabEnergyDebitSummary = {
+  wallet: string;
+  debitRaw: string;
+  debitCount: number;
+  updatedAt: string;
 };
 
 export type TraitLabActiveRollRecord = {
@@ -259,6 +285,40 @@ function memePaymentKey(txHash: string) {
   return `${MEME_PAYMENT_PREFIX}/${txHash.toLowerCase().replace(/[^a-z0-9]/g, "-")}.json`;
 }
 
+function energyDebitWallet(value: string) {
+  const wallet = String(value || "").trim().toLowerCase();
+  if (!/^0x[a-f0-9]{40}$/.test(wallet)) {
+    throw Object.assign(new Error("Invalid Trait Lab Energy wallet."), { status: 400 });
+  }
+  return wallet;
+}
+
+function energyDebitId(value: string) {
+  const id = String(value || "").trim().toLowerCase();
+  if (!/^0x[a-f0-9]{64}$/.test(id)) {
+    throw Object.assign(new Error("Invalid Trait Lab Energy operation ID."), { status: 400 });
+  }
+  return id;
+}
+
+function energyDebitKey(walletInput: string, rollIdInput: string) {
+  const wallet = energyDebitWallet(walletInput);
+  const rollId = energyDebitId(rollIdInput);
+  return `${ENERGY_DEBIT_PREFIX}/${wallet}/${rollId}.json`;
+}
+
+function energyDebitWalletPrefix(walletInput: string) {
+  return `${ENERGY_DEBIT_PREFIX}/${energyDebitWallet(walletInput)}/`;
+}
+
+function positiveRawEnergy(value: string) {
+  try {
+    const amount = BigInt(String(value || "0"));
+    if (amount > 0n) return amount;
+  } catch {}
+  throw Object.assign(new Error("Trait Lab Energy amount must be greater than zero."), { status: 400 });
+}
+
 function emptyLedger(): TraitSupplyLedger {
   return {
     version: 1,
@@ -361,6 +421,146 @@ export async function listTraitLabCompletions() {
   return records
     .filter((record): record is TraitLabCompletionRecord => Boolean(record?.rollId && record?.completedAt))
     .sort((left, right) => right.completedAt.localeCompare(left.completedAt));
+}
+
+export async function getTraitLabEnergyDebit(walletInput: string, rollIdInput: string) {
+  return await store.getJsonStrict<TraitLabEnergyDebitRecord>(energyDebitKey(walletInput, rollIdInput));
+}
+
+export async function listTraitLabEnergyDebits(walletInput: string) {
+  const wallet = energyDebitWallet(walletInput);
+  const keys = await store.listKeys(energyDebitWalletPrefix(wallet));
+  const records = await Promise.all(keys.map((key) => store.getJsonStrict<TraitLabEnergyDebitRecord>(key)));
+  return records
+    .filter((record): record is TraitLabEnergyDebitRecord => Boolean(
+      record
+      && record.wallet === wallet
+      && record.rollId
+      && record.amountRaw
+      && (record.status === "pending" || record.status === "charged" || record.status === "voided"),
+    ))
+    .sort((left, right) => left.createdAt.localeCompare(right.createdAt) || left.id.localeCompare(right.id));
+}
+
+export async function getTraitLabEnergyDebitSummary(walletInput: string): Promise<TraitLabEnergyDebitSummary> {
+  const wallet = energyDebitWallet(walletInput);
+  const charged = (await listTraitLabEnergyDebits(wallet)).filter((record) => record.status === "charged");
+  let debitRaw = 0n;
+  let updatedAt = "";
+  for (const record of charged) {
+    debitRaw += positiveRawEnergy(record.amountRaw);
+    if (record.updatedAt > updatedAt) updatedAt = record.updatedAt;
+  }
+  return {
+    wallet,
+    debitRaw: debitRaw.toString(),
+    debitCount: charged.length,
+    updatedAt,
+  };
+}
+
+export async function claimTraitLabEnergyDebit(input: {
+  rollId: string;
+  wallet: string;
+  tokenId: string;
+  action: string;
+  amountRaw: string;
+  availableRaw: string;
+}) {
+  const wallet = energyDebitWallet(input.wallet);
+  const rollId = energyDebitId(input.rollId);
+  const amount = positiveRawEnergy(input.amountRaw);
+  const available = BigInt(String(input.availableRaw || "0"));
+  const id = `trait-lab-roll:${rollId}`;
+  const existing = await getTraitLabEnergyDebit(wallet, rollId);
+  if (existing) {
+    const matches = existing.id === id
+      && existing.wallet === wallet
+      && existing.rollId === rollId
+      && existing.tokenId === String(input.tokenId)
+      && existing.action === String(input.action)
+      && existing.amountRaw === amount.toString();
+    if (!matches) {
+      throw Object.assign(new Error("Trait Lab Energy operation conflicts with an existing debit."), { status: 409 });
+    }
+    if (existing.status === "voided") {
+      throw Object.assign(new Error("This Trait Lab Energy authorization was already closed. Sign a fresh roll request."), { status: 409 });
+    }
+    if (existing.status === "charged") return { debit: existing, deduped: true };
+  }
+
+  let debit = existing;
+  if (!debit) {
+    const current = await getTraitLabEnergyDebitSummary(wallet);
+    if (BigInt(current.debitRaw) + amount > available) {
+      throw Object.assign(new Error("Insufficient spendable Energy."), { status: 400 });
+    }
+
+    const createdAt = nowIso();
+    debit = {
+      version: 1,
+      id,
+      rollId,
+      wallet,
+      tokenId: String(input.tokenId),
+      action: String(input.action),
+      amountRaw: amount.toString(),
+      status: "pending",
+      createdAt,
+      updatedAt: createdAt,
+    };
+    await store.setJson(energyDebitKey(wallet, rollId), debit);
+  }
+
+  // Each debit has its own Blob key, so concurrent requests cannot overwrite
+  // one another. Re-read the strongly consistent prefix, preserve every debit
+  // that was already charged, and deterministically admit pending operations
+  // only while they fit within the live Energy Bank baseline.
+  await new Promise((resolve) => setTimeout(resolve, ENERGY_DEBIT_CLAIM_SETTLE_MS));
+  const unsettled = (await listTraitLabEnergyDebits(wallet)).filter((record) => record.status !== "voided");
+  const admission = admittedServerEnergyDebitIds(unsettled, available.toString());
+  if (!admission.admitted.has(id)) {
+    const voidedAt = nowIso();
+    const voided = {
+      ...debit,
+      status: "voided" as const,
+      updatedAt: voidedAt,
+      voidedAt,
+      voidReason: "Insufficient spendable Energy after concurrent debit settlement.",
+    };
+    await store.setJson(energyDebitKey(wallet, rollId), voided);
+    throw Object.assign(new Error("Insufficient spendable Energy."), { status: 400 });
+  }
+
+  const chargedAt = nowIso();
+  const charged: TraitLabEnergyDebitRecord = {
+    ...debit,
+    status: "charged",
+    updatedAt: chargedAt,
+  };
+  await store.setJson(energyDebitKey(wallet, rollId), charged);
+  return { debit: charged, deduped: Boolean(existing) };
+}
+
+export async function voidTraitLabEnergyDebit(
+  walletInput: string,
+  rollIdInput: string,
+  reason: string,
+) {
+  const wallet = energyDebitWallet(walletInput);
+  const rollId = energyDebitId(rollIdInput);
+  const existing = await getTraitLabEnergyDebit(wallet, rollId);
+  if (!existing || existing.status === "voided") return existing;
+  const voidedAt = nowIso();
+  const next: TraitLabEnergyDebitRecord = {
+    ...existing,
+    status: "voided",
+    updatedAt: voidedAt,
+    voidedAt,
+    voidReason: String(reason || "Trait Lab operation closed before a result was returned."),
+  };
+  await store.setJson(energyDebitKey(wallet, rollId), next);
+  return next;
 }
 
 export async function claimTraitLabMonPayment(payment: TraitLabMonPaymentRecord) {
