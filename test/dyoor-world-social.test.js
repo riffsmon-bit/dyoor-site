@@ -43,6 +43,15 @@ test("chat rewards require meaningful content instead of message spam", () => {
 });
 
 test("World media accepts direct HTTPS images and GIFs while blocking unsafe URLs", () => {
+  const hostedImage = [
+    "/api/dyoor-world/media",
+    "0x349d8eb480c92cf75371fba5c6344a4d11b9103a",
+    "00m123abcd-123e4567-e89b-42d3-a456-426614174000",
+  ].join("/");
+  assert.deepEqual(normalizeDyoorWorldMediaUrl(hostedImage), {
+    kind: "image",
+    url: hostedImage,
+  });
   assert.deepEqual(normalizeDyoorWorldMediaUrl("https://cdn.example.com/droid.png?size=large"), {
     kind: "image",
     url: "https://cdn.example.com/droid.png?size=large",
@@ -60,6 +69,12 @@ test("World media accepts direct HTTPS images and GIFs while blocking unsafe URL
   assert.equal(normalizeDyoorWorldMediaUrl("https://192.168.1.4/droid.png"), null);
   assert.equal(normalizeDyoorWorldMediaUrl("https://[::1]/droid.png"), null);
   assert.equal(normalizeDyoorWorldMediaUrl("https://cdn.example.com/vector.svg"), null);
+  assert.equal(
+    normalizeDyoorWorldMediaUrl(
+      "/api/dyoor-world/media/0x349d8eb480c92cf75371fba5c6344a4d11b9103a/not-a-media-id",
+    ),
+    null,
+  );
 });
 
 test("World stickers are curated and unknown sticker payloads are rejected", () => {
@@ -98,6 +113,9 @@ test("verified streams are bot-only while the trade desk remains conversational"
 
 test("World social APIs remain holder-gated and financial relays verify chain receipts", () => {
   for (const file of [
+    "app/api/dyoor-world/media/[wallet]/[mediaId]/route.ts",
+    "app/api/dyoor-world/media/tenor/route.ts",
+    "app/api/dyoor-world/media/upload/route.ts",
     "app/api/dyoor-world/profile/route.ts",
     "app/api/dyoor-world/rewards/route.ts",
     "app/api/dyoor-world/tips/route.ts",
@@ -129,4 +147,56 @@ test("World social APIs remain holder-gated and financial relays verify chain re
   assert.doesNotMatch(client, /DYOOR_WORLD_REWARD_SECRET/);
   assert.doesNotMatch(client, /ENERGY_BANK_OPERATOR_PRIVATE_KEY/);
   assert.match(client, /Wallet-to-wallet on Monad/);
+});
+
+test("World media search and uploads keep provider keys server-side and sanitize files", () => {
+  const client = fs.readFileSync(
+    "components/dyoor-world/DyoorWorldMediaComposer.tsx",
+    "utf8",
+  );
+  const tenor = fs.readFileSync(
+    "app/api/dyoor-world/media/tenor/route.ts",
+    "utf8",
+  );
+  const upload = fs.readFileSync(
+    "app/api/dyoor-world/media/upload/route.ts",
+    "utf8",
+  );
+  const store = fs.readFileSync("lib/dyoor-world-media-store.ts", "utf8");
+  const envTemplate = fs.readFileSync(
+    "netlify-dyoor-world-social.env.example",
+    "utf8",
+  );
+
+  assert.match(client, /Search Tenor/);
+  assert.match(client, /Powered by Tenor/);
+  assert.doesNotMatch(client, /TENOR_API_KEY|GOOGLE_TENOR_API_KEY/);
+  assert.match(tenor, /https:\/\/tenor\.googleapis\.com\/v2/);
+  assert.match(tenor, /contentfilter: "high"/);
+  assert.match(tenor, /"registershare"/);
+  assert.match(upload, /file\.size > 5 \* 1024 \* 1024/);
+  assert.match(upload, /saveDyoorWorldImage/);
+  assert.match(store, /limitInputPixels: MAX_INPUT_PIXELS/);
+  assert.match(store, /\.webp\(\{ quality: 82/);
+  assert.match(store, /MAX_UPLOADS_PER_WALLET = 40/);
+  assert.match(envTemplate, /TENOR_API_KEY=CHANGE_ME/);
+});
+
+test("World mobile threads and atomic trade desk stay streamlined", () => {
+  const client = fs.readFileSync("components/dyoor-world/DyoorWorldClient.tsx", "utf8");
+  const tradesRoute = fs.readFileSync("app/api/dyoor-world/trades/route.ts", "utf8");
+  const server = fs.readFileSync("lib/dyoor-world-server.ts", "utf8");
+
+  assert.match(client, /id="world-mobile-threads"/);
+  assert.match(client, /fixed inset-0 z-\[80\] lg:hidden/);
+  assert.match(client, /hidden border-r .* lg:block/);
+  assert.match(client, /function OwnedDroidPicker/);
+  assert.match(client, /Choose the Droid you send/);
+  assert.match(client, /Accept atomic swap/);
+  assert.match(client, /BigInt\(trade\.monRequestedWei \|\| "0"\)/);
+  assert.doesNotMatch(client, /tradeAcceptMon|tradeAcceptToken/);
+  assert.match(tradesRoute, /getDyoorWorldTrade\(tradeId\)/);
+  assert.match(server, /export async function getDyoorWorldTrade/);
+  assert.match(server, /monRequestedWei: BigInt\(trade\.monRequested\)\.toString\(\)/);
+  assert.match(server, /expired: expiresAt <= Math\.floor\(Date\.now\(\) \/ 1_000\)/);
 });

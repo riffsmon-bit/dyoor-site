@@ -58,6 +58,11 @@ const EXTENSIONLESS_MEDIA_HOSTS = new Set([
   "media.tenor.com",
 ]);
 
+const WORLD_MEDIA_ID_SOURCE = "[a-z0-9]{10}-[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}";
+const HOSTED_WORLD_MEDIA_PATH = new RegExp(
+  `^/api/dyoor-world/media/0x[a-f0-9]{40}/${WORLD_MEDIA_ID_SOURCE}$`,
+);
+
 function isBlockedMediaHostname(hostnameValue: string) {
   const hostname = hostnameValue.toLowerCase().replace(/^\[|\]$/g, "");
   if (
@@ -98,6 +103,12 @@ export function normalizeDyoorWorldMediaUrl(
 ): DyoorWorldMediaAttachment | null {
   const raw = String(value || "").trim();
   if (!raw || raw.length > 1_200) return null;
+  if (HOSTED_WORLD_MEDIA_PATH.test(raw)) {
+    return {
+      kind: "image",
+      url: raw,
+    };
+  }
 
   try {
     const url = new URL(raw);

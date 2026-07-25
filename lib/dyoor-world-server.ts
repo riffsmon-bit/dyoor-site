@@ -1649,6 +1649,40 @@ async function validatedTradeContract() {
   return contract;
 }
 
+export async function getDyoorWorldTrade(tradeIdValue: unknown) {
+  const tradeId = String(tradeIdValue || "").trim();
+  if (!/^\d+$/.test(tradeId) || BigInt(tradeId) < 1n) {
+    throw dyoorWorldError("Enter a valid World trade ID.", 400);
+  }
+  const contract = await validatedTradeContract();
+  const trade = await contract.trades(tradeId);
+  const maker = normalizeWorldWallet(trade.maker);
+  const status = Number(trade.status);
+  if (!maker || maker === ZERO_ADDRESS || status === 0) {
+    throw dyoorWorldError(`World trade #${tradeId} does not exist.`, 404);
+  }
+  const taker = normalizeWorldWallet(trade.taker);
+  const expiresAt = Number(trade.expiresAt);
+  const statusLabel = ["none", "active", "completed", "cancelled", "expired"][status]
+    || "unknown";
+  return {
+    tradeId,
+    maker,
+    taker,
+    openOffer: taker === ZERO_ADDRESS,
+    offeredTokenId: BigInt(trade.offeredTokenId).toString(),
+    requestedTokenId: BigInt(trade.requestedTokenId).toString(),
+    monOfferedWei: BigInt(trade.monOffered).toString(),
+    monOffered: ethers.formatEther(trade.monOffered),
+    monRequestedWei: BigInt(trade.monRequested).toString(),
+    monRequested: ethers.formatEther(trade.monRequested),
+    expiresAt,
+    expired: expiresAt <= Math.floor(Date.now() / 1_000),
+    status,
+    statusLabel,
+  };
+}
+
 export async function verifyDyoorWorldTradeTransaction(input: {
   wallet: unknown;
   txHash: unknown;

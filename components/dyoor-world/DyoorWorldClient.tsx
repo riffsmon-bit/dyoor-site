@@ -19,14 +19,14 @@ import {
   shortWorldWallet,
 } from "@/lib/dyoor-world";
 import {
-  DYOOR_WORLD_STICKERS,
-  dyoorWorldSticker,
   normalizeDyoorWorldAttachment,
-  normalizeDyoorWorldMediaUrl,
   type DyoorWorldMessageAttachment,
-  type DyoorWorldStickerId,
 } from "@/lib/dyoor-world-media";
 import { DyoorWorldGlyph } from "@/components/dyoor-world/DyoorWorldDiscovery";
+import {
+  DyoorWorldMediaComposer,
+  DyoorWorldStickerCard,
+} from "@/components/dyoor-world/DyoorWorldMediaComposer";
 import { useWalletService } from "@/providers/WalletServiceProvider";
 
 type WorldConfig = {
@@ -81,6 +81,23 @@ type TipTarget = {
   wallet: string;
   author: string;
 } | null;
+
+type WorldTrade = {
+  tradeId: string;
+  maker: string;
+  taker: string;
+  openOffer: boolean;
+  offeredTokenId: string;
+  requestedTokenId: string;
+  monOfferedWei: string;
+  monOffered: string;
+  monRequestedWei: string;
+  monRequested: string;
+  expiresAt: number;
+  expired: boolean;
+  status: number;
+  statusLabel: string;
+};
 
 const WORLD_NAMES_ABI = [{
   type: "function",
@@ -153,6 +170,13 @@ function tokenId(value: string, label: string) {
   return BigInt(normalized);
 }
 
+function validTokenIdText(value: string) {
+  const normalized = value.trim();
+  return /^\d+$/.test(normalized) && BigInt(normalized) > 0n
+    ? normalized
+    : "";
+}
+
 function monAmount(value: string, label: string) {
   const normalized = value.trim() || "0";
   try {
@@ -191,43 +215,123 @@ function shortenedHash(value?: unknown) {
   return hash.length > 14 ? `${hash.slice(0, 8)}…${hash.slice(-5)}` : hash;
 }
 
-function WorldStickerCard({
-  stickerId,
-  compact = false,
+function WorldChannelList({
+  activeChannel,
+  descriptions = false,
+  onSelect,
 }: {
-  stickerId: DyoorWorldStickerId;
-  compact?: boolean;
+  activeChannel: DyoorWorldChannelId;
+  descriptions?: boolean;
+  onSelect: (channelId: DyoorWorldChannelId) => void;
 }) {
-  const sticker = dyoorWorldSticker(stickerId);
-  if (!sticker) return null;
-  const tone = stickerId === "burn-verified"
-    ? "border-orange-300/35 from-orange-400/20 via-rose-500/10 to-black text-orange-100"
-    : stickerId === "charged-up"
-      ? "border-emerald-300/35 from-emerald-300/20 via-dyoor-cyan/10 to-black text-emerald-100"
-      : stickerId === "diamond-droid"
-        ? "border-sky-300/35 from-sky-300/20 via-dyoor-purple/15 to-black text-sky-100"
-        : "border-dyoor-purple/40 from-dyoor-purple/25 via-dyoor-cyan/10 to-black text-white";
   return (
-    <div
-      className={`relative overflow-hidden rounded-lg border bg-gradient-to-br shadow-[0_0_32px_rgba(128,92,255,.15)] ${tone} ${
-        compact ? "min-h-20 p-3" : "min-h-36 w-full max-w-sm p-5"
-      }`}
-    >
-      <div className="absolute -right-7 -top-8 h-24 w-24 rounded-full bg-white/10 blur-2xl" />
-      <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/65 to-transparent" />
-      <div className="relative flex h-full items-center gap-3">
-        <div className={`flex shrink-0 items-center justify-center rounded-full border border-white/25 bg-black/25 shadow-[0_0_25px_rgba(76,255,229,.18)] ${compact ? "h-10 w-10" : "h-16 w-16"}`}>
-          <DyoorWorldGlyph className={compact ? "h-5 w-5" : "h-8 w-8"} />
-        </div>
-        <div className="min-w-0">
-          <p className={`${compact ? "text-[0.5rem]" : "text-[0.6rem]"} font-black uppercase tracking-[0.22em] text-current opacity-55`}>
-            {sticker.signal}
-          </p>
-          <p className={`${compact ? "mt-1 text-sm" : "mt-2 text-2xl"} break-words font-black uppercase leading-none tracking-[-0.02em]`}>
-            {sticker.label}
-          </p>
-        </div>
+    <div className="grid gap-2">
+      {DYOOR_WORLD_CHANNELS.map((channel) => {
+        const active = channel.id === activeChannel;
+        return (
+          <button
+            className={`min-w-0 rounded border px-3 py-3 text-left transition ${
+              active
+                ? "border-dyoor-cyan/55 bg-dyoor-cyan/10 text-dyoor-cyan"
+                : "border-white/[0.07] bg-white/[0.025] text-white/62 hover:border-dyoor-purple/45 hover:text-white"
+            }`}
+            key={channel.id}
+            onClick={() => onSelect(channel.id)}
+            type="button"
+          >
+            <span className="block truncate text-xs font-black"># {channel.label}</span>
+            {descriptions ? (
+              <span className="mt-1 block text-[0.64rem] font-bold leading-4 text-white/35">
+                {channel.description}
+              </span>
+            ) : null}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+function WorldDroidPreview({
+  label,
+  tokenId: tokenIdValue,
+}: {
+  label: string;
+  tokenId: string;
+}) {
+  const normalized = validTokenIdText(tokenIdValue);
+  return (
+    <div className="overflow-hidden rounded border border-white/10 bg-black/30">
+      <div className="aspect-square bg-black/35">
+        {normalized ? (
+          <img
+            alt={`D.Y.O.O.R #${normalized}`}
+            className="h-full w-full object-cover"
+            loading="lazy"
+            src={`/api/dyoor-world/pfp-image/${encodeURIComponent(normalized)}`}
+          />
+        ) : (
+          <div className="grid h-full place-items-center">
+            <DyoorWorldGlyph className="h-8 w-8 text-white/15" />
+          </div>
+        )}
       </div>
+      <div className="border-t border-white/10 p-2">
+        <p className="text-[0.52rem] font-black uppercase tracking-[0.12em] text-white/35">{label}</p>
+        <p className="mt-1 truncate text-xs font-black text-white">
+          {normalized ? `D.Y.O.O.R #${normalized}` : "Choose a Droid"}
+        </p>
+      </div>
+    </div>
+  );
+}
+
+function OwnedDroidPicker({
+  disabled,
+  onSelect,
+  tokenIds,
+  value,
+}: {
+  disabled?: boolean;
+  onSelect: (tokenId: string) => void;
+  tokenIds: string[];
+  value: string;
+}) {
+  if (tokenIds.length === 0) {
+    return (
+      <div className="rounded border border-dashed border-white/10 bg-black/20 p-4 text-center text-xs font-bold text-white/35">
+        No S2 Droids were found in this holder wallet.
+      </div>
+    );
+  }
+  return (
+    <div className="flex gap-2 overflow-x-auto pb-2">
+      {tokenIds.map((id) => (
+        <button
+          aria-pressed={id === value}
+          className={`w-24 shrink-0 overflow-hidden rounded border text-left transition ${
+            id === value
+              ? "border-dyoor-cyan bg-dyoor-cyan/10 ring-2 ring-dyoor-cyan/25"
+              : "border-white/10 bg-black/25 hover:border-dyoor-purple/55"
+          }`}
+          disabled={disabled}
+          key={id}
+          onClick={() => onSelect(id)}
+          type="button"
+        >
+          <span className="block aspect-square bg-black/35">
+            <img
+              alt={`D.Y.O.O.R #${id}`}
+              className="h-full w-full object-cover"
+              loading="lazy"
+              src={`/api/dyoor-world/pfp-image/${encodeURIComponent(id)}`}
+            />
+          </span>
+          <span className="block truncate border-t border-white/10 px-2 py-2 text-[0.58rem] font-black text-white">
+            #{id}
+          </span>
+        </button>
+      ))}
     </div>
   );
 }
@@ -248,9 +352,7 @@ export function DyoorWorldClient({ sessionWallet }: { sessionWallet: string }) {
   const [avatarPreview, setAvatarPreview] = useState("");
   const [label, setLabel] = useState("");
   const [draft, setDraft] = useState("");
-  const [composerMode, setComposerMode] = useState<"" | "media" | "stickers">("");
-  const [mediaDraft, setMediaDraft] = useState("");
-  const [selectedStickerId, setSelectedStickerId] = useState<DyoorWorldStickerId | "">("");
+  const [composerAttachment, setComposerAttachment] = useState<DyoorWorldMessageAttachment | null>(null);
   const [loadingMessages, setLoadingMessages] = useState(true);
   const [sending, setSending] = useState(false);
   const [claiming, setClaiming] = useState(false);
@@ -268,27 +370,16 @@ export function DyoorWorldClient({ sessionWallet }: { sessionWallet: string }) {
   const [tradeMonRequested, setTradeMonRequested] = useState("0");
   const [tradeExpiryHours, setTradeExpiryHours] = useState("24");
   const [tradeId, setTradeId] = useState("");
-  const [tradeAcceptToken, setTradeAcceptToken] = useState("");
-  const [tradeAcceptMon, setTradeAcceptMon] = useState("0");
+  const [loadedTrade, setLoadedTrade] = useState<WorldTrade | null>(null);
   const [notice, setNotice] = useState("");
   const [error, setError] = useState("");
+  const [mobileThreadsOpen, setMobileThreadsOpen] = useState(false);
   const messageEndRef = useRef<HTMLDivElement>(null);
   const selectedChannel = useMemo(
     () => DYOOR_WORLD_CHANNELS.find((channel) => channel.id === channelId)
       || DYOOR_WORLD_CHANNELS[0],
     [channelId],
   );
-  const normalizedMediaAttachment = useMemo(
-    () => normalizeDyoorWorldMediaUrl(mediaDraft),
-    [mediaDraft],
-  );
-  const composerAttachment = useMemo<DyoorWorldMessageAttachment | null>(() => {
-    if (selectedStickerId) {
-      return { kind: "sticker", stickerId: selectedStickerId };
-    }
-    return normalizedMediaAttachment;
-  }, [normalizedMediaAttachment, selectedStickerId]);
-  const invalidMediaDraft = Boolean(mediaDraft.trim() && !normalizedMediaAttachment);
 
   const loadProfile = useCallback(async () => {
     const response = await fetch("/api/dyoor-world/profile", { cache: "no-store" });
@@ -381,6 +472,15 @@ export function DyoorWorldClient({ sessionWallet }: { sessionWallet: string }) {
   useEffect(() => {
     messageEndRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
   }, [messages.length]);
+
+  useEffect(() => {
+    if (!mobileThreadsOpen) return;
+    const closeOnEscape = (event: globalThis.KeyboardEvent) => {
+      if (event.key === "Escape") setMobileThreadsOpen(false);
+    };
+    document.addEventListener("keydown", closeOnEscape);
+    return () => document.removeEventListener("keydown", closeOnEscape);
+  }, [mobileThreadsOpen]);
 
   async function ensureActiveWallet() {
     if (!connectedWallet) throw new Error("Connect the authenticated holder wallet first.");
@@ -485,10 +585,6 @@ export function DyoorWorldClient({ sessionWallet }: { sessionWallet: string }) {
     event.preventDefault();
     const content = draft.trim();
     if (!content && !composerAttachment) return;
-    if (invalidMediaDraft) {
-      setError("Paste a direct HTTPS image or GIF URL from a supported media host.");
-      return;
-    }
     setSending(true);
     setError("");
     try {
@@ -510,9 +606,7 @@ export function DyoorWorldClient({ sessionWallet }: { sessionWallet: string }) {
         }
       }
       setDraft("");
-      setMediaDraft("");
-      setSelectedStickerId("");
-      setComposerMode("");
+      setComposerAttachment(null);
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "Could not send the World message.");
     } finally {
@@ -598,10 +692,39 @@ export function DyoorWorldClient({ sessionWallet }: { sessionWallet: string }) {
     });
     const data = await readResponse<{
       rewards?: Array<{ wallet?: string; amountEnergy?: number }>;
+      messages?: DyoorWorldMessageView[];
     }>(response);
     if (data.rewards?.length) await loadRewards();
     await loadMessages(true);
     return data;
+  }
+
+  async function fetchTradeOffer(idValue: string) {
+    const id = tokenId(idValue, "Trade ID").toString();
+    const response = await fetch(
+      `/api/dyoor-world/trades?id=${encodeURIComponent(id)}`,
+      { cache: "no-store" },
+    );
+    const data = await readResponse<{ trade?: WorldTrade }>(response);
+    if (!data.trade) throw new Error(`World trade #${id} was not found.`);
+    return data.trade;
+  }
+
+  async function loadTradeOffer() {
+    setTradeBusy("load");
+    setError("");
+    try {
+      const trade = await fetchTradeOffer(tradeId);
+      setLoadedTrade(trade);
+      setTradeId(trade.tradeId);
+      return trade;
+    } catch (caught) {
+      setLoadedTrade(null);
+      setError(caught instanceof Error ? caught.message : "Could not load this World trade.");
+      return null;
+    } finally {
+      setTradeBusy("");
+    }
   }
 
   async function approveDroid(from: string, escrow: string, id: bigint) {
@@ -648,8 +771,19 @@ export function DyoorWorldClient({ sessionWallet }: { sessionWallet: string }) {
         }),
         ...(monOffered > 0n ? { value: toHex(monOffered) } : {}),
       });
-      await verifyTrade(txHash);
-      setNotice(`Trade escrow created · ${shortenedHash(txHash)}`);
+      const verified = await verifyTrade(txHash);
+      const createdTradeId = String(
+        verified.messages?.find((message) => message.data?.action === "created")
+          ?.data?.tradeId
+        || "",
+      );
+      if (createdTradeId) {
+        setTradeId(createdTradeId);
+        setLoadedTrade(await fetchTradeOffer(createdTradeId).catch(() => null));
+      }
+      setNotice(
+        `Trade${createdTradeId ? ` #${createdTradeId}` : ""} created in atomic escrow · ${shortenedHash(txHash)}`,
+      );
       setTradeOfferedToken("");
       setTradeRequestedToken("");
     } catch (caught) {
@@ -666,8 +800,21 @@ export function DyoorWorldClient({ sessionWallet }: { sessionWallet: string }) {
     try {
       const from = await ensureActiveWallet();
       const id = tokenId(tradeId, "Trade ID");
-      const requestedToken = tokenId(tradeAcceptToken, "Your requested-side Droid");
-      const requestedMon = monAmount(tradeAcceptMon, "Requested MON");
+      const trade = await fetchTradeOffer(id.toString());
+      if (trade.status !== 1) {
+        throw new Error(`Trade #${id} is ${trade.statusLabel}, not active.`);
+      }
+      if (!trade.openOffer && normalizeAddress(trade.taker) !== normalizedSessionWallet) {
+        throw new Error("This private offer belongs to another holder wallet.");
+      }
+      if (normalizeAddress(trade.maker) === normalizedSessionWallet) {
+        throw new Error("The maker cannot accept their own trade.");
+      }
+      if (!ownedTokenIds.includes(trade.requestedTokenId)) {
+        throw new Error(`This wallet must own D.Y.O.O.R #${trade.requestedTokenId} to accept.`);
+      }
+      const requestedToken = tokenId(trade.requestedTokenId, "Requested Droid");
+      const requestedMon = BigInt(trade.monRequestedWei || "0");
       await approveDroid(from, config.tradeEscrowAddress, requestedToken);
       const txHash = await wallet.sendTransaction({
         from,
@@ -688,6 +835,7 @@ export function DyoorWorldClient({ sessionWallet }: { sessionWallet: string }) {
           ownReward?.amountEnergy ? ` · +${ownReward.amountEnergy} Energy pending` : ""
         }`,
       );
+      setLoadedTrade(await fetchTradeOffer(id.toString()).catch(() => null));
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "Could not accept the World trade.");
     } finally {
@@ -713,6 +861,7 @@ export function DyoorWorldClient({ sessionWallet }: { sessionWallet: string }) {
       });
       await verifyTrade(txHash);
       setNotice(`Trade #${id} ${action === "cancelTrade" ? "cancelled" : "expired"} · ${shortenedHash(txHash)}`);
+      setLoadedTrade(await fetchTradeOffer(id.toString()).catch(() => null));
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "Could not close the World trade.");
     } finally {
@@ -727,9 +876,65 @@ export function DyoorWorldClient({ sessionWallet }: { sessionWallet: string }) {
 
   const identity = profile?.displayName || shortWorldWallet(normalizedSessionWallet);
   const walletMismatch = Boolean(connectedWallet && connectedWallet !== normalizedSessionWallet);
+  const loadedTradeActive = loadedTrade?.status === 1;
+  const loadedTradeIsMaker = normalizeAddress(loadedTrade?.maker) === normalizedSessionWallet;
+  const loadedTradeTargetsSession = Boolean(
+    loadedTrade?.openOffer
+      || normalizeAddress(loadedTrade?.taker) === normalizedSessionWallet,
+  );
+  const loadedTradeRequestedOwned = Boolean(
+    loadedTrade?.requestedTokenId
+      && ownedTokenIds.includes(loadedTrade.requestedTokenId),
+  );
+  const canAcceptLoadedTrade = Boolean(
+    loadedTradeActive
+      && !loadedTradeIsMaker
+      && loadedTradeTargetsSession
+      && loadedTradeRequestedOwned
+  );
 
   return (
     <main className="mx-auto min-h-[calc(100vh-5rem)] max-w-[1680px] px-3 py-4 sm:px-5 sm:py-6">
+      {mobileThreadsOpen ? (
+        <div className="fixed inset-0 z-[80] lg:hidden">
+          <button
+            aria-label="Close World threads"
+            className="absolute inset-0 bg-black/75 backdrop-blur-sm"
+            onClick={() => setMobileThreadsOpen(false)}
+            type="button"
+          />
+          <aside
+            aria-label="dYOOR World threads"
+            className="absolute inset-y-0 left-0 w-[min(86vw,22rem)] overflow-y-auto border-r border-dyoor-purple/35 bg-[#080918] p-4 shadow-[24px_0_70px_rgba(0,0,0,.55)]"
+            id="world-mobile-threads"
+          >
+            <div className="flex items-center justify-between gap-3 border-b border-white/10 pb-4">
+              <div>
+                <p className="text-[0.58rem] font-black uppercase tracking-[0.18em] text-dyoor-cyan">dYOOR World</p>
+                <p className="mt-1 text-lg font-black uppercase text-white">Threads</p>
+              </div>
+              <button
+                aria-label="Close threads"
+                className="flex h-9 w-9 items-center justify-center rounded border border-white/10 text-lg font-black text-white/55"
+                onClick={() => setMobileThreadsOpen(false)}
+                type="button"
+              >
+                ×
+              </button>
+            </div>
+            <div className="mt-4">
+              <WorldChannelList
+                activeChannel={channelId}
+                descriptions
+                onSelect={(nextChannel) => {
+                  setChannelId(nextChannel);
+                  setMobileThreadsOpen(false);
+                }}
+              />
+            </div>
+          </aside>
+        </div>
+      ) : null}
       <section className="overflow-hidden rounded border border-dyoor-purple/30 bg-[#070818]/90 shadow-[0_24px_80px_rgba(0,0,0,.38)] backdrop-blur-xl">
         <header className="flex min-h-16 flex-wrap items-center gap-3 border-b border-dyoor-purple/25 bg-black/25 px-4 py-3 sm:px-5">
           <div className="flex min-w-0 items-center gap-3">
@@ -742,6 +947,15 @@ export function DyoorWorldClient({ sessionWallet }: { sessionWallet: string }) {
             </div>
           </div>
           <div className="ml-auto flex items-center gap-2">
+            <button
+              aria-controls="world-mobile-threads"
+              aria-expanded={mobileThreadsOpen}
+              className="btn-ghost min-h-9 px-3 py-2 text-[0.66rem] lg:hidden"
+              onClick={() => setMobileThreadsOpen(true)}
+              type="button"
+            >
+              Threads
+            </button>
             <span className="hidden rounded-full border border-emerald-300/25 bg-emerald-300/10 px-3 py-1.5 text-[0.62rem] font-black uppercase tracking-[0.14em] text-emerald-200 sm:inline-flex">
               S2 gate active
             </span>
@@ -764,29 +978,14 @@ export function DyoorWorldClient({ sessionWallet }: { sessionWallet: string }) {
         ) : null}
 
         <div className="grid min-h-[760px] lg:grid-cols-[250px_minmax(0,1fr)_330px]">
-          <aside className="border-b border-dyoor-purple/20 bg-black/20 p-3 lg:border-b-0 lg:border-r">
+          <aside className="hidden border-r border-dyoor-purple/20 bg-black/20 p-3 lg:block">
             <p className="px-2 py-2 text-[0.62rem] font-black uppercase tracking-[0.2em] text-white/35">World streams</p>
-            <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 lg:grid-cols-1">
-              {DYOOR_WORLD_CHANNELS.map((channel) => {
-                const active = channel.id === channelId;
-                return (
-                  <button
-                    className={`min-w-0 rounded border px-3 py-3 text-left transition ${
-                      active
-                        ? "border-dyoor-cyan/55 bg-dyoor-cyan/10 text-dyoor-cyan"
-                        : "border-white/[0.07] bg-white/[0.025] text-white/62 hover:border-dyoor-purple/45 hover:text-white"
-                    }`}
-                    key={channel.id}
-                    onClick={() => setChannelId(channel.id)}
-                    type="button"
-                  >
-                    <span className="block truncate text-xs font-black"># {channel.label}</span>
-                    <span className="mt-1 hidden text-[0.64rem] font-bold leading-4 text-white/35 lg:block">{channel.description}</span>
-                  </button>
-                );
-              })}
-            </div>
-            <div className="mt-4 hidden rounded border border-dyoor-purple/20 bg-dyoor-purple/[0.07] p-4 lg:block">
+            <WorldChannelList
+              activeChannel={channelId}
+              descriptions
+              onSelect={setChannelId}
+            />
+            <div className="mt-4 rounded border border-dyoor-purple/20 bg-dyoor-purple/[0.07] p-4">
               <p className="text-[0.62rem] font-black uppercase tracking-[0.17em] text-dyoor-monad">Adapted from M3SH</p>
               <p className="mt-2 text-xs font-bold leading-5 text-white/42">
                 The node-and-stream model, rebuilt with verified holder access, S2 identity, and immutable system relays.
@@ -813,34 +1012,184 @@ export function DyoorWorldClient({ sessionWallet }: { sessionWallet: string }) {
               <div className="border-b border-dyoor-purple/20 bg-gradient-to-r from-dyoor-purple/[0.08] to-dyoor-cyan/[0.05] p-4">
                 {config?.tradeEscrowAddress ? (
                   <div className="grid gap-3 xl:grid-cols-2">
-                    <form className="rounded border border-dyoor-cyan/20 bg-black/25 p-3" onSubmit={createTrade}>
-                      <p className="text-xs font-black uppercase tracking-[0.14em] text-dyoor-cyan">Create atomic S2 trade</p>
-                      <div className="mt-3 grid grid-cols-2 gap-2">
-                        <input className="field-control text-xs" list="owned-world-droids" onChange={(event) => setTradeOfferedToken(event.target.value)} placeholder="Your Droid #" value={tradeOfferedToken} />
-                        <input className="field-control text-xs" onChange={(event) => setTradeRequestedToken(event.target.value)} placeholder="Requested Droid #" value={tradeRequestedToken} />
-                        <input className="field-control text-xs" onChange={(event) => setTradeMonOffered(event.target.value)} placeholder="MON offered" value={tradeMonOffered} />
-                        <input className="field-control text-xs" onChange={(event) => setTradeMonRequested(event.target.value)} placeholder="MON requested" value={tradeMonRequested} />
+                    <form className="rounded border border-dyoor-cyan/20 bg-black/25 p-4" onSubmit={createTrade}>
+                      <p className="text-[0.58rem] font-black uppercase tracking-[0.16em] text-dyoor-cyan">New atomic swap</p>
+                      <h3 className="mt-1 text-lg font-black text-white">Choose the Droid you send</h3>
+                      <p className="mt-1 text-[0.62rem] font-bold leading-4 text-white/38">
+                        Your selected Droid enters the ownerless escrow until the trade completes or you cancel.
+                      </p>
+                      <div className="mt-3">
+                        <OwnedDroidPicker
+                          disabled={Boolean(tradeBusy)}
+                          onSelect={setTradeOfferedToken}
+                          tokenIds={ownedTokenIds}
+                          value={tradeOfferedToken}
+                        />
                       </div>
-                      <input className="field-control mt-2 w-full text-xs" onChange={(event) => setTradeCounterparty(event.target.value)} placeholder="Counterparty wallet (blank = open)" value={tradeCounterparty} />
-                      <div className="mt-2 flex gap-2">
-                        <input className="field-control min-w-0 flex-1 text-xs" max="720" min="1" onChange={(event) => setTradeExpiryHours(event.target.value)} placeholder="Hours" type="number" value={tradeExpiryHours} />
-                        <button className="btn-primary shrink-0 px-3 text-[0.65rem]" disabled={Boolean(tradeBusy)} type="submit">
-                          {tradeBusy === "create" ? "Approving / creating" : "Approve + escrow"}
+
+                      <div className="mt-3 grid grid-cols-[minmax(0,1fr)_2.5rem_minmax(0,1fr)] items-center gap-2">
+                        <WorldDroidPreview label="You send" tokenId={tradeOfferedToken} />
+                        <div className="text-center text-xl font-black text-dyoor-cyan">↔</div>
+                        <WorldDroidPreview label="You receive" tokenId={tradeRequestedToken} />
+                      </div>
+
+                      <label className="mt-3 block">
+                        <span className="text-[0.56rem] font-black uppercase tracking-[0.12em] text-white/40">
+                          Droid you want
+                        </span>
+                        <input
+                          className="field-control mt-2 w-full text-sm"
+                          inputMode="numeric"
+                          onChange={(event) => setTradeRequestedToken(event.target.value)}
+                          placeholder="Enter requested Droid #"
+                          value={tradeRequestedToken}
+                        />
+                      </label>
+
+                      <details className="mt-3 rounded border border-white/10 bg-black/20">
+                        <summary className="cursor-pointer px-3 py-3 text-[0.6rem] font-black uppercase tracking-[0.12em] text-white/48">
+                          Optional MON, private wallet, and expiry
+                        </summary>
+                        <div className="grid gap-2 border-t border-white/10 p-3">
+                          <input
+                            className="field-control w-full text-xs"
+                            onChange={(event) => setTradeCounterparty(event.target.value)}
+                            placeholder="Specific taker wallet (blank = open offer)"
+                            value={tradeCounterparty}
+                          />
+                          <div className="grid grid-cols-2 gap-2">
+                            <label>
+                              <span className="text-[0.52rem] font-black uppercase text-white/32">MON you add</span>
+                              <input className="field-control mt-1 w-full text-xs" min="0" onChange={(event) => setTradeMonOffered(event.target.value)} step="0.01" type="number" value={tradeMonOffered} />
+                            </label>
+                            <label>
+                              <span className="text-[0.52rem] font-black uppercase text-white/32">MON you request</span>
+                              <input className="field-control mt-1 w-full text-xs" min="0" onChange={(event) => setTradeMonRequested(event.target.value)} step="0.01" type="number" value={tradeMonRequested} />
+                            </label>
+                          </div>
+                          <label>
+                            <span className="text-[0.52rem] font-black uppercase text-white/32">Offer expires</span>
+                            <select className="field-control mt-1 w-full text-xs" onChange={(event) => setTradeExpiryHours(event.target.value)} value={tradeExpiryHours}>
+                              <option value="1">1 hour</option>
+                              <option value="6">6 hours</option>
+                              <option value="24">24 hours</option>
+                              <option value="72">3 days</option>
+                              <option value="168">7 days</option>
+                              <option value="720">30 days</option>
+                            </select>
+                          </label>
+                        </div>
+                      </details>
+
+                      <button
+                        className="btn-primary mt-3 w-full px-3 text-[0.68rem]"
+                        disabled={Boolean(tradeBusy) || !validTokenIdText(tradeOfferedToken) || !validTokenIdText(tradeRequestedToken)}
+                        type="submit"
+                      >
+                        {tradeBusy === "create" ? "Approving + opening trade" : "Open atomic trade"}
+                      </button>
+                    </form>
+                    <div className="rounded border border-dyoor-purple/25 bg-black/25 p-4">
+                      <p className="text-[0.58rem] font-black uppercase tracking-[0.16em] text-dyoor-monad">Open or manage an offer</p>
+                      <h3 className="mt-1 text-lg font-black text-white">Load a trade ID</h3>
+                      <div className="mt-3 flex gap-2">
+                        <input
+                          className="field-control min-w-0 flex-1 text-sm"
+                          inputMode="numeric"
+                          onChange={(event) => {
+                            setTradeId(event.target.value);
+                            setLoadedTrade(null);
+                          }}
+                          placeholder="Trade #"
+                          value={tradeId}
+                        />
+                        <button
+                          className="btn-secondary shrink-0 px-3 text-[0.62rem]"
+                          disabled={Boolean(tradeBusy) || !validTokenIdText(tradeId)}
+                          onClick={() => void loadTradeOffer()}
+                          type="button"
+                        >
+                          {tradeBusy === "load" ? "Loading" : "Load offer"}
                         </button>
                       </div>
-                    </form>
-                    <div className="rounded border border-dyoor-purple/25 bg-black/25 p-3">
-                      <p className="text-xs font-black uppercase tracking-[0.14em] text-dyoor-monad">Manage trade</p>
-                      <div className="mt-3 grid grid-cols-3 gap-2">
-                        <input className="field-control text-xs" onChange={(event) => setTradeId(event.target.value)} placeholder="Trade ID" value={tradeId} />
-                        <input className="field-control text-xs" list="owned-world-droids" onChange={(event) => setTradeAcceptToken(event.target.value)} placeholder="Your Droid #" value={tradeAcceptToken} />
-                        <input className="field-control text-xs" onChange={(event) => setTradeAcceptMon(event.target.value)} placeholder="MON due" value={tradeAcceptMon} />
-                      </div>
-                      <div className="mt-2 flex flex-wrap gap-2">
-                        <button className="btn-secondary px-3 text-[0.62rem]" disabled={Boolean(tradeBusy)} onClick={() => void acceptTrade()} type="button">Accept atomically</button>
-                        <button className="btn-ghost px-3 text-[0.62rem]" disabled={Boolean(tradeBusy)} onClick={() => void closeTrade("cancelTrade")} type="button">Cancel mine</button>
-                        <button className="btn-ghost px-3 text-[0.62rem]" disabled={Boolean(tradeBusy)} onClick={() => void closeTrade("expireTrade")} type="button">Recover expired</button>
-                      </div>
+
+                      {loadedTrade ? (
+                        <div className="mt-4">
+                          <div className="flex items-center justify-between gap-3 rounded border border-white/10 bg-white/[0.035] px-3 py-2">
+                            <p className="text-xs font-black text-white">Trade #{loadedTrade.tradeId}</p>
+                            <span className={`rounded border px-2 py-1 text-[0.52rem] font-black uppercase tracking-[0.1em] ${
+                              loadedTradeActive
+                                ? "border-emerald-300/30 bg-emerald-300/10 text-emerald-200"
+                                : "border-white/15 text-white/45"
+                            }`}>
+                              {loadedTrade.statusLabel}
+                            </span>
+                          </div>
+                          <div className="mt-3 grid grid-cols-[minmax(0,1fr)_2.5rem_minmax(0,1fr)] items-center gap-2">
+                            <WorldDroidPreview label="Maker offers" tokenId={loadedTrade.offeredTokenId} />
+                            <div className="text-center text-xl font-black text-dyoor-monad">↔</div>
+                            <WorldDroidPreview label="Taker sends" tokenId={loadedTrade.requestedTokenId} />
+                          </div>
+                          <div className="mt-3 grid grid-cols-2 gap-2 text-center">
+                            <div className="rounded border border-white/10 bg-black/25 p-2">
+                              <p className="text-[0.5rem] font-black uppercase text-white/32">Maker adds</p>
+                              <p className="mt-1 text-xs font-black text-emerald-200">{loadedTrade.monOffered} MON</p>
+                            </div>
+                            <div className="rounded border border-white/10 bg-black/25 p-2">
+                              <p className="text-[0.5rem] font-black uppercase text-white/32">Taker adds</p>
+                              <p className="mt-1 text-xs font-black text-yellow-100">{loadedTrade.monRequested} MON</p>
+                            </div>
+                          </div>
+                          <p className="mt-3 break-all text-[0.58rem] font-bold leading-4 text-white/32">
+                            {loadedTrade.openOffer ? "Open to any holder" : `Reserved for ${shortWorldWallet(loadedTrade.taker)}`}
+                            {" · "}maker {shortWorldWallet(loadedTrade.maker)}
+                            {" · "}expires {new Date(loadedTrade.expiresAt * 1_000).toLocaleString()}
+                          </p>
+                          {loadedTradeActive && !loadedTradeRequestedOwned && !loadedTradeIsMaker ? (
+                            <p className="mt-2 rounded border border-yellow-300/20 bg-yellow-300/[0.06] p-2 text-[0.6rem] font-bold text-yellow-100/65">
+                              This wallet does not own requested Droid #{loadedTrade.requestedTokenId}.
+                            </p>
+                          ) : null}
+                          <div className="mt-3 grid gap-2 sm:grid-cols-2">
+                            {!loadedTradeIsMaker ? (
+                              <button
+                                className="btn-primary px-3 text-[0.62rem]"
+                                disabled={Boolean(tradeBusy) || !canAcceptLoadedTrade}
+                                onClick={() => void acceptTrade()}
+                                type="button"
+                              >
+                                {tradeBusy === "accept" ? "Approving + swapping" : "Accept atomic swap"}
+                              </button>
+                            ) : (
+                              <button
+                                className="btn-secondary px-3 text-[0.62rem]"
+                                disabled={Boolean(tradeBusy) || !loadedTradeActive}
+                                onClick={() => void closeTrade("cancelTrade")}
+                                type="button"
+                              >
+                                {tradeBusy === "cancelTrade" ? "Cancelling" : "Cancel + recover"}
+                              </button>
+                            )}
+                            <button
+                              className="btn-ghost px-3 text-[0.62rem]"
+                              disabled={Boolean(tradeBusy) || !loadedTradeActive || !loadedTrade.expired}
+                              onClick={() => void closeTrade("expireTrade")}
+                              type="button"
+                            >
+                              {tradeBusy === "expireTrade"
+                                ? "Recovering"
+                                : loadedTrade.expired
+                                  ? "Recover expired trade"
+                                  : "Not expired yet"}
+                            </button>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="mt-4 rounded border border-dashed border-white/10 bg-black/15 p-6 text-center">
+                          <DyoorWorldGlyph className="mx-auto h-7 w-7 text-dyoor-purple/55" />
+                          <p className="mt-3 text-xs font-black text-white/45">Enter a trade ID to preview both Droids and exact MON terms.</p>
+                        </div>
+                      )}
                     </div>
                   </div>
                 ) : (
@@ -925,7 +1274,7 @@ export function DyoorWorldClient({ sessionWallet }: { sessionWallet: string }) {
                           </a>
                         ) : attachment?.kind === "sticker" ? (
                           <div className="mt-3">
-                            <WorldStickerCard stickerId={attachment.stickerId} />
+                            <DyoorWorldStickerCard stickerId={attachment.stickerId} />
                           </div>
                         ) : null}
                         <div className="mt-2 flex flex-wrap gap-2">
@@ -988,108 +1337,17 @@ export function DyoorWorldClient({ sessionWallet }: { sessionWallet: string }) {
                   />
                   <button
                     className="btn-primary min-h-10 shrink-0 px-4 py-2 text-xs"
-                    disabled={sending || invalidMediaDraft || (!draft.trim() && !composerAttachment)}
+                    disabled={sending || (!draft.trim() && !composerAttachment)}
                     type="submit"
                   >
                     {sending ? "Sending" : "Send"}
                   </button>
                 </div>
-                <div className="mt-2 flex flex-wrap items-center gap-2">
-                  <button
-                    aria-pressed={composerMode === "media"}
-                    className={`rounded border px-3 py-2 text-[0.58rem] font-black uppercase tracking-[0.12em] transition ${
-                      composerMode === "media"
-                        ? "border-dyoor-cyan/55 bg-dyoor-cyan/10 text-dyoor-cyan"
-                        : "border-white/10 bg-white/[0.03] text-white/40 hover:text-white"
-                    }`}
-                    onClick={() => {
-                      setComposerMode((current) => current === "media" ? "" : "media");
-                      setSelectedStickerId("");
-                    }}
-                    type="button"
-                  >
-                    GIF / image
-                  </button>
-                  <button
-                    aria-pressed={composerMode === "stickers"}
-                    className={`rounded border px-3 py-2 text-[0.58rem] font-black uppercase tracking-[0.12em] transition ${
-                      composerMode === "stickers"
-                        ? "border-dyoor-purple/60 bg-dyoor-purple/15 text-white"
-                        : "border-white/10 bg-white/[0.03] text-white/40 hover:text-white"
-                    }`}
-                    onClick={() => {
-                      setComposerMode((current) => current === "stickers" ? "" : "stickers");
-                      setMediaDraft("");
-                    }}
-                    type="button"
-                  >
-                    World stickers
-                  </button>
-                  {composerAttachment ? (
-                    <button
-                      className="ml-auto text-[0.55rem] font-black uppercase tracking-[0.1em] text-white/30 hover:text-rose-200"
-                      onClick={() => {
-                        setMediaDraft("");
-                        setSelectedStickerId("");
-                        setComposerMode("");
-                      }}
-                      type="button"
-                    >
-                      Clear attachment
-                    </button>
-                  ) : null}
-                </div>
-                {composerMode === "media" ? (
-                  <div className="mt-2 rounded border border-dyoor-cyan/20 bg-dyoor-cyan/[0.04] p-3">
-                    <label className="text-[0.55rem] font-black uppercase tracking-[0.14em] text-dyoor-cyan/65" htmlFor="world-media-url">
-                      Direct HTTPS image or GIF URL
-                    </label>
-                    <div className="mt-2 flex gap-2">
-                      <input
-                        className="field-control min-w-0 flex-1 text-xs"
-                        id="world-media-url"
-                        onChange={(event) => setMediaDraft(event.target.value)}
-                        placeholder="https://media.giphy.com/.../giphy.gif"
-                        type="url"
-                        value={mediaDraft}
-                      />
-                      {normalizedMediaAttachment ? (
-                        <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded border border-dyoor-cyan/30 bg-black/40">
-                          <img
-                            alt="Attachment preview"
-                            className="h-full w-full object-cover"
-                            referrerPolicy="no-referrer"
-                            src={normalizedMediaAttachment.url}
-                          />
-                        </div>
-                      ) : null}
-                    </div>
-                    <p className={`mt-2 text-[0.58rem] font-bold ${invalidMediaDraft ? "text-rose-200/80" : "text-white/30"}`}>
-                      {invalidMediaDraft
-                        ? "Use HTTPS and a direct PNG, JPG, WEBP, AVIF, or GIF link."
-                        : "Giphy, Tenor, Imgur, Discord CDN, and direct image links are supported."}
-                    </p>
-                  </div>
-                ) : null}
-                {composerMode === "stickers" ? (
-                  <div className="mt-2 grid grid-cols-2 gap-2 rounded border border-dyoor-purple/25 bg-dyoor-purple/[0.04] p-3 sm:grid-cols-3 xl:grid-cols-5">
-                    {DYOOR_WORLD_STICKERS.map((sticker) => (
-                      <button
-                        aria-pressed={selectedStickerId === sticker.id}
-                        className={`rounded-lg text-left transition ${
-                          selectedStickerId === sticker.id
-                            ? "ring-2 ring-dyoor-cyan/70 ring-offset-2 ring-offset-black"
-                            : "opacity-65 hover:opacity-100"
-                        }`}
-                        key={sticker.id}
-                        onClick={() => setSelectedStickerId((current) => current === sticker.id ? "" : sticker.id)}
-                        type="button"
-                      >
-                        <WorldStickerCard compact stickerId={sticker.id} />
-                      </button>
-                    ))}
-                  </div>
-                ) : null}
+                <DyoorWorldMediaComposer
+                  attachment={composerAttachment}
+                  disabled={sending}
+                  onChange={setComposerAttachment}
+                />
                 <p className="mt-2 px-1 text-[0.62rem] font-bold text-white/25">
                   {draft.length}/800 · meaningful text can earn {rewards?.chat.rewardEnergy || 5} Energy · media and stickers alone do not earn · holder session verified
                 </p>
@@ -1218,9 +1476,6 @@ export function DyoorWorldClient({ sessionWallet }: { sessionWallet: string }) {
             </div>
           </aside>
         </div>
-        <datalist id="owned-world-droids">
-          {ownedTokenIds.map((id) => <option key={id} value={id} />)}
-        </datalist>
       </section>
     </main>
   );
