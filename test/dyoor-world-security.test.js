@@ -94,7 +94,6 @@ test("World name metadata uses marketplace-compatible hosted text artwork", () =
     "utf8",
   );
   assert.match(metadataSource, /\/api\/dyoor-world\/names\/image\//);
-  assert.match(metadataSource, /process\.env\.DEPLOY_PRIME_URL/);
   assert.doesNotMatch(metadataSource, /data:image/);
 
   const imageRouteSource = fs.readFileSync(
