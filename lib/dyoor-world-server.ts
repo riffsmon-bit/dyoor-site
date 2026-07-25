@@ -85,6 +85,8 @@ const ZERO_ADDRESS = ethers.ZeroAddress.toLowerCase();
 const TRANSFER_TOPIC = ethers.id("Transfer(address,address,uint256)").toLowerCase();
 const DEFAULT_S2_DEPLOYMENT_BLOCK = 87_616_887;
 const DEFAULT_ETHERSCAN_V2_API_URL = "https://api.etherscan.io/v2/api";
+const DEFAULT_WORLD_NAMES_CONTRACT = "0xDE073c0ea9052a51c7fC67BE6fc311a1C0c00357";
+const DEFAULT_WORLD_TRADE_ESCROW = "0xdea68BF8acFd96F174f93Bd936A5dc3d2f010601";
 
 type DyoorWorldAvatarRecord = DyoorWorldAvatar & {
   version: 1;
@@ -127,6 +129,26 @@ function envFlag(...names: string[]) {
   return /^(1|true|yes|on)$/i.test(readEnv(...names));
 }
 
+function derivedWorldSecret(purpose: "automation" | "reward") {
+  const master = readEnv(
+    "DYOOR_WORLD_SESSION_SECRET",
+    "VERIFY_SESSION_SECRET",
+    "DYOOR_TRAIT_LAB_SECRET",
+  );
+  if (master.length < 32) return "";
+  return createHmac("sha256", master)
+    .update(`dyoor-world:${purpose}:v1`)
+    .digest("hex");
+}
+
+function worldAutomationSecret() {
+  return readEnv("DYOOR_WORLD_AUTOMATION_SECRET") || derivedWorldSecret("automation");
+}
+
+function worldRewardSecret() {
+  return readEnv("DYOOR_WORLD_REWARD_SECRET") || derivedWorldSecret("reward");
+}
+
 function normalizePrivateKey(value: string) {
   if (!value) return "";
   return value.startsWith("0x") ? value : `0x${value}`;
@@ -155,14 +177,16 @@ function provider() {
 export function dyoorWorldNamesContractAddress() {
   return optionalContractAddress(
     process.env.DYOOR_WORLD_NAMES_CONTRACT
-      || process.env.NEXT_PUBLIC_DYOOR_WORLD_NAMES_CONTRACT,
+      || process.env.NEXT_PUBLIC_DYOOR_WORLD_NAMES_CONTRACT
+      || DEFAULT_WORLD_NAMES_CONTRACT,
   );
 }
 
 export function dyoorWorldTradeEscrowAddress() {
   return optionalContractAddress(
     process.env.DYOOR_WORLD_TRADE_ESCROW_ADDRESS
-      || process.env.NEXT_PUBLIC_DYOOR_WORLD_TRADE_ESCROW_ADDRESS,
+      || process.env.NEXT_PUBLIC_DYOOR_WORLD_TRADE_ESCROW_ADDRESS
+      || DEFAULT_WORLD_TRADE_ESCROW,
   );
 }
 
@@ -901,7 +925,7 @@ export async function checkInDyoorWorldDailyReward(walletValue: unknown) {
   if (!dyoorWorldRewardsEnabled()) {
     throw dyoorWorldError("World Energy rewards are not enabled yet.", 503);
   }
-  const secret = readEnv("DYOOR_WORLD_REWARD_SECRET");
+  const secret = worldRewardSecret();
   if (secret.length < 32) {
     throw dyoorWorldError("The daily World reward engine is not configured.", 503);
   }
@@ -1214,7 +1238,7 @@ export async function verifyDyoorWorldTip(input: {
 }
 
 export function requireDyoorWorldAutomationRequest(request: Request) {
-  const expected = readEnv("DYOOR_WORLD_AUTOMATION_SECRET");
+  const expected = worldAutomationSecret();
   const supplied = String(request.headers.get("authorization") || "")
     .replace(/^Bearer\s+/i, "")
     .trim();

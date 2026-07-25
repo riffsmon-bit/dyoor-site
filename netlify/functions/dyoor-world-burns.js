@@ -1,4 +1,21 @@
+const { createHmac } = require("node:crypto");
+
 exports.config = { schedule: "*/2 * * * *" };
+
+function automationSecret() {
+  const configured = String(process.env.DYOOR_WORLD_AUTOMATION_SECRET || "").trim();
+  if (configured) return configured;
+  const master = String(
+    process.env.DYOOR_WORLD_SESSION_SECRET
+      || process.env.VERIFY_SESSION_SECRET
+      || process.env.DYOOR_TRAIT_LAB_SECRET
+      || "",
+  ).trim();
+  if (master.length < 32) return "";
+  return createHmac("sha256", master)
+    .update("dyoor-world:automation:v1")
+    .digest("hex");
+}
 
 function siteOrigin() {
   return (
@@ -10,7 +27,7 @@ function siteOrigin() {
 }
 
 exports.handler = async () => {
-  const secret = String(process.env.DYOOR_WORLD_AUTOMATION_SECRET || "");
+  const secret = automationSecret();
   if (secret.length < 32) {
     return {
       statusCode: 200,
@@ -18,7 +35,7 @@ exports.handler = async () => {
       body: JSON.stringify({
         ok: true,
         skipped: true,
-        reason: "DYOOR_WORLD_AUTOMATION_SECRET is not configured.",
+        reason: "The dYOOR World automation key is not configured.",
       }),
     };
   }

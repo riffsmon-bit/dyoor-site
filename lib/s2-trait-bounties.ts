@@ -32,6 +32,7 @@ import {
 
 const MONAD_CHAIN_ID = 143;
 const DEFAULT_MONAD_RPC_URL = "https://rpc.monad.xyz";
+const DEFAULT_TRAIT_BOUNTIES_CONTRACT = "0x0273a3880a097f3F73c36c015558E271f5911251";
 const MAX_BOUNTIES = 100;
 
 const BOUNTY_ABI = [
@@ -148,7 +149,8 @@ function provider() {
 export function traitBountiesContractAddress() {
   return optionalContractAddress(
     process.env.DYOOR_TRAIT_BOUNTIES_CONTRACT
-      || process.env.NEXT_PUBLIC_DYOOR_TRAIT_BOUNTIES_CONTRACT,
+      || process.env.NEXT_PUBLIC_DYOOR_TRAIT_BOUNTIES_CONTRACT
+      || DEFAULT_TRAIT_BOUNTIES_CONTRACT,
   );
 }
 

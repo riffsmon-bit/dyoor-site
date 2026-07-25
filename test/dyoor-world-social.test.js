@@ -75,6 +75,9 @@ test("World social APIs remain holder-gated and financial relays verify chain re
   assert.match(server, /processDyoorWorldBurns/);
   assert.match(server, /verifyExplorerBurnOnChain/);
   assert.match(server, /ENERGY_BANK_OPERATOR_PRIVATE_KEY/);
+  assert.match(server, /dyoor-world:\$\{purpose\}:v1/);
+  assert.match(server, /DEFAULT_WORLD_NAMES_CONTRACT/);
+  assert.match(server, /DEFAULT_WORLD_TRADE_ESCROW/);
   assert.match(
     fs.readFileSync("app/api/dyoor-world/automation/burns/route.ts", "utf8"),
     /requireDyoorWorldAutomationRequest/,

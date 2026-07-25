@@ -16,7 +16,19 @@ const REMOVE_KEYS = new Map([
   ["DYOOR_WORLD_NAMES_METADATA_BASE_URI", "The metadata base URI is stored by the deployed registry."],
   ["DYOOR_WORLD_NAMES_START_BLOCK", "The deployment block is retained in the local deployment record."],
   ["DYOOR_WORLD_OPEN_CLAIMS", "Claim state is read directly from the deployed registry."],
+  ["DYOOR_WORLD_AUTOMATION_SECRET", "Automation derives a purpose-separated key from the protected World session secret."],
+  ["DYOOR_WORLD_REWARD_SECRET", "Daily rewards derive a purpose-separated key from the protected World session secret."],
   ["GOLDSKY_API_KEY", "Runtime code uses the public Goldsky subgraph URL."],
+  ["NEXT_PUBLIC_DYOOR_TRAIT_BOUNTIES_CONTRACT", "The verified immutable production address is the code default."],
+  ["NEXT_PUBLIC_DYOOR_TRAIT_LAB_DROID_BURN_REWARD_ENERGY", "The production 2,500 Energy reward is the code default."],
+  ["NEXT_PUBLIC_DYOOR_TRAIT_LAB_ENABLE_DROID_BURN", "Production burn support defaults to enabled."],
+  ["NEXT_PUBLIC_DYOOR_WORLD_NAMES_CONTRACT", "The verified immutable production address is the code default."],
+  ["NEXT_PUBLIC_DYOOR_WORLD_TRADE_ESCROW_ADDRESS", "The verified ownerless production escrow is the code default."],
+  ["NEXT_PUBLIC_DYOOR_S2_LOG_CHUNK_SIZE", "Owned-token scans use the server-safe code default."],
+  ["MONAD_RPC_URL", "Runtime code falls back to the Monad public RPC while server paths prefer the protected Alchemy RPC."],
+  ["RPC_URL", "Legacy verification functions now use the Monad public RPC fallback."],
+  ["CHAIN_ID", "All production code defaults to Monad chain ID 143."],
+  ["OPENSEA_CHAIN", "OpenSea metadata refresh defaults to Monad."],
   ["OX_API_KEY", "The current swap quote function no longer uses 0x."],
   ["PANCAKE_V2_ROUTER", "The current swap quote function no longer uses PancakeSwap."],
 ]);
@@ -36,8 +48,6 @@ const PROTECT_KEYS = [
   "VERIFY_SESSION_SECRET",
 ];
 const OPTIONAL_PROTECT_KEYS = [
-  "DYOOR_WORLD_AUTOMATION_SECRET",
-  "DYOOR_WORLD_REWARD_SECRET",
   "DYOOR_WORLD_SESSION_SECRET",
 ];
 const ALL_PROTECT_KEYS = [...PROTECT_KEYS, ...OPTIONAL_PROTECT_KEYS];

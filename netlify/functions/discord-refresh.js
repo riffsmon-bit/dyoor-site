@@ -1,4 +1,5 @@
 const { createPublicClient, http, getAddress, isAddress } = require('viem');
+const DEFAULT_MONAD_RPC_URL = 'https://rpc.monad.xyz';
 
 const ERC721_ABI = [
   {
@@ -168,7 +169,7 @@ exports.handler = async function (event) {
     const wallet = normalizeAddress(String(body.wallet || '').trim());
 
     const client = createPublicClient({
-      transport: http(process.env.RPC_URL)
+      transport: http(process.env.RPC_URL || DEFAULT_MONAD_RPC_URL)
     });
 
     const walletBalance = await getWalletS1Balance(client, wallet);
