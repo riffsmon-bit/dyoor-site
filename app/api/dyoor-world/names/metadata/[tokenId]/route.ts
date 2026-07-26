@@ -23,13 +23,13 @@ export async function GET(
   try {
     const { tokenId } = await context.params;
     assertDyoorWorldRateLimit(
-      `name-metadata:${dyoorWorldClientIp(request)}`,
+      `name-metadata:${tokenId}:${dyoorWorldClientIp(request)}`,
       30,
       60_000,
     );
     const record = await getDyoorWorldNameToken(tokenId);
     const origin = new URL(request.url).origin;
-    const image = `${origin}/api/dyoor-world/names/image/${record.tokenId}`;
+    const image = `${origin}/api/dyoor-world/names/image/${record.tokenId}.png`;
     return json(200, {
       name: record.profile.displayName,
       description: "A soulbound, S2 holder-gated identity for dYOOR World on Monad.",

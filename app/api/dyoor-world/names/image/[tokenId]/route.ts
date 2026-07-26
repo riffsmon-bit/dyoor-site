@@ -4,7 +4,7 @@ import {
   dyoorWorldErrorStatus,
   getDyoorWorldNameToken,
 } from "@/lib/dyoor-world-server";
-import { dyoorWorldNameSvg } from "@/lib/dyoor-world-name-image";
+import { dyoorWorldNamePng } from "@/lib/dyoor-world-name-image";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -14,25 +14,28 @@ export async function GET(
   context: { params: Promise<{ tokenId: string }> },
 ) {
   try {
-    const { tokenId } = await context.params;
+    const { tokenId: requestedTokenId } = await context.params;
+    const tokenId = requestedTokenId.replace(/\.png$/i, "");
     assertDyoorWorldRateLimit(
-      `name-image:${dyoorWorldClientIp(request)}`,
+      `name-image:${tokenId}:${dyoorWorldClientIp(request)}`,
       60,
       60_000,
     );
     const record = await getDyoorWorldNameToken(tokenId);
-    return new Response(dyoorWorldNameSvg({
+    const png = await dyoorWorldNamePng({
       displayName: record.profile.displayName,
       wallet: record.wallet,
-    }), {
+    });
+    return new Response(new Uint8Array(png), {
       status: 200,
       headers: {
-        "content-type": "image/svg+xml; charset=utf-8",
+        "content-type": "image/png",
+        "content-disposition": `inline; filename="${record.tokenId}.png"`,
         "cache-control": "public, max-age=3600, s-maxage=86400, stale-while-revalidate=604800",
-        "content-security-policy": "default-src 'none'; style-src 'unsafe-inline'",
         "access-control-allow-origin": "*",
         "cross-origin-resource-policy": "cross-origin",
         "x-content-type-options": "nosniff",
+        "x-dyoor-media-version": "2",
       },
     });
   } catch (error) {

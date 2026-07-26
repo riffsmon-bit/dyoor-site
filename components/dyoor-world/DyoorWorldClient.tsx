@@ -2418,7 +2418,7 @@ export function DyoorWorldClient({ sessionWallet }: { sessionWallet: string }) {
                 </div>
               ) : (
                 <p className="relative mt-3 rounded border border-yellow-300/20 bg-yellow-300/[0.06] p-2 text-[0.6rem] font-bold leading-4 text-yellow-100/60">
-                  Reward accounting is staged but off until the preview reward secret and operator flag are enabled.
+                  World Energy rewards are currently paused by the operator.
                 </p>
               )}
               <div className="relative mt-3 rounded border border-dyoor-cyan/15 bg-dyoor-cyan/[0.04] p-2.5">

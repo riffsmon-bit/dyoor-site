@@ -12,7 +12,10 @@ import {
   dyoorWorldChallengeMessage,
   verifyDyoorWorldSessionToken,
 } from "../lib/dyoor-world-auth.ts";
-import { dyoorWorldNameSvg } from "../lib/dyoor-world-name-image.ts";
+import {
+  dyoorWorldNamePng,
+  dyoorWorldNameSvg,
+} from "../lib/dyoor-world-name-image.ts";
 
 process.env.DYOOR_WORLD_SESSION_SECRET = "test-only-dyoor-world-secret-with-32-characters";
 
@@ -77,7 +80,7 @@ test("holder sessions reject tampering and expiry", () => {
   assert.equal(verifyDyoorWorldSessionToken(token, now + (13 * 60 * 60 * 1000)), null);
 });
 
-test("World name metadata uses marketplace-compatible hosted text artwork", () => {
+test("World name metadata uses marketplace-compatible hosted PNG artwork", async () => {
   const wallet = ethers.Wallet.createRandom().address.toLowerCase();
   const svg = dyoorWorldNameSvg({
     displayName: "riffs.dYOOR",
@@ -89,18 +92,30 @@ test("World name metadata uses marketplace-compatible hosted text artwork", () =
   assert.match(svg, /S2 HOLDER VERIFIED/);
   assert.doesNotMatch(svg, /<script/i);
 
+  const png = await dyoorWorldNamePng({
+    displayName: "riffs.dYOOR",
+    wallet,
+  });
+  assert.deepEqual(
+    [...png.subarray(0, 8)],
+    [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a],
+  );
+  assert.equal(png.readUInt32BE(16), 3_000);
+  assert.equal(png.readUInt32BE(20), 3_000);
+
   const metadataSource = fs.readFileSync(
     "app/api/dyoor-world/names/metadata/[tokenId]/route.ts",
     "utf8",
   );
-  assert.match(metadataSource, /\/api\/dyoor-world\/names\/image\//);
+  assert.match(metadataSource, /\/api\/dyoor-world\/names\/image\/.*\.png/);
   assert.doesNotMatch(metadataSource, /data:image/);
 
   const imageRouteSource = fs.readFileSync(
     "app/api/dyoor-world/names/image/[tokenId]/route.ts",
     "utf8",
   );
-  assert.match(imageRouteSource, /image\/svg\+xml/);
+  assert.match(imageRouteSource, /image\/png/);
+  assert.match(imageRouteSource, /dyoorWorldNamePng/);
   assert.match(imageRouteSource, /getDyoorWorldNameToken/);
 });
 

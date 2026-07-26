@@ -1,7 +1,11 @@
+import sharp from "sharp";
+
 type DyoorWorldNameImageInput = {
   displayName: string;
   wallet: string;
 };
+
+const MARKETPLACE_IMAGE_SIZE = 3_000;
 
 function escapeXml(value: string) {
   return value
@@ -62,4 +66,17 @@ export function dyoorWorldNameSvg(input: DyoorWorldNameImageInput) {
     "</g>",
     "</svg>",
   ].join("");
+}
+
+export async function dyoorWorldNamePng(input: DyoorWorldNameImageInput) {
+  const svg = dyoorWorldNameSvg(input);
+  return await sharp(Buffer.from(svg))
+    .resize(MARKETPLACE_IMAGE_SIZE, MARKETPLACE_IMAGE_SIZE, {
+      fit: "fill",
+    })
+    .png({
+      adaptiveFiltering: true,
+      compressionLevel: 9,
+    })
+    .toBuffer();
 }
