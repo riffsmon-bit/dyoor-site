@@ -198,11 +198,41 @@ test("World mobile side drawers and atomic trade desk stay streamlined", () => {
   assert.match(client, /Choose the Droid you send/);
   assert.match(client, /Accept atomic swap/);
   assert.match(client, /BigInt\(trade\.monRequestedWei \|\| "0"\)/);
+  assert.match(client, /channelId === "trade-desk"\s*\?\s*"h-auto min-h-0"/);
+  assert.match(client, /min-w-0 max-w-full overflow-hidden border-b/);
+  assert.match(client, /snap-x snap-mandatory/);
+  assert.match(client, /min-\[380px\]:grid-cols-2/);
   assert.doesNotMatch(client, /tradeAcceptMon|tradeAcceptToken/);
   assert.match(tradesRoute, /getDyoorWorldTrade\(tradeId\)/);
   assert.match(server, /export async function getDyoorWorldTrade/);
   assert.match(server, /monRequestedWei: BigInt\(trade\.monRequested\)\.toString\(\)/);
   assert.match(server, /expired: expiresAt <= Math\.floor\(Date\.now\(\) \/ 1_000\)/);
+});
+
+test("World trades skip redundant approvals and preflight every wallet transaction", () => {
+  const client = fs.readFileSync("components/dyoor-world/DyoorWorldClient.tsx", "utf8");
+
+  assert.match(client, /function readableWorldTradeError/);
+  assert.match(client, /method: "eth_call"/);
+  assert.match(client, /functionName: "getApproved"/);
+  assert.match(client, /if \(normalizeAddress\(approved\) === normalizeAddress\(escrow\)\) return/);
+  assert.match(client, /await preflightWorldTrade\(request\)/);
+  assert.match(client, /Season 2 transfer security has not authorized this escrow route/);
+});
+
+test("trade validator setup preserves level 3 and copies the active OpenSea list", () => {
+  const script = fs.readFileSync(
+    "scripts/configure-dyoor-world-trade-validator.js",
+    "utf8",
+  );
+
+  assert.match(script, /EXPECTED_SECURITY_LEVEL = 3/);
+  assert.match(script, /createListCopy\("DYOOR World \+ OpenSea"/);
+  assert.match(script, /addAccountsToWhitelist\(targetListId, \[escrowAddress\]\)/);
+  assert.match(script, /applyListToCollection\(collection, targetListId\)/);
+  assert.match(script, /copied list does not preserve the active OpenSea entries/);
+  assert.match(script, /Production escrow simulation passed/);
+  assert.match(script, /EXECUTE_DYOOR_WORLD_TRADE_VALIDATOR === "1"/);
 });
 
 test("World chat uses directional motion bubbles and contained smooth scrolling", () => {

@@ -3,6 +3,7 @@
 /* eslint-disable @next/next/no-img-element */
 
 import {
+  decodeFunctionResult,
   encodeFunctionData,
   parseEther,
   toHex,
@@ -127,6 +128,12 @@ const S2_APPROVAL_ABI = [{
     { name: "tokenId", type: "uint256" },
   ],
   outputs: [],
+}, {
+  type: "function",
+  name: "getApproved",
+  stateMutability: "view",
+  inputs: [{ name: "tokenId", type: "uint256" }],
+  outputs: [{ name: "operator", type: "address" }],
 }] as const;
 
 const WORLD_TRADE_ABI = [
@@ -268,6 +275,58 @@ function readableWorldNameClaimError(error: unknown) {
   return raw || "Could not claim this World name.";
 }
 
+function readableWorldTradeError(error: unknown) {
+  const value = error as {
+    code?: number | string;
+    data?: unknown;
+    details?: string;
+    message?: string;
+    shortMessage?: string;
+    cause?: {
+      code?: number | string;
+      data?: unknown;
+      message?: string;
+      shortMessage?: string;
+    };
+  };
+  const raw = [
+    value?.shortMessage,
+    value?.message,
+    value?.details,
+    typeof value?.data === "string" ? value.data : "",
+    value?.cause?.shortMessage,
+    value?.cause?.message,
+    typeof value?.cause?.data === "string" ? value.cause.data : "",
+    value?.code,
+    value?.cause?.code,
+  ].filter(Boolean).join(" · ");
+  if (/user rejected|user denied|request rejected|4001/i.test(raw)) {
+    return "The wallet request was cancelled. No trade assets moved.";
+  }
+  if (/insufficient funds|exceeds balance/i.test(raw)) {
+    return "This wallet does not have enough MON for the trade and network fee.";
+  }
+  if (/TradeNotActive/i.test(raw)) {
+    return "This trade is no longer active. Reload the offer for its latest status.";
+  }
+  if (/TradeExpiredAlready|TradeNotExpired/i.test(raw)) {
+    return "This trade’s expiry state changed. Reload the offer before continuing.";
+  }
+  if (/Unauthorized|TransferCallerNotOwnerNorApproved|not owner nor approved/i.test(raw)) {
+    return "The selected Droid is no longer owned or approved by this wallet. Refresh your Droids and try again.";
+  }
+  if (/IncorrectPayment/i.test(raw)) {
+    return "The required MON amount changed. Reload the offer before accepting.";
+  }
+  if (/0x1de5204e|whitelist|transfer validator/i.test(raw)) {
+    return "Season 2 transfer security has not authorized this escrow route. No assets moved.";
+  }
+  if (/execution reverted|third-party contract|transaction failed|Monad transaction failed/i.test(raw)) {
+    return "The trade failed its on-chain safety check before submission. Refresh the offer and try again.";
+  }
+  return raw || "Could not complete the World trade.";
+}
+
 function WorldChannelList({
   activeChannel,
   descriptions = false,
@@ -314,7 +373,7 @@ function WorldDroidPreview({
 }) {
   const normalized = validTokenIdText(tokenIdValue);
   return (
-    <div className="overflow-hidden rounded border border-white/10 bg-black/30">
+    <div className="min-w-0 overflow-hidden rounded border border-white/10 bg-black/30">
       <div className="aspect-square bg-black/35">
         {normalized ? (
           <img
@@ -358,11 +417,11 @@ function OwnedDroidPicker({
     );
   }
   return (
-    <div className="flex gap-2 overflow-x-auto pb-2">
+    <div className="flex max-w-full snap-x snap-mandatory gap-2 overflow-x-auto overscroll-x-contain pb-2">
       {tokenIds.map((id) => (
         <button
           aria-pressed={id === value}
-          className={`w-24 shrink-0 overflow-hidden rounded border text-left transition ${
+          className={`w-20 shrink-0 snap-start overflow-hidden rounded border text-left transition sm:w-24 ${
             id === value
               ? "border-dyoor-cyan bg-dyoor-cyan/10 ring-2 ring-dyoor-cyan/25"
               : "border-white/10 bg-black/25 hover:border-dyoor-purple/55"
@@ -674,6 +733,18 @@ export function DyoorWorldClient({ sessionWallet }: { sessionWallet: string }) {
     throw new Error("The Monad transaction is still pending. Check the wallet activity.");
   }
 
+  async function preflightWorldTrade(request: Record<string, string>) {
+    const activeProvider = await wallet.getProvider();
+    try {
+      await activeProvider.request({
+        method: "eth_call",
+        params: [request, "latest"],
+      });
+    } catch (caught) {
+      throw new Error(readableWorldTradeError(caught));
+    }
+  }
+
   async function claimName(event: FormEvent) {
     event.preventDefault();
     const validation = validateWorldLabel(label);
@@ -919,7 +990,27 @@ export function DyoorWorldClient({ sessionWallet }: { sessionWallet: string }) {
   }
 
   async function approveDroid(from: string, escrow: string, id: bigint) {
-    const approvalHash = await wallet.sendTransaction({
+    const activeProvider = await wallet.getProvider();
+    const approvedResult = await activeProvider.request({
+      method: "eth_call",
+      params: [{
+        from,
+        to: config!.s2ContractAddress,
+        data: encodeFunctionData({
+          abi: S2_APPROVAL_ABI,
+          functionName: "getApproved",
+          args: [id],
+        }),
+      }, "latest"],
+    }) as `0x${string}`;
+    const approved = decodeFunctionResult({
+      abi: S2_APPROVAL_ABI,
+      functionName: "getApproved",
+      data: approvedResult,
+    });
+    if (normalizeAddress(approved) === normalizeAddress(escrow)) return;
+
+    const request = {
       from,
       to: config!.s2ContractAddress,
       data: encodeFunctionData({
@@ -927,7 +1018,9 @@ export function DyoorWorldClient({ sessionWallet }: { sessionWallet: string }) {
         functionName: "approve",
         args: [escrow as `0x${string}`, id],
       }),
-    });
+    };
+    await preflightWorldTrade(request);
+    const approvalHash = await wallet.sendTransaction(request);
     await waitForTransaction(approvalHash);
   }
 
@@ -952,7 +1045,7 @@ export function DyoorWorldClient({ sessionWallet }: { sessionWallet: string }) {
       }
       await approveDroid(from, config.tradeEscrowAddress, offered);
       const expiresAt = BigInt(Math.floor(Date.now() / 1_000) + Math.floor(hours * 3_600));
-      const txHash = await wallet.sendTransaction({
+      const request = {
         from,
         to: config.tradeEscrowAddress,
         data: encodeFunctionData({
@@ -961,7 +1054,9 @@ export function DyoorWorldClient({ sessionWallet }: { sessionWallet: string }) {
           args: [taker as `0x${string}`, offered, requested, monRequested, expiresAt],
         }),
         ...(monOffered > 0n ? { value: toHex(monOffered) } : {}),
-      });
+      };
+      await preflightWorldTrade(request);
+      const txHash = await wallet.sendTransaction(request);
       const verified = await verifyTrade(txHash);
       const createdTradeId = String(
         verified.messages?.find((message) => message.data?.action === "created")
@@ -978,7 +1073,7 @@ export function DyoorWorldClient({ sessionWallet }: { sessionWallet: string }) {
       setTradeOfferedToken("");
       setTradeRequestedToken("");
     } catch (caught) {
-      setError(caught instanceof Error ? caught.message : "Could not create the World trade.");
+      setError(readableWorldTradeError(caught));
     } finally {
       setTradeBusy("");
     }
@@ -1007,7 +1102,7 @@ export function DyoorWorldClient({ sessionWallet }: { sessionWallet: string }) {
       const requestedToken = tokenId(trade.requestedTokenId, "Requested Droid");
       const requestedMon = BigInt(trade.monRequestedWei || "0");
       await approveDroid(from, config.tradeEscrowAddress, requestedToken);
-      const txHash = await wallet.sendTransaction({
+      const request = {
         from,
         to: config.tradeEscrowAddress,
         data: encodeFunctionData({
@@ -1016,7 +1111,9 @@ export function DyoorWorldClient({ sessionWallet }: { sessionWallet: string }) {
           args: [id],
         }),
         ...(requestedMon > 0n ? { value: toHex(requestedMon) } : {}),
-      });
+      };
+      await preflightWorldTrade(request);
+      const txHash = await wallet.sendTransaction(request);
       const result = await verifyTrade(txHash);
       const ownReward = result.rewards?.find(
         (reward) => normalizeAddress(reward.wallet) === normalizedSessionWallet,
@@ -1028,7 +1125,7 @@ export function DyoorWorldClient({ sessionWallet }: { sessionWallet: string }) {
       );
       setLoadedTrade(await fetchTradeOffer(id.toString()).catch(() => null));
     } catch (caught) {
-      setError(caught instanceof Error ? caught.message : "Could not accept the World trade.");
+      setError(readableWorldTradeError(caught));
     } finally {
       setTradeBusy("");
     }
@@ -1041,7 +1138,7 @@ export function DyoorWorldClient({ sessionWallet }: { sessionWallet: string }) {
     try {
       const from = await ensureActiveWallet();
       const id = tokenId(tradeId, "Trade ID");
-      const txHash = await wallet.sendTransaction({
+      const request = {
         from,
         to: config.tradeEscrowAddress,
         data: encodeFunctionData({
@@ -1049,12 +1146,14 @@ export function DyoorWorldClient({ sessionWallet }: { sessionWallet: string }) {
           functionName: action,
           args: [id],
         }),
-      });
+      };
+      await preflightWorldTrade(request);
+      const txHash = await wallet.sendTransaction(request);
       await verifyTrade(txHash);
       setNotice(`Trade #${id} ${action === "cancelTrade" ? "cancelled" : "expired"} · ${shortenedHash(txHash)}`);
       setLoadedTrade(await fetchTradeOffer(id.toString()).catch(() => null));
     } catch (caught) {
-      setError(caught instanceof Error ? caught.message : "Could not close the World trade.");
+      setError(readableWorldTradeError(caught));
     } finally {
       setTradeBusy("");
     }
@@ -1095,7 +1194,7 @@ export function DyoorWorldClient({ sessionWallet }: { sessionWallet: string }) {
     : null;
 
   return (
-    <main className="mx-auto min-h-[calc(100vh-5rem)] max-w-[1680px] px-3 py-4 sm:px-5 sm:py-6">
+    <main className="mx-auto min-h-[calc(100vh-5rem)] min-w-0 max-w-[1680px] overflow-x-clip px-3 py-4 sm:px-5 sm:py-6">
       {mobileIdentityOpen ? (
         <button
           aria-label="Close World identity and Energy"
@@ -1145,7 +1244,7 @@ export function DyoorWorldClient({ sessionWallet }: { sessionWallet: string }) {
           </aside>
         </div>
       ) : null}
-      <section className="overflow-visible rounded border border-dyoor-purple/30 bg-[#070818]/90 shadow-[0_24px_80px_rgba(0,0,0,.38)] lg:overflow-hidden lg:backdrop-blur-xl">
+      <section className="min-w-0 overflow-hidden rounded border border-dyoor-purple/30 bg-[#070818]/90 shadow-[0_24px_80px_rgba(0,0,0,.38)] lg:backdrop-blur-xl">
         <header className="sticky top-20 z-40 flex min-h-16 items-center gap-2 border-b border-dyoor-purple/25 bg-[#080918]/95 px-3 py-3 shadow-[0_12px_32px_rgba(0,0,0,.25)] backdrop-blur-xl sm:gap-3 sm:px-5 lg:static lg:bg-black/25 lg:shadow-none">
           <button
             aria-controls="world-mobile-threads"
@@ -1210,7 +1309,7 @@ export function DyoorWorldClient({ sessionWallet }: { sessionWallet: string }) {
           <div className="border-b border-dyoor-cyan/25 bg-dyoor-cyan/[0.07] px-4 py-3 text-sm font-bold text-dyoor-cyan">{notice}</div>
         ) : null}
 
-        <div className="grid min-h-0 lg:min-h-[760px] lg:grid-cols-[250px_minmax(0,1fr)_330px]">
+        <div className="grid min-h-0 min-w-0 lg:min-h-[760px] lg:grid-cols-[250px_minmax(0,1fr)_330px]">
           <aside className="hidden border-r border-dyoor-purple/20 bg-black/20 p-3 lg:block">
             <p className="px-2 py-2 text-[0.62rem] font-black uppercase tracking-[0.2em] text-white/35">World streams</p>
             <WorldChannelList
@@ -1226,15 +1325,21 @@ export function DyoorWorldClient({ sessionWallet }: { sessionWallet: string }) {
             </div>
           </aside>
 
-          <section className="flex h-[calc(100dvh-9rem)] min-h-[30rem] min-w-0 flex-col lg:h-auto lg:min-h-[620px]">
+          <section
+            className={`flex min-w-0 max-w-full flex-col overflow-hidden lg:h-auto lg:min-h-[620px] ${
+              channelId === "trade-desk"
+                ? "h-auto min-h-0"
+                : "h-[calc(100dvh-9rem)] min-h-[30rem]"
+            }`}
+          >
             <div className="border-b border-dyoor-purple/20 px-4 py-4 sm:px-5">
               <div className="flex items-start justify-between gap-3">
-                <div>
+                <div className="min-w-0">
                   <p className="text-sm font-black text-white"># {selectedChannel.label}</p>
-                  <p className="mt-1 text-xs font-bold text-white/38">{selectedChannel.description}</p>
+                  <p className="mt-1 break-words text-xs font-bold text-white/38">{selectedChannel.description}</p>
                 </div>
                 {selectedChannel.readOnly ? (
-                  <span className="rounded-full border border-dyoor-monad/30 bg-dyoor-monad/10 px-2.5 py-1 text-[0.56rem] font-black uppercase tracking-[0.12em] text-dyoor-monad">
+                  <span className="shrink-0 rounded-full border border-dyoor-monad/30 bg-dyoor-monad/10 px-2.5 py-1 text-[0.56rem] font-black uppercase tracking-[0.12em] text-dyoor-monad">
                     Verified feed
                   </span>
                 ) : null}
@@ -1242,16 +1347,16 @@ export function DyoorWorldClient({ sessionWallet }: { sessionWallet: string }) {
             </div>
 
             {channelId === "trade-desk" ? (
-              <div className="border-b border-dyoor-purple/20 bg-gradient-to-r from-dyoor-purple/[0.08] to-dyoor-cyan/[0.05] p-4">
+              <div className="min-w-0 max-w-full overflow-hidden border-b border-dyoor-purple/20 bg-gradient-to-r from-dyoor-purple/[0.08] to-dyoor-cyan/[0.05] p-3 sm:p-4">
                 {config?.tradeEscrowAddress ? (
-                  <div className="grid gap-3 xl:grid-cols-2">
-                    <form className="rounded border border-dyoor-cyan/20 bg-black/25 p-4" onSubmit={createTrade}>
+                  <div className="grid min-w-0 max-w-full gap-3 xl:grid-cols-2">
+                    <form className="min-w-0 overflow-hidden rounded border border-dyoor-cyan/20 bg-black/25 p-3 sm:p-4" onSubmit={createTrade}>
                       <p className="text-[0.58rem] font-black uppercase tracking-[0.16em] text-dyoor-cyan">New atomic swap</p>
                       <h3 className="mt-1 text-lg font-black text-white">Choose the Droid you send</h3>
-                      <p className="mt-1 text-[0.62rem] font-bold leading-4 text-white/38">
+                      <p className="mt-1 break-words text-[0.62rem] font-bold leading-4 text-white/38">
                         Your selected Droid enters the ownerless escrow until the trade completes or you cancel.
                       </p>
-                      <div className="mt-3">
+                      <div className="mt-3 min-w-0 max-w-full">
                         <OwnedDroidPicker
                           disabled={Boolean(tradeBusy)}
                           onSelect={setTradeOfferedToken}
@@ -1260,7 +1365,7 @@ export function DyoorWorldClient({ sessionWallet }: { sessionWallet: string }) {
                         />
                       </div>
 
-                      <div className="mt-3 grid grid-cols-[minmax(0,1fr)_2.5rem_minmax(0,1fr)] items-center gap-2">
+                      <div className="mt-3 grid min-w-0 grid-cols-[minmax(0,1fr)_1.5rem_minmax(0,1fr)] items-center gap-1.5 sm:grid-cols-[minmax(0,1fr)_2.5rem_minmax(0,1fr)] sm:gap-2">
                         <WorldDroidPreview label="You send" tokenId={tradeOfferedToken} />
                         <div className="text-center text-xl font-black text-dyoor-cyan">↔</div>
                         <WorldDroidPreview label="You receive" tokenId={tradeRequestedToken} />
@@ -1290,7 +1395,7 @@ export function DyoorWorldClient({ sessionWallet }: { sessionWallet: string }) {
                             placeholder="Specific taker wallet (blank = open offer)"
                             value={tradeCounterparty}
                           />
-                          <div className="grid grid-cols-2 gap-2">
+                          <div className="grid grid-cols-1 gap-2 min-[380px]:grid-cols-2">
                             <label>
                               <span className="text-[0.52rem] font-black uppercase text-white/32">MON you add</span>
                               <input className="field-control mt-1 w-full text-xs" min="0" onChange={(event) => setTradeMonOffered(event.target.value)} step="0.01" type="number" value={tradeMonOffered} />
@@ -1322,10 +1427,10 @@ export function DyoorWorldClient({ sessionWallet }: { sessionWallet: string }) {
                         {tradeBusy === "create" ? "Approving + opening trade" : "Open atomic trade"}
                       </button>
                     </form>
-                    <div className="rounded border border-dyoor-purple/25 bg-black/25 p-4">
+                    <div className="min-w-0 overflow-hidden rounded border border-dyoor-purple/25 bg-black/25 p-3 sm:p-4">
                       <p className="text-[0.58rem] font-black uppercase tracking-[0.16em] text-dyoor-monad">Open or manage an offer</p>
                       <h3 className="mt-1 text-lg font-black text-white">Load a trade ID</h3>
-                      <div className="mt-3 flex gap-2">
+                      <div className="mt-3 grid min-w-0 gap-2 min-[380px]:grid-cols-[minmax(0,1fr)_auto]">
                         <input
                           className="field-control min-w-0 flex-1 text-sm"
                           inputMode="numeric"
@@ -1358,7 +1463,7 @@ export function DyoorWorldClient({ sessionWallet }: { sessionWallet: string }) {
                               {loadedTrade.statusLabel}
                             </span>
                           </div>
-                          <div className="mt-3 grid grid-cols-[minmax(0,1fr)_2.5rem_minmax(0,1fr)] items-center gap-2">
+                          <div className="mt-3 grid min-w-0 grid-cols-[minmax(0,1fr)_1.5rem_minmax(0,1fr)] items-center gap-1.5 sm:grid-cols-[minmax(0,1fr)_2.5rem_minmax(0,1fr)] sm:gap-2">
                             <WorldDroidPreview label="Maker offers" tokenId={loadedTrade.offeredTokenId} />
                             <div className="text-center text-xl font-black text-dyoor-monad">↔</div>
                             <WorldDroidPreview label="Taker sends" tokenId={loadedTrade.requestedTokenId} />
@@ -1437,7 +1542,9 @@ export function DyoorWorldClient({ sessionWallet }: { sessionWallet: string }) {
             ) : null}
 
             <div
-              className="world-message-stream min-h-0 flex-1 space-y-3 overflow-y-auto px-3 py-4 sm:px-5"
+              className={`world-message-stream min-h-0 flex-1 space-y-3 overflow-y-auto px-3 py-4 sm:px-5 ${
+                channelId === "trade-desk" ? "min-h-[28rem]" : ""
+              }`}
               ref={messageListRef}
             >
               {loadingMessages ? (
