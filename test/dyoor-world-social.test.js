@@ -259,6 +259,9 @@ test("World image uploads are holder-only, bounded, and sanitized", () => {
 
 test("World mobile side drawers and atomic trade desk stay streamlined", () => {
   const client = fs.readFileSync("components/dyoor-world/DyoorWorldClient.tsx", "utf8");
+  const gate = fs.readFileSync("components/dyoor-world/DyoorWorldGate.tsx", "utf8");
+  const siteNav = fs.readFileSync("components/layout/SiteNav.tsx", "utf8");
+  const siteFooter = fs.readFileSync("components/footer/SiteFooter.tsx", "utf8");
   const tradesRoute = fs.readFileSync("app/api/dyoor-world/trades/route.ts", "utf8");
   const server = fs.readFileSync("lib/dyoor-world-server.ts", "utf8");
 
@@ -270,6 +273,13 @@ test("World mobile side drawers and atomic trade desk stay streamlined", () => {
   assert.match(client, /Identity \+ Energy/);
   assert.match(client, /world-channel-context hidden .* sm:block/);
   assert.match(client, /Current thread: \$\{selectedChannel\.label\}/);
+  assert.match(client, /sticky top-0 z-\[90\]/);
+  assert.match(client, /h-\[calc\(100dvh-4rem\)\]/);
+  assert.match(client, /Eject from dYOOR World to the main D\.Y\.O\.O\.R site/);
+  assert.match(gate, /Standalone holder app/);
+  assert.match(gate, /↗ Eject/);
+  assert.match(siteNav, /if \(isWorldApp\) return null/);
+  assert.match(siteFooter, /pathname\.startsWith\(\"\/dyoor-world\"\)/);
   assert.match(client, /hidden border-r .* lg:block/);
   assert.match(client, /function OwnedDroidPicker/);
   assert.match(client, /Choose the Droid you send/);

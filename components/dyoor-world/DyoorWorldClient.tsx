@@ -17,6 +17,7 @@ import {
   useRef,
   useState,
 } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
   DYOOR_WORLD_CHANNELS,
@@ -1456,7 +1457,7 @@ export function DyoorWorldClient({ sessionWallet }: { sessionWallet: string }) {
     : null;
 
   return (
-    <main className="mx-auto min-h-[calc(100vh-5rem)] min-w-0 max-w-[1680px] overflow-x-clip px-3 py-4 sm:px-5 sm:py-6">
+    <main className="mx-auto min-h-[100dvh] min-w-0 max-w-[1680px] overflow-x-clip px-0 py-0 sm:px-5 sm:py-6">
       {mobileIdentityOpen ? (
         <button
           aria-label="Close World identity and Energy"
@@ -1502,8 +1503,8 @@ export function DyoorWorldClient({ sessionWallet }: { sessionWallet: string }) {
           </aside>
         </div>
       ) : null}
-      <section className="min-w-0 overflow-hidden rounded border border-dyoor-purple/30 bg-[#070818]/90 shadow-[0_24px_80px_rgba(0,0,0,.38)] lg:backdrop-blur-xl">
-        <header className="sticky top-20 z-40 flex min-h-16 items-center gap-2 border-b border-dyoor-purple/25 bg-[#080918]/95 px-3 py-3 shadow-[0_12px_32px_rgba(0,0,0,.25)] backdrop-blur-xl sm:gap-3 sm:px-5 lg:static lg:bg-black/25 lg:shadow-none">
+      <section className="min-w-0 overflow-hidden rounded-none border-x-0 border-b border-t-0 border-dyoor-purple/30 bg-[#070818]/90 shadow-[0_24px_80px_rgba(0,0,0,.38)] sm:rounded sm:border lg:backdrop-blur-xl">
+        <header className="sticky top-0 z-[90] flex min-h-16 items-center gap-2 border-b border-dyoor-purple/25 bg-[#080918]/95 px-3 py-3 shadow-[0_12px_32px_rgba(0,0,0,.25)] backdrop-blur-xl sm:gap-3 sm:px-5">
           <button
             aria-controls="world-mobile-threads"
             aria-expanded={mobileThreadsOpen}
@@ -1546,11 +1547,22 @@ export function DyoorWorldClient({ sessionWallet }: { sessionWallet: string }) {
               <span aria-hidden="true">⚡</span>
               <span className="hidden min-[360px]:inline">Identity</span>
             </button>
+            <Link
+              aria-label="Eject from dYOOR World to the main D.Y.O.O.R site"
+              className="world-mobile-panel-trigger border-red-300/30 text-red-100 lg:hidden"
+              href="/"
+            >
+              <span aria-hidden="true">↗</span>
+              <span className="hidden min-[360px]:inline">Eject</span>
+            </Link>
             <span className="hidden rounded-full border border-emerald-300/25 bg-emerald-300/10 px-3 py-1.5 text-[0.62rem] font-black uppercase tracking-[0.14em] text-emerald-200 sm:inline-flex">
               S2 gate active
             </span>
+            <Link className="btn-ghost hidden min-h-9 px-3 py-2 text-[0.66rem] lg:inline-flex" href="/">
+              Eject
+            </Link>
             <button className="btn-ghost hidden min-h-9 px-3 py-2 text-[0.66rem] lg:inline-flex" onClick={() => void exitWorld()} type="button">
-              Exit
+              Sign out
             </button>
           </div>
         </header>
@@ -1587,7 +1599,7 @@ export function DyoorWorldClient({ sessionWallet }: { sessionWallet: string }) {
             className={`flex min-w-0 max-w-full flex-col overflow-hidden lg:h-auto lg:min-h-[620px] ${
               channelId === "trade-desk"
                 ? "h-auto min-h-0"
-                : "h-[calc(100dvh-9rem)] min-h-[30rem]"
+                : "h-[calc(100dvh-4rem)] min-h-[30rem] sm:h-[calc(100dvh-7rem)]"
             }`}
           >
             <div className="world-channel-context hidden border-b border-dyoor-purple/20 px-4 py-4 sm:block sm:px-5">
@@ -2163,7 +2175,7 @@ export function DyoorWorldClient({ sessionWallet }: { sessionWallet: string }) {
                 onClick={() => void exitWorld()}
                 type="button"
               >
-                Exit
+                Sign out
               </button>
               <button
                 aria-label="Close identity and Energy"

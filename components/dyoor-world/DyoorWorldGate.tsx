@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { DyoorWorldGlyph } from "@/components/dyoor-world/DyoorWorldDiscovery";
@@ -105,45 +106,57 @@ export function DyoorWorldGate() {
             : "Authenticate and enter";
 
   return (
-    <main className="page-shell flex min-h-[calc(100vh-10rem)] items-center justify-center">
-      <section className="glass-panel-strong relative w-full max-w-3xl overflow-hidden p-6 sm:p-10">
-        <div className="absolute -right-20 -top-20 h-64 w-64 rounded-full bg-dyoor-cyan/10 blur-3xl" />
-        <div className="absolute -bottom-28 -left-16 h-72 w-72 rounded-full bg-dyoor-purple/15 blur-3xl" />
-        <div className="relative mx-auto flex max-w-xl flex-col items-center text-center">
-          <div className="relative flex h-24 w-24 items-center justify-center rounded-full border border-dyoor-cyan/45 bg-black/35 text-dyoor-cyan shadow-[0_0_52px_rgba(57,255,226,.18)]">
-            <span className="absolute inset-2 animate-pulse rounded-full border border-dyoor-purple/45" />
-            <DyoorWorldGlyph className="relative h-12 w-12" />
-          </div>
-          <p className="eyebrow mt-7">Unlisted signal // S2 holders only</p>
-          <h1 className="heading-gradient mt-4 text-4xl sm:text-6xl">dYOOR World</h1>
-          <p className="mt-5 max-w-lg text-sm font-bold leading-7 text-white/62 sm:text-base">
-            The holder-exclusive community layer for D.Y.O.O.R on Monad. Access
-            requires a read-only S2 ownership check and a one-time wallet signature.
-            Discord and Telegram remain the public onboarding path.
-          </p>
-          <div className="mt-7 grid w-full gap-3 rounded border border-white/10 bg-black/30 p-4 text-left text-xs font-bold leading-6 text-white/55 sm:grid-cols-3">
-            <div><span className="block text-dyoor-cyan">01</span>Hold an active S2 Droid</div>
-            <div><span className="block text-dyoor-cyan">02</span>Sign the holder challenge</div>
-            <div><span className="block text-dyoor-cyan">03</span>Enter the private World</div>
-          </div>
-          <button
-            className="btn-primary mt-7 w-full sm:w-auto sm:min-w-72"
-            disabled={working || Boolean(address && eligible !== true && wallet.status !== "wrong-network")}
-            onClick={() => void enterWorld()}
-            type="button"
-          >
-            {buttonLabel}
-          </button>
-          {error ? (
-            <p className="mt-4 w-full rounded border border-red-400/35 bg-red-400/10 px-4 py-3 text-sm font-bold text-red-100">
-              {error}
-            </p>
-          ) : null}
-          <p className="mt-5 text-[0.68rem] font-black uppercase tracking-[0.14em] text-white/32">
-            Signing does not spend MON, Energy, or approve a transaction.
-          </p>
+    <>
+      <header className="sticky top-0 z-[90] flex min-h-16 items-center gap-3 border-b border-dyoor-purple/30 bg-[#080918]/95 px-4 py-3 shadow-[0_12px_32px_rgba(0,0,0,.3)] backdrop-blur-xl">
+        <DyoorWorldGlyph className="h-8 w-8 text-dyoor-cyan" />
+        <div className="mr-auto">
+          <p className="text-[0.55rem] font-black uppercase tracking-[0.18em] text-dyoor-cyan">Standalone holder app</p>
+          <p className="text-sm font-black uppercase text-white">dYOOR World</p>
         </div>
-      </section>
-    </main>
+        <Link className="btn-ghost min-h-9 px-3 py-2 text-[0.62rem]" href="/">
+          ↗ Eject
+        </Link>
+      </header>
+      <main className="page-shell flex min-h-[calc(100dvh-4rem)] items-center justify-center">
+        <section className="glass-panel-strong relative w-full max-w-3xl overflow-hidden p-6 sm:p-10">
+          <div className="absolute -right-20 -top-20 h-64 w-64 rounded-full bg-dyoor-cyan/10 blur-3xl" />
+          <div className="absolute -bottom-28 -left-16 h-72 w-72 rounded-full bg-dyoor-purple/15 blur-3xl" />
+          <div className="relative mx-auto flex max-w-xl flex-col items-center text-center">
+            <div className="relative flex h-24 w-24 items-center justify-center rounded-full border border-dyoor-cyan/45 bg-black/35 text-dyoor-cyan shadow-[0_0_52px_rgba(57,255,226,.18)]">
+              <span className="absolute inset-2 animate-pulse rounded-full border border-dyoor-purple/45" />
+              <DyoorWorldGlyph className="relative h-12 w-12" />
+            </div>
+            <p className="eyebrow mt-7">Unlisted signal // S2 holders only</p>
+            <h1 className="heading-gradient mt-4 text-4xl sm:text-6xl">dYOOR World</h1>
+            <p className="mt-5 max-w-lg text-sm font-bold leading-7 text-white/62 sm:text-base">
+              The holder-exclusive community layer for D.Y.O.O.R on Monad. Access
+              requires a read-only S2 ownership check and a one-time wallet signature.
+              Discord and Telegram remain the public onboarding path.
+            </p>
+            <div className="mt-7 grid w-full gap-3 rounded border border-white/10 bg-black/30 p-4 text-left text-xs font-bold leading-6 text-white/55 sm:grid-cols-3">
+              <div><span className="block text-dyoor-cyan">01</span>Hold an active S2 Droid</div>
+              <div><span className="block text-dyoor-cyan">02</span>Sign the holder challenge</div>
+              <div><span className="block text-dyoor-cyan">03</span>Enter the private World</div>
+            </div>
+            <button
+              className="btn-primary mt-7 w-full sm:w-auto sm:min-w-72"
+              disabled={working || Boolean(address && eligible !== true && wallet.status !== "wrong-network")}
+              onClick={() => void enterWorld()}
+              type="button"
+            >
+              {buttonLabel}
+            </button>
+            {error ? (
+              <p className="mt-4 w-full rounded border border-red-400/35 bg-red-400/10 px-4 py-3 text-sm font-bold text-red-100">
+                {error}
+              </p>
+            ) : null}
+            <p className="mt-5 text-[0.68rem] font-black uppercase tracking-[0.14em] text-white/32">
+              Signing does not spend MON, Energy, or approve a transaction.
+            </p>
+          </div>
+        </section>
+      </main>
+    </>
   );
 }

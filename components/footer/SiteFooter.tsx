@@ -1,5 +1,8 @@
+"use client";
+
 import Image from "next/image";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import dyoorLogo from "@/assets/dyoor-logo.png";
 
 const socials = [
@@ -11,6 +14,9 @@ const socials = [
 ];
 
 export function SiteFooter() {
+  const pathname = usePathname();
+  if (pathname.startsWith("/dyoor-world")) return null;
+
   return (
     <footer className="border-t border-dyoor-purple/25 bg-[#050513]/72 shadow-[0_-26px_54px_rgba(131,110,249,.10)]">
       <div className="mx-auto grid max-w-7xl gap-6 px-5 py-8 md:grid-cols-[1fr_auto] md:items-center">
