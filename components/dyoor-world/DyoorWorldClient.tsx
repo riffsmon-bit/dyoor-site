@@ -15,8 +15,8 @@ import {
   type DyoorWorldChannelId,
   type DyoorWorldMessageView,
   type DyoorWorldProfile,
-  normalizeWorldLabel,
   shortWorldWallet,
+  validateWorldLabel,
 } from "@/lib/dyoor-world";
 import {
   normalizeDyoorWorldAttachment,
@@ -46,6 +46,15 @@ type ProfileResponse = {
   avatar?: DyoorWorldAvatar | null;
   config?: WorldConfig;
   error?: string;
+};
+
+type WorldNameAvailability = {
+  label: string;
+  displayName: string;
+  available: boolean;
+  registryMode: "monad" | "preview-reservation";
+  currentName: string;
+  reason: string;
 };
 
 type RewardStatus = {
@@ -216,6 +225,47 @@ function messageTime(value: string) {
 function shortenedHash(value?: unknown) {
   const hash = String(value || "");
   return hash.length > 14 ? `${hash.slice(0, 8)}…${hash.slice(-5)}` : hash;
+}
+
+function readableWorldNameClaimError(error: unknown) {
+  const value = error as {
+    message?: string;
+    shortMessage?: string;
+    details?: string;
+    cause?: { message?: string; shortMessage?: string };
+  };
+  const raw = [
+    value?.shortMessage,
+    value?.message,
+    value?.details,
+    value?.cause?.shortMessage,
+    value?.cause?.message,
+  ].filter(Boolean).join(" · ");
+  if (/user rejected|user denied|request rejected/i.test(raw)) {
+    return "The wallet request was cancelled. No name was claimed.";
+  }
+  if (/WalletAlreadyNamed/i.test(raw)) {
+    return "This wallet already has a .dYOOR name. Each holder wallet can claim one.";
+  }
+  if (/NameAlreadyClaimed/i.test(raw)) {
+    return "That .dYOOR name was just claimed. Choose another name.";
+  }
+  if (/LabelReservedForProtocol/i.test(raw)) {
+    return "That name is reserved by D.Y.O.O.R. Choose another name.";
+  }
+  if (/HolderRequired/i.test(raw)) {
+    return "This wallet must currently hold an S2 Droid to claim a .dYOOR name.";
+  }
+  if (/ClaimsClosed/i.test(raw)) {
+    return "dYOOR World name claims are currently closed.";
+  }
+  if (/InvalidLabel/i.test(raw)) {
+    return "Use 3–24 lowercase letters, numbers, or interior hyphens.";
+  }
+  if (/execution reverted|reverted|Monad transaction failed/i.test(raw)) {
+    return "The registry rejected this claim. Recheck the name availability and wallet, then try again.";
+  }
+  return raw || "Could not claim this World name.";
 }
 
 function WorldChannelList({
@@ -399,6 +449,8 @@ export function DyoorWorldClient({ sessionWallet }: { sessionWallet: string }) {
   const [avatarTokenId, setAvatarTokenId] = useState("");
   const [avatarPreview, setAvatarPreview] = useState("");
   const [label, setLabel] = useState("");
+  const [nameAvailability, setNameAvailability] = useState<WorldNameAvailability | null>(null);
+  const [checkingName, setCheckingName] = useState(false);
   const [draft, setDraft] = useState("");
   const [composerAttachment, setComposerAttachment] = useState<DyoorWorldMessageAttachment | null>(null);
   const [loadingMessages, setLoadingMessages] = useState(true);
@@ -422,6 +474,8 @@ export function DyoorWorldClient({ sessionWallet }: { sessionWallet: string }) {
   const [notice, setNotice] = useState("");
   const [error, setError] = useState("");
   const [mobileThreadsOpen, setMobileThreadsOpen] = useState(false);
+  const [mobileIdentityOpen, setMobileIdentityOpen] = useState(false);
+  const messageListRef = useRef<HTMLDivElement>(null);
   const messageEndRef = useRef<HTMLDivElement>(null);
   const tipAmountRef = useRef<HTMLInputElement>(null);
   const selectedChannel = useMemo(
@@ -508,6 +562,44 @@ export function DyoorWorldClient({ sessionWallet }: { sessionWallet: string }) {
   }, [avatar?.tokenId, avatarTokenId]);
 
   useEffect(() => {
+    const validation = validateWorldLabel(label);
+    if (!config || profile || !validation.ok) return;
+    const controller = new AbortController();
+    const timer = window.setTimeout(async () => {
+      setCheckingName(true);
+      try {
+        const response = await fetch(
+          `/api/dyoor-world/names/availability?label=${encodeURIComponent(validation.label)}`,
+          { cache: "no-store", signal: controller.signal },
+        );
+        const data = await readResponse<{ availability?: WorldNameAvailability }>(response);
+        if (!controller.signal.aborted) {
+          setNameAvailability(data.availability || null);
+        }
+      } catch (caught) {
+        if (!controller.signal.aborted) {
+          setNameAvailability({
+            label: validation.label,
+            displayName: `${validation.label}.dYOOR`,
+            available: false,
+            registryMode: config.registryMode,
+            currentName: "",
+            reason: caught instanceof Error
+              ? caught.message
+              : "Could not verify this name yet.",
+          });
+        }
+      } finally {
+        if (!controller.signal.aborted) setCheckingName(false);
+      }
+    }, 320);
+    return () => {
+      controller.abort();
+      window.clearTimeout(timer);
+    };
+  }, [config, label, profile]);
+
+  useEffect(() => {
     const initialTimer = window.setTimeout(() => void loadMessages(), 0);
     const timer = window.setInterval(() => {
       if (document.visibilityState === "visible") void loadMessages(true);
@@ -519,17 +611,32 @@ export function DyoorWorldClient({ sessionWallet }: { sessionWallet: string }) {
   }, [loadMessages]);
 
   useEffect(() => {
-    messageEndRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
-  }, [messages.length]);
+    const frame = window.requestAnimationFrame(() => {
+      const messageList = messageListRef.current;
+      if (!messageList) return;
+      messageList.scrollTo({
+        top: messageList.scrollHeight,
+        behavior: "smooth",
+      });
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, [channelId, messages.length]);
 
   useEffect(() => {
-    if (!mobileThreadsOpen) return;
+    if (!mobileThreadsOpen && !mobileIdentityOpen) return;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
     const closeOnEscape = (event: globalThis.KeyboardEvent) => {
-      if (event.key === "Escape") setMobileThreadsOpen(false);
+      if (event.key !== "Escape") return;
+      setMobileThreadsOpen(false);
+      setMobileIdentityOpen(false);
     };
     document.addEventListener("keydown", closeOnEscape);
-    return () => document.removeEventListener("keydown", closeOnEscape);
-  }, [mobileThreadsOpen]);
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      document.removeEventListener("keydown", closeOnEscape);
+    };
+  }, [mobileIdentityOpen, mobileThreadsOpen]);
 
   useEffect(() => {
     if (!tipTarget) return;
@@ -569,19 +676,43 @@ export function DyoorWorldClient({ sessionWallet }: { sessionWallet: string }) {
 
   async function claimName(event: FormEvent) {
     event.preventDefault();
-    const normalizedLabel = normalizeWorldLabel(label);
-    if (!normalizedLabel || !config) return;
+    const validation = validateWorldLabel(label);
+    if (!validation.ok || !config) {
+      setError(validation.ok ? "The World name registry is still loading." : validation.error);
+      return;
+    }
+    const normalizedLabel = validation.label;
     setClaiming(true);
     setError("");
     setNotice("");
     try {
       const latest = await loadProfile();
       const liveConfig = latest.config || config;
+      if (latest.profile) {
+        setProfile(latest.profile);
+        throw new Error(
+          `${latest.profile.displayName} is already assigned to this wallet. Each holder wallet can claim one .dYOOR name.`,
+        );
+      }
       if (liveConfig.registryMode === "monad" && liveConfig.registryAddress) {
         if (!liveConfig.claimsOpen) {
           throw new Error("dYOOR World name claims are currently closed.");
         }
         const from = await ensureActiveWallet();
+        const availabilityResponse = await fetch(
+          `/api/dyoor-world/names/availability?label=${encodeURIComponent(normalizedLabel)}`,
+          { cache: "no-store" },
+        );
+        const availabilityData = await readResponse<{
+          availability?: WorldNameAvailability;
+        }>(availabilityResponse);
+        const availability = availabilityData.availability;
+        setNameAvailability(availability || null);
+        if (!availability?.available) {
+          throw new Error(
+            availability?.reason || "That .dYOOR name is not currently available.",
+          );
+        }
         const data = encodeFunctionData({
           abi: WORLD_NAMES_ABI,
           functionName: "claim",
@@ -593,6 +724,7 @@ export function DyoorWorldClient({ sessionWallet }: { sessionWallet: string }) {
           data,
         });
         setNotice(`Monad claim submitted: ${shortenedHash(txHash)}`);
+        await waitForTransaction(txHash);
         for (let attempt = 0; attempt < 12; attempt += 1) {
           await new Promise((resolve) => window.setTimeout(resolve, 1_500));
           const result = await loadProfile();
@@ -610,8 +742,9 @@ export function DyoorWorldClient({ sessionWallet }: { sessionWallet: string }) {
         setNotice(`${data.profile?.displayName || "World name"} reserved for this preview.`);
       }
       setLabel("");
+      setNameAvailability(null);
     } catch (caught) {
-      setError(caught instanceof Error ? caught.message : "Could not claim this World name.");
+      setError(readableWorldNameClaimError(caught));
     } finally {
       setClaiming(false);
     }
@@ -956,20 +1089,32 @@ export function DyoorWorldClient({ sessionWallet }: { sessionWallet: string }) {
     100,
     Math.max(0, (chatEnergyEarnedToday / chatEnergyDailyCap) * 100),
   );
+  const nameValidation = validateWorldLabel(label);
+  const currentNameAvailability = nameAvailability?.label === nameValidation.label
+    ? nameAvailability
+    : null;
 
   return (
     <main className="mx-auto min-h-[calc(100vh-5rem)] max-w-[1680px] px-3 py-4 sm:px-5 sm:py-6">
+      {mobileIdentityOpen ? (
+        <button
+          aria-label="Close World identity and Energy"
+          className="world-drawer-backdrop fixed inset-0 z-[100] bg-black/75 backdrop-blur-sm lg:hidden"
+          onClick={() => setMobileIdentityOpen(false)}
+          type="button"
+        />
+      ) : null}
       {mobileThreadsOpen ? (
-        <div className="fixed inset-0 z-[80] lg:hidden">
+        <div className="fixed inset-0 z-[100] lg:hidden">
           <button
             aria-label="Close World threads"
-            className="absolute inset-0 bg-black/75 backdrop-blur-sm"
+            className="world-drawer-backdrop absolute inset-0 bg-black/75 backdrop-blur-sm"
             onClick={() => setMobileThreadsOpen(false)}
             type="button"
           />
           <aside
             aria-label="dYOOR World threads"
-            className="absolute inset-y-0 left-0 w-[min(86vw,22rem)] overflow-y-auto border-r border-dyoor-purple/35 bg-[#080918] p-4 shadow-[24px_0_70px_rgba(0,0,0,.55)]"
+            className="world-drawer-left absolute inset-y-0 left-0 w-[min(86vw,22rem)] overflow-y-auto border-r border-dyoor-purple/35 bg-[#080918] p-4 shadow-[24px_0_70px_rgba(0,0,0,.55)]"
             id="world-mobile-threads"
           >
             <div className="flex items-center justify-between gap-3 border-b border-white/10 pb-4">
@@ -993,37 +1138,61 @@ export function DyoorWorldClient({ sessionWallet }: { sessionWallet: string }) {
                 onSelect={(nextChannel) => {
                   setChannelId(nextChannel);
                   setMobileThreadsOpen(false);
+                  setMobileIdentityOpen(false);
                 }}
               />
             </div>
           </aside>
         </div>
       ) : null}
-      <section className="overflow-hidden rounded border border-dyoor-purple/30 bg-[#070818]/90 shadow-[0_24px_80px_rgba(0,0,0,.38)] backdrop-blur-xl">
-        <header className="flex min-h-16 flex-wrap items-center gap-3 border-b border-dyoor-purple/25 bg-black/25 px-4 py-3 sm:px-5">
+      <section className="overflow-visible rounded border border-dyoor-purple/30 bg-[#070818]/90 shadow-[0_24px_80px_rgba(0,0,0,.38)] lg:overflow-hidden lg:backdrop-blur-xl">
+        <header className="sticky top-20 z-40 flex min-h-16 items-center gap-2 border-b border-dyoor-purple/25 bg-[#080918]/95 px-3 py-3 shadow-[0_12px_32px_rgba(0,0,0,.25)] backdrop-blur-xl sm:gap-3 sm:px-5 lg:static lg:bg-black/25 lg:shadow-none">
+          <button
+            aria-controls="world-mobile-threads"
+            aria-expanded={mobileThreadsOpen}
+            aria-label="Open World threads"
+            className="world-mobile-panel-trigger shrink-0 lg:hidden"
+            onClick={() => {
+              setMobileIdentityOpen(false);
+              setMobileThreadsOpen(true);
+            }}
+            type="button"
+          >
+            <span aria-hidden="true" className="grid gap-1">
+              <span className="block h-px w-4 bg-current" />
+              <span className="block h-px w-4 bg-current" />
+              <span className="block h-px w-4 bg-current" />
+            </span>
+            <span className="hidden min-[360px]:inline">Threads</span>
+          </button>
           <div className="flex min-w-0 items-center gap-3">
             <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded border border-dyoor-cyan/40 bg-dyoor-cyan/10 text-dyoor-cyan">
               <DyoorWorldGlyph className="h-6 w-6" />
             </div>
             <div className="min-w-0">
-              <p className="text-[0.62rem] font-black uppercase tracking-[0.2em] text-dyoor-cyan">Private Monad node</p>
-              <h1 className="truncate text-lg font-black uppercase text-white">dYOOR World</h1>
+              <p className="hidden text-[0.62rem] font-black uppercase tracking-[0.2em] text-dyoor-cyan sm:block">Private Monad node</p>
+              <h1 className="sr-only font-black uppercase text-white sm:not-sr-only sm:block sm:truncate sm:text-lg">dYOOR World</h1>
             </div>
           </div>
           <div className="ml-auto flex items-center gap-2">
             <button
-              aria-controls="world-mobile-threads"
-              aria-expanded={mobileThreadsOpen}
-              className="btn-ghost min-h-9 px-3 py-2 text-[0.66rem] lg:hidden"
-              onClick={() => setMobileThreadsOpen(true)}
+              aria-controls="world-mobile-identity"
+              aria-expanded={mobileIdentityOpen}
+              aria-label="Open World identity and Energy"
+              className="world-mobile-panel-trigger border-dyoor-monad/35 text-dyoor-monad lg:hidden"
+              onClick={() => {
+                setMobileThreadsOpen(false);
+                setMobileIdentityOpen(true);
+              }}
               type="button"
             >
-              Threads
+              <span aria-hidden="true">⚡</span>
+              <span className="hidden min-[360px]:inline">Identity</span>
             </button>
             <span className="hidden rounded-full border border-emerald-300/25 bg-emerald-300/10 px-3 py-1.5 text-[0.62rem] font-black uppercase tracking-[0.14em] text-emerald-200 sm:inline-flex">
               S2 gate active
             </span>
-            <button className="btn-ghost min-h-9 px-3 py-2 text-[0.66rem]" onClick={() => void exitWorld()} type="button">
+            <button className="btn-ghost hidden min-h-9 px-3 py-2 text-[0.66rem] lg:inline-flex" onClick={() => void exitWorld()} type="button">
               Exit
             </button>
           </div>
@@ -1041,7 +1210,7 @@ export function DyoorWorldClient({ sessionWallet }: { sessionWallet: string }) {
           <div className="border-b border-dyoor-cyan/25 bg-dyoor-cyan/[0.07] px-4 py-3 text-sm font-bold text-dyoor-cyan">{notice}</div>
         ) : null}
 
-        <div className="grid min-h-[760px] lg:grid-cols-[250px_minmax(0,1fr)_330px]">
+        <div className="grid min-h-0 lg:min-h-[760px] lg:grid-cols-[250px_minmax(0,1fr)_330px]">
           <aside className="hidden border-r border-dyoor-purple/20 bg-black/20 p-3 lg:block">
             <p className="px-2 py-2 text-[0.62rem] font-black uppercase tracking-[0.2em] text-white/35">World streams</p>
             <WorldChannelList
@@ -1057,7 +1226,7 @@ export function DyoorWorldClient({ sessionWallet }: { sessionWallet: string }) {
             </div>
           </aside>
 
-          <section className="flex min-h-[620px] min-w-0 flex-col">
+          <section className="flex h-[calc(100dvh-9rem)] min-h-[30rem] min-w-0 flex-col lg:h-auto lg:min-h-[620px]">
             <div className="border-b border-dyoor-purple/20 px-4 py-4 sm:px-5">
               <div className="flex items-start justify-between gap-3">
                 <div>
@@ -1267,7 +1436,10 @@ export function DyoorWorldClient({ sessionWallet }: { sessionWallet: string }) {
               </div>
             ) : null}
 
-            <div className="flex-1 space-y-1 overflow-y-auto px-3 py-4 sm:px-5">
+            <div
+              className="world-message-stream min-h-0 flex-1 space-y-3 overflow-y-auto px-3 py-4 sm:px-5"
+              ref={messageListRef}
+            >
               {loadingMessages ? (
                 <div className="space-y-3">
                   {[0, 1, 2].map((index) => <div className="skeleton-line h-16" key={index} />)}
@@ -1286,21 +1458,26 @@ export function DyoorWorldClient({ sessionWallet }: { sessionWallet: string }) {
                     </p>
                   </div>
                 </div>
-              ) : messages.map((message) => {
+              ) : messages.map((message, messageIndex) => {
                 const imageUrl = String(message.data?.imageUrl || "");
                 const isSystem = (message.kind || "user") !== "user";
+                const isOwn = !isSystem
+                  && normalizeAddress(message.wallet) === normalizedSessionWallet;
                 const attachment = normalizeDyoorWorldAttachment(message.attachment);
                 return (
                   <article
-                    className={`group rounded border px-3 py-3 transition ${
+                    className={`world-message-bubble group relative rounded-2xl border px-3 py-3 transition ${
                       isSystem
-                        ? "border-dyoor-purple/15 bg-gradient-to-r from-dyoor-purple/[0.07] to-transparent"
-                        : "border-transparent hover:border-white/[0.04] hover:bg-white/[0.025]"
+                        ? "world-message-system w-full border-dyoor-purple/25 bg-gradient-to-r from-dyoor-purple/[0.13] via-dyoor-purple/[0.06] to-transparent"
+                        : isOwn
+                          ? "world-message-own ml-auto w-fit max-w-[92%] border-dyoor-cyan/25 bg-gradient-to-br from-dyoor-cyan/[0.16] via-[#102c37]/90 to-dyoor-purple/[0.12] sm:max-w-[84%]"
+                          : "world-message-peer mr-auto w-fit max-w-[92%] border-dyoor-purple/25 bg-gradient-to-br from-[#17162b]/95 via-[#101225]/95 to-dyoor-purple/[0.11] sm:max-w-[84%]"
                     }`}
                     key={message.id}
+                    style={{ animationDelay: `${Math.min(messageIndex, 6) * 35}ms` }}
                   >
-                    <div className="flex gap-3">
-                      <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded border border-white/10 bg-black/30">
+                    <div className={`flex gap-3 ${isOwn ? "flex-row-reverse" : ""}`}>
+                      <div className="world-message-avatar flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-white/10 bg-black/30">
                         {message.avatar?.imageUrl ? (
                           <img alt={`S2 #${message.avatar.tokenId}`} className="h-full w-full object-cover" src={mediaUrl(message.avatar.imageUrl)} />
                         ) : imageUrl ? (
@@ -1309,9 +1486,9 @@ export function DyoorWorldClient({ sessionWallet }: { sessionWallet: string }) {
                           <DyoorWorldGlyph className={`h-5 w-5 ${isSystem ? "text-dyoor-monad" : "text-white/30"}`} />
                         )}
                       </div>
-                      <div className="min-w-0 flex-1">
-                        <div className="flex flex-wrap items-baseline gap-2">
-                          {isSystem || message.wallet === normalizedSessionWallet ? (
+                      <div className={`min-w-0 flex-1 ${isOwn ? "text-right" : ""}`}>
+                        <div className={`flex flex-wrap items-baseline gap-2 ${isOwn ? "justify-end" : ""}`}>
+                          {isSystem || isOwn ? (
                             <span className={`text-xs font-black ${isSystem ? "text-dyoor-monad" : "text-dyoor-cyan"}`}>
                               {message.author}
                             </span>
@@ -1333,11 +1510,11 @@ export function DyoorWorldClient({ sessionWallet }: { sessionWallet: string }) {
                           {isSystem ? <span className="text-[0.53rem] font-black uppercase tracking-[0.12em] text-white/28">verified {message.kind}</span> : null}
                         </div>
                         {message.content ? (
-                          <p className="mt-1 whitespace-pre-wrap break-words text-sm font-medium leading-6 text-white/72">{message.content}</p>
+                          <p className="world-message-copy mt-1 whitespace-pre-wrap break-words text-sm font-medium leading-6 text-white/78">{message.content}</p>
                         ) : null}
                         {attachment?.kind === "image" || attachment?.kind === "gif" ? (
                           <a
-                            className="relative mt-3 block w-fit max-w-full overflow-hidden rounded-lg border border-dyoor-purple/25 bg-black/35 shadow-[0_0_30px_rgba(128,92,255,.12)] transition hover:border-dyoor-cyan/45"
+                            className={`relative mt-3 block w-fit max-w-full overflow-hidden rounded-xl border border-dyoor-purple/25 bg-black/35 shadow-[0_0_30px_rgba(128,92,255,.12)] transition hover:border-dyoor-cyan/45 ${isOwn ? "ml-auto" : ""}`}
                             href={attachment.url}
                             rel="noreferrer"
                             target="_blank"
@@ -1354,11 +1531,11 @@ export function DyoorWorldClient({ sessionWallet }: { sessionWallet: string }) {
                             </span>
                           </a>
                         ) : attachment?.kind === "sticker" ? (
-                          <div className="mt-3">
+                          <div className={`mt-3 ${isOwn ? "flex justify-end" : ""}`}>
                             <DyoorWorldStickerCard stickerId={attachment.stickerId} />
                           </div>
                         ) : null}
-                        <div className="mt-2 flex flex-wrap gap-2">
+                        <div className={`mt-2 flex flex-wrap gap-2 ${isOwn ? "justify-end" : ""}`}>
                           {message.data?.openSeaUrl ? (
                             <a className="text-[0.6rem] font-black uppercase tracking-[0.1em] text-dyoor-cyan hover:text-white" href={String(message.data.openSeaUrl)} rel="noreferrer" target="_blank">
                               View on OpenSea ↗
@@ -1451,7 +1628,36 @@ export function DyoorWorldClient({ sessionWallet }: { sessionWallet: string }) {
             ) : null}
           </section>
 
-          <aside className="border-t border-dyoor-purple/20 bg-black/20 p-4 lg:border-l lg:border-t-0">
+          <aside
+            aria-label="World identity and Daily Energy"
+            className={`fixed inset-y-0 right-0 z-[110] w-[min(92vw,24rem)] overflow-y-auto border-l border-dyoor-purple/35 bg-[#080918] p-4 shadow-[-24px_0_70px_rgba(0,0,0,.58)] transition-[transform,visibility] duration-300 ease-out ${
+              mobileIdentityOpen
+                ? "visible translate-x-0"
+                : "invisible translate-x-full pointer-events-none"
+            } lg:visible lg:static lg:z-auto lg:w-auto lg:translate-x-0 lg:overflow-visible lg:border-l lg:border-t-0 lg:border-dyoor-purple/20 lg:bg-black/20 lg:pointer-events-auto lg:shadow-none`}
+            id="world-mobile-identity"
+          >
+            <div className="sticky -top-4 z-20 -mx-4 -mt-4 mb-4 flex items-center gap-2 border-b border-white/10 bg-[#080918]/95 px-4 py-4 backdrop-blur-xl lg:hidden">
+              <div className="mr-auto">
+                <p className="text-[0.55rem] font-black uppercase tracking-[0.18em] text-dyoor-monad">Holder console</p>
+                <p className="mt-1 text-sm font-black uppercase text-white">Identity + Energy</p>
+              </div>
+              <button
+                className="btn-ghost min-h-9 px-3 text-[0.6rem]"
+                onClick={() => void exitWorld()}
+                type="button"
+              >
+                Exit
+              </button>
+              <button
+                aria-label="Close identity and Energy"
+                className="flex h-9 w-9 items-center justify-center rounded border border-white/10 text-lg font-black text-white/55"
+                onClick={() => setMobileIdentityOpen(false)}
+                type="button"
+              >
+                ×
+              </button>
+            </div>
             <p className="text-[0.62rem] font-black uppercase tracking-[0.2em] text-white/35">World identity</p>
             <div className="mt-3 overflow-hidden rounded border border-dyoor-cyan/25 bg-gradient-to-br from-dyoor-cyan/[0.09] via-transparent to-dyoor-purple/[0.12]">
               <div className="flex items-center gap-3 p-3">
@@ -1491,7 +1697,7 @@ export function DyoorWorldClient({ sessionWallet }: { sessionWallet: string }) {
               </div>
             </div>
 
-            {!profile ? (
+            {config && !profile ? (
               <form className="mt-4 rounded border border-dyoor-purple/25 bg-dyoor-purple/[0.06] p-4" onSubmit={claimName}>
                 <p className="text-sm font-black text-white">Create your .dYOOR name</p>
                 <p className="mt-2 text-xs font-bold leading-5 text-white/42">
@@ -1507,19 +1713,56 @@ export function DyoorWorldClient({ sessionWallet }: { sessionWallet: string }) {
                     className="min-w-0 flex-1 bg-transparent px-3 py-3 text-sm font-black text-white outline-none placeholder:text-white/20"
                     maxLength={24}
                     minLength={3}
-                    onChange={(event) => setLabel(event.target.value)}
+                    onChange={(event) => {
+                      setLabel(event.target.value);
+                      setNameAvailability(null);
+                      setCheckingName(false);
+                    }}
                     pattern="[a-zA-Z0-9](?:[a-zA-Z0-9-]*[a-zA-Z0-9])?"
                     placeholder="riffs"
                     value={label}
                   />
                   <span className="flex items-center border-l border-white/10 px-3 text-xs font-black text-dyoor-cyan">.dYOOR</span>
                 </div>
+                {label ? (
+                  <p
+                    aria-live="polite"
+                    className={`mt-2 text-[0.6rem] font-bold leading-4 ${
+                      currentNameAvailability?.available
+                        ? "text-emerald-200"
+                        : "text-yellow-100/65"
+                    }`}
+                  >
+                    {checkingName
+                      ? `Checking ${nameValidation.label || "name"}.dYOOR on Monad…`
+                      : !nameValidation.ok
+                        ? nameValidation.error
+                        : currentNameAvailability?.reason
+                          || "Waiting for the registry availability check…"}
+                  </p>
+                ) : (
+                  <p className="mt-2 text-[0.58rem] font-bold text-white/28">
+                    Availability and wallet eligibility are verified before MetaMask opens.
+                  </p>
+                )}
                 <button
                   className="btn-secondary mt-3 w-full text-xs"
-                  disabled={claiming || normalizeWorldLabel(label).length < 3 || (config?.registryMode === "monad" && !config.claimsOpen)}
+                  disabled={
+                    claiming
+                    || checkingName
+                    || !nameValidation.ok
+                    || currentNameAvailability?.available !== true
+                    || (config.registryMode === "monad" && !config.claimsOpen)
+                  }
                   type="submit"
                 >
-                  {claiming ? "Claiming" : config?.registryMode === "monad" ? config.claimsOpen ? "Claim on Monad" : "Claims closed" : "Reserve preview name"}
+                  {claiming
+                    ? "Claiming"
+                    : checkingName
+                      ? "Checking name"
+                      : config.registryMode === "monad"
+                        ? config.claimsOpen ? "Claim on Monad" : "Claims closed"
+                        : "Reserve preview name"}
                 </button>
               </form>
             ) : null}

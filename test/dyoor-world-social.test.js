@@ -182,13 +182,17 @@ test("World image uploads are holder-only, bounded, and sanitized", () => {
   assert.match(store, /MAX_UPLOADS_PER_WALLET = 40/);
 });
 
-test("World mobile threads and atomic trade desk stay streamlined", () => {
+test("World mobile side drawers and atomic trade desk stay streamlined", () => {
   const client = fs.readFileSync("components/dyoor-world/DyoorWorldClient.tsx", "utf8");
   const tradesRoute = fs.readFileSync("app/api/dyoor-world/trades/route.ts", "utf8");
   const server = fs.readFileSync("lib/dyoor-world-server.ts", "utf8");
 
   assert.match(client, /id="world-mobile-threads"/);
-  assert.match(client, /fixed inset-0 z-\[80\] lg:hidden/);
+  assert.match(client, /id="world-mobile-identity"/);
+  assert.match(client, /fixed inset-0 z-\[100\] lg:hidden/);
+  assert.match(client, /fixed inset-y-0 right-0 z-\[110\]/);
+  assert.match(client, /setMobileIdentityOpen\(true\)/);
+  assert.match(client, /Identity \+ Energy/);
   assert.match(client, /hidden border-r .* lg:block/);
   assert.match(client, /function OwnedDroidPicker/);
   assert.match(client, /Choose the Droid you send/);
@@ -201,11 +205,27 @@ test("World mobile threads and atomic trade desk stay streamlined", () => {
   assert.match(server, /expired: expiresAt <= Math\.floor\(Date\.now\(\) \/ 1_000\)/);
 });
 
+test("World chat uses directional motion bubbles and contained smooth scrolling", () => {
+  const client = fs.readFileSync("components/dyoor-world/DyoorWorldClient.tsx", "utf8");
+  const styles = fs.readFileSync("app/globals.css", "utf8");
+
+  assert.match(client, /world-message-stream/);
+  assert.match(client, /world-message-own/);
+  assert.match(client, /world-message-peer/);
+  assert.match(client, /world-message-system/);
+  assert.match(client, /messageList\.scrollTo/);
+  assert.match(styles, /@keyframes world-message-arrive-left/);
+  assert.match(styles, /@keyframes world-message-arrive-right/);
+  assert.match(styles, /world-message-signal-scan/);
+  assert.match(styles, /scrollbar-color/);
+  assert.match(styles, /prefers-reduced-motion: reduce/);
+});
+
 test("another holder's username opens the direct MON tip flow", () => {
   const client = fs.readFileSync("components/dyoor-world/DyoorWorldClient.tsx", "utf8");
 
   assert.match(client, /aria-label=\{`Tip \$\{message\.author\} in MON`\}/);
-  assert.match(client, /message\.wallet === normalizedSessionWallet/);
+  assert.match(client, /isSystem \|\| isOwn/);
   assert.match(client, /ref=\{tipAmountRef\}/);
   assert.match(client, /void sendTip\(\)/);
   assert.doesNotMatch(client, />\s*Tip MON\s*</);

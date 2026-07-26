@@ -81,6 +81,8 @@ const WORLD_NAMES_ABI = [
   "function ownerOf(uint256 tokenId) view returns (address)",
   "function labelOfToken(uint256 tokenId) view returns (string)",
   "function claimsOpen() view returns (bool)",
+  "function isAvailable(string label) view returns (bool)",
+  "function isHolder(address wallet) view returns (bool)",
   "function S2_COLLECTION() view returns (address)",
 ];
 const holderCache = new Map<string, { allowed: boolean; expiresAt: number }>();
@@ -543,6 +545,117 @@ export async function getDyoorWorldProfile(walletValue: unknown) {
   const resolved = resolveWorldNameClaims(await loadWorldClaims());
   const claim = resolved.byWallet.get(wallet);
   return claim ? worldProfileFromClaim(claim) : null;
+}
+
+export async function getDyoorWorldNameAvailability(
+  walletValue: unknown,
+  labelValue: unknown,
+) {
+  const wallet = normalizeWorldWallet(walletValue);
+  if (!wallet) throw dyoorWorldError("wallet must be a valid address.", 400);
+  const validation = validateWorldLabel(labelValue);
+  if (!validation.ok) throw dyoorWorldError(validation.error, 400);
+
+  const label = validation.label;
+  const displayName = `${label}.dYOOR`;
+  const contract = await validatedNamesContract();
+  if (!contract) {
+    const resolved = resolveWorldNameClaims(await loadWorldClaims());
+    const existingWallet = resolved.byWallet.get(wallet);
+    if (existingWallet) {
+      const currentName = worldProfileFromClaim(existingWallet).displayName;
+      return {
+        label,
+        displayName,
+        available: false,
+        registryMode: "preview-reservation" as const,
+        currentName,
+        reason: `${currentName} is already assigned to this wallet. Each holder wallet can claim one .dYOOR name.`,
+      };
+    }
+    if (resolved.byLabel.has(label)) {
+      return {
+        label,
+        displayName,
+        available: false,
+        registryMode: "preview-reservation" as const,
+        currentName: "",
+        reason: `${displayName} is already reserved. Choose another name.`,
+      };
+    }
+    return {
+      label,
+      displayName,
+      available: true,
+      registryMode: "preview-reservation" as const,
+      currentName: "",
+      reason: `${displayName} is available to reserve.`,
+    };
+  }
+
+  try {
+    const [claimsOpen, currentNameValue, holder, available] = await Promise.all([
+      contract.claimsOpen(),
+      contract.nameOf(wallet),
+      contract.isHolder(wallet),
+      contract.isAvailable(label),
+    ]);
+    const currentName = String(currentNameValue || "").trim();
+    if (currentName) {
+      return {
+        label,
+        displayName,
+        available: false,
+        registryMode: "monad" as const,
+        currentName,
+        reason: `${currentName} is already assigned to this wallet. Each holder wallet can claim one .dYOOR name.`,
+      };
+    }
+    if (!claimsOpen) {
+      return {
+        label,
+        displayName,
+        available: false,
+        registryMode: "monad" as const,
+        currentName: "",
+        reason: "dYOOR World name claims are currently closed.",
+      };
+    }
+    if (!holder) {
+      return {
+        label,
+        displayName,
+        available: false,
+        registryMode: "monad" as const,
+        currentName: "",
+        reason: "This wallet must currently hold an S2 Droid to claim a .dYOOR name.",
+      };
+    }
+    if (!available) {
+      return {
+        label,
+        displayName,
+        available: false,
+        registryMode: "monad" as const,
+        currentName: "",
+        reason: `${displayName} is already claimed or reserved. Choose another name.`,
+      };
+    }
+    return {
+      label,
+      displayName,
+      available: true,
+      registryMode: "monad" as const,
+      currentName: "",
+      reason: `${displayName} is available to claim on Monad.`,
+    };
+  } catch (error) {
+    if (dyoorWorldErrorStatus(error) < 500) throw error;
+    throw dyoorWorldError(
+      "The Monad dYOOR name registry could not verify this claim. Try again shortly.",
+      503,
+    );
+  }
 }
 
 function avatarKey(wallet: string) {

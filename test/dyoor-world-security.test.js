@@ -107,6 +107,7 @@ test("World name metadata uses marketplace-compatible hosted text artwork", () =
 test("World APIs enforce holder sessions and the nav icon is eligibility-gated", () => {
   for (const file of [
     "app/api/dyoor-world/messages/route.ts",
+    "app/api/dyoor-world/names/availability/route.ts",
     "app/api/dyoor-world/profile/route.ts",
   ]) {
     assert.match(fs.readFileSync(file, "utf8"), /requireDyoorWorldRequest/);
@@ -119,10 +120,18 @@ test("World APIs enforce holder sessions and the nav icon is eligibility-gated",
   assert.match(worldClientSource, /if \(!liveConfig\.claimsOpen\)/);
   assert.match(worldClientSource, /Claims closed/);
   assert.match(worldClientSource, /const latest = await loadProfile\(\)/);
+  assert.match(worldClientSource, /\/api\/dyoor-world\/names\/availability\?label=/);
+  assert.match(worldClientSource, /await waitForTransaction\(txHash\)/);
+  assert.match(worldClientSource, /readableWorldNameClaimError/);
 
   const profileRouteSource = fs.readFileSync("app/api/dyoor-world/profile/route.ts", "utf8");
   assert.match(profileRouteSource, /dyoorWorldPublicConfig\(\)/);
   assert.match(profileRouteSource, /config/);
+
+  const worldServerSource = fs.readFileSync("lib/dyoor-world-server.ts", "utf8");
+  assert.match(worldServerSource, /export async function getDyoorWorldNameAvailability/);
+  assert.match(worldServerSource, /contract\.isAvailable\(label\)/);
+  assert.match(worldServerSource, /Each holder wallet can claim one \.dYOOR name/);
 
   const contractSource = fs.readFileSync("contracts/DYOORWorldNames.sol", "utf8");
   assert.match(contractSource, /S2_COLLECTION\.balanceOf\(wallet\)/);
