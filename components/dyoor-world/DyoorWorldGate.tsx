@@ -56,7 +56,10 @@ export function DyoorWorldGate() {
 
   async function enterWorld() {
     if (!address) {
-      await wallet.connect().catch(() => {});
+      setError("");
+      await wallet.connect().catch((caught) => {
+        setError(caught instanceof Error ? caught.message : "Could not connect this holder wallet.");
+      });
       return;
     }
     if (wallet.status === "wrong-network") {

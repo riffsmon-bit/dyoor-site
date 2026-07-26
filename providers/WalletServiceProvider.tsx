@@ -1,9 +1,7 @@
 "use client";
 
-import { useConnectWallet, usePrivy, type WalletListEntry } from "@privy-io/react-auth";
 import { BrowserProvider } from "ethers";
-import { createContext, ReactNode, useCallback, useContext, useEffect, useMemo, useState } from "react";
-import { useActivePrivyWallet } from "@/hooks/useActivePrivyWallet";
+import { createContext, ReactNode, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { MONAD_CHAIN_HEX, MONAD_CHAIN_ID, MONAD_EXPLORER_URL, MONAD_RPC_URL } from "@/lib/monad";
 
 export type Eip1193Provider = {
@@ -20,28 +18,33 @@ type BrowserEthereum = Eip1193Provider & {
   providers?: BrowserEthereum[];
 };
 
+type Eip6963ProviderDetail = {
+  info?: {
+    name?: string;
+  };
+  provider?: BrowserEthereum;
+};
+
+type WalletConnectProvider = Eip1193Provider & {
+  accounts?: string[];
+  chainId?: number;
+  connected?: boolean;
+  session?: {
+    peer?: {
+      metadata?: {
+        name?: string;
+      };
+    };
+  };
+  connect: () => Promise<void>;
+  disconnect: () => Promise<void>;
+  enable: () => Promise<string[]>;
+  on: (event: string, listener: (...args: any[]) => void) => unknown;
+  removeListener: (event: string, listener: (...args: any[]) => void) => unknown;
+};
+
 type WalletStatus = "loading" | "idle" | "connecting" | "connected" | "wrong-network" | "error";
-type WalletSource = "privy" | "browser" | "none";
-
-const MOBILE_WALLET_LIST: WalletListEntry[] = [
-  "metamask",
-  "coinbase_wallet",
-  "rainbow",
-  "okx_wallet",
-  "phantom",
-  "backpack",
-];
-
-const DESKTOP_WALLET_LIST: WalletListEntry[] = [
-  "metamask",
-  "coinbase_wallet",
-  "rainbow",
-  "okx_wallet",
-  "phantom",
-  "backpack",
-  "detected_ethereum_wallets",
-  "wallet_connect_qr",
-];
+type WalletSource = "walletconnect" | "browser" | "none";
 
 export type WalletService = {
   address: string;
@@ -94,9 +97,13 @@ const emptyService: WalletService = {
 };
 
 const WalletServiceContext = createContext<WalletService>(emptyService);
+const announcedBrowserProviders: BrowserEthereum[] = [];
+const browserProviderNames = new WeakMap<object, string>();
 
 function shortProviderName(provider?: BrowserEthereum | null) {
   if (!provider) return "";
+  const announcedName = browserProviderNames.get(provider);
+  if (announcedName) return announcedName;
   if (provider.isOkxWallet) return "OKX";
   if (provider.isBackpack) return "Backpack";
   if (provider.isRabby) return "Rabby";
@@ -109,42 +116,21 @@ function shortProviderName(provider?: BrowserEthereum | null) {
 function injectedProvider() {
   if (typeof window === "undefined") return null;
   const ethereum = (window as any).ethereum as BrowserEthereum | undefined;
-  if (!ethereum) return null;
+  if (!ethereum) return announcedBrowserProviders[0] || null;
   const providers: BrowserEthereum[] = Array.isArray(ethereum.providers) ? ethereum.providers : [ethereum];
-  return providers.find((provider: BrowserEthereum) => provider.isMetaMask)
-    || providers.find((provider: BrowserEthereum) => provider.isOkxWallet)
-    || providers.find((provider: BrowserEthereum) => provider.isRabby)
-    || providers.find((provider: BrowserEthereum) => provider.isBackpack)
-    || providers.find((provider: BrowserEthereum) => provider.isTokenPocket)
-    || providers.find((provider: BrowserEthereum) => provider.isPhantom)
-    || providers[0]
-    || null;
+  return announcedBrowserProviders[0] || providers[0] || null;
 }
 
 function normalizeAddress(value: unknown) {
   return /^0x[a-fA-F0-9]{40}$/.test(String(value || "")) ? String(value).toLowerCase() : "";
 }
 
-function isMobileBrowser() {
-  if (typeof navigator === "undefined") return false;
-  const navigatorWithHints = navigator as Navigator & { userAgentData?: { mobile?: boolean } };
-  return navigatorWithHints.userAgentData?.mobile === true
-    || /Android|iPhone|iPad|iPod/i.test(navigator.userAgent)
-    || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
-}
-
-function metaMaskDappUrl() {
-  if (typeof window === "undefined") return "https://link.metamask.io";
-  const dappUrl = `${window.location.host}${window.location.pathname}`;
-  return `https://link.metamask.io/dapp/${dappUrl}`;
-}
-
-function privyConnectionError(error: unknown) {
+function walletConnectionError(error: unknown) {
   const message = error instanceof Error ? error.message : String(error || "");
   if (/cancel|closed|rejected|denied/i.test(message)) return "Wallet connection was cancelled.";
   return message && !/^[a-z0-9_]+$/i.test(message)
     ? message
-    : "Wallet connection failed. Close other wallet sessions, then try again.";
+    : "Wallet connection failed. Close any stale wallet request, then try again.";
 }
 
 function useInjectedWallet() {
@@ -158,6 +144,17 @@ function useInjectedWallet() {
   useEffect(() => {
     let attempts = 0;
     let timer = 0;
+    const onProviderAnnouncement = (event: Event) => {
+      const detail = (event as CustomEvent<Eip6963ProviderDetail>).detail;
+      const announcedProvider = detail?.provider;
+      if (!announcedProvider) return;
+      if (!announcedBrowserProviders.includes(announcedProvider)) {
+        announcedBrowserProviders.push(announcedProvider);
+      }
+      const announcedName = String(detail?.info?.name || "").trim();
+      if (announcedName) browserProviderNames.set(announcedProvider, announcedName);
+      setProviderName(shortProviderName(announcedProvider));
+    };
     const detect = () => {
       attempts += 1;
       const nextName = shortProviderName(injectedProvider());
@@ -169,8 +166,13 @@ function useInjectedWallet() {
         timer = window.setTimeout(detect, 350);
       }
     };
+    window.addEventListener("eip6963:announceProvider", onProviderAnnouncement);
+    window.dispatchEvent(new Event("eip6963:requestProvider"));
     detect();
-    return () => window.clearTimeout(timer);
+    return () => {
+      window.clearTimeout(timer);
+      window.removeEventListener("eip6963:announceProvider", onProviderAnnouncement);
+    };
   }, []);
 
   const getProvider = useCallback(async () => {
@@ -215,7 +217,7 @@ function useInjectedWallet() {
       (active as any).removeListener?.("accountsChanged", onAccounts);
       (active as any).removeListener?.("chainChanged", onChain);
     };
-  }, [refreshAccounts]);
+  }, [providerName, refreshAccounts]);
 
   const switchChain = useCallback(async () => {
     const active = await getProvider();
@@ -316,230 +318,291 @@ function useInjectedWallet() {
   return service;
 }
 
-function InjectedOnlyWalletServiceProvider({ children }: { children: ReactNode }) {
-  const service = useInjectedWallet();
-  return <WalletServiceContext.Provider value={service}>{children}</WalletServiceContext.Provider>;
+let walletConnectProviderPromise: Promise<WalletConnectProvider> | null = null;
+let walletConnectProviderProjectId = "";
+
+function createWalletConnectProvider(projectId: string) {
+  if (walletConnectProviderPromise && walletConnectProviderProjectId === projectId) {
+    return walletConnectProviderPromise;
+  }
+
+  walletConnectProviderProjectId = projectId;
+  walletConnectProviderPromise = import("@walletconnect/ethereum-provider")
+    .then(async ({ EthereumProvider }) => {
+      const origin = window.location.origin;
+      return await EthereumProvider.init({
+        projectId,
+        optionalChains: [MONAD_CHAIN_ID],
+        optionalMethods: [
+          "eth_accounts",
+          "eth_requestAccounts",
+          "eth_sendTransaction",
+          "personal_sign",
+          "eth_signTypedData",
+          "eth_signTypedData_v3",
+          "eth_signTypedData_v4",
+          "wallet_switchEthereumChain",
+          "wallet_addEthereumChain",
+        ],
+        optionalEvents: ["accountsChanged", "chainChanged", "disconnect", "connect"],
+        rpcMap: {
+          [MONAD_CHAIN_ID]: MONAD_RPC_URL,
+        },
+        showQrModal: true,
+        metadata: {
+          name: "D.Y.O.O.R",
+          description: "Connect the wallet that holds your D.Y.O.O.R.",
+          url: origin,
+          icons: [`${origin}/dyoor-world-icon.svg`],
+        },
+        qrModalOptions: {
+          themeMode: "dark",
+          enableExplorer: true,
+          enableMobileFullScreen: true,
+          themeVariables: {
+            "--wcm-z-index": "350",
+            "--wcm-accent-color": "#39ffe2",
+            "--wcm-accent-fill-color": "#02040d",
+            "--wcm-background-color": "#060817",
+          },
+        },
+      }) as unknown as WalletConnectProvider;
+    })
+    .catch((error) => {
+      walletConnectProviderPromise = null;
+      throw error;
+    });
+
+  return walletConnectProviderPromise;
 }
 
-function MobileWalletBridge({
-  metaMaskUrl,
-  onClose,
-  onOtherWallets,
-}: {
-  metaMaskUrl: string;
-  onClose: () => void;
-  onOtherWallets: () => void;
-}) {
-  useEffect(() => {
-    const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") onClose();
-    };
-    document.addEventListener("keydown", onKeyDown);
-    return () => {
-      document.body.style.overflow = previousOverflow;
-      document.removeEventListener("keydown", onKeyDown);
-    };
-  }, [onClose]);
-
-  return (
-    <div
-      aria-labelledby="mobile-wallet-bridge-title"
-      aria-modal="true"
-      className="fixed inset-0 z-[300] flex items-end justify-center bg-[#02040d]/88 p-3 backdrop-blur-md sm:items-center sm:p-6"
-      role="dialog"
-    >
-      <div className="relative w-full max-w-md overflow-hidden rounded-2xl border border-dyoor-cyan/35 bg-[radial-gradient(circle_at_top_right,rgba(131,110,249,.24),transparent_42%),linear-gradient(145deg,#0b1023,#050712_72%)] p-5 shadow-[0_26px_90px_rgba(0,0,0,.72),0_0_42px_rgba(57,255,226,.12)] sm:p-7">
-        <div className="absolute -right-16 -top-16 h-40 w-40 rounded-full bg-dyoor-purple/20 blur-3xl" />
-        <button
-          aria-label="Close mobile wallet options"
-          className="absolute right-4 top-4 z-10 flex h-9 w-9 items-center justify-center rounded-full border border-white/15 bg-black/35 text-lg text-white/65 transition hover:border-dyoor-cyan/50 hover:text-dyoor-cyan"
-          onClick={onClose}
-          type="button"
-        >
-          ×
-        </button>
-        <div className="relative">
-          <p className="text-[0.62rem] font-black uppercase tracking-[0.2em] text-dyoor-cyan">Mobile wallet bridge</p>
-          <h2 className="mt-2 pr-10 text-2xl font-black uppercase text-white" id="mobile-wallet-bridge-title">
-            Open dYOOR in MetaMask
-          </h2>
-          <p className="mt-3 text-sm font-bold leading-6 text-white/60">
-            Safari and Chrome cannot inject your mobile wallet. Open this exact page inside MetaMask, then tap
-            Connect Holder Wallet there to approve the connection.
-          </p>
-          <a
-            className="mt-6 flex min-h-14 w-full items-center justify-center rounded border border-dyoor-cyan bg-dyoor-cyan px-5 py-4 text-center text-sm font-black uppercase tracking-[0.08em] text-black shadow-[0_0_28px_rgba(57,255,226,.2)] transition hover:bg-white"
-            href={metaMaskUrl}
-          >
-            Open in MetaMask
-          </a>
-          <button
-            className="mt-3 min-h-12 w-full rounded border border-dyoor-purple/45 bg-dyoor-purple/12 px-4 py-3 text-xs font-black uppercase tracking-[0.08em] text-white/80 transition hover:border-dyoor-cyan/55 hover:text-dyoor-cyan"
-            onClick={onOtherWallets}
-            type="button"
-          >
-            Use another mobile wallet
-          </button>
-          <p className="mt-4 text-center text-[0.62rem] font-black uppercase leading-5 tracking-[0.1em] text-white/32">
-            No transaction or token approval is requested during connection.
-          </p>
-        </div>
-      </div>
-    </div>
-  );
+async function switchProviderToMonad(provider: Eip1193Provider) {
+  try {
+    await provider.request({
+      method: "wallet_switchEthereumChain",
+      params: [{ chainId: MONAD_CHAIN_HEX }],
+    });
+  } catch {
+    await provider.request({
+      method: "wallet_addEthereumChain",
+      params: [{
+        chainId: MONAD_CHAIN_HEX,
+        chainName: "Monad",
+        rpcUrls: [MONAD_RPC_URL],
+        nativeCurrency: { name: "MON", symbol: "MON", decimals: 18 },
+        blockExplorerUrls: [MONAD_EXPLORER_URL],
+      }],
+    });
+  }
 }
 
-function PrivyFirstWalletServiceProvider({ children }: { children: ReactNode }) {
-  const injected = useInjectedWallet();
-  const { authenticated, ready: authReady, logout } = usePrivy();
-  const { wallet, ready: walletsReady } = useActivePrivyWallet();
+function useWalletConnectWallet(projectId: string) {
+  const providerRef = useRef<WalletConnectProvider | null>(null);
+  const [address, setAddress] = useState("");
   const [connecting, setConnecting] = useState(false);
   const [error, setError] = useState("");
-  const [readyTimedOut, setReadyTimedOut] = useState(false);
+  const [providerName, setProviderName] = useState("WalletConnect");
+  const [ready, setReady] = useState(!projectId);
   const [wrongNetwork, setWrongNetwork] = useState(false);
-  const [suppressedPrivyAddress, setSuppressedPrivyAddress] = useState("");
-  const [metaMaskUrl, setMetaMaskUrl] = useState("");
-  const rawPrivyAddress = normalizeAddress(wallet?.address);
-  const privyAddress = rawPrivyAddress && rawPrivyAddress !== suppressedPrivyAddress ? rawPrivyAddress : "";
-  const address = privyAddress || injected.address;
-  const source: WalletSource = privyAddress ? "privy" : injected.source;
-  const hasInjectedWallet = Boolean(injected.providerName);
-  const privyReady = authReady && walletsReady;
-  const uiReady = privyReady || readyTimedOut || hasInjectedWallet || Boolean(privyAddress);
-  const { connectWallet } = useConnectWallet({
-    onSuccess: () => {
-      setConnecting(false);
-      setError("");
-    },
-    onError: (connectionError) => {
-      setConnecting(false);
-      setError(privyConnectionError(connectionError));
-    },
-  });
+
+  const syncProvider = useCallback(async (provider: WalletConnectProvider, accounts?: string[]) => {
+    const nextAccounts = accounts || provider.accounts || await provider.request({
+      method: "eth_accounts",
+    }).catch(() => []) as string[];
+    const nextAddress = normalizeAddress(nextAccounts?.[0]);
+    setAddress(nextAddress);
+    setProviderName(provider.session?.peer?.metadata?.name || "WalletConnect");
+    if (!nextAddress) {
+      setWrongNetwork(false);
+      return;
+    }
+    const chainId = await provider.request({ method: "eth_chainId" }).catch(() => MONAD_CHAIN_HEX);
+    setWrongNetwork(String(chainId || "").toLowerCase() !== MONAD_CHAIN_HEX);
+  }, []);
 
   useEffect(() => {
-    if (privyReady) return;
-    const timer = window.setTimeout(() => setReadyTimedOut(true), 12_000);
-    return () => window.clearTimeout(timer);
-  }, [privyReady]);
+    if (!projectId) {
+      return;
+    }
+
+    let active = true;
+    let connectedProvider: WalletConnectProvider | null = null;
+    const onAccounts = (accounts: string[]) => void syncProvider(connectedProvider!, accounts);
+    const onChain = () => void syncProvider(connectedProvider!);
+    const onDisconnect = () => {
+      setAddress("");
+      setWrongNetwork(false);
+      setProviderName("WalletConnect");
+    };
+
+    void createWalletConnectProvider(projectId)
+      .then((provider) => {
+        if (!active) return;
+        connectedProvider = provider;
+        providerRef.current = provider;
+        provider.on("accountsChanged", onAccounts);
+        provider.on("chainChanged", onChain);
+        provider.on("connect", onChain);
+        provider.on("disconnect", onDisconnect);
+        provider.on("session_delete", onDisconnect);
+        if (provider.session) void syncProvider(provider);
+      })
+      .catch((initializationError) => {
+        if (active) setError(walletConnectionError(initializationError));
+      })
+      .finally(() => {
+        if (active) setReady(true);
+      });
+
+    return () => {
+      active = false;
+      if (!connectedProvider) return;
+      connectedProvider.removeListener("accountsChanged", onAccounts);
+      connectedProvider.removeListener("chainChanged", onChain);
+      connectedProvider.removeListener("connect", onChain);
+      connectedProvider.removeListener("disconnect", onDisconnect);
+      connectedProvider.removeListener("session_delete", onDisconnect);
+    };
+  }, [projectId, syncProvider]);
 
   const getProvider = useCallback(async () => {
-    if (privyAddress && wallet && "getEthereumProvider" in wallet) {
-      return await wallet.getEthereumProvider() as Eip1193Provider;
+    if (!projectId) {
+      throw new Error("WalletConnect is not configured for this deployment.");
     }
-    return await injected.getProvider();
-  }, [injected, privyAddress, wallet]);
+    const provider = providerRef.current || await createWalletConnectProvider(projectId);
+    providerRef.current = provider;
+    setReady(true);
+    return provider;
+  }, [projectId]);
 
   const switchChain = useCallback(async () => {
     const provider = await getProvider();
-    try {
-      await provider.request({ method: "wallet_switchEthereumChain", params: [{ chainId: MONAD_CHAIN_HEX }] });
-    } catch {
-      await provider.request({
-        method: "wallet_addEthereumChain",
-        params: [{
-          chainId: MONAD_CHAIN_HEX,
-          chainName: "Monad",
-          rpcUrls: [MONAD_RPC_URL],
-          nativeCurrency: { name: "MON", symbol: "MON", decimals: 18 },
-          blockExplorerUrls: [MONAD_EXPLORER_URL],
-        }],
-      });
-    }
-  }, [getProvider]);
-
-  useEffect(() => {
-    let active = true;
-    async function checkChain() {
-      if (!address) {
-        if (active) setWrongNetwork(false);
-        return;
-      }
-      try {
-        const provider = await getProvider();
-        const chainId = await provider.request({ method: "eth_chainId" });
-        if (active) setWrongNetwork(String(chainId || "").toLowerCase() !== MONAD_CHAIN_HEX);
-      } catch {
-        if (active) setWrongNetwork(false);
-      }
-    }
-    void checkChain();
-    return () => {
-      active = false;
-    };
-  }, [address, getProvider]);
+    await switchProviderToMonad(provider);
+    await syncProvider(provider);
+  }, [getProvider, syncProvider]);
 
   const connect = useCallback(async () => {
-    setError("");
-    setSuppressedPrivyAddress("");
     setConnecting(true);
+    setError("");
     try {
-      if (injectedProvider()) {
-        await injected.connect();
-        return;
+      const provider = await getProvider();
+      const accounts = await provider.enable();
+      await syncProvider(provider, accounts);
+      const chainId = await provider.request({ method: "eth_chainId" }).catch(() => MONAD_CHAIN_HEX);
+      if (String(chainId || "").toLowerCase() !== MONAD_CHAIN_HEX) {
+        await switchProviderToMonad(provider);
+        await syncProvider(provider);
       }
-      if (isMobileBrowser()) {
-        setMetaMaskUrl(metaMaskDappUrl());
-        return;
-      }
-      if (privyReady) {
-        connectWallet({
-          description: "Connect the wallet that holds your D.Y.O.O.R.",
-          walletChainType: "ethereum-only",
-          walletList: DESKTOP_WALLET_LIST,
-        });
-        return;
-      }
-      throw new Error(
-        "Privy is still loading. Wait a moment, then tap Connect Wallet again.",
-      );
     } catch (connectionError) {
-      const message = connectionError instanceof Error
-        ? connectionError.message
-        : "Wallet connection failed.";
+      const message = walletConnectionError(connectionError);
       setError(message);
       throw new Error(message);
     } finally {
       setConnecting(false);
     }
-  }, [connectWallet, injected, privyReady]);
-
-  const connectOtherMobileWallet = useCallback(() => {
-    setMetaMaskUrl("");
-    if (!privyReady) {
-      setError("Wallet services are still loading. Wait a moment, then try again.");
-      return;
-    }
-    connectWallet({
-      description: "Connect the wallet that holds your D.Y.O.O.R.",
-      walletChainType: "ethereum-only",
-      walletList: MOBILE_WALLET_LIST,
-    });
-  }, [connectWallet, privyReady]);
+  }, [getProvider, syncProvider]);
 
   const disconnect = useCallback(async () => {
     setError("");
     setWrongNetwork(false);
-    if (rawPrivyAddress) setSuppressedPrivyAddress(rawPrivyAddress);
-    await Promise.resolve(wallet?.disconnect?.()).catch(() => undefined);
-    if (authenticated) await Promise.resolve(logout()).catch(() => undefined);
-    await injected.disconnect();
-  }, [authenticated, injected, logout, rawPrivyAddress, wallet]);
+    setAddress("");
+    const provider = providerRef.current;
+    if (provider?.session) {
+      await provider.disconnect().catch(() => undefined);
+    }
+  }, []);
+
+  return useMemo(() => ({
+    address,
+    connect,
+    connecting,
+    disconnect,
+    error,
+    getProvider,
+    providerName,
+    ready,
+    switchChain,
+    wrongNetwork,
+  }), [address, connect, connecting, disconnect, error, getProvider, providerName, ready, switchChain, wrongNetwork]);
+}
+
+function UniversalWalletServiceProvider({
+  children,
+  walletConnectProjectId,
+}: {
+  children: ReactNode;
+  walletConnectProjectId: string;
+}) {
+  const injected = useInjectedWallet();
+  const walletConnect = useWalletConnectWallet(walletConnectProjectId);
+  const address = injected.address || walletConnect.address;
+  const source: WalletSource = injected.address
+    ? "browser"
+    : walletConnect.address
+      ? "walletconnect"
+      : "none";
+  const ready = Boolean(injected.providerName) || walletConnect.ready;
+  const connecting = injected.status === "connecting" || walletConnect.connecting;
+  const error = injected.error || walletConnect.error;
+  const wrongNetwork = source === "browser" ? injected.status === "wrong-network" : walletConnect.wrongNetwork;
+
+  const connect = useCallback(async () => {
+    if (injectedProvider()) {
+      await injected.connect();
+      return;
+    }
+    await walletConnect.connect();
+  }, [injected, walletConnect]);
+
+  const disconnect = useCallback(async () => {
+    if (source === "browser") {
+      await injected.disconnect();
+      return;
+    }
+    await walletConnect.disconnect();
+  }, [injected, source, walletConnect]);
+
+  const getProvider = useCallback(async () => {
+    if (source === "browser" || (!walletConnect.address && injectedProvider())) {
+      return await injected.getProvider();
+    }
+    return await walletConnect.getProvider();
+  }, [injected, source, walletConnect]);
+
+  const getAddress = useCallback(async () => {
+    if (address) return address;
+    if (injectedProvider()) return await injected.getAddress();
+    const provider = await walletConnect.getProvider();
+    const accounts = await provider.request({ method: "eth_accounts" }) as string[];
+    const nextAddress = normalizeAddress(accounts?.[0]);
+    if (!nextAddress) throw new Error("Wallet is not connected.");
+    return nextAddress;
+  }, [address, injected, walletConnect]);
+
+  const switchChain = useCallback(async () => {
+    if (source === "browser" || (!walletConnect.address && injectedProvider())) {
+      await injected.switchChain();
+      return;
+    }
+    await walletConnect.switchChain();
+  }, [injected, source, walletConnect]);
 
   const service = useMemo<WalletService>(() => ({
     address,
     connected: Boolean(address),
-    error: error || injected.error,
-    providerName: source === "privy" ? "Privy" : injected.providerName,
-    ready: uiReady,
+    error,
+    providerName: source === "browser"
+      ? injected.providerName
+      : source === "walletconnect"
+        ? walletConnect.providerName
+        : injected.providerName || "WalletConnect",
+    ready,
     source,
-    status: !uiReady
+    status: !ready
       ? "loading"
-      : connecting || injected.status === "connecting"
+      : connecting
         ? "connecting"
-        : error || injected.status === "error"
+        : error
           ? "error"
           : address
             ? wrongNetwork
@@ -548,10 +611,7 @@ function PrivyFirstWalletServiceProvider({ children }: { children: ReactNode }) 
             : "idle",
     connect,
     disconnect,
-    getAddress: async () => {
-      if (address) return address;
-      return await injected.getAddress();
-    },
+    getAddress,
     getProvider,
     getSigner: async () => {
       const provider = await getProvider();
@@ -563,30 +623,41 @@ function PrivyFirstWalletServiceProvider({ children }: { children: ReactNode }) 
     },
     signMessage: async (message) => {
       const provider = await getProvider();
-      const activeAddress = address || await injected.getAddress();
+      const activeAddress = await getAddress();
       return await provider.request({ method: "personal_sign", params: [message, activeAddress] }) as string;
     },
     switchChain,
-  }), [address, connect, connecting, disconnect, error, getProvider, injected, source, switchChain, uiReady, wrongNetwork]);
+  }), [
+    address,
+    connect,
+    connecting,
+    disconnect,
+    error,
+    getAddress,
+    getProvider,
+    injected.providerName,
+    ready,
+    source,
+    switchChain,
+    walletConnect.providerName,
+    wrongNetwork,
+  ]);
 
-  return (
-    <WalletServiceContext.Provider value={service}>
-      {children}
-      {metaMaskUrl ? (
-        <MobileWalletBridge
-          metaMaskUrl={metaMaskUrl}
-          onClose={() => setMetaMaskUrl("")}
-          onOtherWallets={connectOtherMobileWallet}
-        />
-      ) : null}
-    </WalletServiceContext.Provider>
-  );
+  return <WalletServiceContext.Provider value={service}>{children}</WalletServiceContext.Provider>;
 }
 
-export function WalletServiceProvider({ children, privyEnabled }: { children: ReactNode; privyEnabled: boolean }) {
-  return privyEnabled
-    ? <PrivyFirstWalletServiceProvider>{children}</PrivyFirstWalletServiceProvider>
-    : <InjectedOnlyWalletServiceProvider>{children}</InjectedOnlyWalletServiceProvider>;
+export function WalletServiceProvider({
+  children,
+  walletConnectProjectId,
+}: {
+  children: ReactNode;
+  walletConnectProjectId: string;
+}) {
+  return (
+    <UniversalWalletServiceProvider walletConnectProjectId={walletConnectProjectId}>
+      {children}
+    </UniversalWalletServiceProvider>
+  );
 }
 
 export function useWalletService() {

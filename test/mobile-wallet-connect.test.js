@@ -23,77 +23,44 @@ test("mobile World navigation keeps DMs separate from the decorative glyph", () 
   );
 });
 
-test("Privy waits for initialization instead of falling into a missing injected wallet", () => {
+test("wallet service waits for WalletConnect initialization without blocking injected wallets", () => {
   assert.match(
     walletService,
-    /const privyReady = authReady && walletsReady;/,
+    /const ready = Boolean\(injected\.providerName\) \|\| walletConnect\.ready;/,
   );
-  assert.match(
-    walletService,
-    /const uiReady = privyReady \|\| readyTimedOut \|\| hasInjectedWallet \|\| Boolean\(privyAddress\)/,
-  );
-  assert.match(walletService, /if \(privyReady\) {\s+connectWallet\(\{/);
-  assert.match(walletService, /useConnectWallet\(\{/);
-  assert.doesNotMatch(walletService, /\blogin\(\)/);
-  assert.match(walletService, /Privy is still loading/);
-  assert.doesNotMatch(walletService, /authReady && !readyTimedOut/);
-  assert.doesNotMatch(walletService, /uiReady = .*injected\.ready/);
-  assert.doesNotMatch(walletService, /Privy connection timed out/);
-});
-
-test("mobile wallet handoff excludes desktop-only detection and QR connectors", () => {
-  const mobileList = walletService.match(
-    /const MOBILE_WALLET_LIST[^=]*= \[([\s\S]*?)\];/,
-  )?.[1] || "";
-  const desktopList = walletService.match(
-    /const DESKTOP_WALLET_LIST[^=]*= \[([\s\S]*?)\];/,
-  )?.[1] || "";
-
-  assert.match(mobileList, /"metamask"/);
-  assert.match(mobileList, /"coinbase_wallet"/);
-  assert.match(mobileList, /"rainbow"/);
-  assert.doesNotMatch(mobileList, /"detected_ethereum_wallets"/);
-  assert.doesNotMatch(mobileList, /"wallet_connect"/);
-  assert.doesNotMatch(mobileList, /"wallet_connect_qr"/);
-  assert.match(desktopList, /"detected_ethereum_wallets"/);
-  assert.match(desktopList, /"wallet_connect_qr"/);
-  assert.match(
-    walletService,
-    /walletList: MOBILE_WALLET_LIST/,
-  );
-});
-
-test("standard mobile browsers use MetaMask's official in-app browser bridge", () => {
-  assert.match(walletService, /https:\/\/link\.metamask\.io\/dapp\//);
   assert.match(
     walletService,
     /if \(injectedProvider\(\)\) \{\s+await injected\.connect\(\);/,
   );
+  assert.match(walletService, /await walletConnect\.connect\(\);/);
+  assert.doesNotMatch(walletService, /usePrivy|useConnectWallet|PrivyFirst/);
+});
+
+test("injected wallets connect directly when the browser exposes a provider", () => {
   assert.match(
     walletService,
-    /if \(isMobileBrowser\(\)\) \{\s+setMetaMaskUrl\(metaMaskDappUrl\(\)\);/,
+    /if \(injectedProvider\(\)\) \{\s+await injected\.connect\(\);/,
   );
-  assert.match(walletService, /href=\{metaMaskUrl\}/);
-  assert.match(walletService, /Open in MetaMask/);
-  assert.match(walletService, /Use another mobile wallet/);
+  assert.match(walletService, /method: "eth_requestAccounts"/);
+  assert.match(walletService, /eip6963:requestProvider/);
+  assert.match(walletService, /eip6963:announceProvider/);
+  assert.doesNotMatch(walletService, /providers\.find\([^)]*isMetaMask/);
+  assert.doesNotMatch(walletService, /link\.metamask\.io|Open in MetaMask|MobileWalletBridge/);
 });
 
-test("provider does not force Monad during the external-wallet pairing handshake", () => {
-  assert.doesNotMatch(providers, /\bdefaultChain:/);
-  assert.match(providers, /supportedChains: \[monadMainnet\]/);
+test("standard browsers use a wallet-neutral WalletConnect modal", () => {
+  assert.match(walletService, /import\("@walletconnect\/ethereum-provider"\)/);
+  assert.match(walletService, /showQrModal: true/);
+  assert.match(walletService, /enableExplorer: true/);
+  assert.match(walletService, /enableMobileFullScreen: true/);
+  assert.match(walletService, /optionalChains: \[MONAD_CHAIN_ID\]/);
+  assert.match(walletService, /await provider\.enable\(\)/);
+  assert.doesNotMatch(walletService, /chains: \[MONAD_CHAIN_ID\]/);
 });
 
-test("mobile-friendly named wallets precede desktop fallbacks", () => {
-  const metamask = providers.indexOf('"metamask"');
-  const coinbase = providers.indexOf('"coinbase_wallet"');
-  const rainbow = providers.indexOf('"rainbow"');
-  const detected = providers.indexOf('"detected_ethereum_wallets"');
-  const desktopQr = providers.indexOf('"wallet_connect_qr"');
-
-  assert.ok(metamask > -1);
-  assert.ok(coinbase > metamask);
-  assert.ok(rainbow > coinbase);
-  assert.ok(detected > rainbow);
-  assert.ok(desktopQr > detected);
-  assert.doesNotMatch(providers, /"wallet_connect",/);
+test("app provider passes the public WalletConnect project ID without a branded wallet preference", () => {
+  assert.match(providers, /NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID/);
+  assert.match(providers, /walletConnectProjectId=\{walletConnectProjectId\}/);
+  assert.doesNotMatch(providers, /PrivyProvider|NEXT_PUBLIC_PRIVY_APP_ID/);
+  assert.doesNotMatch(providers, /"metamask"|"coinbase_wallet"|"rainbow"/);
 });
