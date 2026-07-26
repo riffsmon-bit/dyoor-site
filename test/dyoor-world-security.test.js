@@ -125,7 +125,7 @@ test("World APIs enforce holder sessions and the nav icon is eligibility-gated",
   assert.match(worldClientSource, /readableWorldNameClaimError/);
 
   const profileRouteSource = fs.readFileSync("app/api/dyoor-world/profile/route.ts", "utf8");
-  assert.match(profileRouteSource, /dyoorWorldPublicConfig\(\)/);
+  assert.match(profileRouteSource, /dyoorWorldConfigForWallet\(wallet\)/);
   assert.match(profileRouteSource, /config/);
 
   const worldServerSource = fs.readFileSync("lib/dyoor-world-server.ts", "utf8");

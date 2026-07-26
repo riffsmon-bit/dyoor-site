@@ -24,6 +24,7 @@ import {
   type DyoorWorldChannelId,
   type DyoorWorldMessageView,
   type DyoorWorldProfile,
+  parseWorldMessageLink,
   shortWorldWallet,
   validateWorldLabel,
   worldChannelFromTag,
@@ -48,6 +49,7 @@ type WorldConfig = {
   tradeEscrowAddress: string;
   rewardsEnabled: boolean;
   salesBotEnabled: boolean;
+  canPostAnnouncements: boolean;
 };
 
 type ProfileResponse = {
@@ -262,7 +264,23 @@ function WorldMessageContent({
 }) {
   return (
     <>
-      {content.split(/(#[a-z0-9-]+)/gi).map((part, index) => {
+      {content.split(/(https:\/\/[^\s<]+|#[a-z0-9-]+)/gi).map((part, index) => {
+        const link = parseWorldMessageLink(part);
+        if (link) {
+          return (
+            <span key={`world-message-link-${index}`}>
+              <a
+                className="break-all font-bold text-dyoor-cyan underline decoration-dyoor-cyan/30 underline-offset-2 transition hover:text-white"
+                href={link.href}
+                rel="noopener noreferrer"
+                target="_blank"
+              >
+                {link.label}
+              </a>
+              {link.trailing}
+            </span>
+          );
+        }
         const taggedChannel = worldChannelFromTag(part);
         if (!taggedChannel) return part;
         const channel = DYOOR_WORLD_CHANNELS.find((item) => item.id === taggedChannel);
@@ -616,6 +634,11 @@ export function DyoorWorldClient({ sessionWallet }: { sessionWallet: string }) {
       || DYOOR_WORLD_CHANNELS[0],
     [channelId],
   );
+  const selectedChannelCanPost = !selectedChannel.readOnly
+    || (
+      selectedChannel.id === "announcements"
+      && Boolean(config?.canPostAnnouncements)
+    );
   const channelMention = useMemo(
     () => tagMenuDismissed ? null : activeWorldChannelMention(draft, draftCursor),
     [draft, draftCursor, tagMenuDismissed],
@@ -1575,7 +1598,11 @@ export function DyoorWorldClient({ sessionWallet }: { sessionWallet: string }) {
                 </div>
                 {selectedChannel.readOnly ? (
                   <span className="shrink-0 rounded-full border border-dyoor-monad/30 bg-dyoor-monad/10 px-2.5 py-1 text-[0.56rem] font-black uppercase tracking-[0.12em] text-dyoor-monad">
-                    Verified feed
+                    {selectedChannel.id === "announcements"
+                      ? selectedChannelCanPost
+                        ? "Owner post channel"
+                        : "Owner-only feed"
+                      : "Verified feed"}
                   </span>
                 ) : null}
               </div>
@@ -1795,12 +1822,18 @@ export function DyoorWorldClient({ sessionWallet }: { sessionWallet: string }) {
                   <div>
                     <DyoorWorldGlyph className="mx-auto h-10 w-10 text-dyoor-purple" />
                     <p className="mt-4 text-sm font-black uppercase text-white/65">
-                      {selectedChannel.readOnly ? "Waiting for verified activity" : "No transmissions yet"}
+                      {selectedChannel.id === "announcements"
+                        ? "No announcements yet"
+                        : selectedChannel.readOnly
+                          ? "Waiting for verified activity"
+                          : "No transmissions yet"}
                     </p>
                     <p className="mt-2 text-xs font-bold text-white/35">
-                      {selectedChannel.readOnly
-                        ? "The World relay will post the next confirmed event automatically."
-                        : "Be the first holder to signal in this stream."}
+                      {selectedChannel.id === "announcements"
+                        ? "The D.Y.O.O.R owner wallet will post the next official dispatch."
+                        : selectedChannel.readOnly
+                          ? "The World relay will post the next confirmed event automatically."
+                          : "Be the first holder to signal in this stream."}
                     </p>
                   </div>
                 </div>
@@ -1859,7 +1892,7 @@ export function DyoorWorldClient({ sessionWallet }: { sessionWallet: string }) {
                           )}
                           <span className="text-[0.62rem] font-bold text-white/25">{messageTime(message.createdAt)}</span>
                           {isSystem ? <span className="text-[0.53rem] font-black uppercase tracking-[0.12em] text-white/28">verified {message.kind}</span> : null}
-                          {!isSystem ? (
+                          {!isSystem && selectedChannelCanPost ? (
                             <button
                               aria-label={`Reply to ${message.author}`}
                               className="rounded border border-white/10 bg-white/[0.035] px-2 py-0.5 text-[0.53rem] font-black uppercase tracking-[0.08em] text-white/35 opacity-75 transition hover:border-dyoor-cyan/35 hover:bg-dyoor-cyan/10 hover:text-dyoor-cyan sm:opacity-0 sm:group-hover:opacity-100 sm:focus-visible:opacity-100"
@@ -1985,8 +2018,18 @@ export function DyoorWorldClient({ sessionWallet }: { sessionWallet: string }) {
               </div>
             ) : null}
 
-            {!selectedChannel.readOnly ? (
+            {selectedChannelCanPost ? (
               <form className="border-t border-dyoor-purple/20 bg-black/20 p-3 sm:p-4" onSubmit={sendMessage}>
+                {selectedChannel.id === "announcements" ? (
+                  <div className="mb-2 rounded-lg border border-dyoor-monad/30 bg-gradient-to-r from-dyoor-monad/[0.13] to-dyoor-cyan/[0.06] px-3 py-2">
+                    <p className="text-[0.58rem] font-black uppercase tracking-[0.12em] text-dyoor-monad">
+                      Owner dispatch
+                    </p>
+                    <p className="mt-1 text-xs font-bold leading-5 text-white/45">
+                      Publish an official update or paste an HTTPS post link. Announcements do not earn chat Energy.
+                    </p>
+                  </div>
+                ) : null}
                 {replyingTo ? (
                   <div className="mb-2 flex min-w-0 items-center gap-3 rounded-lg border border-dyoor-purple/30 bg-gradient-to-r from-dyoor-purple/[0.12] to-dyoor-cyan/[0.05] px-3 py-2">
                     <span aria-hidden="true" className="text-lg text-dyoor-cyan">↩</span>
@@ -2060,7 +2103,9 @@ export function DyoorWorldClient({ sessionWallet }: { sessionWallet: string }) {
                       setDraftCursor(event.currentTarget.selectionStart || 0)}
                     onSelect={(event) =>
                       setDraftCursor(event.currentTarget.selectionStart || 0)}
-                    placeholder={`Message #${selectedChannel.label} as ${identity}`}
+                    placeholder={selectedChannel.id === "announcements"
+                      ? `Publish to #announcements as ${identity}`
+                      : `Message #${selectedChannel.label} as ${identity}`}
                     ref={composerRef}
                     rows={2}
                     value={draft}
@@ -2070,7 +2115,13 @@ export function DyoorWorldClient({ sessionWallet }: { sessionWallet: string }) {
                     disabled={sending || (!draft.trim() && !composerAttachment)}
                     type="submit"
                   >
-                    {sending ? "Sending" : "Send"}
+                    {sending
+                      ? selectedChannel.id === "announcements"
+                        ? "Publishing"
+                        : "Sending"
+                      : selectedChannel.id === "announcements"
+                        ? "Publish"
+                        : "Send"}
                   </button>
                 </div>
                 <DyoorWorldMediaComposer
@@ -2079,7 +2130,15 @@ export function DyoorWorldClient({ sessionWallet }: { sessionWallet: string }) {
                   onChange={setComposerAttachment}
                 />
                 <p className="mt-2 px-1 text-[0.62rem] font-bold text-white/25">
-                  {draft.length}/800 · type # to tag a thread · tap ↩ to reply · <span className="hidden md:inline">Enter sends · Shift+Enter newline · </span>meaningful text can earn {rewards?.chat.rewardEnergy || 5} Energy · media and stickers alone do not earn
+                  {selectedChannel.id === "announcements" ? (
+                    <>
+                      {draft.length}/800 · HTTPS links become clickable · <span className="hidden md:inline">Enter publishes · Shift+Enter newline</span>
+                    </>
+                  ) : (
+                    <>
+                      {draft.length}/800 · type # to tag a thread · tap ↩ to reply · <span className="hidden md:inline">Enter sends · Shift+Enter newline · </span>meaningful text can earn {rewards?.chat.rewardEnergy || 5} Energy · media and stickers alone do not earn
+                    </>
+                  )}
                 </p>
               </form>
             ) : null}

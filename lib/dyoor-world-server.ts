@@ -12,6 +12,7 @@ import {
   type DyoorWorldNameClaim,
   type DyoorWorldProfile,
   isWorldChannel,
+  isWorldOwnerChannel,
   isWorldWritableChannel,
   normalizeDyoorWorldMessageReply,
   normalizeWorldLabel,
@@ -63,6 +64,7 @@ import { createJsonStore } from "@/src/lib/storage/fileStore";
 const worldStore = createJsonStore("dyoor-world");
 const ERC721_BALANCE_ABI = ["function balanceOf(address owner) view returns (uint256)"];
 const ERC721_OWNER_ABI = ["function ownerOf(uint256 tokenId) view returns (address)"];
+const OWNABLE_ABI = ["function owner() view returns (address)"];
 const ENERGY_BANK_ABI = [
   "function creditEnergy(address user,uint256 amount,bytes32 claimTxHash)",
   "function usedClaimTxHash(bytes32 claimTxHash) view returns (bool)",
@@ -89,6 +91,7 @@ const WORLD_NAMES_ABI = [
 ];
 const holderCache = new Map<string, { allowed: boolean; expiresAt: number }>();
 const rateLimitBuckets = new Map<string, { count: number; resetAt: number }>();
+let worldOwnerCache: { wallet: string; expiresAt: number } | null = null;
 let rewardClaimQueue = Promise.resolve();
 const ZERO_ADDRESS = ethers.ZeroAddress.toLowerCase();
 const TRANSFER_TOPIC = ethers.id("Transfer(address,address,uint256)").toLowerCase();
@@ -181,6 +184,32 @@ let worldProvider: ethers.JsonRpcProvider | null = null;
 function provider() {
   if (!worldProvider) worldProvider = new ethers.JsonRpcProvider(worldRpcUrl(), 143);
   return worldProvider;
+}
+
+async function dyoorWorldOwnerWallet() {
+  const configured = normalizeWorldWallet(readEnv(
+    "DYOOR_WORLD_OWNER_WALLET",
+    "DYOOR_OWNER_ADDRESS",
+    "ADMIN_WALLET",
+    "OWNER_WALLET",
+  ).split(",")[0]);
+  if (configured) return configured;
+  if (worldOwnerCache && worldOwnerCache.expiresAt > Date.now()) {
+    return worldOwnerCache.wallet;
+  }
+  const collection = new ethers.Contract(dyoorS2Contract, OWNABLE_ABI, provider());
+  const wallet = normalizeWorldWallet(await collection.owner());
+  if (!wallet) throw dyoorWorldError("The World owner wallet is unavailable.", 503);
+  worldOwnerCache = {
+    wallet,
+    expiresAt: Date.now() + 5 * 60_000,
+  };
+  return wallet;
+}
+
+export async function canPostDyoorWorldAnnouncements(walletValue: unknown) {
+  const wallet = normalizeWorldWallet(walletValue);
+  return Boolean(wallet && wallet === await dyoorWorldOwnerWallet());
 }
 
 export function dyoorWorldNamesContractAddress() {
@@ -885,7 +914,15 @@ export async function createDyoorWorldMessage(input: {
   const wallet = normalizeWorldWallet(input.wallet);
   const channelId = String(input.channelId || "");
   if (!wallet) throw dyoorWorldError("wallet must be a valid address.", 400);
-  if (!isWorldWritableChannel(channelId)) {
+  const ownerChannel = isWorldOwnerChannel(channelId);
+  if (ownerChannel) {
+    if (!await canPostDyoorWorldAnnouncements(wallet)) {
+      throw dyoorWorldError(
+        "Only the D.Y.O.O.R owner wallet can post announcements.",
+        403,
+      );
+    }
+  } else if (!isWorldWritableChannel(channelId)) {
     if (isWorldChannel(channelId)) {
       throw dyoorWorldError("This stream is maintained by verified World bots.", 403);
     }
@@ -955,7 +992,7 @@ export async function createDyoorWorldMessage(input: {
     wallet,
     content,
     createdAt,
-    kind: "user",
+    kind: ownerChannel ? "announcement" : "user",
     ...(attachment ? { attachment: attachment as DyoorWorldMessageAttachment } : {}),
     ...(replyTo ? { replyTo } : {}),
   };
@@ -963,10 +1000,12 @@ export async function createDyoorWorldMessage(input: {
   const [profile, avatar, reward] = await Promise.all([
     getDyoorWorldProfile(wallet),
     getDyoorWorldAvatar(wallet),
-    createDyoorWorldChatReward(wallet, message).catch((error) => {
-      console.error("dYOOR World chat reward creation failed", error);
-      return null;
-    }),
+    ownerChannel
+      ? Promise.resolve(null)
+      : createDyoorWorldChatReward(wallet, message).catch((error) => {
+        console.error("dYOOR World chat reward creation failed", error);
+        return null;
+      }),
   ]);
   return {
     ...message,
@@ -1984,5 +2023,19 @@ export async function dyoorWorldPublicConfig() {
     rewardsEnabled: dyoorWorldRewardsEnabled(),
     salesBotEnabled: dyoorWorldSalesBotEnabled(),
     channels: DYOOR_WORLD_CHANNELS,
+  };
+}
+
+export async function dyoorWorldConfigForWallet(walletValue: unknown) {
+  const config = await dyoorWorldPublicConfig();
+  let canPostAnnouncements = false;
+  try {
+    canPostAnnouncements = await canPostDyoorWorldAnnouncements(walletValue);
+  } catch (error) {
+    console.error("dYOOR World owner permission lookup failed", error);
+  }
+  return {
+    ...config,
+    canPostAnnouncements,
   };
 }

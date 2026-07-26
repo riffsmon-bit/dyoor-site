@@ -2,8 +2,8 @@ import {
   authenticateDyoorWorldRequest,
   clearDyoorWorldSessionCookie,
   completeDyoorWorldChallenge,
+  dyoorWorldConfigForWallet,
   dyoorWorldErrorStatus,
-  dyoorWorldPublicConfig,
   dyoorWorldSessionCookie,
   getDyoorWorldProfile,
 } from "@/lib/dyoor-world-server";
@@ -31,7 +31,7 @@ export async function GET(request: Request) {
     if (!authenticated) return json(401, { ok: false, authenticated: false });
     const [profile, config] = await Promise.all([
       getDyoorWorldProfile(authenticated.wallet),
-      dyoorWorldPublicConfig(),
+      dyoorWorldConfigForWallet(authenticated.wallet),
     ]);
     return json(200, {
       ok: true,
@@ -59,7 +59,7 @@ export async function POST(request: Request) {
         ok: true,
         authenticated: true,
         wallet: completed.wallet,
-        config: await dyoorWorldPublicConfig(),
+        config: await dyoorWorldConfigForWallet(completed.wallet),
       },
       { "set-cookie": dyoorWorldSessionCookie(completed.token) },
     );

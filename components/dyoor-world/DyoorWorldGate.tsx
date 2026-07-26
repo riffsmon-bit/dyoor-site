@@ -117,8 +117,9 @@ export function DyoorWorldGate() {
           <p className="eyebrow mt-7">Unlisted signal // S2 holders only</p>
           <h1 className="heading-gradient mt-4 text-4xl sm:text-6xl">dYOOR World</h1>
           <p className="mt-5 max-w-lg text-sm font-bold leading-7 text-white/62 sm:text-base">
-            A private Monad social node for D.Y.O.O.R holders. Access requires a
-            read-only S2 ownership check and a one-time wallet signature.
+            The holder-exclusive community layer for D.Y.O.O.R on Monad. Access
+            requires a read-only S2 ownership check and a one-time wallet signature.
+            Discord and Telegram remain the public onboarding path.
           </p>
           <div className="mt-7 grid w-full gap-3 rounded border border-white/10 bg-black/30 p-4 text-left text-xs font-bold leading-6 text-white/55 sm:grid-cols-3">
             <div><span className="block text-dyoor-cyan">01</span>Hold an active S2 Droid</div>

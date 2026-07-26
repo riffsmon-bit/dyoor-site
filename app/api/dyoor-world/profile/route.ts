@@ -1,8 +1,8 @@
 import {
   assertDyoorWorldRateLimit,
+  dyoorWorldConfigForWallet,
   dyoorWorldClientIp,
   dyoorWorldErrorStatus,
-  dyoorWorldPublicConfig,
   clearDyoorWorldAvatar,
   getDyoorWorldAvatar,
   getDyoorWorldProfile,
@@ -27,7 +27,7 @@ export async function GET(request: Request) {
     const [profile, avatar, config] = await Promise.all([
       getDyoorWorldProfile(wallet),
       getDyoorWorldAvatar(wallet),
-      dyoorWorldPublicConfig(),
+      dyoorWorldConfigForWallet(wallet),
     ]);
     return json(200, {
       ok: true,
@@ -61,7 +61,7 @@ export async function POST(request: Request) {
         wallet,
         profile: await getDyoorWorldProfile(wallet),
         avatar,
-        config: await dyoorWorldPublicConfig(),
+        config: await dyoorWorldConfigForWallet(wallet),
       });
     }
     if (action === "clear-pfp") {
@@ -71,7 +71,7 @@ export async function POST(request: Request) {
         wallet,
         profile: await getDyoorWorldProfile(wallet),
         avatar: null,
-        config: await dyoorWorldPublicConfig(),
+        config: await dyoorWorldConfigForWallet(wallet),
       });
     }
     if (action !== "reserve-name") {
@@ -83,7 +83,7 @@ export async function POST(request: Request) {
       wallet,
       profile,
       avatar: await getDyoorWorldAvatar(wallet),
-      config: await dyoorWorldPublicConfig(),
+      config: await dyoorWorldConfigForWallet(wallet),
     });
   } catch (error) {
     return json(dyoorWorldErrorStatus(error), {

@@ -9,6 +9,12 @@ export const DYOOR_WORLD_CHALLENGE_TTL_MS = 5 * 60 * 1000;
 
 export const DYOOR_WORLD_CHANNELS = [
   {
+    id: "announcements",
+    label: "announcements",
+    description: "Owner-only project dispatches and official links.",
+    readOnly: true,
+  },
+  {
     id: "world-lobby",
     label: "world-lobby",
     description: "The holder-only commons for D.Y.O.O.R.",
@@ -53,7 +59,14 @@ export const DYOOR_WORLD_CHANNELS = [
 ] as const;
 
 export type DyoorWorldChannelId = (typeof DYOOR_WORLD_CHANNELS)[number]["id"];
-export type DyoorWorldMessageKind = "user" | "system" | "sale" | "tip" | "trade" | "burn";
+export type DyoorWorldMessageKind =
+  | "user"
+  | "announcement"
+  | "system"
+  | "sale"
+  | "tip"
+  | "trade"
+  | "burn";
 export type DyoorWorldMessageReply = {
   messageId: string;
   wallet: string;
@@ -226,8 +239,42 @@ export function worldChannelFromTag(value: unknown): DyoorWorldChannelId | null 
   return DYOOR_WORLD_CHANNELS.find((channel) => channel.label === tag)?.id || null;
 }
 
+export function parseWorldMessageLink(value: unknown) {
+  let label = String(value || "").trim();
+  if (!label || label.length > 2_048) return null;
+
+  let trailing = "";
+  while (/[.,!?;:)\]}]$/.test(label)) {
+    trailing = `${label.slice(-1)}${trailing}`;
+    label = label.slice(0, -1);
+  }
+
+  try {
+    const link = new URL(label);
+    if (
+      link.protocol !== "https:"
+      || !link.hostname
+      || link.username
+      || link.password
+    ) {
+      return null;
+    }
+    return {
+      href: link.href,
+      label,
+      trailing,
+    };
+  } catch {
+    return null;
+  }
+}
+
 export function isWorldWritableChannel(value: unknown): value is DyoorWorldChannelId {
   return DYOOR_WORLD_CHANNELS.some((channel) => channel.id === value && !channel.readOnly);
+}
+
+export function isWorldOwnerChannel(value: unknown): value is DyoorWorldChannelId {
+  return value === "announcements";
 }
 
 function validClaim(claim: DyoorWorldNameClaim) {

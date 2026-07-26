@@ -3,9 +3,11 @@ import fs from "node:fs";
 import test from "node:test";
 import {
   DYOOR_WORLD_CHANNELS,
+  isWorldOwnerChannel,
   isWorldWritableChannel,
   normalizeDyoorWorldMessageReply,
   normalizeWorldMessageId,
+  parseWorldMessageLink,
   worldChannelFromTag,
 } from "../lib/dyoor-world.ts";
 import {
@@ -117,12 +119,50 @@ test("activity rewards are useful but capped against low-effort farming", () => 
 });
 
 test("verified streams are bot-only while the trade desk remains conversational", () => {
+  assert.equal(isWorldWritableChannel("announcements"), false);
+  assert.equal(isWorldOwnerChannel("announcements"), true);
+  assert.equal(isWorldOwnerChannel("world-lobby"), false);
   assert.equal(isWorldWritableChannel("sales-feed"), false);
   assert.equal(isWorldWritableChannel("tip-ledger"), false);
   assert.equal(isWorldWritableChannel("burn-log"), false);
   assert.equal(isWorldWritableChannel("trade-desk"), true);
   assert.equal(DYOOR_WORLD_CHANNELS.some((channel) => channel.id === "sales-feed"), true);
   assert.equal(DYOOR_WORLD_CHANNELS.some((channel) => channel.id === "trade-desk"), true);
+});
+
+test("owner announcements are server-authorized, non-rewarding, and support safe links", () => {
+  assert.deepEqual(
+    parseWorldMessageLink("https://x.com/dyoor_/status/123456789."),
+    {
+      href: "https://x.com/dyoor_/status/123456789",
+      label: "https://x.com/dyoor_/status/123456789",
+      trailing: ".",
+    },
+  );
+  assert.equal(parseWorldMessageLink("http://x.com/dyoor_"), null);
+  assert.equal(parseWorldMessageLink("javascript:alert(1)"), null);
+  assert.equal(parseWorldMessageLink("https://user:password@example.com/post"), null);
+
+  const server = fs.readFileSync("lib/dyoor-world-server.ts", "utf8");
+  const client = fs.readFileSync("components/dyoor-world/DyoorWorldClient.tsx", "utf8");
+  const profileRoute = fs.readFileSync("app/api/dyoor-world/profile/route.ts", "utf8");
+
+  assert.match(server, /canPostDyoorWorldAnnouncements\(wallet\)/);
+  assert.match(server, /Only the D\.Y\.O\.O\.R owner wallet can post announcements/);
+  assert.match(server, /kind: ownerChannel \? "announcement" : "user"/);
+  assert.match(server, /ownerChannel\s*\?\s*Promise\.resolve\(null\)/);
+  assert.match(server, /DYOOR_WORLD_OWNER_WALLET/);
+  assert.match(server, /new ethers\.Contract\(dyoorS2Contract, OWNABLE_ABI/);
+  assert.match(profileRoute, /dyoorWorldConfigForWallet\(wallet\)/);
+  assert.match(client, /canPostAnnouncements: boolean/);
+  assert.match(client, /selectedChannelCanPost/);
+  assert.match(client, /HTTPS links become clickable/);
+  assert.match(client, /rel="noopener noreferrer"/);
+  assert.doesNotMatch(client, /dangerouslySetInnerHTML/);
+  assert.equal(
+    fs.existsSync("app/api/dyoor-world/automation/x/route.ts"),
+    false,
+  );
 });
 
 test("World thread tags resolve only known channels", () => {
@@ -348,4 +388,20 @@ test("the website links to the canonical D.Y.O.O.R OpenSea collection", () => {
     assert.match(source, /https:\/\/opensea\.io\/collection\/d-y-o-o-r/);
     assert.doesNotMatch(source, /https:\/\/opensea\.io\/collection\/dyoor-154958357/);
   }
+});
+
+test("the whitepaper positions dYOOR World as the holder home and social apps as onboarding", () => {
+  const whitepaper = fs.readFileSync("app/whitepaper/page.tsx", "utf8");
+  const gate = fs.readFileSync("components/dyoor-world/DyoorWorldGate.tsx", "utf8");
+  const footer = fs.readFileSync("components/footer/SiteFooter.tsx", "utf8");
+
+  assert.match(whitepaper, /id="dyoor-world"/);
+  assert.match(whitepaper, /Holder-Exclusive Community Layer/);
+  assert.match(whitepaper, /owner-only announcements stream/);
+  assert.match(whitepaper, /Discord \+ Telegram/);
+  assert.match(whitepaper, /Public onboarding/);
+  assert.match(gate, /holder-exclusive community layer/);
+  assert.match(gate, /Discord and Telegram remain the public onboarding path/);
+  assert.match(footer, /Discord Onboarding/);
+  assert.match(footer, /Telegram Onboarding/);
 });

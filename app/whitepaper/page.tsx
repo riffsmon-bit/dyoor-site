@@ -115,8 +115,8 @@ const roadmap = [
   },
   {
     phase: "Phase 4",
-    title: "Deflationary Expansion",
-    items: ["Live Droid burns", "Energy flywheel growth", "Ecosystem partnerships", "Additional trait systems", "Future D.Y.O.O.R products"],
+    title: "Deflationary World Expansion",
+    items: ["Live Droid burns", "dYOOR World holder community", "Owner announcements", "Energy flywheel growth", "Ecosystem partnerships", "Additional trait systems"],
   },
 ];
 
@@ -316,6 +316,57 @@ export default function WhitepaperPage() {
           </div>
         </Panel>
 
+        <Panel id="dyoor-world" className="relative overflow-hidden border-dyoor-purple/35 bg-dyoor-purple/[0.06]">
+          <div className="pointer-events-none absolute -right-24 -top-24 h-72 w-72 rounded-full bg-dyoor-cyan/10 blur-3xl" />
+          <div className="pointer-events-none absolute -bottom-24 left-1/3 h-64 w-64 rounded-full bg-dyoor-purple/20 blur-3xl" />
+          <div className="relative">
+            <div className="mb-5 inline-flex rounded-full border border-emerald-300/25 bg-emerald-300/10 px-3 py-1.5 text-[0.62rem] font-black uppercase tracking-[0.16em] text-emerald-200">
+              S2 holder gate active
+            </div>
+            <SectionHeading
+              eyebrow="dYOOR World"
+              title="The Holder-Exclusive Community Layer"
+              copy="dYOOR World is the primary private community for active Season 2 holders. A read-only ownership check and wallet signature unlock persistent identity, live conversation, verified ecosystem feeds, and participation rewards without handing custody of a Droid to the site."
+            />
+            <div className="grid gap-5 lg:grid-cols-[1.2fr_0.8fr]">
+              <div className="grid gap-3 sm:grid-cols-2">
+                {[
+                  ["Identity", "Claim one .dYOOR name and use an owned Season 2 Droid as your World PFP."],
+                  ["Community", "Join holder threads, reply, tag channels, share media, and earn capped Energy for meaningful messages."],
+                  ["Verified Activity", "Follow confirmed sales, burns, direct MON tips, and non-custodial Trade Desk activity."],
+                  ["Official Dispatches", "Read owner-wallet announcements and open official HTTPS links posted directly inside the World."],
+                ].map(([title, copy]) => (
+                  <article key={title} className="terminal-panel hover-lift p-4">
+                    <h3 className="text-sm font-black uppercase tracking-[0.14em] text-dyoor-cyan">{title}</h3>
+                    <p className="mt-3 text-sm font-semibold leading-6 text-white/64">{copy}</p>
+                  </article>
+                ))}
+              </div>
+              <aside className="rounded border border-dyoor-monad/30 bg-[linear-gradient(145deg,rgba(131,110,249,.15),rgba(5,6,13,.72))] p-5">
+                <p className="text-xs font-black uppercase tracking-[0.2em] text-dyoor-monad">Community map</p>
+                <div className="mt-4 grid gap-3">
+                  <div className="rounded border border-dyoor-cyan/25 bg-dyoor-cyan/[0.08] p-4">
+                    <p className="text-xs font-black uppercase text-dyoor-cyan">Primary home</p>
+                    <p className="mt-2 text-lg font-black uppercase text-white">dYOOR World</p>
+                    <p className="mt-2 text-xs font-bold leading-5 text-white/55">Exclusive, holder-gated conversation and ecosystem activity.</p>
+                  </div>
+                  <div className="rounded border border-white/10 bg-black/25 p-4">
+                    <p className="text-xs font-black uppercase text-white/55">Public onboarding</p>
+                    <p className="mt-2 text-lg font-black uppercase text-white">Discord + Telegram</p>
+                    <p className="mt-2 text-xs font-bold leading-5 text-white/48">Welcome newcomers, answer entry questions, and guide future holders into the ecosystem.</p>
+                  </div>
+                </div>
+                <p className="mt-4 text-xs font-bold leading-5 text-white/42">
+                  Official public posts can be linked manually from the owner-only announcements stream.
+                </p>
+                <Link className="btn-primary mt-5 w-full justify-center" href="/dyoor-world">
+                  Enter dYOOR World
+                </Link>
+              </aside>
+            </div>
+          </div>
+        </Panel>
+
         <Panel id="treasury" className="border-dyoor-cyan/25 bg-dyoor-cyan/[0.055]">
           <SectionHeading
             eyebrow="Treasury & Ecosystem Growth"
@@ -436,6 +487,9 @@ export default function WhitepaperPage() {
             </Link>
             <Link className="rounded border border-white/20 px-4 py-3 text-sm font-black uppercase text-white/80" href="/verify">
               Verify Roles
+            </Link>
+            <Link className="rounded border border-dyoor-purple/45 bg-dyoor-purple/10 px-4 py-3 text-sm font-black uppercase text-dyoor-monad" href="/dyoor-world">
+              Enter dYOOR World
             </Link>
           </div>
         </Panel>
