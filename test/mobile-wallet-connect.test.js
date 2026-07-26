@@ -54,6 +54,9 @@ test("standard browsers use a wallet-neutral WalletConnect modal", () => {
   assert.match(walletService, /enableExplorer: true/);
   assert.match(walletService, /enableMobileFullScreen: true/);
   assert.match(walletService, /optionalChains: \[MONAD_CHAIN_ID\]/);
+  assert.match(walletService, /await provider\.modal\?\.ready\?\.\(\)/);
+  assert.match(walletService, /await waitForWalletConnectRelay\(provider\)/);
+  assert.match(walletService, /exact origin is allowed in the Reown project/);
   assert.match(walletService, /await provider\.enable\(\)/);
   assert.doesNotMatch(walletService, /chains: \[MONAD_CHAIN_ID\]/);
 });

@@ -29,6 +29,10 @@ type WalletConnectProvider = Eip1193Provider & {
   accounts?: string[];
   chainId?: number;
   connected?: boolean;
+  modal?: {
+    close?: () => Promise<void> | void;
+    ready?: () => Promise<void>;
+  };
   session?: {
     peer?: {
       metadata?: {
@@ -320,6 +324,7 @@ function useInjectedWallet() {
 
 let walletConnectProviderPromise: Promise<WalletConnectProvider> | null = null;
 let walletConnectProviderProjectId = "";
+const WALLETCONNECT_RELAY_WAIT_MS = 10_000;
 
 function createWalletConnectProvider(projectId: string) {
   if (walletConnectProviderPromise && walletConnectProviderProjectId === projectId) {
@@ -330,7 +335,7 @@ function createWalletConnectProvider(projectId: string) {
   walletConnectProviderPromise = import("@walletconnect/ethereum-provider")
     .then(async ({ EthereumProvider }) => {
       const origin = window.location.origin;
-      return await EthereumProvider.init({
+      const provider = await EthereumProvider.init({
         projectId,
         optionalChains: [MONAD_CHAIN_ID],
         optionalMethods: [
@@ -367,6 +372,8 @@ function createWalletConnectProvider(projectId: string) {
           },
         },
       }) as unknown as WalletConnectProvider;
+      await provider.modal?.ready?.();
+      return provider;
     })
     .catch((error) => {
       walletConnectProviderPromise = null;
@@ -374,6 +381,21 @@ function createWalletConnectProvider(projectId: string) {
     });
 
   return walletConnectProviderPromise;
+}
+
+async function waitForWalletConnectRelay(provider: WalletConnectProvider) {
+  if (provider.connected) return;
+
+  const deadline = Date.now() + WALLETCONNECT_RELAY_WAIT_MS;
+  while (!provider.connected && Date.now() < deadline) {
+    await new Promise((resolve) => window.setTimeout(resolve, 250));
+  }
+  if (provider.connected) return;
+
+  throw new Error(
+    `WalletConnect could not start on ${window.location.origin}. ` +
+    "Verify that this exact origin is allowed in the Reown project and that this device is online.",
+  );
 }
 
 async function switchProviderToMonad(provider: Eip1193Provider) {
@@ -486,6 +508,7 @@ function useWalletConnectWallet(projectId: string) {
     setError("");
     try {
       const provider = await getProvider();
+      await waitForWalletConnectRelay(provider);
       const accounts = await provider.enable();
       await syncProvider(provider, accounts);
       const chainId = await provider.request({ method: "eth_chainId" }).catch(() => MONAD_CHAIN_HEX);

@@ -97,7 +97,9 @@ export function DyoorWorldGate() {
   }
 
   const buttonLabel = !address
-    ? "Connect holder wallet"
+    ? wallet.status === "connecting"
+      ? "Preparing wallet connection"
+      : "Connect holder wallet"
     : wallet.status === "wrong-network"
       ? "Switch to Monad"
       : eligible === false
@@ -143,7 +145,11 @@ export function DyoorWorldGate() {
             </div>
             <button
               className="btn-primary mt-7 w-full sm:w-auto sm:min-w-72"
-              disabled={working || Boolean(address && eligible !== true && wallet.status !== "wrong-network")}
+              disabled={
+                working ||
+                wallet.status === "connecting" ||
+                Boolean(address && eligible !== true && wallet.status !== "wrong-network")
+              }
               onClick={() => void enterWorld()}
               type="button"
             >
