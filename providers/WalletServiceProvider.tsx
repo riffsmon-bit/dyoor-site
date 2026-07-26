@@ -1,6 +1,6 @@
 "use client";
 
-import { usePrivy } from "@privy-io/react-auth";
+import { useConnectWallet, usePrivy, type WalletListEntry } from "@privy-io/react-auth";
 import { BrowserProvider } from "ethers";
 import { createContext, ReactNode, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import { useActivePrivyWallet } from "@/hooks/useActivePrivyWallet";
@@ -22,6 +22,26 @@ type BrowserEthereum = Eip1193Provider & {
 
 type WalletStatus = "loading" | "idle" | "connecting" | "connected" | "wrong-network" | "error";
 type WalletSource = "privy" | "browser" | "none";
+
+const MOBILE_WALLET_LIST: WalletListEntry[] = [
+  "metamask",
+  "coinbase_wallet",
+  "rainbow",
+  "okx_wallet",
+  "phantom",
+  "backpack",
+];
+
+const DESKTOP_WALLET_LIST: WalletListEntry[] = [
+  "metamask",
+  "coinbase_wallet",
+  "rainbow",
+  "okx_wallet",
+  "phantom",
+  "backpack",
+  "detected_ethereum_wallets",
+  "wallet_connect_qr",
+];
 
 export type WalletService = {
   address: string;
@@ -103,6 +123,22 @@ function injectedProvider() {
 
 function normalizeAddress(value: unknown) {
   return /^0x[a-fA-F0-9]{40}$/.test(String(value || "")) ? String(value).toLowerCase() : "";
+}
+
+function isMobileBrowser() {
+  if (typeof navigator === "undefined") return false;
+  const navigatorWithHints = navigator as Navigator & { userAgentData?: { mobile?: boolean } };
+  return navigatorWithHints.userAgentData?.mobile === true
+    || /Android|iPhone|iPad|iPod/i.test(navigator.userAgent)
+    || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+}
+
+function privyConnectionError(error: unknown) {
+  const message = error instanceof Error ? error.message : String(error || "");
+  if (/cancel|closed|rejected|denied/i.test(message)) return "Wallet connection was cancelled.";
+  return message && !/^[a-z0-9_]+$/i.test(message)
+    ? message
+    : "Wallet connection failed. Close other wallet sessions, then try again.";
 }
 
 function useInjectedWallet() {
@@ -281,8 +317,8 @@ function InjectedOnlyWalletServiceProvider({ children }: { children: ReactNode }
 
 function PrivyFirstWalletServiceProvider({ children }: { children: ReactNode }) {
   const injected = useInjectedWallet();
-  const { authenticated, ready: authReady, login, logout } = usePrivy();
-  const { wallet } = useActivePrivyWallet();
+  const { authenticated, ready: authReady, logout } = usePrivy();
+  const { wallet, ready: walletsReady } = useActivePrivyWallet();
   const [connecting, setConnecting] = useState(false);
   const [error, setError] = useState("");
   const [readyTimedOut, setReadyTimedOut] = useState(false);
@@ -293,13 +329,24 @@ function PrivyFirstWalletServiceProvider({ children }: { children: ReactNode }) 
   const address = privyAddress || injected.address;
   const source: WalletSource = privyAddress ? "privy" : injected.source;
   const hasInjectedWallet = Boolean(injected.providerName);
-  const uiReady = authReady || readyTimedOut || hasInjectedWallet || Boolean(privyAddress);
+  const privyReady = authReady && walletsReady;
+  const uiReady = privyReady || readyTimedOut || hasInjectedWallet || Boolean(privyAddress);
+  const { connectWallet } = useConnectWallet({
+    onSuccess: () => {
+      setConnecting(false);
+      setError("");
+    },
+    onError: (connectionError) => {
+      setConnecting(false);
+      setError(privyConnectionError(connectionError));
+    },
+  });
 
   useEffect(() => {
-    if (authReady) return;
+    if (privyReady) return;
     const timer = window.setTimeout(() => setReadyTimedOut(true), 12_000);
     return () => window.clearTimeout(timer);
-  }, [authReady]);
+  }, [privyReady]);
 
   const getProvider = useCallback(async () => {
     if (privyAddress && wallet && "getEthereumProvider" in wallet) {
@@ -356,8 +403,12 @@ function PrivyFirstWalletServiceProvider({ children }: { children: ReactNode }) 
         await injected.connect();
         return;
       }
-      if (authReady) {
-        login();
+      if (privyReady) {
+        connectWallet({
+          description: "Connect the wallet that holds your D.Y.O.O.R.",
+          walletChainType: "ethereum-only",
+          walletList: isMobileBrowser() ? MOBILE_WALLET_LIST : DESKTOP_WALLET_LIST,
+        });
         return;
       }
       throw new Error(
@@ -372,7 +423,7 @@ function PrivyFirstWalletServiceProvider({ children }: { children: ReactNode }) 
     } finally {
       setConnecting(false);
     }
-  }, [authReady, hasInjectedWallet, injected, login]);
+  }, [connectWallet, hasInjectedWallet, injected, privyReady]);
 
   const disconnect = useCallback(async () => {
     setError("");

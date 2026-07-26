@@ -68,7 +68,6 @@ export function AppProviders({ children }: { children: ReactNode }) {
             "phantom",
             "backpack",
             "detected_ethereum_wallets",
-            "wallet_connect",
             "wallet_connect_qr",
           ],
         },
@@ -85,7 +84,6 @@ export function AppProviders({ children }: { children: ReactNode }) {
             createOnLogin: "users-without-wallets",
           },
         },
-        defaultChain: monadMainnet,
         supportedChains: [monadMainnet],
       } as any}
     >

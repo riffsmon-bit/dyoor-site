@@ -26,27 +26,59 @@ test("mobile World navigation keeps DMs separate from the decorative glyph", () 
 test("Privy waits for initialization instead of falling into a missing injected wallet", () => {
   assert.match(
     walletService,
-    /const uiReady = authReady \|\| readyTimedOut \|\| hasInjectedWallet \|\| Boolean\(privyAddress\)/,
+    /const privyReady = authReady && walletsReady;/,
   );
-  assert.match(walletService, /if \(authReady\) {\s+login\(\);\s+return;/);
+  assert.match(
+    walletService,
+    /const uiReady = privyReady \|\| readyTimedOut \|\| hasInjectedWallet \|\| Boolean\(privyAddress\)/,
+  );
+  assert.match(walletService, /if \(privyReady\) {\s+connectWallet\(\{/);
+  assert.match(walletService, /useConnectWallet\(\{/);
+  assert.doesNotMatch(walletService, /\blogin\(\)/);
   assert.match(walletService, /Privy is still loading/);
   assert.doesNotMatch(walletService, /authReady && !readyTimedOut/);
   assert.doesNotMatch(walletService, /uiReady = .*injected\.ready/);
   assert.doesNotMatch(walletService, /Privy connection timed out/);
 });
 
-test("mobile-friendly named wallets precede desktop detection and QR fallbacks", () => {
+test("mobile wallet handoff excludes desktop-only detection and QR connectors", () => {
+  const mobileList = walletService.match(
+    /const MOBILE_WALLET_LIST[^=]*= \[([\s\S]*?)\];/,
+  )?.[1] || "";
+  const desktopList = walletService.match(
+    /const DESKTOP_WALLET_LIST[^=]*= \[([\s\S]*?)\];/,
+  )?.[1] || "";
+
+  assert.match(mobileList, /"metamask"/);
+  assert.match(mobileList, /"coinbase_wallet"/);
+  assert.match(mobileList, /"rainbow"/);
+  assert.doesNotMatch(mobileList, /"detected_ethereum_wallets"/);
+  assert.doesNotMatch(mobileList, /"wallet_connect"/);
+  assert.doesNotMatch(mobileList, /"wallet_connect_qr"/);
+  assert.match(desktopList, /"detected_ethereum_wallets"/);
+  assert.match(desktopList, /"wallet_connect_qr"/);
+  assert.match(
+    walletService,
+    /walletList: isMobileBrowser\(\) \? MOBILE_WALLET_LIST : DESKTOP_WALLET_LIST/,
+  );
+});
+
+test("provider does not force Monad during the external-wallet pairing handshake", () => {
+  assert.doesNotMatch(providers, /\bdefaultChain:/);
+  assert.match(providers, /supportedChains: \[monadMainnet\]/);
+});
+
+test("mobile-friendly named wallets precede desktop fallbacks", () => {
   const metamask = providers.indexOf('"metamask"');
   const coinbase = providers.indexOf('"coinbase_wallet"');
   const rainbow = providers.indexOf('"rainbow"');
   const detected = providers.indexOf('"detected_ethereum_wallets"');
-  const walletConnect = providers.indexOf('"wallet_connect"');
   const desktopQr = providers.indexOf('"wallet_connect_qr"');
 
   assert.ok(metamask > -1);
   assert.ok(coinbase > metamask);
   assert.ok(rainbow > coinbase);
   assert.ok(detected > rainbow);
-  assert.ok(walletConnect > detected);
-  assert.ok(desktopQr > walletConnect);
+  assert.ok(desktopQr > detected);
+  assert.doesNotMatch(providers, /"wallet_connect",/);
 });

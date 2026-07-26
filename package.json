@@ -68,7 +68,7 @@
   },
   "dependencies": {
     "@netlify/blobs": "^7.4.0",
-    "@privy-io/react-auth": "^3.32.1",
+    "@privy-io/react-auth": "^3.35.2",
     "@tanstack/react-query": "^5.101.0",
     "ethers": "^6.13.0",
     "next": "^16.2.9",
