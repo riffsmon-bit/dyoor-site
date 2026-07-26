@@ -59,8 +59,23 @@ test("mobile wallet handoff excludes desktop-only detection and QR connectors", 
   assert.match(desktopList, /"wallet_connect_qr"/);
   assert.match(
     walletService,
-    /walletList: isMobileBrowser\(\) \? MOBILE_WALLET_LIST : DESKTOP_WALLET_LIST/,
+    /walletList: MOBILE_WALLET_LIST/,
   );
+});
+
+test("standard mobile browsers use MetaMask's official in-app browser bridge", () => {
+  assert.match(walletService, /https:\/\/link\.metamask\.io\/dapp\//);
+  assert.match(
+    walletService,
+    /if \(injectedProvider\(\)\) \{\s+await injected\.connect\(\);/,
+  );
+  assert.match(
+    walletService,
+    /if \(isMobileBrowser\(\)\) \{\s+setMetaMaskUrl\(metaMaskDappUrl\(\)\);/,
+  );
+  assert.match(walletService, /href=\{metaMaskUrl\}/);
+  assert.match(walletService, /Open in MetaMask/);
+  assert.match(walletService, /Use another mobile wallet/);
 });
 
 test("provider does not force Monad during the external-wallet pairing handshake", () => {

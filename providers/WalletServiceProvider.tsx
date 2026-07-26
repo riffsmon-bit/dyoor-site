@@ -133,6 +133,12 @@ function isMobileBrowser() {
     || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
 }
 
+function metaMaskDappUrl() {
+  if (typeof window === "undefined") return "https://link.metamask.io";
+  const dappUrl = `${window.location.host}${window.location.pathname}`;
+  return `https://link.metamask.io/dapp/${dappUrl}`;
+}
+
 function privyConnectionError(error: unknown) {
   const message = error instanceof Error ? error.message : String(error || "");
   if (/cancel|closed|rejected|denied/i.test(message)) return "Wallet connection was cancelled.";
@@ -315,6 +321,76 @@ function InjectedOnlyWalletServiceProvider({ children }: { children: ReactNode }
   return <WalletServiceContext.Provider value={service}>{children}</WalletServiceContext.Provider>;
 }
 
+function MobileWalletBridge({
+  metaMaskUrl,
+  onClose,
+  onOtherWallets,
+}: {
+  metaMaskUrl: string;
+  onClose: () => void;
+  onOtherWallets: () => void;
+}) {
+  useEffect(() => {
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") onClose();
+    };
+    document.addEventListener("keydown", onKeyDown);
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      document.removeEventListener("keydown", onKeyDown);
+    };
+  }, [onClose]);
+
+  return (
+    <div
+      aria-labelledby="mobile-wallet-bridge-title"
+      aria-modal="true"
+      className="fixed inset-0 z-[300] flex items-end justify-center bg-[#02040d]/88 p-3 backdrop-blur-md sm:items-center sm:p-6"
+      role="dialog"
+    >
+      <div className="relative w-full max-w-md overflow-hidden rounded-2xl border border-dyoor-cyan/35 bg-[radial-gradient(circle_at_top_right,rgba(131,110,249,.24),transparent_42%),linear-gradient(145deg,#0b1023,#050712_72%)] p-5 shadow-[0_26px_90px_rgba(0,0,0,.72),0_0_42px_rgba(57,255,226,.12)] sm:p-7">
+        <div className="absolute -right-16 -top-16 h-40 w-40 rounded-full bg-dyoor-purple/20 blur-3xl" />
+        <button
+          aria-label="Close mobile wallet options"
+          className="absolute right-4 top-4 z-10 flex h-9 w-9 items-center justify-center rounded-full border border-white/15 bg-black/35 text-lg text-white/65 transition hover:border-dyoor-cyan/50 hover:text-dyoor-cyan"
+          onClick={onClose}
+          type="button"
+        >
+          ×
+        </button>
+        <div className="relative">
+          <p className="text-[0.62rem] font-black uppercase tracking-[0.2em] text-dyoor-cyan">Mobile wallet bridge</p>
+          <h2 className="mt-2 pr-10 text-2xl font-black uppercase text-white" id="mobile-wallet-bridge-title">
+            Open dYOOR in MetaMask
+          </h2>
+          <p className="mt-3 text-sm font-bold leading-6 text-white/60">
+            Safari and Chrome cannot inject your mobile wallet. Open this exact page inside MetaMask, then tap
+            Connect Holder Wallet there to approve the connection.
+          </p>
+          <a
+            className="mt-6 flex min-h-14 w-full items-center justify-center rounded border border-dyoor-cyan bg-dyoor-cyan px-5 py-4 text-center text-sm font-black uppercase tracking-[0.08em] text-black shadow-[0_0_28px_rgba(57,255,226,.2)] transition hover:bg-white"
+            href={metaMaskUrl}
+          >
+            Open in MetaMask
+          </a>
+          <button
+            className="mt-3 min-h-12 w-full rounded border border-dyoor-purple/45 bg-dyoor-purple/12 px-4 py-3 text-xs font-black uppercase tracking-[0.08em] text-white/80 transition hover:border-dyoor-cyan/55 hover:text-dyoor-cyan"
+            onClick={onOtherWallets}
+            type="button"
+          >
+            Use another mobile wallet
+          </button>
+          <p className="mt-4 text-center text-[0.62rem] font-black uppercase leading-5 tracking-[0.1em] text-white/32">
+            No transaction or token approval is requested during connection.
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function PrivyFirstWalletServiceProvider({ children }: { children: ReactNode }) {
   const injected = useInjectedWallet();
   const { authenticated, ready: authReady, logout } = usePrivy();
@@ -324,6 +400,7 @@ function PrivyFirstWalletServiceProvider({ children }: { children: ReactNode }) 
   const [readyTimedOut, setReadyTimedOut] = useState(false);
   const [wrongNetwork, setWrongNetwork] = useState(false);
   const [suppressedPrivyAddress, setSuppressedPrivyAddress] = useState("");
+  const [metaMaskUrl, setMetaMaskUrl] = useState("");
   const rawPrivyAddress = normalizeAddress(wallet?.address);
   const privyAddress = rawPrivyAddress && rawPrivyAddress !== suppressedPrivyAddress ? rawPrivyAddress : "";
   const address = privyAddress || injected.address;
@@ -399,15 +476,19 @@ function PrivyFirstWalletServiceProvider({ children }: { children: ReactNode }) 
     setSuppressedPrivyAddress("");
     setConnecting(true);
     try {
-      if (hasInjectedWallet) {
+      if (injectedProvider()) {
         await injected.connect();
+        return;
+      }
+      if (isMobileBrowser()) {
+        setMetaMaskUrl(metaMaskDappUrl());
         return;
       }
       if (privyReady) {
         connectWallet({
           description: "Connect the wallet that holds your D.Y.O.O.R.",
           walletChainType: "ethereum-only",
-          walletList: isMobileBrowser() ? MOBILE_WALLET_LIST : DESKTOP_WALLET_LIST,
+          walletList: DESKTOP_WALLET_LIST,
         });
         return;
       }
@@ -423,7 +504,20 @@ function PrivyFirstWalletServiceProvider({ children }: { children: ReactNode }) 
     } finally {
       setConnecting(false);
     }
-  }, [connectWallet, hasInjectedWallet, injected, privyReady]);
+  }, [connectWallet, injected, privyReady]);
+
+  const connectOtherMobileWallet = useCallback(() => {
+    setMetaMaskUrl("");
+    if (!privyReady) {
+      setError("Wallet services are still loading. Wait a moment, then try again.");
+      return;
+    }
+    connectWallet({
+      description: "Connect the wallet that holds your D.Y.O.O.R.",
+      walletChainType: "ethereum-only",
+      walletList: MOBILE_WALLET_LIST,
+    });
+  }, [connectWallet, privyReady]);
 
   const disconnect = useCallback(async () => {
     setError("");
@@ -475,7 +569,18 @@ function PrivyFirstWalletServiceProvider({ children }: { children: ReactNode }) 
     switchChain,
   }), [address, connect, connecting, disconnect, error, getProvider, injected, source, switchChain, uiReady, wrongNetwork]);
 
-  return <WalletServiceContext.Provider value={service}>{children}</WalletServiceContext.Provider>;
+  return (
+    <WalletServiceContext.Provider value={service}>
+      {children}
+      {metaMaskUrl ? (
+        <MobileWalletBridge
+          metaMaskUrl={metaMaskUrl}
+          onClose={() => setMetaMaskUrl("")}
+          onOtherWallets={connectOtherMobileWallet}
+        />
+      ) : null}
+    </WalletServiceContext.Provider>
+  );
 }
 
 export function WalletServiceProvider({ children, privyEnabled }: { children: ReactNode; privyEnabled: boolean }) {
