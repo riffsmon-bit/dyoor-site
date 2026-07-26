@@ -15,13 +15,9 @@ export function AppProviders({ children }: { children: ReactNode }) {
     },
   }));
 
-  const walletConnectProjectId = process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID || "";
-
   return (
     <QueryClientProvider client={queryClient}>
-      <WalletServiceProvider walletConnectProjectId={walletConnectProjectId}>
-        {children}
-      </WalletServiceProvider>
+      <WalletServiceProvider>{children}</WalletServiceProvider>
     </QueryClientProvider>
   );
 }

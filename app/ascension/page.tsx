@@ -1189,7 +1189,7 @@ export default function AscensionPage() {
           </div>
 
           {!authenticated ? (
-            <EmptyState title="Wallet Signal Required" copy="Connect with the global Privy wallet button to load unstaked and ascended DYOOR." />
+            <EmptyState title="Wallet Signal Required" copy="Connect with the global wallet button to load unstaked and ascended DYOOR." />
           ) : (
             <div className="grid gap-4 xl:grid-cols-2">
               <NftGrid

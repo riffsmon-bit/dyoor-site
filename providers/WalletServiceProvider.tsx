@@ -1,7 +1,8 @@
 "use client";
 
 import { BrowserProvider } from "ethers";
-import { createContext, ReactNode, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
+import { createContext, ReactNode, useCallback, useContext, useEffect, useMemo, useState } from "react";
+import { WalletAppChooser } from "@/components/wallet/WalletAppChooser";
 import { MONAD_CHAIN_HEX, MONAD_CHAIN_ID, MONAD_EXPLORER_URL, MONAD_RPC_URL } from "@/lib/monad";
 
 export type Eip1193Provider = {
@@ -25,30 +26,8 @@ type Eip6963ProviderDetail = {
   provider?: BrowserEthereum;
 };
 
-type WalletConnectProvider = Eip1193Provider & {
-  accounts?: string[];
-  chainId?: number;
-  connected?: boolean;
-  modal?: {
-    close?: () => Promise<void> | void;
-    ready?: () => Promise<void>;
-  };
-  session?: {
-    peer?: {
-      metadata?: {
-        name?: string;
-      };
-    };
-  };
-  connect: () => Promise<void>;
-  disconnect: () => Promise<void>;
-  enable: () => Promise<string[]>;
-  on: (event: string, listener: (...args: any[]) => void) => unknown;
-  removeListener: (event: string, listener: (...args: any[]) => void) => unknown;
-};
-
 type WalletStatus = "loading" | "idle" | "connecting" | "connected" | "wrong-network" | "error";
-type WalletSource = "walletconnect" | "browser" | "none";
+type WalletSource = "browser" | "none";
 
 export type WalletService = {
   address: string;
@@ -127,14 +106,6 @@ function injectedProvider() {
 
 function normalizeAddress(value: unknown) {
   return /^0x[a-fA-F0-9]{40}$/.test(String(value || "")) ? String(value).toLowerCase() : "";
-}
-
-function walletConnectionError(error: unknown) {
-  const message = error instanceof Error ? error.message : String(error || "");
-  if (/cancel|closed|rejected|denied/i.test(message)) return "Wallet connection was cancelled.";
-  return message && !/^[a-z0-9_]+$/i.test(message)
-    ? message
-    : "Wallet connection failed. Close any stale wallet request, then try again.";
 }
 
 function useInjectedWallet() {
@@ -322,316 +293,71 @@ function useInjectedWallet() {
   return service;
 }
 
-let walletConnectProviderPromise: Promise<WalletConnectProvider> | null = null;
-let walletConnectProviderProjectId = "";
-const WALLETCONNECT_RELAY_WAIT_MS = 10_000;
-
-function createWalletConnectProvider(projectId: string) {
-  if (walletConnectProviderPromise && walletConnectProviderProjectId === projectId) {
-    return walletConnectProviderPromise;
-  }
-
-  walletConnectProviderProjectId = projectId;
-  walletConnectProviderPromise = import("@walletconnect/ethereum-provider")
-    .then(async ({ EthereumProvider }) => {
-      const origin = window.location.origin;
-      const provider = await EthereumProvider.init({
-        projectId,
-        optionalChains: [MONAD_CHAIN_ID],
-        optionalMethods: [
-          "eth_accounts",
-          "eth_requestAccounts",
-          "eth_sendTransaction",
-          "personal_sign",
-          "eth_signTypedData",
-          "eth_signTypedData_v3",
-          "eth_signTypedData_v4",
-          "wallet_switchEthereumChain",
-          "wallet_addEthereumChain",
-        ],
-        optionalEvents: ["accountsChanged", "chainChanged", "disconnect", "connect"],
-        rpcMap: {
-          [MONAD_CHAIN_ID]: MONAD_RPC_URL,
-        },
-        showQrModal: true,
-        metadata: {
-          name: "D.Y.O.O.R",
-          description: "Connect the wallet that holds your D.Y.O.O.R.",
-          url: origin,
-          icons: [`${origin}/dyoor-world-icon.svg`],
-        },
-        qrModalOptions: {
-          themeMode: "dark",
-          enableExplorer: true,
-          enableMobileFullScreen: true,
-          themeVariables: {
-            "--wcm-z-index": "350",
-            "--wcm-accent-color": "#39ffe2",
-            "--wcm-accent-fill-color": "#02040d",
-            "--wcm-background-color": "#060817",
-          },
-        },
-      }) as unknown as WalletConnectProvider;
-      await provider.modal?.ready?.();
-      return provider;
-    })
-    .catch((error) => {
-      walletConnectProviderPromise = null;
-      throw error;
-    });
-
-  return walletConnectProviderPromise;
-}
-
-async function waitForWalletConnectRelay(provider: WalletConnectProvider) {
-  if (provider.connected) return;
-
-  const deadline = Date.now() + WALLETCONNECT_RELAY_WAIT_MS;
-  while (!provider.connected && Date.now() < deadline) {
-    await new Promise((resolve) => window.setTimeout(resolve, 250));
-  }
-  if (provider.connected) return;
-
-  throw new Error(
-    `WalletConnect could not start on ${window.location.origin}. ` +
-    "Verify that this exact origin is allowed in the Reown project and that this device is online.",
-  );
-}
-
-async function switchProviderToMonad(provider: Eip1193Provider) {
-  try {
-    await provider.request({
-      method: "wallet_switchEthereumChain",
-      params: [{ chainId: MONAD_CHAIN_HEX }],
-    });
-  } catch {
-    await provider.request({
-      method: "wallet_addEthereumChain",
-      params: [{
-        chainId: MONAD_CHAIN_HEX,
-        chainName: "Monad",
-        rpcUrls: [MONAD_RPC_URL],
-        nativeCurrency: { name: "MON", symbol: "MON", decimals: 18 },
-        blockExplorerUrls: [MONAD_EXPLORER_URL],
-      }],
-    });
-  }
-}
-
-function useWalletConnectWallet(projectId: string) {
-  const providerRef = useRef<WalletConnectProvider | null>(null);
-  const [address, setAddress] = useState("");
-  const [connecting, setConnecting] = useState(false);
-  const [error, setError] = useState("");
-  const [providerName, setProviderName] = useState("WalletConnect");
-  const [ready, setReady] = useState(!projectId);
-  const [wrongNetwork, setWrongNetwork] = useState(false);
-
-  const syncProvider = useCallback(async (provider: WalletConnectProvider, accounts?: string[]) => {
-    const nextAccounts = accounts || provider.accounts || await provider.request({
-      method: "eth_accounts",
-    }).catch(() => []) as string[];
-    const nextAddress = normalizeAddress(nextAccounts?.[0]);
-    setAddress(nextAddress);
-    setProviderName(provider.session?.peer?.metadata?.name || "WalletConnect");
-    if (!nextAddress) {
-      setWrongNetwork(false);
-      return;
-    }
-    const chainId = await provider.request({ method: "eth_chainId" }).catch(() => MONAD_CHAIN_HEX);
-    setWrongNetwork(String(chainId || "").toLowerCase() !== MONAD_CHAIN_HEX);
-  }, []);
-
-  useEffect(() => {
-    if (!projectId) {
-      return;
-    }
-
-    let active = true;
-    let connectedProvider: WalletConnectProvider | null = null;
-    const onAccounts = (accounts: string[]) => void syncProvider(connectedProvider!, accounts);
-    const onChain = () => void syncProvider(connectedProvider!);
-    const onDisconnect = () => {
-      setAddress("");
-      setWrongNetwork(false);
-      setProviderName("WalletConnect");
-    };
-
-    void createWalletConnectProvider(projectId)
-      .then((provider) => {
-        if (!active) return;
-        connectedProvider = provider;
-        providerRef.current = provider;
-        provider.on("accountsChanged", onAccounts);
-        provider.on("chainChanged", onChain);
-        provider.on("connect", onChain);
-        provider.on("disconnect", onDisconnect);
-        provider.on("session_delete", onDisconnect);
-        if (provider.session) void syncProvider(provider);
-      })
-      .catch((initializationError) => {
-        if (active) setError(walletConnectionError(initializationError));
-      })
-      .finally(() => {
-        if (active) setReady(true);
-      });
-
-    return () => {
-      active = false;
-      if (!connectedProvider) return;
-      connectedProvider.removeListener("accountsChanged", onAccounts);
-      connectedProvider.removeListener("chainChanged", onChain);
-      connectedProvider.removeListener("connect", onChain);
-      connectedProvider.removeListener("disconnect", onDisconnect);
-      connectedProvider.removeListener("session_delete", onDisconnect);
-    };
-  }, [projectId, syncProvider]);
-
-  const getProvider = useCallback(async () => {
-    if (!projectId) {
-      throw new Error("WalletConnect is not configured for this deployment.");
-    }
-    const provider = providerRef.current || await createWalletConnectProvider(projectId);
-    providerRef.current = provider;
-    setReady(true);
-    return provider;
-  }, [projectId]);
-
-  const switchChain = useCallback(async () => {
-    const provider = await getProvider();
-    await switchProviderToMonad(provider);
-    await syncProvider(provider);
-  }, [getProvider, syncProvider]);
-
-  const connect = useCallback(async () => {
-    setConnecting(true);
-    setError("");
-    try {
-      const provider = await getProvider();
-      await waitForWalletConnectRelay(provider);
-      const accounts = await provider.enable();
-      await syncProvider(provider, accounts);
-      const chainId = await provider.request({ method: "eth_chainId" }).catch(() => MONAD_CHAIN_HEX);
-      if (String(chainId || "").toLowerCase() !== MONAD_CHAIN_HEX) {
-        await switchProviderToMonad(provider);
-        await syncProvider(provider);
-      }
-    } catch (connectionError) {
-      const message = walletConnectionError(connectionError);
-      setError(message);
-      throw new Error(message);
-    } finally {
-      setConnecting(false);
-    }
-  }, [getProvider, syncProvider]);
-
-  const disconnect = useCallback(async () => {
-    setError("");
-    setWrongNetwork(false);
-    setAddress("");
-    const provider = providerRef.current;
-    if (provider?.session) {
-      await provider.disconnect().catch(() => undefined);
-    }
-  }, []);
-
-  return useMemo(() => ({
-    address,
-    connect,
-    connecting,
-    disconnect,
-    error,
-    getProvider,
-    providerName,
-    ready,
-    switchChain,
-    wrongNetwork,
-  }), [address, connect, connecting, disconnect, error, getProvider, providerName, ready, switchChain, wrongNetwork]);
-}
-
 function UniversalWalletServiceProvider({
   children,
-  walletConnectProjectId,
 }: {
   children: ReactNode;
-  walletConnectProjectId: string;
 }) {
   const injected = useInjectedWallet();
-  const walletConnect = useWalletConnectWallet(walletConnectProjectId);
-  const address = injected.address || walletConnect.address;
-  const source: WalletSource = injected.address
-    ? "browser"
-    : walletConnect.address
-      ? "walletconnect"
-      : "none";
-  const ready = Boolean(injected.providerName) || walletConnect.ready;
-  const connecting = injected.status === "connecting" || walletConnect.connecting;
-  const error = injected.error || walletConnect.error;
-  const wrongNetwork = source === "browser" ? injected.status === "wrong-network" : walletConnect.wrongNetwork;
+  const [walletChooserOpen, setWalletChooserOpen] = useState(false);
+  const address = injected.address;
+  const source: WalletSource = address ? "browser" : "none";
+  const connecting = injected.status === "connecting";
+  const error = injected.error;
+  const wrongNetwork = injected.status === "wrong-network";
+
+  const closeWalletChooser = useCallback(() => {
+    setWalletChooserOpen(false);
+  }, []);
 
   const connect = useCallback(async () => {
     if (injectedProvider()) {
       await injected.connect();
       return;
     }
-    await walletConnect.connect();
-  }, [injected, walletConnect]);
+    setWalletChooserOpen(true);
+  }, [injected]);
 
   const disconnect = useCallback(async () => {
-    if (source === "browser") {
-      await injected.disconnect();
-      return;
-    }
-    await walletConnect.disconnect();
-  }, [injected, source, walletConnect]);
+    await injected.disconnect();
+  }, [injected]);
 
   const getProvider = useCallback(async () => {
-    if (source === "browser" || (!walletConnect.address && injectedProvider())) {
-      return await injected.getProvider();
+    if (!injectedProvider()) {
+      throw new Error("Open this page inside an EVM wallet browser, then connect your wallet.");
     }
-    return await walletConnect.getProvider();
-  }, [injected, source, walletConnect]);
+    return await injected.getProvider();
+  }, [injected]);
 
   const getAddress = useCallback(async () => {
     if (address) return address;
     if (injectedProvider()) return await injected.getAddress();
-    const provider = await walletConnect.getProvider();
-    const accounts = await provider.request({ method: "eth_accounts" }) as string[];
-    const nextAddress = normalizeAddress(accounts?.[0]);
-    if (!nextAddress) throw new Error("Wallet is not connected.");
-    return nextAddress;
-  }, [address, injected, walletConnect]);
+    throw new Error("Open this page inside an EVM wallet browser, then connect your wallet.");
+  }, [address, injected]);
 
   const switchChain = useCallback(async () => {
-    if (source === "browser" || (!walletConnect.address && injectedProvider())) {
-      await injected.switchChain();
-      return;
+    if (!injectedProvider()) {
+      throw new Error("Open this page inside an EVM wallet browser, then connect your wallet.");
     }
-    await walletConnect.switchChain();
-  }, [injected, source, walletConnect]);
+    await injected.switchChain();
+  }, [injected]);
 
   const service = useMemo<WalletService>(() => ({
     address,
     connected: Boolean(address),
     error,
-    providerName: source === "browser"
-      ? injected.providerName
-      : source === "walletconnect"
-        ? walletConnect.providerName
-        : injected.providerName || "WalletConnect",
-    ready,
+    providerName: injected.providerName || "Wallet App",
+    ready: true,
     source,
-    status: !ready
-      ? "loading"
-      : connecting
-        ? "connecting"
-        : error
-          ? "error"
-          : address
-            ? wrongNetwork
-              ? "wrong-network"
-              : "connected"
-            : "idle",
+    status: connecting
+      ? "connecting"
+      : error
+        ? "error"
+        : address
+          ? wrongNetwork
+            ? "wrong-network"
+            : "connected"
+          : "idle",
     connect,
     disconnect,
     getAddress,
@@ -659,28 +385,28 @@ function UniversalWalletServiceProvider({
     getAddress,
     getProvider,
     injected.providerName,
-    ready,
     source,
     switchChain,
-    walletConnect.providerName,
     wrongNetwork,
   ]);
 
-  return <WalletServiceContext.Provider value={service}>{children}</WalletServiceContext.Provider>;
+  return (
+    <>
+      <WalletServiceContext.Provider value={service}>{children}</WalletServiceContext.Provider>
+      <WalletAppChooser
+        onClose={closeWalletChooser}
+        open={walletChooserOpen && !injected.providerName}
+      />
+    </>
+  );
 }
 
 export function WalletServiceProvider({
   children,
-  walletConnectProjectId,
 }: {
   children: ReactNode;
-  walletConnectProjectId: string;
 }) {
-  return (
-    <UniversalWalletServiceProvider walletConnectProjectId={walletConnectProjectId}>
-      {children}
-    </UniversalWalletServiceProvider>
-  );
+  return <UniversalWalletServiceProvider>{children}</UniversalWalletServiceProvider>;
 }
 
 export function useWalletService() {

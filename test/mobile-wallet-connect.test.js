@@ -7,6 +7,10 @@ const walletService = fs.readFileSync(
   "providers/WalletServiceProvider.tsx",
   "utf8",
 );
+const walletChooser = fs.readFileSync(
+  "components/wallet/WalletAppChooser.tsx",
+  "utf8",
+);
 const worldClient = fs.readFileSync(
   "components/dyoor-world/DyoorWorldClient.tsx",
   "utf8",
@@ -23,16 +27,19 @@ test("mobile World navigation keeps DMs separate from the decorative glyph", () 
   );
 });
 
-test("wallet service waits for WalletConnect initialization without blocking injected wallets", () => {
-  assert.match(
-    walletService,
-    /const ready = Boolean\(injected\.providerName\) \|\| walletConnect\.ready;/,
-  );
+test("wallet service opens a direct wallet-app chooser without blocking injected wallets", () => {
   assert.match(
     walletService,
     /if \(injectedProvider\(\)\) \{\s+await injected\.connect\(\);/,
   );
-  assert.match(walletService, /await walletConnect\.connect\(\);/);
+  assert.match(
+    walletService,
+    /setWalletChooserOpen\(true\);/,
+  );
+  assert.match(
+    walletService,
+    /<WalletAppChooser[\s\S]*onClose=\{closeWalletChooser\}[\s\S]*open=\{walletChooserOpen && !injected\.providerName\}/,
+  );
   assert.doesNotMatch(walletService, /usePrivy|useConnectWallet|PrivyFirst/);
 });
 
@@ -45,25 +52,23 @@ test("injected wallets connect directly when the browser exposes a provider", ()
   assert.match(walletService, /eip6963:requestProvider/);
   assert.match(walletService, /eip6963:announceProvider/);
   assert.doesNotMatch(walletService, /providers\.find\([^)]*isMetaMask/);
-  assert.doesNotMatch(walletService, /link\.metamask\.io|Open in MetaMask|MobileWalletBridge/);
+  assert.doesNotMatch(walletService, /walletConnect|WalletConnect|Reown/);
 });
 
-test("standard browsers use a wallet-neutral WalletConnect modal", () => {
-  assert.match(walletService, /import\("@walletconnect\/ethereum-provider"\)/);
-  assert.match(walletService, /showQrModal: true/);
-  assert.match(walletService, /enableExplorer: true/);
-  assert.match(walletService, /enableMobileFullScreen: true/);
-  assert.match(walletService, /optionalChains: \[MONAD_CHAIN_ID\]/);
-  assert.match(walletService, /await provider\.modal\?\.ready\?\.\(\)/);
-  assert.match(walletService, /await waitForWalletConnectRelay\(provider\)/);
-  assert.match(walletService, /exact origin is allowed in the Reown project/);
-  assert.match(walletService, /await provider\.enable\(\)/);
-  assert.doesNotMatch(walletService, /chains: \[MONAD_CHAIN_ID\]/);
+test("standard mobile browsers get equal, service-free wallet app handoffs", () => {
+  assert.match(walletChooser, /data-wallet-app="?\{wallet\.name\}"?/);
+  assert.match(walletChooser, /https:\/\/metamask\.app\.link\/dapp\//);
+  assert.match(walletChooser, /https:\/\/web3\.okx\.com\/download\?deeplink=/);
+  assert.match(walletChooser, /https:\/\/phantom\.app\/ul\/browse\//);
+  assert.match(walletChooser, /https:\/\/link\.trustwallet\.com\/open_url\?coin_id=60/);
+  assert.match(walletChooser, /Copy exact page link/);
+  assert.match(walletChooser, /No transaction, token approval, relay account, or paid service is requested/);
+  assert.doesNotMatch(walletChooser, /Connect with MetaMask|Open in MetaMask/);
 });
 
-test("app provider passes the public WalletConnect project ID without a branded wallet preference", () => {
-  assert.match(providers, /NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID/);
-  assert.match(providers, /walletConnectProjectId=\{walletConnectProjectId\}/);
+test("app provider no longer needs a WalletConnect or Reown project ID", () => {
+  assert.match(providers, /<WalletServiceProvider>\{children\}<\/WalletServiceProvider>/);
+  assert.doesNotMatch(providers, /NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID|walletConnectProjectId/);
   assert.doesNotMatch(providers, /PrivyProvider|NEXT_PUBLIC_PRIVY_APP_ID/);
-  assert.doesNotMatch(providers, /"metamask"|"coinbase_wallet"|"rainbow"/);
+  assert.doesNotMatch(providers, /Reown|WalletConnect/);
 });
