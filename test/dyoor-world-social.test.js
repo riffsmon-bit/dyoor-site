@@ -4,6 +4,9 @@ import test from "node:test";
 import {
   DYOOR_WORLD_CHANNELS,
   isWorldWritableChannel,
+  normalizeDyoorWorldMessageReply,
+  normalizeWorldMessageId,
+  worldChannelFromTag,
 } from "../lib/dyoor-world.ts";
 import {
   dyoorWorldSticker,
@@ -120,6 +123,38 @@ test("verified streams are bot-only while the trade desk remains conversational"
   assert.equal(isWorldWritableChannel("trade-desk"), true);
   assert.equal(DYOOR_WORLD_CHANNELS.some((channel) => channel.id === "sales-feed"), true);
   assert.equal(DYOOR_WORLD_CHANNELS.some((channel) => channel.id === "trade-desk"), true);
+});
+
+test("World thread tags resolve only known channels", () => {
+  assert.equal(worldChannelFromTag("#world-lobby"), "world-lobby");
+  assert.equal(worldChannelFromTag("TRAIT-LAB"), "trait-lab");
+  assert.equal(worldChannelFromTag("#not-a-world-thread"), null);
+});
+
+test("World reply snapshots require safe IDs and server-shaped context", () => {
+  const messageId = "1753480000000-123e4567-e89b-42d3-a456-426614174000";
+  assert.equal(normalizeWorldMessageId(messageId), messageId);
+  assert.equal(normalizeWorldMessageId("../../names/claims/admin"), "");
+  assert.equal(normalizeWorldMessageId("message..json"), "");
+  assert.deepEqual(normalizeDyoorWorldMessageReply({
+    messageId,
+    wallet: "0x349D8eb480c92cF75371fbA5C6344A4d11b9103A",
+    author: "riffs.dYOOR",
+    content: "Check the #trait-lab thread.",
+    attachmentKind: "image",
+  }), {
+    messageId,
+    wallet: "0x349d8eb480c92cf75371fba5c6344a4d11b9103a",
+    author: "riffs.dYOOR",
+    content: "Check the #trait-lab thread.",
+    attachmentKind: "image",
+  });
+  assert.equal(normalizeDyoorWorldMessageReply({
+    messageId,
+    wallet: "not-a-wallet",
+    author: "forged",
+    content: "forged quote",
+  }), null);
 });
 
 test("World social APIs remain holder-gated and financial relays verify chain receipts", () => {
@@ -251,6 +286,26 @@ test("World chat uses directional motion bubbles and contained smooth scrolling"
   assert.match(styles, /prefers-reduced-motion: reduce/);
 });
 
+test("World chat supports verified replies, thread tags, and smart latest-message navigation", () => {
+  const client = fs.readFileSync("components/dyoor-world/DyoorWorldClient.tsx", "utf8");
+  const route = fs.readFileSync("app/api/dyoor-world/messages/route.ts", "utf8");
+  const server = fs.readFileSync("lib/dyoor-world-server.ts", "utf8");
+
+  assert.match(route, /replyToMessageId: body\?\.replyToMessageId/);
+  assert.match(server, /version: 4/);
+  assert.match(server, /normalizeWorldMessageId\(rawReplyToMessageId\)/);
+  assert.match(server, /That message is no longer available in this World thread/);
+  assert.match(server, /normalizeDyoorWorldMessageReply/);
+  assert.match(client, /Replying to \{replyingTo\.author\}/);
+  assert.match(client, /replyToMessageId: replyingTo\?\.id/);
+  assert.match(client, /role="listbox"/);
+  assert.match(client, /type # to tag a thread/);
+  assert.match(client, /WorldMessageContent/);
+  assert.match(client, /new message\$\{newMessageCount === 1 \? "" : "s"\} ↓/);
+  assert.match(client, /Jump to latest ↓/);
+  assert.match(client, /distanceFromBottom <= 96/);
+});
+
 test("another holder's username opens the direct MON tip flow", () => {
   const client = fs.readFileSync("components/dyoor-world/DyoorWorldClient.tsx", "utf8");
 
@@ -281,4 +336,16 @@ test("World wheel UI exposes the full reward range and polished spin treatment",
   assert.match(styles, /world-energy-wheel-disc/);
   assert.match(styles, /@keyframes world-energy-wheel-spin/);
   assert.match(styles, /world-energy-wheel-aura/);
+});
+
+test("the website links to the canonical D.Y.O.O.R OpenSea collection", () => {
+  for (const file of [
+    "app/page.tsx",
+    "components/footer/SiteFooter.tsx",
+    "index.html",
+  ]) {
+    const source = fs.readFileSync(file, "utf8");
+    assert.match(source, /https:\/\/opensea\.io\/collection\/d-y-o-o-r/);
+    assert.doesNotMatch(source, /https:\/\/opensea\.io\/collection\/dyoor-154958357/);
+  }
 });

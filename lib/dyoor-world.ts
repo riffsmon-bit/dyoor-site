@@ -54,6 +54,13 @@ export const DYOOR_WORLD_CHANNELS = [
 
 export type DyoorWorldChannelId = (typeof DYOOR_WORLD_CHANNELS)[number]["id"];
 export type DyoorWorldMessageKind = "user" | "system" | "sale" | "tip" | "trade" | "burn";
+export type DyoorWorldMessageReply = {
+  messageId: string;
+  wallet: string;
+  author: string;
+  content: string;
+  attachmentKind?: DyoorWorldMessageAttachment["kind"];
+};
 
 export type DyoorWorldAvatar = {
   tokenId: string;
@@ -79,7 +86,7 @@ export type DyoorWorldProfile = {
 };
 
 export type DyoorWorldMessage = {
-  version: 1 | 2 | 3;
+  version: 1 | 2 | 3 | 4;
   id: string;
   channelId: DyoorWorldChannelId;
   wallet: string;
@@ -89,6 +96,7 @@ export type DyoorWorldMessage = {
   systemAuthor?: string;
   data?: Record<string, string | number | boolean | null>;
   attachment?: DyoorWorldMessageAttachment;
+  replyTo?: DyoorWorldMessageReply;
 };
 
 export type DyoorWorldMessageView = DyoorWorldMessage & {
@@ -140,6 +148,39 @@ export function normalizeWorldWallet(value: unknown) {
   return /^0x[a-f0-9]{40}$/.test(wallet) ? wallet : "";
 }
 
+export function normalizeWorldMessageId(value: unknown) {
+  const id = String(value || "").trim();
+  return /^[a-zA-Z0-9._:-]{1,180}$/.test(id) && !id.includes("..") ? id : "";
+}
+
+export function normalizeDyoorWorldMessageReply(
+  value: unknown,
+): DyoorWorldMessageReply | null {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return null;
+  const input = value as Record<string, unknown>;
+  const messageId = normalizeWorldMessageId(input.messageId);
+  const wallet = normalizeWorldWallet(input.wallet);
+  const author = String(input.author || "")
+    .replace(/[\u0000-\u001F\u007F]/g, "")
+    .trim()
+    .slice(0, 80);
+  const content = String(input.content || "")
+    .replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/g, "")
+    .trim()
+    .slice(0, 240);
+  const attachmentKind = ["image", "gif", "sticker"].includes(String(input.attachmentKind || ""))
+    ? input.attachmentKind as DyoorWorldMessageAttachment["kind"]
+    : undefined;
+  if (!messageId || !wallet || !author || (!content && !attachmentKind)) return null;
+  return {
+    messageId,
+    wallet,
+    author,
+    content,
+    ...(attachmentKind ? { attachmentKind } : {}),
+  };
+}
+
 export function normalizeWorldLabel(value: unknown) {
   return String(value || "")
     .normalize("NFKC")
@@ -178,6 +219,11 @@ export function formatWorldCanonicalName(label: string) {
 
 export function isWorldChannel(value: unknown): value is DyoorWorldChannelId {
   return DYOOR_WORLD_CHANNELS.some((channel) => channel.id === value);
+}
+
+export function worldChannelFromTag(value: unknown): DyoorWorldChannelId | null {
+  const tag = String(value || "").trim().replace(/^#/, "").toLowerCase();
+  return DYOOR_WORLD_CHANNELS.find((channel) => channel.label === tag)?.id || null;
 }
 
 export function isWorldWritableChannel(value: unknown): value is DyoorWorldChannelId {

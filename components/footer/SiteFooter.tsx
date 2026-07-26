@@ -7,6 +7,7 @@ const socials = [
   { label: "Discord", href: "https://discord.com/invite/nE5ZzejBfw" },
   { label: "Telegram", href: "https://t.me/dyoorintake" },
   { label: "M3SH", href: "https://m3sh.netlify.app/app?node=dyoor&stream=dyoor-general" },
+  { label: "OpenSea", href: "https://opensea.io/collection/d-y-o-o-r" },
 ];
 
 export function SiteFooter() {
@@ -28,7 +29,7 @@ export function SiteFooter() {
             <p className="mt-1 text-xs font-semibold text-white/48">D.Y.O.O.R on Monad. Ascension, Energy, Droids, and treasury-backed utility.</p>
           </div>
         </div>
-        <nav className="flex flex-wrap gap-2" aria-label="Social links">
+        <nav className="flex flex-wrap gap-2" aria-label="DYOOR external links">
           {socials.map((social) => (
             <a
               key={social.label}

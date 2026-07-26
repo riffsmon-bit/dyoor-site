@@ -42,6 +42,7 @@ export async function POST(request: Request) {
         channelId: body?.channelId,
         content: body?.content,
         attachment: body?.attachment,
+        replyToMessageId: body?.replyToMessageId,
       }),
     });
   } catch (error) {

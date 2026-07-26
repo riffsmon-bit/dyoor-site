@@ -8,7 +8,15 @@ import {
   parseEther,
   toHex,
 } from "viem";
-import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  FormEvent,
+  KeyboardEvent as ReactKeyboardEvent,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { useRouter } from "next/navigation";
 import {
   DYOOR_WORLD_CHANNELS,
@@ -18,6 +26,7 @@ import {
   type DyoorWorldProfile,
   shortWorldWallet,
   validateWorldLabel,
+  worldChannelFromTag,
 } from "@/lib/dyoor-world";
 import {
   normalizeDyoorWorldAttachment,
@@ -232,6 +241,57 @@ function messageTime(value: string) {
 function shortenedHash(value?: unknown) {
   const hash = String(value || "");
   return hash.length > 14 ? `${hash.slice(0, 8)}…${hash.slice(-5)}` : hash;
+}
+
+function worldReplyExcerpt(message: Pick<DyoorWorldMessageView, "content" | "attachment">) {
+  const content = String(message.content || "").trim().replace(/\s+/g, " ");
+  if (content) return content.slice(0, 140);
+  const attachment = normalizeDyoorWorldAttachment(message.attachment);
+  if (attachment?.kind === "sticker") return "Shared a World sticker";
+  if (attachment?.kind === "gif") return "Shared a GIF";
+  if (attachment?.kind === "image") return "Shared an image";
+  return "Message";
+}
+
+function WorldMessageContent({
+  content,
+  onChannelSelect,
+}: {
+  content: string;
+  onChannelSelect: (channelId: DyoorWorldChannelId) => void;
+}) {
+  return (
+    <>
+      {content.split(/(#[a-z0-9-]+)/gi).map((part, index) => {
+        const taggedChannel = worldChannelFromTag(part);
+        if (!taggedChannel) return part;
+        const channel = DYOOR_WORLD_CHANNELS.find((item) => item.id === taggedChannel);
+        return (
+          <button
+            className="inline rounded-sm bg-dyoor-purple/15 px-1 font-black text-dyoor-cyan underline decoration-dyoor-cyan/25 underline-offset-2 transition hover:bg-dyoor-cyan/15 hover:text-white"
+            key={`${part}-${index}`}
+            onClick={() => onChannelSelect(taggedChannel)}
+            title={`Open #${channel?.label || taggedChannel}`}
+            type="button"
+          >
+            #{channel?.label || taggedChannel}
+          </button>
+        );
+      })}
+    </>
+  );
+}
+
+function activeWorldChannelMention(draft: string, cursorValue: number) {
+  const cursor = Math.max(0, Math.min(cursorValue, draft.length));
+  const match = draft.slice(0, cursor).match(/(?:^|\s)#([a-z0-9-]*)$/i);
+  if (!match) return null;
+  const query = String(match[1] || "").toLowerCase();
+  return {
+    start: cursor - query.length - 1,
+    end: cursor,
+    query,
+  };
 }
 
 function readableWorldNameClaimError(error: unknown) {
@@ -511,7 +571,11 @@ export function DyoorWorldClient({ sessionWallet }: { sessionWallet: string }) {
   const [nameAvailability, setNameAvailability] = useState<WorldNameAvailability | null>(null);
   const [checkingName, setCheckingName] = useState(false);
   const [draft, setDraft] = useState("");
+  const [draftCursor, setDraftCursor] = useState(0);
+  const [tagSuggestionIndex, setTagSuggestionIndex] = useState(0);
+  const [tagMenuDismissed, setTagMenuDismissed] = useState(false);
   const [composerAttachment, setComposerAttachment] = useState<DyoorWorldMessageAttachment | null>(null);
+  const [replyingTo, setReplyingTo] = useState<DyoorWorldMessageView | null>(null);
   const [loadingMessages, setLoadingMessages] = useState(true);
   const [sending, setSending] = useState(false);
   const [claiming, setClaiming] = useState(false);
@@ -534,14 +598,33 @@ export function DyoorWorldClient({ sessionWallet }: { sessionWallet: string }) {
   const [error, setError] = useState("");
   const [mobileThreadsOpen, setMobileThreadsOpen] = useState(false);
   const [mobileIdentityOpen, setMobileIdentityOpen] = useState(false);
+  const [messageListAtBottom, setMessageListAtBottom] = useState(true);
+  const [newMessageCount, setNewMessageCount] = useState(0);
+  const [highlightedMessageId, setHighlightedMessageId] = useState("");
   const messageListRef = useRef<HTMLDivElement>(null);
   const messageEndRef = useRef<HTMLDivElement>(null);
+  const composerRef = useRef<HTMLTextAreaElement>(null);
   const tipAmountRef = useRef<HTMLInputElement>(null);
+  const messageListAtBottomRef = useRef(true);
+  const messageTrackerRef = useRef({
+    channelId: "world-lobby" as DyoorWorldChannelId,
+    lastMessageId: "",
+  });
+  const messageHighlightTimerRef = useRef<number | null>(null);
   const selectedChannel = useMemo(
     () => DYOOR_WORLD_CHANNELS.find((channel) => channel.id === channelId)
       || DYOOR_WORLD_CHANNELS[0],
     [channelId],
   );
+  const channelMention = useMemo(
+    () => tagMenuDismissed ? null : activeWorldChannelMention(draft, draftCursor),
+    [draft, draftCursor, tagMenuDismissed],
+  );
+  const channelTagSuggestions = useMemo(() => {
+    if (!channelMention) return [];
+    return DYOOR_WORLD_CHANNELS.filter((channel) =>
+      channel.label.startsWith(channelMention.query));
+  }, [channelMention]);
 
   const loadProfile = useCallback(async () => {
     const response = await fetch("/api/dyoor-world/profile", { cache: "no-store" });
@@ -589,6 +672,18 @@ export function DyoorWorldClient({ sessionWallet }: { sessionWallet: string }) {
       if (!silent) setLoadingMessages(false);
     }
   }, [channelId]);
+
+  const scrollToLatestMessage = useCallback((behavior: ScrollBehavior = "smooth") => {
+    const messageList = messageListRef.current;
+    if (!messageList) return;
+    messageList.scrollTo({
+      top: messageList.scrollHeight,
+      behavior,
+    });
+    messageListAtBottomRef.current = true;
+    setMessageListAtBottom(true);
+    setNewMessageCount(0);
+  }, []);
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
@@ -670,16 +765,46 @@ export function DyoorWorldClient({ sessionWallet }: { sessionWallet: string }) {
   }, [loadMessages]);
 
   useEffect(() => {
+    const newestMessageId = messages.at(-1)?.id || "";
+    const tracker = messageTrackerRef.current;
+    if (tracker.channelId !== channelId) {
+      messageTrackerRef.current = { channelId, lastMessageId: newestMessageId };
+      const frame = window.requestAnimationFrame(() => scrollToLatestMessage("auto"));
+      return () => window.cancelAnimationFrame(frame);
+    }
+    if (!newestMessageId || newestMessageId === tracker.lastMessageId) return;
+
+    const previousIndex = messages.findIndex(
+      (message) => message.id === tracker.lastMessageId,
+    );
+    const addedMessages = tracker.lastMessageId && previousIndex >= 0
+      ? messages.length - previousIndex - 1
+      : 1;
+    tracker.lastMessageId = newestMessageId;
+
+    if (messageListAtBottomRef.current) {
+      const frame = window.requestAnimationFrame(() => scrollToLatestMessage());
+      return () => window.cancelAnimationFrame(frame);
+    }
+    setNewMessageCount((current) => current + Math.max(1, addedMessages));
+  }, [channelId, messages, scrollToLatestMessage]);
+
+  useEffect(() => {
+    return () => {
+      if (messageHighlightTimerRef.current != null) {
+        window.clearTimeout(messageHighlightTimerRef.current);
+      }
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!replyingTo) return;
     const frame = window.requestAnimationFrame(() => {
-      const messageList = messageListRef.current;
-      if (!messageList) return;
-      messageList.scrollTo({
-        top: messageList.scrollHeight,
-        behavior: "smooth",
-      });
+      composerRef.current?.focus();
+      composerRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
     });
     return () => window.cancelAnimationFrame(frame);
-  }, [channelId, messages.length]);
+  }, [replyingTo]);
 
   useEffect(() => {
     if (!mobileThreadsOpen && !mobileIdentityOpen) return;
@@ -705,6 +830,113 @@ export function DyoorWorldClient({ sessionWallet }: { sessionWallet: string }) {
     });
     return () => window.cancelAnimationFrame(frame);
   }, [tipTarget]);
+
+  function selectWorldChannel(nextChannel: DyoorWorldChannelId) {
+    if (nextChannel !== channelId) {
+      setChannelId(nextChannel);
+      setReplyingTo(null);
+      setTagMenuDismissed(false);
+      setTagSuggestionIndex(0);
+      setNewMessageCount(0);
+      setMessageListAtBottom(true);
+      messageListAtBottomRef.current = true;
+    }
+    setMobileThreadsOpen(false);
+    setMobileIdentityOpen(false);
+  }
+
+  function handleMessageListScroll() {
+    const messageList = messageListRef.current;
+    if (!messageList) return;
+    const distanceFromBottom = messageList.scrollHeight
+      - messageList.scrollTop
+      - messageList.clientHeight;
+    const atBottom = distanceFromBottom <= 96;
+    messageListAtBottomRef.current = atBottom;
+    setMessageListAtBottom(atBottom);
+    if (atBottom) setNewMessageCount(0);
+  }
+
+  function jumpToWorldMessage(messageId: string) {
+    const target = document.getElementById(`world-message-${messageId}`);
+    if (!target) {
+      setNotice("The original message is outside the currently loaded history.");
+      return;
+    }
+    target.scrollIntoView({ behavior: "smooth", block: "center" });
+    setHighlightedMessageId(messageId);
+    if (messageHighlightTimerRef.current != null) {
+      window.clearTimeout(messageHighlightTimerRef.current);
+    }
+    messageHighlightTimerRef.current = window.setTimeout(() => {
+      setHighlightedMessageId("");
+      messageHighlightTimerRef.current = null;
+    }, 1_800);
+  }
+
+  function beginWorldReply(message: DyoorWorldMessageView) {
+    setReplyingTo(message);
+    setTagMenuDismissed(true);
+  }
+
+  function insertWorldChannelTag(nextChannel: DyoorWorldChannelId) {
+    if (!channelMention) return;
+    const channel = DYOOR_WORLD_CHANNELS.find((item) => item.id === nextChannel);
+    if (!channel) return;
+    const replacement = `#${channel.label} `;
+    const nextDraft = (
+      draft.slice(0, channelMention.start)
+      + replacement
+      + draft.slice(channelMention.end)
+    ).slice(0, 800);
+    const nextCursor = Math.min(
+      channelMention.start + replacement.length,
+      nextDraft.length,
+    );
+    setDraft(nextDraft);
+    setDraftCursor(nextCursor);
+    setTagMenuDismissed(false);
+    setTagSuggestionIndex(0);
+    window.requestAnimationFrame(() => {
+      composerRef.current?.focus();
+      composerRef.current?.setSelectionRange(nextCursor, nextCursor);
+    });
+  }
+
+  function handleComposerKeyDown(event: ReactKeyboardEvent<HTMLTextAreaElement>) {
+    if (event.nativeEvent.isComposing) return;
+    if (channelTagSuggestions.length > 0) {
+      if (event.key === "ArrowDown" || event.key === "ArrowUp") {
+        event.preventDefault();
+        const direction = event.key === "ArrowDown" ? 1 : -1;
+        setTagSuggestionIndex((current) =>
+          (current + direction + channelTagSuggestions.length)
+          % channelTagSuggestions.length);
+        return;
+      }
+      if (event.key === "Enter" || event.key === "Tab") {
+        event.preventDefault();
+        const selected = channelTagSuggestions[
+          Math.min(tagSuggestionIndex, channelTagSuggestions.length - 1)
+        ];
+        if (selected) insertWorldChannelTag(selected.id);
+        return;
+      }
+      if (event.key === "Escape") {
+        event.preventDefault();
+        setTagMenuDismissed(true);
+        return;
+      }
+    }
+
+    const desktopEnter = event.key === "Enter"
+      && !event.shiftKey
+      && window.matchMedia("(min-width: 768px)").matches;
+    if (!desktopEnter) return;
+    event.preventDefault();
+    if (event.repeat || sending) return;
+    event.currentTarget.form?.requestSubmit();
+  }
 
   async function ensureActiveWallet() {
     if (!connectedWallet) throw new Error("Connect the authenticated holder wallet first.");
@@ -857,10 +1089,14 @@ export function DyoorWorldClient({ sessionWallet }: { sessionWallet: string }) {
           channelId,
           content,
           attachment: composerAttachment,
+          replyToMessageId: replyingTo?.id,
         }),
       });
       const data = await readResponse<{ message?: DyoorWorldMessageView }>(response);
       if (data.message) {
+        messageListAtBottomRef.current = true;
+        setMessageListAtBottom(true);
+        setNewMessageCount(0);
         setMessages((current) => [...current, data.message!]);
         if (data.message.energyReward) {
           setNotice(`Signal accepted · +${data.message.energyReward} Energy pending.`);
@@ -868,7 +1104,10 @@ export function DyoorWorldClient({ sessionWallet }: { sessionWallet: string }) {
         }
       }
       setDraft("");
+      setDraftCursor(0);
       setComposerAttachment(null);
+      setReplyingTo(null);
+      setTagMenuDismissed(false);
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "Could not send the World message.");
     } finally {
@@ -937,7 +1176,7 @@ export function DyoorWorldClient({ sessionWallet }: { sessionWallet: string }) {
         }`,
       );
       setTipTarget(null);
-      setChannelId("tip-ledger");
+      selectWorldChannel("tip-ledger");
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "Could not send the MON tip.");
     } finally {
@@ -1234,11 +1473,7 @@ export function DyoorWorldClient({ sessionWallet }: { sessionWallet: string }) {
               <WorldChannelList
                 activeChannel={channelId}
                 descriptions
-                onSelect={(nextChannel) => {
-                  setChannelId(nextChannel);
-                  setMobileThreadsOpen(false);
-                  setMobileIdentityOpen(false);
-                }}
+                onSelect={selectWorldChannel}
               />
             </div>
           </aside>
@@ -1315,7 +1550,7 @@ export function DyoorWorldClient({ sessionWallet }: { sessionWallet: string }) {
             <WorldChannelList
               activeChannel={channelId}
               descriptions
-              onSelect={setChannelId}
+              onSelect={selectWorldChannel}
             />
             <div className="mt-4 rounded border border-dyoor-purple/20 bg-dyoor-purple/[0.07] p-4">
               <p className="text-[0.62rem] font-black uppercase tracking-[0.17em] text-dyoor-monad">Adapted from M3SH</p>
@@ -1542,11 +1777,15 @@ export function DyoorWorldClient({ sessionWallet }: { sessionWallet: string }) {
             ) : null}
 
             <div
-              className={`world-message-stream min-h-0 flex-1 space-y-3 overflow-y-auto px-3 py-4 sm:px-5 ${
+              className={`relative min-h-0 flex-1 ${
                 channelId === "trade-desk" ? "min-h-[28rem]" : ""
               }`}
-              ref={messageListRef}
             >
+              <div
+                className="world-message-stream h-full min-h-0 space-y-3 overflow-y-auto px-3 py-4 sm:px-5"
+                onScroll={handleMessageListScroll}
+                ref={messageListRef}
+              >
               {loadingMessages ? (
                 <div className="space-y-3">
                   {[0, 1, 2].map((index) => <div className="skeleton-line h-16" key={index} />)}
@@ -1579,7 +1818,12 @@ export function DyoorWorldClient({ sessionWallet }: { sessionWallet: string }) {
                         : isOwn
                           ? "world-message-own ml-auto w-fit max-w-[92%] border-dyoor-cyan/25 bg-gradient-to-br from-dyoor-cyan/[0.16] via-[#102c37]/90 to-dyoor-purple/[0.12] sm:max-w-[84%]"
                           : "world-message-peer mr-auto w-fit max-w-[92%] border-dyoor-purple/25 bg-gradient-to-br from-[#17162b]/95 via-[#101225]/95 to-dyoor-purple/[0.11] sm:max-w-[84%]"
+                    } ${
+                      highlightedMessageId === message.id
+                        ? "ring-2 ring-dyoor-cyan/80 shadow-[0_0_38px_rgba(57,255,226,.25)]"
+                        : ""
                     }`}
+                    id={`world-message-${message.id}`}
                     key={message.id}
                     style={{ animationDelay: `${Math.min(messageIndex, 6) * 35}ms` }}
                   >
@@ -1615,9 +1859,43 @@ export function DyoorWorldClient({ sessionWallet }: { sessionWallet: string }) {
                           )}
                           <span className="text-[0.62rem] font-bold text-white/25">{messageTime(message.createdAt)}</span>
                           {isSystem ? <span className="text-[0.53rem] font-black uppercase tracking-[0.12em] text-white/28">verified {message.kind}</span> : null}
+                          {!isSystem ? (
+                            <button
+                              aria-label={`Reply to ${message.author}`}
+                              className="rounded border border-white/10 bg-white/[0.035] px-2 py-0.5 text-[0.53rem] font-black uppercase tracking-[0.08em] text-white/35 opacity-75 transition hover:border-dyoor-cyan/35 hover:bg-dyoor-cyan/10 hover:text-dyoor-cyan sm:opacity-0 sm:group-hover:opacity-100 sm:focus-visible:opacity-100"
+                              onClick={() => beginWorldReply(message)}
+                              title={`Reply to ${message.author}`}
+                              type="button"
+                            >
+                              ↩ Reply
+                            </button>
+                          ) : null}
                         </div>
+                        {message.replyTo ? (
+                          <button
+                            className={`mt-2 block max-w-full rounded-lg border-l-2 border-dyoor-purple/55 bg-black/25 px-3 py-2 text-left transition hover:border-dyoor-cyan hover:bg-dyoor-cyan/[0.07] ${
+                              isOwn ? "ml-auto" : ""
+                            }`}
+                            onClick={() => jumpToWorldMessage(message.replyTo!.messageId)}
+                            title="Jump to original message"
+                            type="button"
+                          >
+                            <span className="block truncate text-[0.58rem] font-black uppercase tracking-[0.08em] text-dyoor-monad">
+                              ↪ {message.replyTo.author}
+                            </span>
+                            <span className="mt-0.5 block max-w-[24rem] truncate text-[0.68rem] font-bold text-white/42">
+                              {message.replyTo.content
+                                || `Shared a ${message.replyTo.attachmentKind || "message"}`}
+                            </span>
+                          </button>
+                        ) : null}
                         {message.content ? (
-                          <p className="world-message-copy mt-1 whitespace-pre-wrap break-words text-sm font-medium leading-6 text-white/78">{message.content}</p>
+                          <p className="world-message-copy mt-1 whitespace-pre-wrap break-words text-sm font-medium leading-6 text-white/78">
+                            <WorldMessageContent
+                              content={message.content}
+                              onChannelSelect={selectWorldChannel}
+                            />
+                          </p>
                         ) : null}
                         {attachment?.kind === "image" || attachment?.kind === "gif" ? (
                           <a
@@ -1659,7 +1937,20 @@ export function DyoorWorldClient({ sessionWallet }: { sessionWallet: string }) {
                   </article>
                 );
               })}
-              <div ref={messageEndRef} />
+                <div ref={messageEndRef} />
+              </div>
+              {!messageListAtBottom ? (
+                <button
+                  aria-label="Jump to the latest World message"
+                  className="absolute bottom-4 left-1/2 z-20 -translate-x-1/2 rounded-full border border-dyoor-cyan/45 bg-[#091624]/95 px-4 py-2 text-[0.62rem] font-black uppercase tracking-[0.1em] text-dyoor-cyan shadow-[0_10px_35px_rgba(0,0,0,.55),0_0_24px_rgba(57,255,226,.14)] backdrop-blur transition hover:border-dyoor-cyan hover:bg-dyoor-cyan/15 hover:text-white"
+                  onClick={() => scrollToLatestMessage()}
+                  type="button"
+                >
+                  {newMessageCount > 0
+                    ? `${newMessageCount} new message${newMessageCount === 1 ? "" : "s"} ↓`
+                    : "Jump to latest ↓"}
+                </button>
+              ) : null}
             </div>
 
             {tipTarget ? (
@@ -1696,22 +1987,81 @@ export function DyoorWorldClient({ sessionWallet }: { sessionWallet: string }) {
 
             {!selectedChannel.readOnly ? (
               <form className="border-t border-dyoor-purple/20 bg-black/20 p-3 sm:p-4" onSubmit={sendMessage}>
+                {replyingTo ? (
+                  <div className="mb-2 flex min-w-0 items-center gap-3 rounded-lg border border-dyoor-purple/30 bg-gradient-to-r from-dyoor-purple/[0.12] to-dyoor-cyan/[0.05] px-3 py-2">
+                    <span aria-hidden="true" className="text-lg text-dyoor-cyan">↩</span>
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-[0.58rem] font-black uppercase tracking-[0.1em] text-dyoor-monad">
+                        Replying to {replyingTo.author}
+                      </p>
+                      <p className="mt-0.5 truncate text-xs font-bold text-white/42">
+                        {worldReplyExcerpt(replyingTo)}
+                      </p>
+                    </div>
+                    <button
+                      aria-label="Cancel message reply"
+                      className="flex h-7 w-7 shrink-0 items-center justify-center rounded border border-white/10 text-sm font-black text-white/40 transition hover:border-white/25 hover:text-white"
+                      onClick={() => setReplyingTo(null)}
+                      type="button"
+                    >
+                      ×
+                    </button>
+                  </div>
+                ) : null}
+                {channelTagSuggestions.length > 0 ? (
+                  <div
+                    aria-label="World thread suggestions"
+                    className="mb-2 overflow-hidden rounded-lg border border-dyoor-cyan/25 bg-[#0a0b1d]/98 p-1 shadow-[0_16px_50px_rgba(0,0,0,.5),0_0_30px_rgba(57,255,226,.08)]"
+                    id="world-channel-tag-suggestions"
+                    role="listbox"
+                  >
+                    <p className="px-2 py-1 text-[0.5rem] font-black uppercase tracking-[0.14em] text-white/28">
+                      Tag a World thread
+                    </p>
+                    {channelTagSuggestions.map((channel, index) => (
+                      <button
+                        aria-selected={index === tagSuggestionIndex}
+                        className={`flex w-full items-center gap-3 rounded px-2.5 py-2 text-left transition ${
+                          index === tagSuggestionIndex
+                            ? "bg-dyoor-cyan/10 text-dyoor-cyan"
+                            : "text-white/60 hover:bg-white/[0.04] hover:text-white"
+                        }`}
+                        id={`world-channel-tag-${channel.id}`}
+                        key={channel.id}
+                        onClick={() => insertWorldChannelTag(channel.id)}
+                        onMouseDown={(event) => event.preventDefault()}
+                        role="option"
+                        type="button"
+                      >
+                        <span className="text-sm font-black">#{channel.label}</span>
+                        <span className="truncate text-[0.6rem] font-bold text-white/28">
+                          {channel.description}
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                ) : null}
                 <div className="flex items-end gap-2 rounded border border-dyoor-purple/25 bg-black/35 p-2 focus-within:border-dyoor-cyan/55">
                   <textarea
+                    aria-controls={channelTagSuggestions.length > 0
+                      ? "world-channel-tag-suggestions"
+                      : undefined}
                     aria-label={`Message ${selectedChannel.label}`}
                     className="min-h-12 flex-1 resize-none bg-transparent px-2 py-2 text-sm font-bold text-white outline-none placeholder:text-white/25"
                     maxLength={800}
-                    onChange={(event) => setDraft(event.target.value)}
-                    onKeyDown={(event) => {
-                      const desktopEnter = event.key === "Enter"
-                        && !event.shiftKey
-                        && window.matchMedia("(min-width: 768px)").matches;
-                      if (!desktopEnter || event.nativeEvent.isComposing) return;
-                      event.preventDefault();
-                      if (event.repeat || sending) return;
-                      event.currentTarget.form?.requestSubmit();
+                    onChange={(event) => {
+                      setDraft(event.target.value);
+                      setDraftCursor(event.currentTarget.selectionStart || 0);
+                      setTagMenuDismissed(false);
+                      setTagSuggestionIndex(0);
                     }}
+                    onKeyDown={handleComposerKeyDown}
+                    onKeyUp={(event) =>
+                      setDraftCursor(event.currentTarget.selectionStart || 0)}
+                    onSelect={(event) =>
+                      setDraftCursor(event.currentTarget.selectionStart || 0)}
                     placeholder={`Message #${selectedChannel.label} as ${identity}`}
+                    ref={composerRef}
                     rows={2}
                     value={draft}
                   />
@@ -1729,7 +2079,7 @@ export function DyoorWorldClient({ sessionWallet }: { sessionWallet: string }) {
                   onChange={setComposerAttachment}
                 />
                 <p className="mt-2 px-1 text-[0.62rem] font-bold text-white/25">
-                  {draft.length}/800 · <span className="hidden md:inline">Enter sends · Shift+Enter newline · </span>meaningful text can earn {rewards?.chat.rewardEnergy || 5} Energy · media and stickers alone do not earn · holder session verified
+                  {draft.length}/800 · type # to tag a thread · tap ↩ to reply · <span className="hidden md:inline">Enter sends · Shift+Enter newline · </span>meaningful text can earn {rewards?.chat.rewardEnergy || 5} Energy · media and stickers alone do not earn
                 </p>
               </form>
             ) : null}

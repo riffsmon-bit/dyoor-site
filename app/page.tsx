@@ -68,6 +68,14 @@ export default function HomePage() {
               <Link className="btn-secondary" href="/#swap">
                 Swap On Monad
               </Link>
+              <a
+                className="btn-secondary"
+                href="https://opensea.io/collection/d-y-o-o-r"
+                rel="noopener noreferrer"
+                target="_blank"
+              >
+                View On OpenSea ↗
+              </a>
             </div>
           </div>
           <div className="grid gap-3 rounded border border-dyoor-purple/30 bg-[#070616]/58 p-4 shadow-[0_0_44px_rgba(131,110,249,.18)] backdrop-blur-xl md:grid-cols-2">

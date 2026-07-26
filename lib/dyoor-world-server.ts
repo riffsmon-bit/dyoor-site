@@ -13,7 +13,9 @@ import {
   type DyoorWorldProfile,
   isWorldChannel,
   isWorldWritableChannel,
+  normalizeDyoorWorldMessageReply,
   normalizeWorldLabel,
+  normalizeWorldMessageId,
   normalizeWorldWallet,
   resolveWorldNameClaims,
   shortWorldWallet,
@@ -802,17 +804,25 @@ async function loadRawWorldMessages(channelId: string, limit = 100) {
     keys.map((key) => worldStore.getJsonStrict<DyoorWorldMessage>(key)),
   );
   return messages
-    .filter((message): message is DyoorWorldMessage => Boolean(
-      message
-        && (message.version === 1 || message.version === 2 || message.version === 3)
-        && isWorldChannel(message.channelId)
-        && normalizeWorldWallet(message.wallet)
-        && (message.content || normalizeDyoorWorldAttachment(message.attachment))
-        && (!message.attachment || normalizeDyoorWorldAttachment(message.attachment))
-        && Number.isFinite(Date.parse(message.createdAt)),
-    ))
+    .filter((message): message is DyoorWorldMessage => validStoredWorldMessage(message))
     .sort((left, right) => Date.parse(left.createdAt) - Date.parse(right.createdAt))
     .slice(-limit);
+}
+
+function validStoredWorldMessage(
+  message: DyoorWorldMessage | null,
+): message is DyoorWorldMessage {
+  return Boolean(
+    message
+      && [1, 2, 3, 4].includes(message.version)
+      && normalizeWorldMessageId(message.id)
+      && isWorldChannel(message.channelId)
+      && normalizeWorldWallet(message.wallet)
+      && (message.content || normalizeDyoorWorldAttachment(message.attachment))
+      && (!message.attachment || normalizeDyoorWorldAttachment(message.attachment))
+      && (!message.replyTo || normalizeDyoorWorldMessageReply(message.replyTo))
+      && Number.isFinite(Date.parse(message.createdAt)),
+  );
 }
 
 export async function listDyoorWorldMessages(channelValue: unknown) {
@@ -870,6 +880,7 @@ export async function createDyoorWorldMessage(input: {
   channelId: unknown;
   content: unknown;
   attachment?: unknown;
+  replyToMessageId?: unknown;
 }) {
   const wallet = normalizeWorldWallet(input.wallet);
   const channelId = String(input.channelId || "");
@@ -893,6 +904,11 @@ export async function createDyoorWorldMessage(input: {
   if (content.length > 800) {
     throw dyoorWorldError("World messages must contain 800 characters or fewer.", 400);
   }
+  const rawReplyToMessageId = String(input.replyToMessageId || "").trim();
+  const replyToMessageId = normalizeWorldMessageId(rawReplyToMessageId);
+  if (rawReplyToMessageId && !replyToMessageId) {
+    throw dyoorWorldError("The replied-to message ID is invalid.", 400);
+  }
   assertDyoorWorldRateLimit(`message:${wallet}`, 8, 30_000);
 
   const recent = await loadRawWorldMessages(channelId, 30);
@@ -901,10 +917,39 @@ export async function createDyoorWorldMessage(input: {
     throw dyoorWorldError("Wait a moment before sending another message.", 429);
   }
 
+  let replyTo: DyoorWorldMessage["replyTo"];
+  if (replyToMessageId) {
+    const target = await worldStore.getJsonStrict<DyoorWorldMessage>(
+      `${messagePrefix(channelId)}${replyToMessageId}.json`,
+    );
+    if (!validStoredWorldMessage(target) || target.channelId !== channelId) {
+      throw dyoorWorldError(
+        "That message is no longer available in this World thread.",
+        404,
+      );
+    }
+    const targetAttachment = normalizeDyoorWorldAttachment(target.attachment);
+    const targetProfile = target.systemAuthor
+      ? null
+      : await getDyoorWorldProfile(target.wallet);
+    replyTo = normalizeDyoorWorldMessageReply({
+      messageId: target.id,
+      wallet: target.wallet,
+      author: target.systemAuthor
+        || targetProfile?.displayName
+        || shortWorldWallet(target.wallet),
+      content: target.content,
+      attachmentKind: targetAttachment?.kind,
+    }) || undefined;
+    if (!replyTo) {
+      throw dyoorWorldError("That message cannot be quoted safely.", 400);
+    }
+  }
+
   const createdAt = new Date().toISOString();
   const id = `${Date.now().toString().padStart(13, "0")}-${randomUUID()}`;
   const message: DyoorWorldMessage = {
-    version: 3,
+    version: 4,
     id,
     channelId,
     wallet,
@@ -912,6 +957,7 @@ export async function createDyoorWorldMessage(input: {
     createdAt,
     kind: "user",
     ...(attachment ? { attachment: attachment as DyoorWorldMessageAttachment } : {}),
+    ...(replyTo ? { replyTo } : {}),
   };
   await worldStore.setJson(`${messagePrefix(channelId)}${id}.json`, message);
   const [profile, avatar, reward] = await Promise.all([
