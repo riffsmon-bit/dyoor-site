@@ -268,6 +268,8 @@ test("World mobile side drawers and atomic trade desk stay streamlined", () => {
   assert.match(client, /fixed inset-y-0 right-0 z-\[110\]/);
   assert.match(client, /setMobileIdentityOpen\(true\)/);
   assert.match(client, /Identity \+ Energy/);
+  assert.match(client, /world-channel-context hidden .* sm:block/);
+  assert.match(client, /Current thread: \$\{selectedChannel\.label\}/);
   assert.match(client, /hidden border-r .* lg:block/);
   assert.match(client, /function OwnedDroidPicker/);
   assert.match(client, /Choose the Droid you send/);

@@ -1507,7 +1507,7 @@ export function DyoorWorldClient({ sessionWallet }: { sessionWallet: string }) {
           <button
             aria-controls="world-mobile-threads"
             aria-expanded={mobileThreadsOpen}
-            aria-label="Open World threads"
+            aria-label={`Open World threads. Current thread: ${selectedChannel.label}`}
             className="world-mobile-panel-trigger shrink-0 lg:hidden"
             onClick={() => {
               setMobileIdentityOpen(false);
@@ -1590,7 +1590,7 @@ export function DyoorWorldClient({ sessionWallet }: { sessionWallet: string }) {
                 : "h-[calc(100dvh-9rem)] min-h-[30rem]"
             }`}
           >
-            <div className="border-b border-dyoor-purple/20 px-4 py-4 sm:px-5">
+            <div className="world-channel-context hidden border-b border-dyoor-purple/20 px-4 py-4 sm:block sm:px-5">
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
                   <p className="text-sm font-black text-white"># {selectedChannel.label}</p>
