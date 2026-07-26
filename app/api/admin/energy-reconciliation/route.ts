@@ -112,7 +112,11 @@ function isTestnetLikeUrl(value: string) {
 function configuredMonadRpcUrl() {
   for (const name of ["MONAD_RPC_URL", "DYOOR_S2_RPC_URL", "NEXT_PUBLIC_MONAD_RPC_URL", "NEXT_PUBLIC_DYOOR_S2_RPC_URL", "RPC_URL"]) {
     const value = readEnv(name);
-    if (value && !isTestnetLikeUrl(value)) return value;
+    if (!value) continue;
+    if (isTestnetLikeUrl(value)) {
+      throw Object.assign(new Error(`${name} points to a testnet RPC; Energy reconciliation requires Monad mainnet.`), { status: 500 });
+    }
+    return value;
   }
   return DEFAULT_RPC;
 }
@@ -742,7 +746,7 @@ async function authorizeRequest(request: Request, body: Record<string, unknown>)
   if (automationSecret && providedSecret && secretsEqual(automationSecret, providedSecret)) {
     return { source: "automation" };
   }
-  await verifyAdmin(body, "energy-reconciliation");
+  await verifyAdmin(body, "energy-reconciliation", { route: "/api/admin/energy-reconciliation" });
   return { source: "owner-wallet" };
 }
 

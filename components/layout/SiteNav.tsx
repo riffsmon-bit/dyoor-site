@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import dyoorLogo from "@/assets/dyoor-logo.png";
+import { DyoorWorldDiscovery } from "@/components/dyoor-world/DyoorWorldDiscovery";
 import { WalletButton } from "@/components/wallet/WalletButton";
 import { useWalletService } from "@/providers/WalletServiceProvider";
 
@@ -12,8 +13,6 @@ const navLinks = [
   { href: "/#swap", label: "Swap" },
   { href: "/ascension", label: "Ascension" },
   { href: "/reroll", label: "Reroll" },
-  { href: "/verify", label: "Verify" },
-  { href: "/blueprint-checker", label: "Checker" },
   { href: "/whitepaper", label: "Whitepaper" },
 ];
 
@@ -25,6 +24,7 @@ function normalizeAddress(address?: string) {
 
 export function SiteNav() {
   const pathname = usePathname();
+  const isWorldApp = pathname.startsWith("/dyoor-world");
   const walletService = useWalletService();
   const walletAddress = normalizeAddress(walletService.address);
   const [menuOpen, setMenuOpen] = useState(false);
@@ -32,7 +32,7 @@ export function SiteNav() {
   const menuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (!menuOpen) return;
+    if (!menuOpen || isWorldApp) return;
     const previousOverflow = document.body.style.overflow;
     document.body.style.overflow = "hidden";
 
@@ -45,11 +45,11 @@ export function SiteNav() {
       document.body.style.overflow = previousOverflow;
       document.removeEventListener("keydown", onKeyDown);
     };
-  }, [menuOpen]);
+  }, [isWorldApp, menuOpen]);
 
   useEffect(() => {
     let active = true;
-    if (!walletAddress) return () => {
+    if (isWorldApp || !walletAddress) return () => {
       active = false;
     };
 
@@ -67,7 +67,7 @@ export function SiteNav() {
     return () => {
       active = false;
     };
-  }, [walletAddress]);
+  }, [isWorldApp, walletAddress]);
 
   const isActive = (href: string) => {
     if (href === "/#swap") return pathname === "/";
@@ -76,6 +76,8 @@ export function SiteNav() {
 
   const showAdminLink = Boolean(walletAddress && authorizedAdminWallet === walletAddress) || pathname.startsWith("/admin");
   const links = showAdminLink ? [...navLinks, adminLink] : navLinks;
+
+  if (isWorldApp) return null;
 
   return (
     <header className="sticky top-0 z-[90] border-b border-dyoor-purple/25 bg-[#050513] shadow-[0_0_34px_rgba(131,110,249,.16)]">
@@ -86,7 +88,7 @@ export function SiteNav() {
             alt="DYOOR"
             width={132}
             height={62}
-            priority
+            loading="eager"
             className="h-12 w-28 object-contain drop-shadow-[0_0_18px_rgba(57,255,226,.22)] sm:w-32"
           />
         </Link>
@@ -98,6 +100,7 @@ export function SiteNav() {
           ))}
         </div>
         <div className="ml-auto flex items-center gap-2">
+          <DyoorWorldDiscovery />
           <button
             aria-controls="mobile-site-menu"
             aria-expanded={menuOpen}

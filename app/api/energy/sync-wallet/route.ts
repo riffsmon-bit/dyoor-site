@@ -1,7 +1,9 @@
 import { ethers } from "ethers";
 import { DEFAULT_ENERGY_BANK_CONTRACT } from "@/lib/contracts/addresses";
+import { effectiveEnergyBalance } from "@/lib/trait-lab-energy-accounting";
 import { assertMonadMainnet, energyRpcProvider, harvestEventsFromReceipt, readPendingEnergyRaw, scanHarvestEvents } from "@/src/lib/energy/chain";
 import { getCheckpoint, getEnergyBalance, setCheckpoint, upsertHarvestEvent } from "@/src/lib/storage/energyStore";
+import { getTraitLabEnergyDebitSummary } from "@/src/lib/storage/s2TraitLabStore";
 import type { HarvestEvent } from "@/src/lib/storage/types";
 
 export const runtime = "nodejs";
@@ -9,6 +11,8 @@ export const dynamic = "force-dynamic";
 
 const DEFAULT_WALLET_SYNC_CHUNKS = 4;
 const DEFAULT_BANK_CREDIT_LIMIT = 10;
+const MAX_WALLET_SYNC_CHUNKS = 20;
+const MAX_BANK_CREDIT_LIMIT = 25;
 const ENERGY_CREDIT_GAS_LIMIT = 160_000n;
 
 const ENERGY_BANK_ABI = [
@@ -43,6 +47,10 @@ function format(raw: string) {
 function readPositiveInt(value: unknown, fallback: number) {
   const parsed = Number.parseInt(String(value || ""), 10);
   return Number.isSafeInteger(parsed) && parsed > 0 ? parsed : fallback;
+}
+
+function readBoundedPositiveInt(value: unknown, fallback: number, maximum: number) {
+  return Math.min(readPositiveInt(value, fallback), maximum);
 }
 
 function readEnv(...names: string[]) {
@@ -198,15 +206,19 @@ export async function POST(request: Request) {
       const scan = await scanHarvestEvents({
         wallet,
         fromBlock,
-        maxChunks: readPositiveInt(body.maxChunks, DEFAULT_WALLET_SYNC_CHUNKS),
+        maxChunks: readBoundedPositiveInt(body.maxChunks, DEFAULT_WALLET_SYNC_CHUNKS, MAX_WALLET_SYNC_CHUNKS),
       });
       events = scan.events;
-      await setCheckpoint(checkpointName, scan.toBlock, {
-        latestBlock: scan.latestBlock,
-        complete: scan.complete,
-        nextBlock: scan.nextBlock,
-      });
-      checkpoint = await getCheckpoint(checkpointName);
+      checkpoint = {
+        name: checkpointName,
+        block: String(scan.toBlock),
+        updatedAt: "",
+        meta: {
+          latestBlock: scan.latestBlock,
+          complete: scan.complete,
+          nextBlock: scan.nextBlock,
+        },
+      };
     }
 
     let indexed = 0;
@@ -216,17 +228,32 @@ export async function POST(request: Request) {
       if (result.deduped) deduped += 1;
       else indexed += 1;
     }
+    if (!txHash && checkpoint) {
+      checkpoint = await setCheckpoint(checkpoint.name, checkpoint.block, checkpoint.meta);
+    }
 
     const bankCredit = await creditEnergyBankHarvests(
       events,
-      readPositiveInt(body.bankCreditLimit || process.env.ENERGY_SYNC_BANK_CREDIT_LIMIT, DEFAULT_BANK_CREDIT_LIMIT),
+      readBoundedPositiveInt(
+        body.bankCreditLimit || process.env.ENERGY_SYNC_BANK_CREDIT_LIMIT,
+        DEFAULT_BANK_CREDIT_LIMIT,
+        MAX_BANK_CREDIT_LIMIT,
+      ),
     );
     const pendingRaw = await readPendingEnergyRaw(wallet).catch(() => 0n);
     const balance = await getEnergyBalance(wallet, pendingRaw.toString());
-    const bankBalance = await readEnergyBankBalance(wallet).catch(() => null);
-    const spendableRaw = bankBalance?.spendableRaw || balance.spendableRaw;
+    const [bankBalance, traitLabDebits] = await Promise.all([
+      readEnergyBankBalance(wallet).catch(() => null),
+      getTraitLabEnergyDebitSummary(wallet),
+    ]);
+    const effective = effectiveEnergyBalance({
+      energyBankSpendableRaw: bankBalance?.spendableRaw || balance.spendableRaw,
+      energyBankSpentRaw: bankBalance?.spentRaw || balance.spentRaw,
+      serverSettledDebitRaw: traitLabDebits.debitRaw,
+    });
+    const spendableRaw = effective.spendableRaw;
     const lifetimeRaw = bankBalance?.lifetimeRaw || balance.lifetimeRaw;
-    const spentRaw = bankBalance?.spentRaw || balance.spentRaw;
+    const spentRaw = effective.spentRaw;
 
     return json(200, {
       ok: true,
@@ -258,10 +285,17 @@ export async function POST(request: Request) {
       bankedEnergy: format(spendableRaw),
       ledgerSpendableRaw: balance.spendableRaw,
       ledgerSpendableEnergy: format(balance.spendableRaw),
+      energyBankSpendableRaw: bankBalance?.spendableRaw || "",
+      energyBankSpendableEnergy: bankBalance?.spendableRaw ? format(bankBalance.spendableRaw) : "",
+      serverSettledTraitLabDebitRaw: traitLabDebits.debitRaw,
+      serverSettledTraitLabDebitEnergy: format(traitLabDebits.debitRaw),
+      serverSettledTraitLabDebitCount: traitLabDebits.debitCount,
       lifetimeRaw,
       lifetimeEnergy: format(lifetimeRaw),
       lastUpdatedAt: balance.lastUpdatedAt,
-      dataSource: bankBalance ? "energy-bank+ledger+staking-pending" : "ledger+staking-pending",
+      dataSource: bankBalance
+        ? "energy-bank+server-trait-lab-ledger+staking-pending"
+        : "ledger+server-trait-lab-ledger+staking-pending",
     });
   } catch (error: any) {
     return json(Number(error?.status || 500), { ok: false, error: error?.message || "Energy wallet sync failed." });

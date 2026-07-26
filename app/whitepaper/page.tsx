@@ -2,16 +2,17 @@ import Link from "next/link";
 import Image from "next/image";
 import type { ReactNode } from "react";
 import homeBanner from "@/assets/home_banner.png";
+import { S2SupplyStat } from "@/components/s2/S2SupplyStat";
 
 const TREASURY_ADDRESS = "0x4D540f7D0Eb841c839334655C9f88313D750c6d5";
 
 const callouts = [
-  ["3,333", "Season 2 D.Y.O.O.R supply"],
+  ["1,096", "Season 2 Droids issued before burns"],
   ["1:1", "Ascended S1 allocation"],
   ["70%", "Season 2 mint funds to treasury"],
   ["S1 + S2", "Secondary fees to treasury"],
   ["Swap", "Support fees to treasury"],
-  ["Quarterly", "Planned rewards for eligible staked Droids"],
+  ["Deflationary", "Permanent burns contract live supply"],
 ];
 
 const overviewCards = [
@@ -28,23 +29,22 @@ const overviewCards = [
     copy: "Season 2 introduces modular Droids with locked core traits and mutable traits designed for future upgrades, rerolls, marketplace systems, and seasonal activations.",
   },
   {
-    title: "Treasury Growth Fuels Future Opportunities",
-    copy: "The treasury is designed to support Monad ecosystem DeFi opportunities, product development, partnerships, and planned reward programs for eligible staked Droids.",
+    title: "A Deflationary Dynamic Collection",
+    copy: "Trait Lab lets eligible metadata evolve while permanent on-chain Droid burns contract the live collection from its 1,096 issued supply.",
   },
 ];
 
 const energyUses = [
-  "Trait upgrades",
-  "Trait rerolls",
-  "Future ecosystem rewards",
-  "Seasonal activations",
-  "Trait marketplace utilities",
-  "Special event access",
-  "Future reward programs",
+  "Trait Lab rerolls",
+  "Unlocking eligible empty trait slots",
+  "Recycling eligible wearable traits",
+  "Permanent Droid burn rewards",
+  "Dynamic metadata progression",
+  "Seasonal trait mechanics",
 ];
 
 const lockedTraits = ["Droid", "Background"];
-const mutableTraits = ["Eyes", "Mouth", "Clothing", "Hat", "Accessories", "Condition"];
+const mutableTraits = ["Eyes", "Mouth", "Clothes", "Hat", "Accessories", "Accessories 2", "Stickers / Body Art"];
 
 const blueprintBenefits = [
   "Architect Rank",
@@ -75,7 +75,7 @@ const treasuryPurposes = [
   "Long-term ecosystem sustainability",
 ];
 
-const revenueStreams = [
+const ecosystemInputs = [
   "Season 2 mint proceeds",
   "S1 secondary market fees",
   "S2 secondary market fees",
@@ -87,14 +87,14 @@ const revenueStreams = [
 ];
 
 const traitSystems = [
-  "Trait rerolls",
-  "Trait upgrades",
-  "Trait marketplace",
-  "Trait swapping",
-  "Limited traits",
-  "Seasonal traits",
-  "Event-based traits",
-  "Energy-based trait mechanics",
+  "Energy-powered Trait Lab rerolls",
+  "Unlocking eligible empty slots",
+  "Recycling eligible traits for Energy",
+  "Locked core Droid identity",
+  "Versioned metadata and artwork refreshes",
+  "Supply-aware limited traits",
+  "Permanent Droid burns",
+  "Burn transaction provenance",
 ];
 
 const roadmap = [
@@ -115,8 +115,8 @@ const roadmap = [
   },
   {
     phase: "Phase 4",
-    title: "Treasury Expansion",
-    items: ["Monad DeFi treasury opportunities", "Quarterly staked Droid reward programs", "Ecosystem partnerships", "Additional revenue streams", "Future D.Y.O.O.R products"],
+    title: "Deflationary World Expansion",
+    items: ["Live Droid burns", "dYOOR World holder community", "Owner announcements", "Energy flywheel growth", "Ecosystem partnerships", "Additional trait systems"],
   },
 ];
 
@@ -181,13 +181,13 @@ export default function WhitepaperPage() {
               Directive: Yield Opportunity Optimization Robots
             </p>
             <p className="mt-5 max-w-3xl text-base font-semibold leading-8 text-white/72 md:text-lg">
-              D.Y.O.O.R is a modular NFT ecosystem built on Monad. Season 1 was the key. Season 2 expands the ecosystem
-              through Ascension Protocol, Energy, Ascension Blueprints, dynamic traits, treasury growth, Monad ecosystem
-              opportunities, staking, and planned quarterly reward programs for eligible staked Droids.
+              D.Y.O.O.R is a deflationary dynamic NFT ecosystem built on Monad. Season 1 was the key. Season 2 connects
+              Ascension, Energy, Blueprints, live trait evolution, and permanent Droid burns in one participation
+              flywheel.
             </p>
             <div className="mt-7 flex flex-wrap gap-3">
-              <Link className="btn-primary" href="/blueprint-checker">
-                Check Blueprint
+              <Link className="btn-primary" href="/reroll">
+                Enter Trait Lab
               </Link>
               <Link className="btn-secondary" href="/ascension">
                 Open Ascension
@@ -227,8 +227,8 @@ export default function WhitepaperPage() {
         <Panel id="overview">
           <SectionHeading
             eyebrow="Overview"
-            title="A Modular NFT Ecosystem"
-            copy="D.Y.O.O.R Season 2 is built around active participation: ascend S1, generate Energy, register blueprints, mint modular Droids, stake for eligibility, and align with treasury growth across Monad."
+            title="A Deflationary Dynamic NFT Ecosystem"
+            copy="D.Y.O.O.R Season 2 is built around active participation: ascend S1, generate Energy, register Blueprints, evolve modular Droids, recycle eligible traits, and permanently contract supply through on-chain burns."
           />
           <div className="grid gap-4 md:grid-cols-2">
             {overviewCards.map((card) => (
@@ -248,9 +248,13 @@ export default function WhitepaperPage() {
           />
           <div className="grid gap-4 md:grid-cols-3">
             <div className="rounded border border-dyoor-cyan/20 bg-dyoor-cyan/[0.07] p-4">
-              <div className="text-xs font-black uppercase tracking-[0.18em] text-dyoor-cyan">Season 2 Supply</div>
-              <div className="mt-2 text-5xl font-black text-white">3,333</div>
-              <p className="mt-2 text-sm font-semibold leading-6 text-white/62">D.Y.O.O.R modular Droids on Monad.</p>
+              <S2SupplyStat
+                valueClassName="text-5xl"
+                label="Live Season 2 Supply"
+              />
+              <p className="mt-3 text-sm font-semibold leading-6 text-white/62">
+                The counter starts from 1,096 issued Droids and decreases with verified on-chain burns.
+              </p>
             </div>
             <div className="rounded border border-white/10 bg-black/25 p-4 md:col-span-2">
               <h3 className="text-xl font-black uppercase text-white">Ascension Protocol</h3>
@@ -266,8 +270,8 @@ export default function WhitepaperPage() {
           <Panel id="energy">
             <SectionHeading
               eyebrow="Energy"
-              title="Energy Powers Progression"
-              copy="Energy is the core participation resource of the DYOOR ecosystem. It is not a public tradeable token. It is designed to reward long-term holders and active participants while reducing bot farming."
+              title="Energy Powers The Flywheel"
+              copy="Energy is the participation resource of the DYOOR ecosystem, not a publicly tradeable token. Ascension generates it, Trait Lab spends it, and recycling or burning can return it for use on the remaining collection."
             />
             <BulletList items={energyUses} />
           </Panel>
@@ -276,7 +280,7 @@ export default function WhitepaperPage() {
             <SectionHeading
               eyebrow="Season 2 Droid System"
               title="Droids Evolve"
-              copy="Season 2 introduces modular Droids. Core identity traits stay locked, while mutable traits may evolve through future upgrades, rerolls, marketplaces, and seasonal activations."
+              copy="Core identity traits stay locked while eligible visual layers can evolve now through Energy-powered Trait Lab rerolls, unlocks, recycling, metadata versioning, and artwork refreshes."
             />
             <div className="grid gap-4 sm:grid-cols-2">
               <div>
@@ -312,6 +316,57 @@ export default function WhitepaperPage() {
           </div>
         </Panel>
 
+        <Panel id="dyoor-world" className="relative overflow-hidden border-dyoor-purple/35 bg-dyoor-purple/[0.06]">
+          <div className="pointer-events-none absolute -right-24 -top-24 h-72 w-72 rounded-full bg-dyoor-cyan/10 blur-3xl" />
+          <div className="pointer-events-none absolute -bottom-24 left-1/3 h-64 w-64 rounded-full bg-dyoor-purple/20 blur-3xl" />
+          <div className="relative">
+            <div className="mb-5 inline-flex rounded-full border border-emerald-300/25 bg-emerald-300/10 px-3 py-1.5 text-[0.62rem] font-black uppercase tracking-[0.16em] text-emerald-200">
+              S2 holder gate active
+            </div>
+            <SectionHeading
+              eyebrow="dYOOR World"
+              title="The Holder-Exclusive Community Layer"
+              copy="dYOOR World is the primary private community for active Season 2 holders. A read-only ownership check and wallet signature unlock persistent identity, live conversation, verified ecosystem feeds, and participation rewards without handing custody of a Droid to the site."
+            />
+            <div className="grid gap-5 lg:grid-cols-[1.2fr_0.8fr]">
+              <div className="grid gap-3 sm:grid-cols-2">
+                {[
+                  ["Identity", "Claim one .dYOOR name and use an owned Season 2 Droid as your World PFP."],
+                  ["Community", "Join holder threads, reply, tag channels, share media, and earn capped Energy for meaningful messages."],
+                  ["Verified Activity", "Follow confirmed sales, burns, direct MON tips, and non-custodial Trade Desk activity."],
+                  ["Official Dispatches", "Read owner-wallet announcements and open official HTTPS links posted directly inside the World."],
+                ].map(([title, copy]) => (
+                  <article key={title} className="terminal-panel hover-lift p-4">
+                    <h3 className="text-sm font-black uppercase tracking-[0.14em] text-dyoor-cyan">{title}</h3>
+                    <p className="mt-3 text-sm font-semibold leading-6 text-white/64">{copy}</p>
+                  </article>
+                ))}
+              </div>
+              <aside className="rounded border border-dyoor-monad/30 bg-[linear-gradient(145deg,rgba(131,110,249,.15),rgba(5,6,13,.72))] p-5">
+                <p className="text-xs font-black uppercase tracking-[0.2em] text-dyoor-monad">Community map</p>
+                <div className="mt-4 grid gap-3">
+                  <div className="rounded border border-dyoor-cyan/25 bg-dyoor-cyan/[0.08] p-4">
+                    <p className="text-xs font-black uppercase text-dyoor-cyan">Primary home</p>
+                    <p className="mt-2 text-lg font-black uppercase text-white">dYOOR World</p>
+                    <p className="mt-2 text-xs font-bold leading-5 text-white/55">Exclusive, holder-gated conversation and ecosystem activity.</p>
+                  </div>
+                  <div className="rounded border border-white/10 bg-black/25 p-4">
+                    <p className="text-xs font-black uppercase text-white/55">Public onboarding</p>
+                    <p className="mt-2 text-lg font-black uppercase text-white">Discord + Telegram</p>
+                    <p className="mt-2 text-xs font-bold leading-5 text-white/48">Welcome newcomers, answer entry questions, and guide future holders into the ecosystem.</p>
+                  </div>
+                </div>
+                <p className="mt-4 text-xs font-bold leading-5 text-white/42">
+                  Official public posts can be linked manually from the owner-only announcements stream.
+                </p>
+                <Link className="btn-primary mt-5 w-full justify-center" href="/dyoor-world">
+                  Enter dYOOR World
+                </Link>
+              </aside>
+            </div>
+          </div>
+        </Panel>
+
         <Panel id="treasury" className="border-dyoor-cyan/25 bg-dyoor-cyan/[0.055]">
           <SectionHeading
             eyebrow="Treasury & Ecosystem Growth"
@@ -330,7 +385,7 @@ export default function WhitepaperPage() {
           </div>
           <div className="mt-6 overflow-hidden rounded border border-white/12 bg-black/30 p-4">
             <div className="grid gap-3 text-center text-sm font-black uppercase leading-5 text-white/72 md:grid-cols-[1fr_auto_1fr_auto_1fr_auto_1fr_auto_1fr] md:items-center">
-              {["Mint Revenue / Secondary Fees / Swap Fees", "D.Y.O.O.R Treasury", "Monad Ecosystem DeFi Opportunities", "Treasury Growth", "Quarterly Rewards For Staked Droids"].map((step, index) => (
+              {["Mint / Secondary / Swap Activity", "D.Y.O.O.R Treasury", "Product Development", "Trait + Energy Systems", "Long-Term Ecosystem Growth"].map((step, index) => (
                 <div key={step} className="contents">
                   <div className="rounded border border-white/12 bg-white/[0.05] p-3">{step}</div>
                   {index < 4 && <div className="text-dyoor-cyan md:px-1">↓</div>}
@@ -356,45 +411,44 @@ export default function WhitepaperPage() {
           <Panel id="staking">
             <SectionHeading
               eyebrow="D.Y.O.O.R Season 2 Staking"
-              title="Staked Droids Align With Ecosystem Growth"
-              copy="Season 2 Droids will have their own staking system. Users who stake D.Y.O.O.R Season 2 NFTs become eligible for future reward programs tied to ecosystem growth."
+              title="Staking Signals Active Participation"
+              copy="Season 2 Droids are designed for a dedicated staking system that can establish participation status for utility, access, and future seasonal mechanics."
             />
             <p className="text-sm font-semibold leading-7 text-white/68">
-              Staking is intended to align long-term holders with the success of the D.Y.O.O.R Treasury and ecosystem.
-              Eligibility rules and operational mechanics will be announced before activation.
+              Staking mechanics remain separate from ownership and Trait Lab. Eligibility rules, lock behavior, and
+              utility integrations will be published before activation.
             </p>
           </Panel>
 
-          <Panel id="quarterly-revenue-sharing">
+          <Panel id="deflationary-supply">
             <SectionHeading
-              eyebrow="Quarterly Revenue Sharing"
-              title="Planned Rewards For Eligible Staked Droids"
-              copy="Season 2 staking is intended to lead to quarterly revenue-sharing opportunities for eligible staked Droids."
+              eyebrow="Deflationary Supply"
+              title="Burned Means Gone"
+              copy="Season 2 issued 1,096 Droids. Every successful on-chain burn permanently removes one token from the live supply."
             />
             <p className="text-sm font-semibold leading-7 text-white/68">
-              Eligible staked Droids may receive quarterly rewards based on ecosystem revenue, treasury activity, and
-              future DeFi opportunities. Exact distribution mechanics, eligibility rules, percentages, claim windows,
-              and legal or operational details will be announced before activation. This is a planned ecosystem reward
-              model, not a guarantee of income, profit, or return.
+              The collection contract reports live supply after burns, while the Trait Lab burn gallery preserves each
+              claimed burn’s token and transaction provenance. Burning is irreversible: the remaining collection gets
+              smaller as the Energy flywheel continues.
             </p>
           </Panel>
         </div>
 
         <div className="grid gap-6 lg:grid-cols-2">
-          <Panel id="revenue-streams">
+          <Panel id="ecosystem-inputs">
             <SectionHeading
-              eyebrow="Ecosystem Revenue Streams"
-              title="Multiple Paths Into The Treasury"
-              copy="Potential ecosystem revenue may come from primary mint activity, secondary markets, swap support, trait systems, future products, and strategic Monad ecosystem participation."
+              eyebrow="Ecosystem Inputs"
+              title="Multiple Paths Support The System"
+              copy="Primary mint activity, secondary markets, swap support, trait systems, future products, and strategic Monad participation can support continued ecosystem development."
             />
-            <BulletList items={revenueStreams} />
+            <BulletList items={ecosystemInputs} />
           </Panel>
 
           <Panel id="dynamic-traits">
             <SectionHeading
-              eyebrow="Dynamic Traits & Marketplace"
-              title="NFTs That Evolve Alongside The Ecosystem"
-              copy="Future systems may let D.Y.O.O.R NFTs change over time through Energy-powered mechanics, seasonal drops, event-based traits, and marketplace activity."
+              eyebrow="Dynamic Traits + Energy"
+              title="NFTs That Evolve With Participation"
+              copy="Trait Lab lets eligible D.Y.O.O.R metadata change through Energy-powered rerolls, unlocks, recycling, and supply-aware trait mechanics while core Droid identity remains locked."
             />
             <BulletList items={traitSystems} />
           </Panel>
@@ -403,8 +457,8 @@ export default function WhitepaperPage() {
         <Panel id="roadmap">
           <SectionHeading
             eyebrow="Roadmap"
-            title="From Ascension To Ecosystem Rewards"
-            copy="The roadmap keeps the Season 1 foundation intact while moving toward Season 2 staking, dynamic traits, treasury activation, and future Monad ecosystem opportunities."
+            title="From Ascension To A Living Collection"
+            copy="The roadmap keeps the Season 1 foundation intact while expanding Season 2 staking, dynamic traits, the Energy flywheel, permanent burns, and future Monad ecosystem opportunities."
           />
           <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
             {roadmap.map((phase) => (
@@ -423,16 +477,16 @@ export default function WhitepaperPage() {
 
         <Panel className="border-white/10 bg-black/35">
           <SectionHeading
-            eyebrow="Careful Mechanics"
-            title="Built For Participation, Not Promises"
-            copy="D.Y.O.O.R is designed around ecosystem participation. Revenue-sharing language is intentionally careful: future programs are planned, eligibility-based, and subject to final mechanics before activation."
+            eyebrow="Living Mechanics"
+            title="Built For Participation"
+            copy="D.Y.O.O.R combines evolving metadata with permanent on-chain supply reduction. Each action is governed by explicit Trait Lab rules, Energy accounting, and verifiable burn transactions."
           />
           <div className="flex flex-wrap gap-3">
-            <Link className="rounded border border-dyoor-cyan bg-dyoor-cyan px-4 py-3 text-sm font-black uppercase text-black" href="/blueprint-checker">
-              Check Blueprint
+            <Link className="rounded border border-dyoor-cyan bg-dyoor-cyan px-4 py-3 text-sm font-black uppercase text-black" href="/reroll">
+              Open Trait Lab
             </Link>
-            <Link className="rounded border border-white/20 px-4 py-3 text-sm font-black uppercase text-white/80" href="/verify">
-              Verify Roles
+            <Link className="rounded border border-dyoor-purple/45 bg-dyoor-purple/10 px-4 py-3 text-sm font-black uppercase text-dyoor-monad" href="/dyoor-world">
+              Enter dYOOR World
             </Link>
           </div>
         </Panel>

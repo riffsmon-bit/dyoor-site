@@ -1702,14 +1702,24 @@ export async function POST(request: Request) {
   try {
     const body = await request.json().catch(() => ({}));
     const mode = String(body.mode || "full");
-    await verifyAdmin(body, "snapshot", {
-      windowMs: 15 * 60 * 1000,
-      consumeNonce: mode !== "discover",
-    });
     if (mode === "discover") {
+      const authScope = String(body.authScope || "");
+      if (authScope !== "snapshot-session:v1") {
+        return json(400, { ok: false, error: "Missing snapshot authorization scope." });
+      }
+      await verifyAdmin(body, "snapshot", {
+        route: "/api/admin/snapshots",
+        payload: { authScope },
+        windowMs: 15 * 60 * 1000,
+        consumeNonce: false,
+      });
       return json(200, serialize(await discoverSnapshotPage(body)) as Record<string, unknown>);
     }
     if (mode === "finalize") {
+      await verifyAdmin(body, "snapshot", {
+        route: "/api/admin/snapshots",
+        windowMs: 15 * 60 * 1000,
+      });
       return json(200, serialize(await finalizeSnapshotFromBody(body)) as Record<string, unknown>);
     }
     return json(400, {

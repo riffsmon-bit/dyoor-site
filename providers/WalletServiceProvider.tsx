@@ -1,9 +1,8 @@
 "use client";
 
-import { usePrivy } from "@privy-io/react-auth";
 import { BrowserProvider } from "ethers";
 import { createContext, ReactNode, useCallback, useContext, useEffect, useMemo, useState } from "react";
-import { useActivePrivyWallet } from "@/hooks/useActivePrivyWallet";
+import { WalletAppChooser } from "@/components/wallet/WalletAppChooser";
 import { MONAD_CHAIN_HEX, MONAD_CHAIN_ID, MONAD_EXPLORER_URL, MONAD_RPC_URL } from "@/lib/monad";
 
 export type Eip1193Provider = {
@@ -20,8 +19,15 @@ type BrowserEthereum = Eip1193Provider & {
   providers?: BrowserEthereum[];
 };
 
+type Eip6963ProviderDetail = {
+  info?: {
+    name?: string;
+  };
+  provider?: BrowserEthereum;
+};
+
 type WalletStatus = "loading" | "idle" | "connecting" | "connected" | "wrong-network" | "error";
-type WalletSource = "privy" | "browser" | "none";
+type WalletSource = "browser" | "none";
 
 export type WalletService = {
   address: string;
@@ -74,9 +80,13 @@ const emptyService: WalletService = {
 };
 
 const WalletServiceContext = createContext<WalletService>(emptyService);
+const announcedBrowserProviders: BrowserEthereum[] = [];
+const browserProviderNames = new WeakMap<object, string>();
 
 function shortProviderName(provider?: BrowserEthereum | null) {
   if (!provider) return "";
+  const announcedName = browserProviderNames.get(provider);
+  if (announcedName) return announcedName;
   if (provider.isOkxWallet) return "OKX";
   if (provider.isBackpack) return "Backpack";
   if (provider.isRabby) return "Rabby";
@@ -89,30 +99,13 @@ function shortProviderName(provider?: BrowserEthereum | null) {
 function injectedProvider() {
   if (typeof window === "undefined") return null;
   const ethereum = (window as any).ethereum as BrowserEthereum | undefined;
-  if (!ethereum) return null;
+  if (!ethereum) return announcedBrowserProviders[0] || null;
   const providers: BrowserEthereum[] = Array.isArray(ethereum.providers) ? ethereum.providers : [ethereum];
-  return providers.find((provider: BrowserEthereum) => provider.isMetaMask)
-    || providers.find((provider: BrowserEthereum) => provider.isOkxWallet)
-    || providers.find((provider: BrowserEthereum) => provider.isRabby)
-    || providers.find((provider: BrowserEthereum) => provider.isBackpack)
-    || providers.find((provider: BrowserEthereum) => provider.isTokenPocket)
-    || providers.find((provider: BrowserEthereum) => provider.isPhantom)
-    || providers[0]
-    || null;
+  return announcedBrowserProviders[0] || providers[0] || null;
 }
 
 function normalizeAddress(value: unknown) {
   return /^0x[a-fA-F0-9]{40}$/.test(String(value || "")) ? String(value).toLowerCase() : "";
-}
-
-function timeout<T>(promise: Promise<T>, ms: number, message: string): Promise<T> {
-  let timer: number;
-  return Promise.race([
-    promise,
-    new Promise<T>((_, reject) => {
-      timer = window.setTimeout(() => reject(new Error(message)), ms);
-    }),
-  ]).finally(() => window.clearTimeout(timer));
 }
 
 function useInjectedWallet() {
@@ -126,6 +119,17 @@ function useInjectedWallet() {
   useEffect(() => {
     let attempts = 0;
     let timer = 0;
+    const onProviderAnnouncement = (event: Event) => {
+      const detail = (event as CustomEvent<Eip6963ProviderDetail>).detail;
+      const announcedProvider = detail?.provider;
+      if (!announcedProvider) return;
+      if (!announcedBrowserProviders.includes(announcedProvider)) {
+        announcedBrowserProviders.push(announcedProvider);
+      }
+      const announcedName = String(detail?.info?.name || "").trim();
+      if (announcedName) browserProviderNames.set(announcedProvider, announcedName);
+      setProviderName(shortProviderName(announcedProvider));
+    };
     const detect = () => {
       attempts += 1;
       const nextName = shortProviderName(injectedProvider());
@@ -137,8 +141,13 @@ function useInjectedWallet() {
         timer = window.setTimeout(detect, 350);
       }
     };
+    window.addEventListener("eip6963:announceProvider", onProviderAnnouncement);
+    window.dispatchEvent(new Event("eip6963:requestProvider"));
     detect();
-    return () => window.clearTimeout(timer);
+    return () => {
+      window.clearTimeout(timer);
+      window.removeEventListener("eip6963:announceProvider", onProviderAnnouncement);
+    };
   }, []);
 
   const getProvider = useCallback(async () => {
@@ -183,7 +192,7 @@ function useInjectedWallet() {
       (active as any).removeListener?.("accountsChanged", onAccounts);
       (active as any).removeListener?.("chainChanged", onChain);
     };
-  }, [refreshAccounts]);
+  }, [providerName, refreshAccounts]);
 
   const switchChain = useCallback(async () => {
     const active = await getProvider();
@@ -284,142 +293,74 @@ function useInjectedWallet() {
   return service;
 }
 
-function InjectedOnlyWalletServiceProvider({ children }: { children: ReactNode }) {
-  const service = useInjectedWallet();
-  return <WalletServiceContext.Provider value={service}>{children}</WalletServiceContext.Provider>;
-}
-
-function PrivyFirstWalletServiceProvider({ children }: { children: ReactNode }) {
+function UniversalWalletServiceProvider({
+  children,
+}: {
+  children: ReactNode;
+}) {
   const injected = useInjectedWallet();
-  const { authenticated, ready: authReady, login, logout } = usePrivy();
-  const { wallet } = useActivePrivyWallet();
-  const [connecting, setConnecting] = useState(false);
-  const [error, setError] = useState("");
-  const [readyTimedOut, setReadyTimedOut] = useState(false);
-  const [wrongNetwork, setWrongNetwork] = useState(false);
-  const [suppressedPrivyAddress, setSuppressedPrivyAddress] = useState("");
-  const rawPrivyAddress = normalizeAddress(wallet?.address);
-  const privyAddress = rawPrivyAddress && rawPrivyAddress !== suppressedPrivyAddress ? rawPrivyAddress : "";
-  const address = privyAddress || injected.address;
-  const source: WalletSource = privyAddress ? "privy" : injected.source;
-  const uiReady = authReady || readyTimedOut || injected.ready;
-  const hasInjectedWallet = Boolean(injected.providerName);
+  const [walletChooserOpen, setWalletChooserOpen] = useState(false);
+  const address = injected.address;
+  const source: WalletSource = address ? "browser" : "none";
+  const connecting = injected.status === "connecting";
+  const error = injected.error;
+  const wrongNetwork = injected.status === "wrong-network";
 
-  useEffect(() => {
-    if (authReady) return;
-    const timer = window.setTimeout(() => setReadyTimedOut(true), 4500);
-    return () => window.clearTimeout(timer);
-  }, [authReady]);
-
-  const getProvider = useCallback(async () => {
-    if (privyAddress && wallet && "getEthereumProvider" in wallet) {
-      return await wallet.getEthereumProvider() as Eip1193Provider;
-    }
-    return await injected.getProvider();
-  }, [injected, privyAddress, wallet]);
-
-  const switchChain = useCallback(async () => {
-    const provider = await getProvider();
-    try {
-      await provider.request({ method: "wallet_switchEthereumChain", params: [{ chainId: MONAD_CHAIN_HEX }] });
-    } catch {
-      await provider.request({
-        method: "wallet_addEthereumChain",
-        params: [{
-          chainId: MONAD_CHAIN_HEX,
-          chainName: "Monad",
-          rpcUrls: [MONAD_RPC_URL],
-          nativeCurrency: { name: "MON", symbol: "MON", decimals: 18 },
-          blockExplorerUrls: [MONAD_EXPLORER_URL],
-        }],
-      });
-    }
-  }, [getProvider]);
-
-  useEffect(() => {
-    let active = true;
-    async function checkChain() {
-      if (!address) {
-        if (active) setWrongNetwork(false);
-        return;
-      }
-      try {
-        const provider = await getProvider();
-        const chainId = await provider.request({ method: "eth_chainId" });
-        if (active) setWrongNetwork(String(chainId || "").toLowerCase() !== MONAD_CHAIN_HEX);
-      } catch {
-        if (active) setWrongNetwork(false);
-      }
-    }
-    void checkChain();
-    return () => {
-      active = false;
-    };
-  }, [address, getProvider]);
+  const closeWalletChooser = useCallback(() => {
+    setWalletChooserOpen(false);
+  }, []);
 
   const connect = useCallback(async () => {
-    setError("");
-    setSuppressedPrivyAddress("");
-    setConnecting(true);
-    try {
-      if (hasInjectedWallet) {
-        await injected.connect();
-        return;
-      }
-      if (authReady && !readyTimedOut) {
-        await timeout(Promise.resolve(login()), 8_000, "Privy connection timed out.");
-        return;
-      }
+    if (injectedProvider()) {
       await injected.connect();
-    } catch (privyError) {
-      try {
-        await injected.connect();
-      } catch (injectedError) {
-        const message = injectedError instanceof Error
-          ? injectedError.message
-          : privyError instanceof Error
-            ? privyError.message
-            : "Wallet connection failed.";
-        setError(message);
-        throw new Error(message);
-      }
-    } finally {
-      setConnecting(false);
+      return;
     }
-  }, [authReady, hasInjectedWallet, injected, login, readyTimedOut]);
+    setWalletChooserOpen(true);
+  }, [injected]);
 
   const disconnect = useCallback(async () => {
-    setError("");
-    setWrongNetwork(false);
-    if (rawPrivyAddress) setSuppressedPrivyAddress(rawPrivyAddress);
-    if (authenticated) await Promise.resolve(logout()).catch(() => undefined);
     await injected.disconnect();
-  }, [authenticated, injected, logout, rawPrivyAddress]);
+  }, [injected]);
+
+  const getProvider = useCallback(async () => {
+    if (!injectedProvider()) {
+      throw new Error("Open this page inside an EVM wallet browser, then connect your wallet.");
+    }
+    return await injected.getProvider();
+  }, [injected]);
+
+  const getAddress = useCallback(async () => {
+    if (address) return address;
+    if (injectedProvider()) return await injected.getAddress();
+    throw new Error("Open this page inside an EVM wallet browser, then connect your wallet.");
+  }, [address, injected]);
+
+  const switchChain = useCallback(async () => {
+    if (!injectedProvider()) {
+      throw new Error("Open this page inside an EVM wallet browser, then connect your wallet.");
+    }
+    await injected.switchChain();
+  }, [injected]);
 
   const service = useMemo<WalletService>(() => ({
     address,
     connected: Boolean(address),
-    error: error || injected.error,
-    providerName: source === "privy" ? "Privy" : injected.providerName,
-    ready: uiReady,
+    error,
+    providerName: injected.providerName || "Wallet App",
+    ready: true,
     source,
-    status: !uiReady
-      ? "loading"
-      : connecting || injected.status === "connecting"
-        ? "connecting"
-        : error || injected.status === "error"
-          ? "error"
-          : address
-            ? wrongNetwork
-              ? "wrong-network"
-              : "connected"
-            : "idle",
+    status: connecting
+      ? "connecting"
+      : error
+        ? "error"
+        : address
+          ? wrongNetwork
+            ? "wrong-network"
+            : "connected"
+          : "idle",
     connect,
     disconnect,
-    getAddress: async () => {
-      if (address) return address;
-      return await injected.getAddress();
-    },
+    getAddress,
     getProvider,
     getSigner: async () => {
       const provider = await getProvider();
@@ -431,19 +372,41 @@ function PrivyFirstWalletServiceProvider({ children }: { children: ReactNode }) 
     },
     signMessage: async (message) => {
       const provider = await getProvider();
-      const activeAddress = address || await injected.getAddress();
+      const activeAddress = await getAddress();
       return await provider.request({ method: "personal_sign", params: [message, activeAddress] }) as string;
     },
     switchChain,
-  }), [address, connect, connecting, disconnect, error, getProvider, injected, source, switchChain, uiReady, wrongNetwork]);
+  }), [
+    address,
+    connect,
+    connecting,
+    disconnect,
+    error,
+    getAddress,
+    getProvider,
+    injected.providerName,
+    source,
+    switchChain,
+    wrongNetwork,
+  ]);
 
-  return <WalletServiceContext.Provider value={service}>{children}</WalletServiceContext.Provider>;
+  return (
+    <>
+      <WalletServiceContext.Provider value={service}>{children}</WalletServiceContext.Provider>
+      <WalletAppChooser
+        onClose={closeWalletChooser}
+        open={walletChooserOpen && !injected.providerName}
+      />
+    </>
+  );
 }
 
-export function WalletServiceProvider({ children, privyEnabled }: { children: ReactNode; privyEnabled: boolean }) {
-  return privyEnabled
-    ? <PrivyFirstWalletServiceProvider>{children}</PrivyFirstWalletServiceProvider>
-    : <InjectedOnlyWalletServiceProvider>{children}</InjectedOnlyWalletServiceProvider>;
+export function WalletServiceProvider({
+  children,
+}: {
+  children: ReactNode;
+}) {
+  return <UniversalWalletServiceProvider>{children}</UniversalWalletServiceProvider>;
 }
 
 export function useWalletService() {

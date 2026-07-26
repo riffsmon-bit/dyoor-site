@@ -104,7 +104,7 @@ async function hasRole(bank: ethers.Contract, role: string, account: string) {
 export async function POST(request: Request) {
   try {
     const body = await request.json().catch(() => ({}));
-    await verifyAdmin(body, "energy-airdrop");
+    await verifyAdmin(body, "energy-airdrop", { route: "/api/admin/energy-airdrop" });
     const inputRecipients: unknown[] = Array.isArray(body.recipients) ? body.recipients : [];
     const recipients = Array.from(new Set<string>(inputRecipients
       .map((item: unknown) => normalizeAddress(item))
@@ -132,8 +132,8 @@ export async function POST(request: Request) {
       throw new Error(`Wrong RPC network. Expected chain ${MONAD_CHAIN_ID}, got ${network.chainId.toString()}.`);
     }
     const hasCreditRole = await hasRole(bank, creditRole, signer.address);
-    const preferCreditEnergy = hasCreditRole !== false;
-    if (!hasAdminRole && hasCreditRole === false) {
+    const preferCreditEnergy = hasCreditRole === true;
+    if (!hasAdminRole && hasCreditRole !== true) {
       return json(500, { ok: false, error: "Energy Bank operator needs DEFAULT_ADMIN_ROLE or CREDIT_ROLE." });
     }
 

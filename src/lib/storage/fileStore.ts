@@ -1,7 +1,10 @@
 import { getStore } from "@netlify/blobs";
 
 export type JsonStore = {
+  deleteJson(key: string): Promise<void>;
   getJson<T>(key: string, fallback: T): Promise<T>;
+  getJsonStrict<T>(key: string): Promise<T | null>;
+  listKeys(prefix: string): Promise<string[]>;
   setJson(key: string, value: unknown): Promise<void>;
 };
 
@@ -19,9 +22,21 @@ function readEnv(...names: string[]) {
 
 function createFileStore(storeName: string): JsonStore {
   return {
+    async deleteJson(key: string) {
+      const { createLocalJsonStore } = await import("./localFileStore");
+      await createLocalJsonStore(storeName).deleteJson(safeKey(key));
+    },
     async getJson<T>(key: string, fallback: T) {
       const { createLocalJsonStore } = await import("./localFileStore");
       return await createLocalJsonStore(storeName).getJson(safeKey(key), fallback);
+    },
+    async getJsonStrict<T>(key: string) {
+      const { createLocalJsonStore } = await import("./localFileStore");
+      return await createLocalJsonStore(storeName).getJsonStrict<T>(safeKey(key));
+    },
+    async listKeys(prefix: string) {
+      const { createLocalJsonStore } = await import("./localFileStore");
+      return await createLocalJsonStore(storeName).listKeys(safeKey(prefix));
     },
     async setJson(key: string, value: unknown) {
       const { createLocalJsonStore } = await import("./localFileStore");
@@ -38,6 +53,9 @@ function createBlobStore(storeName: string): JsonStore {
     return getStore({ name: storeName, consistency: "strong" });
   };
   return {
+    async deleteJson(key: string) {
+      await store().delete(safeKey(key));
+    },
     async getJson<T>(key: string, fallback: T) {
       try {
         const value = await store().get(safeKey(key), { type: "json", consistency: "strong" });
@@ -45,6 +63,18 @@ function createBlobStore(storeName: string): JsonStore {
       } catch {
         return fallback;
       }
+    },
+    async getJsonStrict<T>(key: string) {
+      const value = await store().get(safeKey(key), { type: "json", consistency: "strong" });
+      return (value ?? null) as T | null;
+    },
+    async listKeys(prefix: string) {
+      const pages = store().list({ prefix: safeKey(prefix), paginate: true });
+      const keys: string[] = [];
+      for await (const page of pages) {
+        keys.push(...page.blobs.map((blob) => blob.key));
+      }
+      return keys.sort();
     },
     async setJson(key: string, value: unknown) {
       await store().setJSON(safeKey(key), value);

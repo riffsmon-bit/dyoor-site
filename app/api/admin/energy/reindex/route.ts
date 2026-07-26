@@ -40,7 +40,7 @@ async function authorize(request: Request, body: Record<string, unknown>) {
   if (configuredSecret && incomingSecret && secretsEqual(configuredSecret, incomingSecret)) {
     return { mode: "secret" };
   }
-  await verifyAdmin(body, "energy-index");
+  await verifyAdmin(body, "energy-index", { route: "/api/admin/energy/reindex" });
   return { mode: "wallet" };
 }
 

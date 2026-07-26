@@ -108,3 +108,14 @@ Repair batches:
 - Transfer-in and transfer-out detail is preserved through Energy Bank lifetime/spent values, but not yet separated into per-reason UI rows.
 - Goldsky availability is required for the complete reconciliation report. The UI can fall back to RPC or legacy ledger for display, but repair decisions should use Goldsky plus Energy Bank.
 - Existing historical rows with synthetic legacy claim keys require manual review if their recommended amount cannot be matched to whole claim entries.
+
+## 2026-07-22 Flow Hardening
+
+- Trait Lab now requires a fresh wallet signature over wallet, token ID, trait, action, timestamp, and nonce before the backend can spend Energy for a preview.
+- Trait Lab derives a stable roll ID from that signed authorization and rejects reused or concurrently active authorizations.
+- MON recharge credits the on-chain Energy Bank before writing its diagnostic ledger row. The verified payment transaction maps to a deterministic claim key, making retries idempotent.
+- Public wallet harvest scans default to Ascension block `54985442`, cap caller-controlled scan and credit limits, and save checkpoints only after every discovered event is persisted.
+- The wallet Energy API fails closed when the Energy Bank cannot be read. Ledger totals remain diagnostic and are not presented as spendable.
+- The admin airdrop UI and its legacy route alias now use the on-chain Energy Bank path rather than creating ledger-only balances.
+
+The reconciliation report generated at `2026-07-22T02:59:32.091Z` covered 35 wallets through indexed block `89337060` and reported zero affected wallets, zero missing Energy, and zero recommended credits. This is a point-in-time operational result, not a substitute for the scheduled reconciliation job.

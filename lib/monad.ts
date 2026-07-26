@@ -1,20 +1,24 @@
 import { defineChain } from "viem";
 
-const configuredChainId = Number(
-  process.env.NEXT_PUBLIC_MONAD_CHAIN_ID
-  || process.env.EXPECTED_CHAIN_ID
-  || process.env.CHAIN_ID
-  || "143",
-);
-
 export const MONAD_MAINNET_CHAIN_ID = 143;
-const resolvedChainId = configuredChainId === 10143 ? MONAD_MAINNET_CHAIN_ID : configuredChainId;
+const configuredChainId = String(
+  process.env.NEXT_PUBLIC_MONAD_CHAIN_ID
+  || process.env.NEXT_PUBLIC_DYOOR_S2_CHAIN_ID
+  || "",
+).trim();
+if (configuredChainId && Number(configuredChainId) !== MONAD_MAINNET_CHAIN_ID) {
+  throw new Error(`Production wallet configuration must use Monad mainnet chain ${MONAD_MAINNET_CHAIN_ID}.`);
+}
 
-export const MONAD_CHAIN_ID = Number.isFinite(resolvedChainId) && resolvedChainId > 0 ? resolvedChainId : MONAD_MAINNET_CHAIN_ID;
+export const MONAD_CHAIN_ID = MONAD_MAINNET_CHAIN_ID;
 export const MONAD_CHAIN_HEX = `0x${MONAD_CHAIN_ID.toString(16)}`;
 export const MONAD_EXPLORER_URL = "https://monadscan.com";
 export const DEFAULT_MONAD_RPC_URL = "https://rpc.monad.xyz";
-export const MONAD_RPC_URL = process.env.NEXT_PUBLIC_MONAD_RPC_URL || DEFAULT_MONAD_RPC_URL;
+const configuredRpcUrl = String(process.env.NEXT_PUBLIC_MONAD_RPC_URL || "").trim();
+if (configuredRpcUrl && /testnet/i.test(configuredRpcUrl)) {
+  throw new Error("Production wallet configuration cannot use a Monad testnet RPC URL.");
+}
+export const MONAD_RPC_URL = configuredRpcUrl || DEFAULT_MONAD_RPC_URL;
 
 export const monadMainnet = defineChain({
   id: MONAD_CHAIN_ID,

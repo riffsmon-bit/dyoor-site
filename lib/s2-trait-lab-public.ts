@@ -12,6 +12,10 @@ import {
   S2_TRAIT_LAB_TOKEN_COOLDOWN_MS,
   S2_UNLOCKABLE_TRAITS,
 } from "@/lib/s2-trait-lab-config";
+import {
+  traitLabLeaderboardEnabled,
+} from "@/lib/s2-trait-lab-leaderboard";
+import { traitBountyEngineEnabled } from "@/lib/s2-trait-bounties";
 
 const ERC721_ABI = [
   "event Transfer(address indexed from,address indexed to,uint256 indexed tokenId)",
@@ -79,7 +83,9 @@ function firstUsableRpc(names: string[], mainnet: boolean) {
   for (const name of names) {
     const value = readEnv(name);
     if (!value) continue;
-    if (mainnet && isTestnetLikeUrl(value)) continue;
+    if (mainnet && isTestnetLikeUrl(value)) {
+      throw Object.assign(new Error(`${name} points to a testnet RPC; Trait Lab requires Monad mainnet.`), { status: 500 });
+    }
     return value;
   }
   return "";
@@ -112,7 +118,10 @@ function configuredS2LogRpcUrl() {
 
   for (const name of ["DYOOR_S2_RPC_URL", "MONAD_RPC_URL", "NEXT_PUBLIC_DYOOR_S2_RPC_URL", "RPC_URL"]) {
     const value = readEnv(name);
-    if (!value || isTestnetLikeUrl(value) || isAlchemyLikeUrl(value)) continue;
+    if (!value || isAlchemyLikeUrl(value)) continue;
+    if (isTestnetLikeUrl(value)) {
+      throw Object.assign(new Error(`${name} points to a testnet RPC; Trait Lab requires Monad mainnet.`), { status: 500 });
+    }
     return value;
   }
 
@@ -121,7 +130,10 @@ function configuredS2LogRpcUrl() {
 
 function configuredS2ExplorerUrl() {
   const configured = readEnv("NEXT_PUBLIC_DYOOR_S2_EXPLORER_URL");
-  if (configured && !isTestnetLikeUrl(configured)) return configured.replace(/\/+$/, "");
+  if (configured && isTestnetLikeUrl(configured)) {
+    throw Object.assign(new Error("Trait Lab explorer configuration must use Monad mainnet."), { status: 500 });
+  }
+  if (configured) return configured.replace(/\/+$/, "");
   return DEFAULT_MONAD_MAINNET_EXPLORER_URL;
 }
 
@@ -175,11 +187,11 @@ function provider() {
   if (!rpcUrl) {
     throw Object.assign(new Error("DYOOR_S2_RPC_URL or MONAD_RPC_URL is required before Trait Lab can verify ownership."), { status: 500 });
   }
-  return new ethers.JsonRpcProvider(rpcUrl);
+  return new ethers.JsonRpcProvider(rpcUrl, configuredS2ChainId());
 }
 
 function logProvider() {
-  return new ethers.JsonRpcProvider(configuredS2LogRpcUrl());
+  return new ethers.JsonRpcProvider(configuredS2LogRpcUrl(), configuredS2ChainId());
 }
 
 function s2ContractAddress() {
@@ -580,6 +592,10 @@ export function traitLabPublicConfig() {
     tokenCooldownMs: traitLabTokenCooldownMs(),
     droidBurnEnabled: traitLabDroidBurnEnabled(),
     droidBurnRewardEnergy: traitLabDroidBurnRewardEnergy(),
+    rerollSettlementMode: "server-ledger",
+    rerollRequiresTransaction: false,
+    leaderboardEnabled: traitLabLeaderboardEnabled(),
+    bountyEnabled: traitBountyEngineEnabled(),
     guaranteedTraits: S2_GUARANTEED_TRAITS,
     unlockableTraits: S2_UNLOCKABLE_TRAITS,
     removableTraits: S2_REMOVABLE_TRAITS,

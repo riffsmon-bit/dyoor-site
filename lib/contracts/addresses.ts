@@ -26,7 +26,12 @@ function s2ContractAddress() {
   const mainnet = getAddress(DEFAULT_DYOOR_S2_MAINNET_CONTRACT);
   const legacyTestnet = getAddress(LEGACY_DYOOR_S2_TESTNET_CONTRACT);
 
-  return !configured || configured === legacyTestnet ? mainnet : configured;
+  if (!configured) return mainnet;
+  if (process.env.NODE_ENV === "production" && configured !== mainnet) {
+    const detail = configured === legacyTestnet ? "legacy Monad testnet" : "non-mainnet";
+    throw new Error(`Production D.Y.O.O.R S2 configuration cannot use the ${detail} contract.`);
+  }
+  return configured;
 }
 
 export const dyoorS1Contract = contractAddress(

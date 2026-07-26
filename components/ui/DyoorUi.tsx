@@ -15,9 +15,9 @@ export function PageShell({
   return <main className={joinClasses("mx-auto px-5 py-10", width, "page-enter", className)}>{children}</main>;
 }
 
-export function Card({ children, className = "", strong = false, hover = false }: HTMLAttributes<HTMLDivElement> & { strong?: boolean; hover?: boolean }) {
+export function Card({ children, className = "", strong = false, hover = false, ...props }: HTMLAttributes<HTMLDivElement> & { strong?: boolean; hover?: boolean }) {
   return (
-    <section className={joinClasses(strong ? "glass-panel-strong" : "glass-panel", hover && "hover-lift", className)}>
+    <section {...props} className={joinClasses(strong ? "glass-panel-strong" : "glass-panel", hover && "hover-lift", className)}>
       {children}
     </section>
   );

@@ -19,10 +19,12 @@ spendable in the app.
 
 ## New Energy Model
 
-Production note, July 2026: Trait Lab debits the on-chain Energy Bank contract
-for rerolls, recycle rewards, Droid burn rewards, and wallet-to-wallet Energy
-transfers. The ledger/indexer is used for visibility, diagnostics, and repair
-planning, but the spendable balance shown to users comes from Energy Bank.
+Production note, July 24, 2026: rerolls, Reroll All, and Unlock use append-only
+server-settled debit records and no longer submit an Energy Bank transaction.
+The spendable balance shown to users is the live Energy Bank balance minus
+those server-settled debits. Legacy transaction-backed rolls remain recoverable.
+Recycle and Droid-burn rewards still credit the Energy Bank, and
+wallet-to-wallet transfers still use the on-chain spend/credit flow.
 
 When a user harvests on the Ascension page, `/api/energy/sync-wallet` now:
 
@@ -47,10 +49,11 @@ Harvest credits are indexed from the staking contract `PointsClaimed` event and
 deduped by `txHash:logIndex`. Energy Bank credits are deduped by the harvest
 transaction hash, so retries cannot double-credit a confirmed harvest.
 
-Admin airdrops, MON recharge credits, wallet-to-wallet transfers, and reroll
-spends also write ledger entries. The Energy Bank remains the production
-spendable source for Trait Lab until a transactional ledger debit path replaces
-it end to end.
+Admin airdrops, MON recharge credits, and wallet-to-wallet transfers write the
+diagnostic Energy ledger. New Trait Lab debits use independent per-operation
+Blob keys so concurrent rolls cannot overwrite one another. The effective
+balance is calculated from the Energy Bank baseline plus this Trait Lab debit
+overlay.
 
 Reconciliation compares ledger-derived totals against the Energy Bank and
 repairs old mismatches when harvested credits were indexed before the live

@@ -1,9 +1,12 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import Image, { type StaticImageData } from "next/image";
 import { encodeFunctionData } from "viem";
 import { Alert, Button, Card, EmptyState, LoadingSkeleton, PageShell, SectionHeader, StatCard } from "@/components/ui/DyoorUi";
 import { WalletButton } from "@/components/wallet/WalletButton";
+import bobMaskTeaserImage from "@/dyoor-builder/layers/Hat/BOB Mask.png";
+import traitRevealAuditJson from "@/data/dyoor-s2-trait-reveal-audit.json";
 import {
   S2_EDITABLE_TRAITS,
   S2_GUARANTEED_TRAITS,
@@ -20,6 +23,13 @@ import {
   type S2TraitLabAction,
   type S2TraitLabPaymentMode,
 } from "@/lib/s2-trait-lab-config";
+import {
+  canonicalTraitLabPreviewAction,
+  traitLabConfirmationAuthorizationMessage,
+  traitLabForfeitAuthorizationMessage,
+  traitLabPreviewAuthorizationMessage,
+} from "@/lib/s2-trait-lab-auth";
+import { getStorageItem, removeStorageItem, setStorageJson } from "@/lib/browser-storage";
 import { useWalletService } from "@/providers/WalletServiceProvider";
 
 type MetadataAttribute = {
@@ -88,7 +98,9 @@ type PreviewResponse = {
     weight?: number;
   };
   rollId?: string;
+  operationStatus?: string;
   rollCharged?: boolean;
+  energySettlementMode?: "server-ledger" | "energy-bank" | "none";
   paymentTxHash?: string;
   paymentBurnTxHash?: string;
   paymentToken?: string;
@@ -139,6 +151,19 @@ type PreviewResponse = {
     };
   };
   error?: string;
+  recoveryRequired?: boolean;
+  recoveryPreview?: PreviewResponse;
+  bountySettlements?: Array<{
+    bountyId?: string;
+    bountyLabel?: string;
+    traitType?: string;
+    traitValue?: string;
+    rewardRaw?: string;
+    rewardEnergy?: string;
+    status?: "settled" | "deduped" | "pending" | "ineligible";
+    txHash?: string;
+    error?: string;
+  }>;
 };
 
 type TraitLabConfigResponse = {
@@ -158,7 +183,11 @@ type TraitLabConfigResponse = {
   recycleRewards?: Record<string, number>;
   droidBurnEnabled?: boolean;
   droidBurnRewardEnergy?: number;
+  rerollSettlementMode?: "server-ledger";
+  rerollRequiresTransaction?: boolean;
   rerollAllCostEnergy?: number;
+  leaderboardEnabled?: boolean;
+  bountyEnabled?: boolean;
   error?: string;
 };
 
@@ -189,6 +218,116 @@ type PendingBurnClaim = {
   confirmedAt?: string;
 };
 
+type PendingTraitLabOperation = {
+  wallet: string;
+  rollId: string;
+  tokenId: string;
+  savedAt: string;
+  preview: PreviewResponse;
+};
+
+type TraitLabOperationResponse = {
+  ok?: boolean;
+  active?: boolean;
+  operation?: {
+    rollId?: string;
+    tokenId?: string;
+    action?: string;
+    traitType?: string;
+    status?: string;
+    chargeStatus?: string;
+    isCurrent?: boolean;
+    recoveryRequired?: boolean;
+    canRetryConfirmation?: boolean;
+    lastError?: string;
+  };
+  completion?: PreviewResponse & { metadata?: MetadataJson };
+  retryPreview?: PreviewResponse;
+  error?: string;
+};
+
+type TraitLabLeaderboardRow = {
+  rank: number;
+  wallet: string;
+  completedOperations: number;
+  rerolls: number;
+  rerollAlls: number;
+  unlocks: number;
+  recycles: number;
+  energySpentRaw: string;
+  energyEarnedRaw: string;
+  lastCompletedAt: string;
+};
+
+type TraitLabLeaderboardResponse = {
+  ok?: boolean;
+  enabled?: boolean;
+  bountyEnabled?: boolean;
+  rows?: TraitLabLeaderboardRow[];
+  error?: string;
+};
+
+type TraitBountyCard = {
+  id: string;
+  label: string;
+  traitType: string;
+  traitValue: string;
+  rewardEnergy: string;
+  maxClaims: number;
+  totalClaims: number;
+  remainingClaims: number;
+  perWalletLimit: number;
+  perTokenLimit: number;
+  actions: string[];
+  startsAt: string;
+  endsAt: string;
+  status: "draft" | "upcoming" | "active" | "ended" | "complete" | "closed";
+};
+
+type TraitBountyWinner = {
+  settlementKey: string;
+  bountyId: string;
+  bountyLabel: string;
+  wallet: string;
+  tokenId: string;
+  traitType: string;
+  traitValue: string;
+  rewardEnergy: string;
+  settledAt: string;
+  txHash?: string;
+};
+
+type TraitBountyTeaser = {
+  id: string;
+  traitType: string;
+  traitValue: string;
+  maskedLabel: string;
+  rarity: string;
+  weight: number;
+  imageAsset: string;
+  hint: string;
+};
+
+type TraitRevealAudit = {
+  generatedAt: string;
+  displayDate: string;
+  scanned: {
+    successful: number;
+    failed: number;
+  };
+  unrevealed: TraitBountyTeaser[];
+};
+
+type TraitBountyResponse = {
+  ok?: boolean;
+  configured?: boolean;
+  enabled?: boolean;
+  contractAddress?: string;
+  bounties?: TraitBountyCard[];
+  settlements?: TraitBountyWinner[];
+  error?: string;
+};
+
 const S2_DROID_BURN_ABI = [{
   type: "function",
   name: "burn",
@@ -216,6 +355,38 @@ const renderTraits = [
   "Special",
 ];
 const TOKEN_CARD_METADATA_CONCURRENCY = 6;
+const MAX_PENDING_TRAIT_LAB_OPERATIONS = 8;
+const traitRevealAudit = traitRevealAuditJson as TraitRevealAudit;
+const bountyTeaserImages: Record<string, StaticImageData> = {
+  "dyoor-builder/layers/Hat/BOB Mask.png": bobMaskTeaserImage,
+};
+
+function currentPendingTraitLabOperations(items: PendingTraitLabOperation[]) {
+  const latestByToken = new Map<string, PendingTraitLabOperation>();
+  for (const item of [...items].sort((left, right) => right.savedAt.localeCompare(left.savedAt))) {
+    if (!latestByToken.has(item.tokenId)) latestByToken.set(item.tokenId, item);
+  }
+  return [...latestByToken.values()]
+    .sort((left, right) => right.savedAt.localeCompare(left.savedAt))
+    .slice(0, MAX_PENDING_TRAIT_LAB_OPERATIONS);
+}
+
+function browserLocalStorage() {
+  if (typeof window === "undefined") return null;
+  try {
+    return window.localStorage;
+  } catch {
+    return null;
+  }
+}
+
+function persistPendingTraitLabOperations(key: string, operations: PendingTraitLabOperation[]) {
+  const storage = browserLocalStorage();
+  if (!storage || !key) return false;
+  return operations.length
+    ? setStorageJson(storage, key, operations)
+    : removeStorageItem(storage, key);
+}
 
 function normalizeAddress(address?: string) {
   return /^0x[a-fA-F0-9]{40}$/.test(address || "") ? String(address).toLowerCase() : "";
@@ -358,6 +529,12 @@ function supplyDeltaLabel(delta: NonNullable<PreviewResponse["supplyDeltas"]>[nu
 
 function sleep(ms: number) {
   return new Promise((resolve) => window.setTimeout(resolve, ms));
+}
+
+function isTraitLabOperationId(value: unknown) {
+  const operationId = String(value || "");
+  return /^0x[a-f0-9]{64}$/i.test(operationId)
+    || /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(operationId);
 }
 
 function traitLabErrorMessage(error: unknown, fallback: string) {
@@ -563,6 +740,13 @@ export function TraitLabClient() {
   const [burnedGallery, setBurnedGallery] = useState<BurnedDroidCard[]>([]);
   const [burnConfirmText, setBurnConfirmText] = useState("");
   const [pendingBurnClaim, setPendingBurnClaim] = useState<PendingBurnClaim | null>(null);
+  const [pendingTraitLabOperations, setPendingTraitLabOperations] = useState<PendingTraitLabOperation[]>([]);
+  const [operationRecoveryLoading, setOperationRecoveryLoading] = useState("");
+  const [leaderboardRows, setLeaderboardRows] = useState<TraitLabLeaderboardRow[]>([]);
+  const [leaderboardLoading, setLeaderboardLoading] = useState(false);
+  const [traitBounties, setTraitBounties] = useState<TraitBountyCard[]>([]);
+  const [traitBountyWinners, setTraitBountyWinners] = useState<TraitBountyWinner[]>([]);
+  const [traitBountyLoading, setTraitBountyLoading] = useState(false);
   const [burnedGalleryLoading, setBurnedGalleryLoading] = useState(false);
   const [ownedLoading, setOwnedLoading] = useState(false);
   const [metadataLoading, setMetadataLoading] = useState(false);
@@ -571,6 +755,8 @@ export function TraitLabClient() {
   const [status, setStatus] = useState("Connect wallet to load D.Y.O.O.R Season 2 droids.");
   const [error, setError] = useState("");
   const selectedTokenIdRef = useRef("");
+  const metadataRequestRef = useRef(0);
+  const activeRestoreRequestRef = useRef(0);
 
   const selectedTraits = useMemo(() => traitMap(metadata), [metadata]);
   const emptySlots = useMemo(() => S2_EDITABLE_TRAITS.filter((trait) => isEmptyTraitValue(selectedTraits[trait])), [selectedTraits]);
@@ -601,6 +787,7 @@ export function TraitLabClient() {
   const droidBurnEnabled = traitLabConfig?.droidBurnEnabled !== false;
   const burnConfirmationPhrase = selectedTokenId ? `BURN DROID #${selectedTokenId}` : "";
   const pendingBurnStorageKey = walletAddress ? `dyoor:s2:pending-droid-burn:${walletAddress}` : "";
+  const pendingTraitLabStorageKey = walletAddress ? `dyoor:s2:pending-trait-lab:${walletAddress}` : "";
   const burnReady = Boolean(
     walletAddress
     && selectedTokenId
@@ -614,6 +801,7 @@ export function TraitLabClient() {
   const previewProposedImage = mediaUrl(preview?.imageRecomposition?.previewDataUrl || previewProposedMetadata?.image || previewBeforeImage);
   const previewTraitAssetImage = mediaUrl(preview?.proposedAsset?.uri);
   const previewImageChanged = normalizeTraitValue(previewCurrentMetadata?.image) !== normalizeTraitValue(previewProposedMetadata?.image);
+  const previewIsFinalizing = ["confirming", "metadata_committed", "confirmed"].includes(String(preview?.operationStatus || ""));
 
   useEffect(() => {
     selectedTokenIdRef.current = selectedTokenId;
@@ -648,7 +836,7 @@ export function TraitLabClient() {
       }
 
       try {
-        const raw = window.localStorage.getItem(pendingBurnStorageKey);
+        const raw = getStorageItem(browserLocalStorage(), pendingBurnStorageKey);
         const parsed = raw ? JSON.parse(raw) as PendingBurnClaim : null;
         setPendingBurnClaim(parsed?.wallet === walletAddress && parsed.burnTxHash ? parsed : null);
       } catch {
@@ -657,6 +845,33 @@ export function TraitLabClient() {
     }, 0);
     return () => window.clearTimeout(timer);
   }, [pendingBurnStorageKey, walletAddress]);
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      if (!pendingTraitLabStorageKey) {
+        setPendingTraitLabOperations([]);
+        return;
+      }
+
+      try {
+        const raw = getStorageItem(browserLocalStorage(), pendingTraitLabStorageKey);
+        const parsed = raw ? JSON.parse(raw) as unknown : [];
+        const operations = currentPendingTraitLabOperations((Array.isArray(parsed) ? parsed : [])
+          .filter((item): item is PendingTraitLabOperation => Boolean(
+            item
+            && typeof item === "object"
+            && (item as PendingTraitLabOperation).wallet === walletAddress
+            && isTraitLabOperationId((item as PendingTraitLabOperation).rollId)
+            && (item as PendingTraitLabOperation).preview?.previewId,
+          )));
+        persistPendingTraitLabOperations(pendingTraitLabStorageKey, operations);
+        setPendingTraitLabOperations(operations);
+      } catch {
+        setPendingTraitLabOperations([]);
+      }
+    }, 0);
+    return () => window.clearTimeout(timer);
+  }, [pendingTraitLabStorageKey, walletAddress]);
 
   useEffect(() => {
     let active = true;
@@ -705,9 +920,49 @@ export function TraitLabClient() {
     }
   }, []);
 
+  const loadLeaderboard = useCallback(async () => {
+    if (!traitLabConfig?.leaderboardEnabled) {
+      setLeaderboardRows([]);
+      return;
+    }
+    setLeaderboardLoading(true);
+    try {
+      const response = await fetch("/api/s2/trait-lab/leaderboard?limit=25", { cache: "no-store" });
+      const data = await response.json().catch(() => ({})) as TraitLabLeaderboardResponse;
+      if (!response.ok || data.ok === false) throw new Error(data.error || "Could not load Trait Lab leaderboard.");
+      setLeaderboardRows(Array.isArray(data.rows) ? data.rows : []);
+    } catch {
+      setLeaderboardRows([]);
+    } finally {
+      setLeaderboardLoading(false);
+    }
+  }, [traitLabConfig?.leaderboardEnabled]);
+
+  const loadTraitBounties = useCallback(async () => {
+    if (!traitLabConfig?.bountyEnabled) {
+      setTraitBounties([]);
+      setTraitBountyWinners([]);
+      return;
+    }
+    setTraitBountyLoading(true);
+    try {
+      const response = await fetch("/api/s2/trait-lab/bounties", { cache: "no-store" });
+      const data = await response.json().catch(() => ({})) as TraitBountyResponse;
+      if (!response.ok || data.ok === false) throw new Error(data.error || "Could not load Trait Lab bounties.");
+      setTraitBounties(Array.isArray(data.bounties) ? data.bounties : []);
+      setTraitBountyWinners(Array.isArray(data.settlements) ? data.settlements : []);
+    } catch {
+      setTraitBounties([]);
+      setTraitBountyWinners([]);
+    } finally {
+      setTraitBountyLoading(false);
+    }
+  }, [traitLabConfig?.bountyEnabled]);
+
   const loadTokenMetadata = useCallback(async (tokenId: string) => {
+    const requestId = ++metadataRequestRef.current;
     if (!tokenId) {
-      setMetadata(null);
+      if (requestId === metadataRequestRef.current) setMetadata(null);
       return;
     }
     setMetadataLoading(true);
@@ -716,21 +971,72 @@ export function TraitLabClient() {
       const response = await fetch(`/api/metadata/${encodeURIComponent(tokenId)}`, { cache: "no-store" });
       const data = await response.json().catch(() => ({})) as MetadataJson & { error?: string };
       if (!response.ok) throw new Error(data.error || "Could not load token metadata.");
+      if (requestId !== metadataRequestRef.current || selectedTokenIdRef.current !== tokenId) return;
       setMetadata(data);
       setStatus(`Loaded live metadata for D.Y.O.O.R #${tokenId}.`);
       setError("");
     } catch (err) {
+      if (requestId !== metadataRequestRef.current || selectedTokenIdRef.current !== tokenId) return;
       setMetadata(null);
       setError(err instanceof Error ? err.message : "Could not load token metadata.");
     } finally {
-      setMetadataLoading(false);
+      if (requestId === metadataRequestRef.current) setMetadataLoading(false);
     }
   }, []);
+
+  const restoreActiveTraitLabOperation = useCallback(async (tokenId: string, silent = false) => {
+    if (!walletAddress || !tokenId) return;
+    const requestId = ++activeRestoreRequestRef.current;
+    try {
+      const response = await fetch(
+        `/api/s2/trait-lab/active?wallet=${encodeURIComponent(walletAddress)}&tokenId=${encodeURIComponent(tokenId)}`,
+        { cache: "no-store" },
+      );
+      const data = await response.json().catch(() => ({})) as TraitLabOperationResponse;
+      if (!response.ok || data.ok === false) throw new Error(data.error || "Could not check the current Trait Lab result.");
+      if (requestId !== activeRestoreRequestRef.current || selectedTokenIdRef.current !== tokenId) return;
+      if (!data.active || !data.retryPreview?.rollId || !data.retryPreview.previewId) {
+        setPendingTraitLabOperations((current) => {
+          const next = current.filter((item) => item.tokenId !== tokenId);
+          persistPendingTraitLabOperations(pendingTraitLabStorageKey, next);
+          return next;
+        });
+        return;
+      }
+
+      const recoveredPreview = data.retryPreview;
+      const recoveredRollId = String(recoveredPreview.rollId);
+      const pending: PendingTraitLabOperation = {
+        wallet: walletAddress,
+        rollId: recoveredRollId,
+        tokenId,
+        savedAt: new Date().toISOString(),
+        preview: recoveredPreview,
+      };
+      setPendingTraitLabOperations((current) => {
+        const next = currentPendingTraitLabOperations([pending].concat(current.filter((item) => item.tokenId !== tokenId)));
+        persistPendingTraitLabOperations(pendingTraitLabStorageKey, next);
+        return next;
+      });
+      setPreview(recoveredPreview);
+      setError("");
+      setStatus(`Restored D.Y.O.O.R #${tokenId}'s current result from the server. Accept it to finish, or leave it behind if it is not already finalizing.`);
+    } catch (restoreError) {
+      if (
+        !silent
+        && requestId === activeRestoreRequestRef.current
+        && selectedTokenIdRef.current === tokenId
+      ) {
+        setError(restoreError instanceof Error ? restoreError.message : "Could not check the current Trait Lab result.");
+      }
+    }
+  }, [pendingTraitLabStorageKey, walletAddress]);
 
   const loadOwnedTokens = useCallback(async () => {
     if (!walletAddress) {
       setOwnedTokenIds([]);
       setTokenCards([]);
+      selectedTokenIdRef.current = "";
       setSelectedTokenId("");
       setMetadata(null);
       setStatus("Connect wallet to load D.Y.O.O.R Season 2 droids.");
@@ -766,18 +1072,25 @@ export function TraitLabClient() {
       setTokenCards(cards);
       const currentSelected = selectedTokenIdRef.current;
       const nextSelected = currentSelected && tokenIds.includes(currentSelected) ? currentSelected : tokenIds[0] || "";
+      selectedTokenIdRef.current = nextSelected;
       setSelectedTokenId(nextSelected);
-      if (nextSelected) await loadTokenMetadata(nextSelected);
+      if (nextSelected) {
+        await loadTokenMetadata(nextSelected);
+        if (selectedTokenIdRef.current === nextSelected) {
+          await restoreActiveTraitLabOperation(nextSelected, true);
+        }
+      }
     } catch (err) {
       setOwnedTokenIds([]);
       setTokenCards([]);
+      selectedTokenIdRef.current = "";
       setSelectedTokenId("");
       setMetadata(null);
       setError(err instanceof Error ? err.message : "Could not load owned Season 2 tokens.");
     } finally {
       setOwnedLoading(false);
     }
-  }, [loadTokenMetadata, walletAddress]);
+  }, [loadTokenMetadata, restoreActiveTraitLabOperation, walletAddress]);
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
@@ -794,19 +1107,41 @@ export function TraitLabClient() {
     return () => window.clearTimeout(timer);
   }, [loadBurnedGallery]);
 
+  useEffect(() => {
+    if (!traitLabConfig?.leaderboardEnabled) return;
+    const timer = window.setTimeout(() => {
+      void loadLeaderboard();
+    }, 0);
+    return () => window.clearTimeout(timer);
+  }, [loadLeaderboard, traitLabConfig?.leaderboardEnabled]);
+
+  useEffect(() => {
+    if (!traitLabConfig?.bountyEnabled) return;
+    const timer = window.setTimeout(() => {
+      void loadTraitBounties();
+    }, 0);
+    return () => window.clearTimeout(timer);
+  }, [loadTraitBounties, traitLabConfig?.bountyEnabled]);
+
   async function connectWallet() {
     setError("");
     await wallet.connect().catch((err) => setError(err instanceof Error ? err.message : "Wallet connection failed."));
   }
 
   async function selectToken(tokenId: string) {
+    selectedTokenIdRef.current = tokenId;
     setSelectedTokenId(tokenId);
     await loadTokenMetadata(tokenId);
+    if (selectedTokenIdRef.current === tokenId) {
+      await restoreActiveTraitLabOperation(tokenId, true);
+    }
   }
 
   async function refreshConfirmedToken(tokenId: string, fallbackMetadata?: MetadataJson | null) {
     let nextMetadata = fallbackMetadata || metadata;
     try {
+      // Event-driven cache buster; this function is only called from async user/recovery flows.
+      // eslint-disable-next-line react-hooks/purity
       const response = await fetch(`/api/metadata/${encodeURIComponent(tokenId)}?confirmed=${Date.now()}`, { cache: "no-store" });
       const fresh = await response.json().catch(() => ({})) as MetadataJson & { error?: string };
       if (response.ok && !fresh.error) {
@@ -863,22 +1198,104 @@ export function TraitLabClient() {
     throw new Error("Roll transaction is still pending. Wait a moment and try again.");
   }
 
-  function savePendingBurnClaim(claim: PendingBurnClaim) {
-    if (typeof window !== "undefined") {
-      window.localStorage.setItem(`dyoor:s2:pending-droid-burn:${claim.wallet}`, JSON.stringify(claim));
+  function savePendingTraitLabOperation(nextPreview: PreviewResponse) {
+    if (!walletAddress || !nextPreview.rollId || !nextPreview.previewId || !pendingTraitLabStorageKey) return;
+    setPendingTraitLabOperations((current) => {
+      const tokenId = String(nextPreview.tokenId || selectedTokenId);
+      const next = currentPendingTraitLabOperations([{
+        wallet: walletAddress,
+        rollId: nextPreview.rollId as string,
+        tokenId,
+        savedAt: new Date().toISOString(),
+        preview: nextPreview,
+      }]
+        .concat(current.filter((item) => item.tokenId !== tokenId)));
+      persistPendingTraitLabOperations(pendingTraitLabStorageKey, next);
+      return next;
+    });
+  }
+
+  function clearPendingTraitLabOperation(rollId: string) {
+    if (!rollId) return;
+    setPendingTraitLabOperations((current) => {
+      const next = current.filter((item) => item.rollId !== rollId);
+      persistPendingTraitLabOperations(pendingTraitLabStorageKey, next);
+      return next;
+    });
+  }
+
+  async function recoverPendingTraitLabOperation(item: PendingTraitLabOperation) {
+    setOperationRecoveryLoading(item.rollId);
+    setError("");
+    setStatus(`Checking Trait Lab operation for D.Y.O.O.R #${item.tokenId}.`);
+    try {
+      const response = await fetch(
+        `/api/s2/trait-lab/operations/${encodeURIComponent(item.rollId)}?wallet=${encodeURIComponent(item.wallet)}`,
+        { cache: "no-store" },
+      );
+      const data = await response.json().catch(() => ({})) as TraitLabOperationResponse;
+      if (!response.ok || data.ok === false) throw new Error(data.error || "Could not load Trait Lab operation.");
+
+      if (data.operation?.status === "completed" && data.completion) {
+        clearPendingTraitLabOperation(item.rollId);
+        await refreshConfirmedToken(item.tokenId, data.completion.metadata || item.preview.proposedMetadata || null);
+        await loadEnergy();
+        if (traitLabConfig?.leaderboardEnabled) await loadLeaderboard();
+        if (traitLabConfig?.bountyEnabled) await loadTraitBounties();
+        setStatus(`Recovered completed ${data.operation.action || "Trait Lab"} operation for D.Y.O.O.R #${item.tokenId}.`);
+        return;
+      }
+
+      if (
+        data.operation?.isCurrent === false
+        || data.operation?.status === "superseded"
+        || data.operation?.status === "forfeited"
+      ) {
+        clearPendingTraitLabOperation(item.rollId);
+        if (preview?.rollId === item.rollId) setPreview(null);
+        setStatus(`D.Y.O.O.R #${item.tokenId}'s saved result was already left behind. Only its latest roll can be accepted.`);
+        return;
+      }
+
+      if (!data.operation?.canRetryConfirmation) {
+        throw new Error(data.operation?.lastError
+          || (data.operation?.chargeStatus === "pending_or_unverified"
+            ? "The Energy spend is still pending or not indexed. Retry recovery shortly."
+            : "This operation was not charged. Generate a fresh preview."));
+      }
+
+      selectedTokenIdRef.current = item.tokenId;
+      setSelectedTokenId(item.tokenId);
+      await loadTokenMetadata(item.tokenId);
+      const recoveredPreview = data.retryPreview || item.preview;
+      setPreview(recoveredPreview);
+      savePendingTraitLabOperation(recoveredPreview);
+      const finalizing = ["confirming", "metadata_committed", "confirmed"].includes(String(recoveredPreview.operationStatus || ""));
+      setStatus(finalizing
+        ? `Restored D.Y.O.O.R #${item.tokenId}'s finalizing result. Retry Accept Result to finish it.`
+        : `Restored D.Y.O.O.R #${item.tokenId}'s current result. Accept it, leave it, or pay for one new roll that permanently replaces it.`);
+    } catch (err) {
+      setError(traitLabErrorMessage(err, "Trait Lab recovery failed."));
+    } finally {
+      setOperationRecoveryLoading("");
     }
+  }
+
+  function savePendingBurnClaim(claim: PendingBurnClaim) {
+    setStorageJson(browserLocalStorage(), `dyoor:s2:pending-droid-burn:${claim.wallet}`, claim);
     setPendingBurnClaim(claim);
   }
 
   function clearPendingBurnClaim(claim: PendingBurnClaim) {
-    if (typeof window !== "undefined") {
+    const storage = browserLocalStorage();
+    if (storage) {
       const key = `dyoor:s2:pending-droid-burn:${claim.wallet}`;
-      const raw = window.localStorage.getItem(key);
+      const raw = getStorageItem(storage, key);
       try {
         const parsed = raw ? JSON.parse(raw) as PendingBurnClaim : null;
-        if (!parsed || parsed.burnTxHash === claim.burnTxHash) window.localStorage.removeItem(key);
+        if (!parsed || parsed.burnTxHash === claim.burnTxHash) removeStorageItem(storage, key);
       } catch {
-        window.localStorage.removeItem(key);
+        removeStorageItem(storage, key);
       }
     }
     setPendingBurnClaim(null);
@@ -907,6 +1324,7 @@ export function TraitLabClient() {
     setOwnedTokenIds((tokenIds) => tokenIds.filter((tokenId) => tokenId !== claim.tokenId));
     setTokenCards((cards) => cards.filter((card) => card.tokenId !== claim.tokenId));
     if (selectedTokenIdRef.current === claim.tokenId) {
+      selectedTokenIdRef.current = "";
       setSelectedTokenId("");
       setMetadata(null);
     }
@@ -948,44 +1366,64 @@ export function TraitLabClient() {
     setPreview(null);
     setError("");
     setStatus(action === "recycle"
-      ? "Preparing trait recycle preview."
+      ? "Sign to authorize the trait recycle preview."
       : action === "rerollAll"
-        ? "Spending Energy and generating a Reroll All bundle."
-      : "Spending Energy and generating roll.");
+        ? "Sign to authorize Reroll All. This signature is gasless."
+      : "Sign to authorize the roll. This signature is gasless.");
     try {
-      const payment = {};
-      let response: Response | null = null;
-      let data = {} as PreviewResponse;
-      for (let attempt = 0; attempt < 4; attempt += 1) {
-        response = await fetch("/api/s2/trait-lab/preview", {
-          method: "POST",
-          headers: { "content-type": "application/json" },
-          body: JSON.stringify({
-            wallet: walletAddress,
-            tokenId: selectedTokenId,
-            traitType,
-            action,
-            paymentMode: effectiveMode,
-            ...payment,
-          }),
-        });
-        data = await response.json().catch(() => ({})) as PreviewResponse;
-        if (!(response.status === 409 && ("paymentTxHash" in payment))) break;
-        setStatus("Waiting for roll transaction to index.");
-        await sleep(1500);
+      const authorizationTimestamp = String(Date.now());
+      const authorizationNonce = crypto.randomUUID();
+      const authorizationSignature = await wallet.signMessage(traitLabPreviewAuthorizationMessage({
+        wallet: walletAddress,
+        tokenId: selectedTokenId,
+        traitType,
+        action: canonicalTraitLabPreviewAction(action),
+        timestamp: authorizationTimestamp,
+        nonce: authorizationNonce,
+      }));
+      setStatus(action === "recycle"
+        ? "Preparing trait recycle preview."
+        : action === "rerollAll"
+          ? "Settling Energy instantly and generating a Reroll All bundle."
+          : "Settling Energy instantly and generating roll.");
+      const response = await fetch("/api/s2/trait-lab/preview", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          wallet: walletAddress,
+          tokenId: selectedTokenId,
+          traitType,
+          action,
+          paymentMode: effectiveMode,
+          authorizationTimestamp,
+          authorizationNonce,
+          authorizationSignature,
+        }),
+      });
+      const data = await response.json().catch(() => ({})) as PreviewResponse;
+      if (!response.ok || data.ok === false) {
+        if (data.recoveryRequired && data.recoveryPreview?.rollId) {
+          setPreview(data.recoveryPreview);
+          savePendingTraitLabOperation(data.recoveryPreview);
+          setStatus(`Restored D.Y.O.O.R #${data.recoveryPreview.tokenId || selectedTokenId}'s current result. Accept it to finish recovery.`);
+          const restoredTrait = String(data.recoveryPreview.traitType || "earlier");
+          throw new Error(
+            `Your ${traitType} roll was not created or charged. The panel below is the saved ${restoredTrait} result that must be finished first.`,
+          );
+        }
+        throw new Error(data.error || "Preview failed.");
       }
-      if (!response) throw new Error("Preview failed.");
-      if (!response.ok || data.ok === false) throw new Error(data.error || "Preview failed.");
       setPreview(data);
+      savePendingTraitLabOperation(data);
       setStatus(action === "unlock"
-        ? "Unlock roll ready."
+        ? "Unlock roll ready. Energy settled instantly with no blockchain transaction."
         : action === "remove"
           ? "Remove trait preview ready."
-          : action === "recycle"
+        : action === "recycle"
             ? "Recycle preview ready."
             : action === "rerollAll"
-              ? "Reroll All ready."
-            : "Reroll ready.");
+              ? "Reroll All ready. Energy settled instantly with no blockchain transaction."
+            : "Reroll ready. Energy settled instantly with no blockchain transaction.");
       if (data.paymentMode === "energy") await loadEnergy();
     } catch (err) {
       setError(traitLabErrorMessage(err, "Preview failed."));
@@ -995,11 +1433,30 @@ export function TraitLabClient() {
   }
 
   async function confirmChange() {
-    if (!preview?.previewId || !preview.confirmation || !walletAddress || !selectedTokenId) return;
+    if (!preview?.previewId || !preview.rollId || !walletAddress || !selectedTokenId) return;
     setActionLoading("confirm");
     setError("");
     try {
-      const signature = await wallet.signMessage(preview.confirmation.message);
+      // Confirmation challenges must be fresh at the moment of the wallet action.
+      // eslint-disable-next-line react-hooks/purity
+      const timestamp = String(Date.now());
+      const nonce = crypto.randomUUID();
+      const message = traitLabConfirmationAuthorizationMessage({
+        wallet: walletAddress,
+        tokenId: selectedTokenId,
+        traitType: String(preview.traitType || ""),
+        action: String(preview.action || ""),
+        paymentMode: String(preview.paymentMode || ""),
+        proposedValue: String(preview.proposedValue || ""),
+        costLabel: String(preview.costLabel || ""),
+        costRaw: String(preview.costRaw || ""),
+        rewardLabel: preview.rewardLabel,
+        rewardRaw: preview.rewardRaw,
+        previewId: preview.previewId,
+        timestamp,
+        nonce,
+      });
+      const signature = await wallet.signMessage(message);
       const response = await fetch("/api/s2/trait-lab/confirm", {
         method: "POST",
         headers: { "content-type": "application/json" },
@@ -1010,16 +1467,19 @@ export function TraitLabClient() {
           action: preview.action,
           paymentMode: preview.paymentMode,
           previewId: preview.previewId,
-          timestamp: preview.confirmation.timestamp,
-          nonce: preview.confirmation.nonce,
+          timestamp,
+          nonce,
           signature,
         }),
       });
       const data = await response.json().catch(() => ({})) as PreviewResponse & { metadata?: MetadataJson };
       if (!response.ok || data.ok === false) throw new Error(data.error || "Confirm failed.");
       await refreshConfirmedToken(selectedTokenId, data.metadata || preview.proposedMetadata || metadata);
+      clearPendingTraitLabOperation(preview.rollId);
       setPreview(null);
       await loadEnergy();
+      if (traitLabConfig?.leaderboardEnabled) await loadLeaderboard();
+      if (traitLabConfig?.bountyEnabled) await loadTraitBounties();
       const openSeaStatus = data.openSeaMetadataRefresh?.status;
       scheduleOpenSeaRefreshProcessor(data.openSeaMetadataRefresh);
       const immediateOpenSeaStatus = data.openSeaMetadataRefresh?.immediate?.status;
@@ -1032,9 +1492,65 @@ export function TraitLabClient() {
         : openSeaStatus === "failed"
           ? " OpenSea refresh needs a retry."
           : "";
-      setStatus(`${data.action === "recycle" ? "Trait recycled. Energy reward credited." : "Metadata Version updated. Trait supply updated."}${openSeaSuffix}`);
+      const bountyWins = (data.bountySettlements || []).filter((item) => (
+        item.status === "settled" || item.status === "deduped"
+      ));
+      const bountyPending = (data.bountySettlements || []).some((item) => item.status === "pending");
+      const bountySuffix = bountyWins.length
+        ? ` Bounty won: ${bountyWins.map((item) => `${item.bountyLabel || item.traitValue} (+${item.rewardEnergy || "0"} Energy)`).join(", ")}.`
+        : bountyPending
+          ? " Matching bounty payout is queued for automatic retry."
+          : "";
+      setStatus(`${data.action === "recycle" ? "Trait recycled. Energy reward credited." : "Metadata Version updated. Trait supply updated."}${bountySuffix}${openSeaSuffix}`);
     } catch (err) {
       setError(traitLabErrorMessage(err, "Confirm failed."));
+    } finally {
+      setActionLoading("");
+    }
+  }
+
+  async function leaveCurrentResult() {
+    if (!preview?.previewId || !preview.rollId || !walletAddress) return;
+    const tokenId = String(preview.tokenId || selectedTokenId);
+    setActionLoading("forfeit");
+    setError("");
+    setStatus(`Sign to leave D.Y.O.O.R #${tokenId}'s current result behind. This cannot be undone.`);
+    try {
+      // Leave-result authorizations must be fresh at the moment of the wallet action.
+      const timestamp = String(Date.now());
+      const nonce = crypto.randomUUID();
+      const signature = await wallet.signMessage(traitLabForfeitAuthorizationMessage({
+        wallet: walletAddress,
+        tokenId,
+        rollId: preview.rollId,
+        previewId: preview.previewId,
+        timestamp,
+        nonce,
+      }));
+      const response = await fetch("/api/s2/trait-lab/forfeit", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          wallet: walletAddress,
+          tokenId,
+          rollId: preview.rollId,
+          previewId: preview.previewId,
+          timestamp,
+          nonce,
+          signature,
+        }),
+      });
+      const data = await response.json().catch(() => ({})) as {
+        ok?: boolean;
+        status?: string;
+        error?: string;
+      };
+      if (!response.ok || data.ok === false) throw new Error(data.error || "Could not leave this result.");
+      clearPendingTraitLabOperation(preview.rollId);
+      setPreview(null);
+      setStatus(`Result left behind for D.Y.O.O.R #${tokenId}. Its current metadata was not changed.`);
+    } catch (err) {
+      setError(traitLabErrorMessage(err, "Could not leave this result."));
     } finally {
       setActionLoading("");
     }
@@ -1044,6 +1560,8 @@ export function TraitLabClient() {
     if (!refresh || refresh.status !== "scheduled") return;
     const runAtMs = refresh.runAt ? Date.parse(refresh.runAt) : 0;
     const delayMs = refresh.runAt && Number.isFinite(runAtMs)
+      // This scheduler runs only after a confirmed user action.
+      // eslint-disable-next-line react-hooks/purity
       ? Math.max(5_000, runAtMs - Date.now() + 2_500)
       : Math.max(5_000, Number(refresh.delayMs || 120_000) + 2_500);
     window.setTimeout(() => {
@@ -1155,7 +1673,63 @@ export function TraitLabClient() {
         </Alert>
       ) : null}
 
-      <section className="grid gap-5 lg:grid-cols-[minmax(18rem,0.85fr)_minmax(0,1.55fr)]">
+      {pendingTraitLabOperations.length ? (
+        <Card className="border-dyoor-cyan/25 bg-dyoor-cyan/[0.07] p-5">
+          <div className="flex flex-col justify-between gap-3 md:flex-row md:items-start">
+            <div>
+              <p className="eyebrow text-dyoor-cyan">Interrupted Roll Recovery</p>
+              <h2 className="mt-2 text-2xl font-black uppercase text-white">
+                {pendingTraitLabOperations.length === 1 ? "Restore Current Result" : "Restore Current Results"}
+              </h2>
+              <p className="mt-2 max-w-3xl text-sm font-semibold leading-6 text-white/62">
+                This is crash protection, not roll history. Only the latest result for each Droid remains valid; accepting, leaving, or rolling again permanently closes the previous result.
+              </p>
+            </div>
+            <span className="w-fit rounded-full border border-dyoor-cyan/30 bg-black/30 px-3 py-2 text-[0.62rem] font-black uppercase tracking-[0.16em] text-dyoor-cyan">
+              Latest Result Only
+            </span>
+          </div>
+          <div className="mt-4 grid gap-3">
+            {pendingTraitLabOperations.map((item) => (
+              <div
+                key={item.rollId}
+                className="grid gap-3 rounded border border-yellow-200/20 bg-black/25 p-3 md:grid-cols-[minmax(0,1fr)_auto] md:items-center"
+              >
+                <div className="min-w-0">
+                  <p className="text-sm font-black uppercase text-white">
+                    D.Y.O.O.R #{item.tokenId} · {item.preview.action === "rerollAll" ? "Reroll All" : item.preview.action || "Trait Change"}
+                    {item.preview.traitType && item.preview.action !== "rerollAll" ? ` · ${item.preview.traitType}` : ""}
+                  </p>
+                  <p className="mt-1 truncate text-xs font-bold text-white/45">
+                    Current result · {item.rollId.slice(0, 10)}…{item.rollId.slice(-8)} · Saved {new Date(item.savedAt).toLocaleString()}
+                  </p>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {item.preview.paymentTxHash ? (
+                    <a
+                      className="rounded border border-dyoor-cyan/25 bg-dyoor-cyan/10 px-3 py-2 text-xs font-black uppercase tracking-[0.12em] text-dyoor-cyan"
+                      href={`${traitLabConfig?.explorerUrl || "https://monadscan.com"}/tx/${item.preview.paymentTxHash}`}
+                      target="_blank"
+                      rel="noreferrer"
+                    >
+                      Energy Tx
+                    </a>
+                  ) : null}
+                  <Button
+                    variant="primary"
+                    disabled={Boolean(operationRecoveryLoading || actionLoading)}
+                    onClick={() => void recoverPendingTraitLabOperation(item)}
+                  >
+                    {operationRecoveryLoading === item.rollId ? "Checking" : "Restore Current Result"}
+                  </Button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </Card>
+      ) : null}
+
+      <section className="grid scroll-mt-24 gap-5 lg:grid-cols-[minmax(18rem,0.85fr)_minmax(0,1.55fr)]" id="trait-workbench">
         <Card className="p-5">
           <div className="flex items-end justify-between gap-3">
             <div>
@@ -1244,6 +1818,10 @@ export function TraitLabClient() {
                 </div>
 
                 <Alert tone="idle" className="mt-3 py-3">Locked traits cannot be changed.</Alert>
+                <p className="mt-2 text-xs font-semibold leading-5 text-dyoor-cyan/75">
+                  MetaMask will show a <span className="font-black text-dyoor-cyan">Signature request</span> to authorize a roll or accept a result.
+                  It is not a blockchain transaction: there is no gas fee, MON charge, or contract confirmation.
+                </p>
 
                 <div className="mt-3 rounded border border-dyoor-cyan/20 bg-black/30 p-3">
                   <div className="grid gap-3">
@@ -1261,7 +1839,7 @@ export function TraitLabClient() {
                       {rerollAllTraits.length ? (
                         <Button
                           className="w-full px-3 py-2.5 text-[0.7rem] leading-tight"
-                          disabled={!metadata || Boolean(actionLoading)}
+                          disabled={!metadata || Boolean(actionLoading) || previewIsFinalizing}
                           variant="secondary"
                           onClick={() => {
                             setSelectedAction("rerollAll");
@@ -1282,7 +1860,7 @@ export function TraitLabClient() {
                           <Button
                             key={action}
                             className="w-full px-3 py-2.5 text-[0.7rem] leading-tight"
-                            disabled={!metadata || Boolean(actionLoading)}
+                            disabled={!metadata || Boolean(actionLoading) || previewIsFinalizing}
                             variant={action === "unlock" ? "primary" : "secondary"}
                             onClick={() => {
                               setSelectedAction(action);
@@ -1305,7 +1883,7 @@ export function TraitLabClient() {
                         : selectedTraitIsEmpty
                           ? "Rolling spends the selected payment method and creates one approved unlock result."
                           : selectedTraitAction === "recycle"
-                            ? "Recycling burns this optional trait, clears the slot to None, and awards Energy after Confirm Change."
+                            ? "Recycling burns this optional trait, clears the slot to None, and awards Energy after Accept Result."
                           : selectedTraitAction === "remove"
                             ? "Removing spends the selected payment method and clears this optional trait to None."
                             : "Rolling spends Energy and creates one compatible reroll result."}
@@ -1509,7 +2087,7 @@ export function TraitLabClient() {
                           <div className="rounded border border-white/10 bg-black/20 p-3">
                             <p className="text-xs font-black uppercase tracking-[0.14em] text-white/40">Pending Supply Impact</p>
                             <p className="mt-1 text-[0.68rem] font-bold leading-4 text-white/42">
-                              Trait supply changes are recorded only after Confirm Change.
+                              Trait supply changes are recorded only after Accept Result.
                             </p>
                             <div className="mt-2 grid gap-1">
                               {preview.supplyDeltas.map((delta) => (
@@ -1521,17 +2099,22 @@ export function TraitLabClient() {
                             </div>
                           </div>
                         ) : null}
-                        {preview.traitType && preview.action && preview.action !== "remove" && preview.action !== "recycle" ? (
-                          <Button
-                            className="w-full py-2 text-xs"
-                            disabled={Boolean(actionLoading)}
-                            variant="secondary"
-                            onClick={() => void previewChange(preview.traitType as S2TraitLabTrait, preview.action as S2TraitLabAction)}
-                          >
-                            {actionLoading === `${preview.action}:${preview.traitType}`
-                              ? "Rolling"
-                            : preview.action === "rerollAll" ? `Reroll All Again · ${preview.costLabel || "Cost"}` : preview.action === "reroll" ? `Reroll Again · ${preview.costLabel || "Cost"}` : `Roll Again · ${preview.costLabel || "Cost"}`}
-                          </Button>
+                        {!previewIsFinalizing && preview.traitType && preview.action && preview.action !== "remove" && preview.action !== "recycle" ? (
+                          <div className="rounded border border-yellow-300/20 bg-yellow-300/[0.06] p-3">
+                            <p className="text-[0.65rem] font-bold leading-5 text-yellow-50/62">
+                              Rolling again spends Energy and permanently replaces this result. You cannot come back to it.
+                            </p>
+                            <Button
+                              className="mt-3 w-full py-2 text-xs"
+                              disabled={Boolean(actionLoading)}
+                              variant="secondary"
+                              onClick={() => void previewChange(preview.traitType as S2TraitLabTrait, preview.action as S2TraitLabAction)}
+                            >
+                              {actionLoading === `${preview.action}:${preview.traitType}`
+                                ? "Rolling"
+                              : preview.action === "rerollAll" ? `Leave + Reroll All · ${preview.costLabel || "Cost"}` : preview.action === "reroll" ? `Leave + Reroll · ${preview.costLabel || "Cost"}` : `Leave + Roll Again · ${preview.costLabel || "Cost"}`}
+                            </Button>
+                          </div>
                         ) : null}
                       </div>
                     </div>
@@ -1564,19 +2147,303 @@ export function TraitLabClient() {
                   </div>
                 </details>
 
-                <div className="flex flex-wrap gap-3">
-                  <Button variant="primary" disabled={actionLoading === "confirm"} onClick={() => void confirmChange()}>
-                    {actionLoading === "confirm" ? "Confirming" : preview.action === "recycle" ? "Confirm Recycle" : preview.action === "rerollAll" ? "Confirm Reroll All" : "Confirm Change"}
-                  </Button>
-                  <Button variant="secondary" disabled={actionLoading === "confirm"} onClick={() => setPreview(null)}>
-                    Cancel
-                  </Button>
+                <div className="rounded border border-dyoor-cyan/20 bg-dyoor-cyan/[0.055] p-4">
+                  <p className="text-xs font-black uppercase tracking-[0.14em] text-dyoor-cyan">One live result · no roll history</p>
+                  <p className="mt-2 text-xs font-semibold leading-5 text-white/48">
+                    {previewIsFinalizing
+                      ? "This result was already accepted and is finishing its saved metadata operation. Retry Accept Result to complete recovery; it can no longer be left or replaced."
+                      : "Accept this result, leave it permanently, or pay to roll again. Once left or replaced, this result cannot be restored."}
+                  </p>
+                  <div className="mt-4 flex flex-wrap gap-3">
+                    <Button variant="primary" disabled={Boolean(actionLoading)} onClick={() => void confirmChange()}>
+                      {actionLoading === "confirm" ? "Accepting" : preview.action === "recycle" ? "Accept Recycle" : preview.action === "rerollAll" ? "Accept Reroll All" : "Accept Result"}
+                    </Button>
+                    {!previewIsFinalizing ? (
+                      <Button variant="secondary" disabled={Boolean(actionLoading)} onClick={() => void leaveCurrentResult()}>
+                        {actionLoading === "forfeit" ? "Leaving" : "Leave Result"}
+                      </Button>
+                    ) : null}
+                  </div>
                 </div>
               </div>
             )}
           </Card>
         </div>
       </section>
+
+      <Card className="scroll-mt-24 p-5" id="trait-bounties">
+        <div className="flex flex-col justify-between gap-3 md:flex-row md:items-end">
+          <div>
+            <p className="eyebrow">Verified Rewards + Encrypted Signals</p>
+            <h2 className="mt-2 text-2xl font-black uppercase text-white">Trait Bounties</h2>
+            <p className="mt-2 max-w-3xl text-sm font-semibold leading-6 text-white/58">
+              Signals tease catalog traits that have not appeared in issued metadata. A signal is intelligence only; Energy is payable only when a campaign card is marked active and the on-chain payout engine verifies the completed reveal.
+            </p>
+          </div>
+          {traitLabConfig?.bountyEnabled ? (
+            <Button variant="secondary" disabled={traitBountyLoading} onClick={() => void loadTraitBounties()}>
+              {traitBountyLoading ? "Loading" : "Refresh"}
+            </Button>
+          ) : null}
+        </div>
+
+        <div className="bounty-signal-shell mt-5 overflow-hidden rounded-2xl border border-dyoor-purple/35 bg-[#050611]">
+          <div className="relative z-[2] flex flex-col justify-between gap-3 border-b border-white/10 bg-black/30 px-4 py-4 sm:flex-row sm:items-center sm:px-5">
+            <div className="flex items-center gap-3">
+              <span className="relative flex h-3 w-3">
+                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-dyoor-cyan opacity-60" />
+                <span className="relative inline-flex h-3 w-3 rounded-full bg-dyoor-cyan shadow-[0_0_16px_rgba(57,255,226,.95)]" />
+              </span>
+              <div>
+                <p className="text-[0.62rem] font-black uppercase tracking-[0.22em] text-dyoor-cyan">Encrypted Discovery Feed</p>
+                <p className="mt-1 text-sm font-black uppercase tracking-[0.08em] text-white">
+                  {traitRevealAudit.unrevealed.length} Classified {traitRevealAudit.unrevealed.length === 1 ? "Signal Detected" : "Signals Detected"}
+                </p>
+              </div>
+            </div>
+            <p className="text-[0.62rem] font-black uppercase leading-5 tracking-[0.14em] text-white/40 sm:text-right">
+              {traitRevealAudit.scanned.successful.toLocaleString()} metadata nodes scanned · {traitRevealAudit.scanned.failed} failures
+              <span className="block text-white/25">Audit locked {traitRevealAudit.displayDate}</span>
+            </p>
+          </div>
+
+          <div className="relative z-[2] p-3 sm:p-5">
+            {traitRevealAudit.unrevealed.map((signal, index) => {
+              const teaserImage = bountyTeaserImages[signal.imageAsset];
+              const activeSignalBounty = traitBounties.find((bounty) => (
+                bounty.status === "active"
+                && bounty.traitType === signal.traitType
+                && bounty.traitValue === signal.traitValue
+              ));
+              return (
+                <article className="bounty-signal-card group overflow-hidden rounded-xl border border-dyoor-cyan/30" key={signal.id}>
+                  <div className="relative grid min-h-[31rem] overflow-hidden bg-[#070818] lg:grid-cols-[minmax(0,1.16fr)_minmax(23rem,0.84fr)]">
+                    <div className="relative min-h-[24rem] overflow-hidden border-b border-white/10 bg-[radial-gradient(circle_at_52%_46%,rgba(57,255,226,.28),transparent_28%),radial-gradient(circle_at_78%_22%,rgba(255,79,227,.26),transparent_31%),linear-gradient(145deg,#15103c,#070818_64%)] lg:min-h-[31rem] lg:border-b-0 lg:border-r">
+                      <div aria-hidden="true" className="absolute -left-24 top-10 h-72 w-72 rounded-full bg-dyoor-purple/25 blur-3xl" />
+                      <div aria-hidden="true" className="absolute -right-20 bottom-0 h-72 w-72 rounded-full bg-dyoor-magenta/15 blur-3xl" />
+                      {teaserImage ? (
+                        <Image
+                          alt="Holographic preview of an undiscovered orange headwear trait."
+                          className="bounty-signal-art object-cover object-center brightness-[0.9] saturate-[1.12] drop-shadow-[0_0_32px_rgba(57,255,226,.18)] transition duration-700 group-hover:scale-[1.035] group-hover:brightness-105"
+                          fill
+                          priority
+                          sizes="(min-width: 1024px) 52vw, 94vw"
+                          src={teaserImage}
+                        />
+                      ) : null}
+
+                      <div aria-hidden="true" className="bounty-signal-grid absolute inset-0 opacity-45" />
+                      <div aria-hidden="true" className="bounty-signal-scan absolute inset-x-0 top-0 h-24 bg-gradient-to-b from-transparent via-dyoor-cyan/20 to-transparent blur-sm" />
+                      <div aria-hidden="true" className="absolute inset-0 bg-[linear-gradient(90deg,rgba(7,8,24,.76),transparent_22%,transparent_74%,rgba(7,8,24,.64)),linear-gradient(0deg,rgba(7,8,24,.86),transparent_40%)]" />
+
+                      <span aria-hidden="true" className="absolute left-4 top-4 h-9 w-9 border-l-2 border-t-2 border-dyoor-cyan/75" />
+                      <span aria-hidden="true" className="absolute right-4 top-4 h-9 w-9 border-r-2 border-t-2 border-dyoor-magenta/70" />
+                      <span aria-hidden="true" className="absolute bottom-4 left-4 h-9 w-9 border-b-2 border-l-2 border-dyoor-magenta/70" />
+                      <span aria-hidden="true" className="absolute bottom-4 right-4 h-9 w-9 border-b-2 border-r-2 border-dyoor-cyan/75" />
+
+                      <div className="absolute inset-x-0 top-0 flex items-start justify-between gap-3 p-6">
+                        <span className="rounded-full border border-dyoor-cyan/40 bg-black/60 px-3 py-2 text-[0.62rem] font-black uppercase tracking-[0.18em] text-dyoor-cyan shadow-[0_0_22px_rgba(57,255,226,.14)] backdrop-blur">
+                          Signal {String(index + 1).padStart(2, "0")} · Visual Fragment
+                        </span>
+                        <span className="rounded-full border border-dyoor-magenta/40 bg-dyoor-magenta/10 px-3 py-2 text-[0.62rem] font-black uppercase tracking-[0.18em] text-pink-100 shadow-[0_0_22px_rgba(255,79,227,.14)] backdrop-blur">
+                          {signal.rarity}
+                        </span>
+                      </div>
+
+                      <div className="absolute inset-x-0 bottom-0 p-6 sm:p-8">
+                        <p className="text-[0.62rem] font-black uppercase tracking-[0.22em] text-dyoor-cyan/80">Identity Encryption Active</p>
+                        <p className="mt-2 bg-gradient-to-r from-white via-dyoor-cyan to-dyoor-magenta bg-clip-text text-4xl font-black uppercase tracking-[0.08em] text-transparent drop-shadow-[0_0_28px_rgba(57,255,226,.2)] sm:text-5xl">
+                          {signal.maskedLabel}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="relative flex flex-col justify-center overflow-hidden p-6 sm:p-8 lg:p-10">
+                      <div aria-hidden="true" className="absolute -right-20 -top-20 h-64 w-64 rounded-full bg-dyoor-purple/20 blur-3xl" />
+                      <div aria-hidden="true" className="absolute -bottom-20 -left-20 h-64 w-64 rounded-full bg-dyoor-cyan/10 blur-3xl" />
+                      <div className="relative">
+                        <p className="text-[0.62rem] font-black uppercase tracking-[0.24em] text-dyoor-magenta">First Finder Protocol</p>
+                        <h3 className="mt-3 text-3xl font-black uppercase leading-[0.95] text-white sm:text-4xl">
+                          The first reveal writes collection history.
+                        </h3>
+                        <p className="mt-5 text-sm font-bold leading-7 text-white/62">{signal.hint}</p>
+
+                        <div className="mt-6 grid grid-cols-3 gap-2">
+                          {[
+                            ["Discoveries", "0"],
+                            ["Pool Weight", String(signal.weight)],
+                            ["Rarity", signal.rarity],
+                          ].map(([label, value]) => (
+                            <div className="rounded-lg border border-white/10 bg-white/[0.045] p-3 shadow-[inset_0_1px_0_rgba(255,255,255,.05)]" key={label}>
+                              <p className="text-[0.55rem] font-black uppercase leading-4 tracking-[0.14em] text-white/34">{label}</p>
+                              <p className="mt-2 truncate text-lg font-black text-white">{value}</p>
+                            </div>
+                          ))}
+                        </div>
+
+                        <div className={`mt-6 rounded-lg border p-4 ${activeSignalBounty ? "border-dyoor-cyan/40 bg-dyoor-cyan/10" : "border-yellow-300/25 bg-yellow-300/[0.07]"}`}>
+                          <p className={`text-[0.62rem] font-black uppercase tracking-[0.18em] ${activeSignalBounty ? "text-dyoor-cyan" : "text-yellow-100"}`}>
+                            {activeSignalBounty ? `Bounty Live · +${activeSignalBounty.rewardEnergy} Energy` : "Signal Only · Bounty Not Armed"}
+                          </p>
+                          <p className="mt-2 text-xs font-semibold leading-5 text-white/48">
+                            {activeSignalBounty
+                              ? "Land the matching trait through an eligible completed operation to enter on-chain settlement."
+                              : "Hunt the signal now. Energy becomes payable only if the owner activates a matching on-chain campaign."}
+                          </p>
+                        </div>
+
+                        <div className="mt-6 flex flex-wrap items-center gap-3">
+                          <a className="btn-primary bounty-signal-cta min-w-44" href="#trait-workbench">
+                            Enter The Hunt
+                          </a>
+                          <span className="text-[0.6rem] font-black uppercase tracking-[0.16em] text-white/28">Trait Lab · Monad Mainnet</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </article>
+              );
+            })}
+          </div>
+
+          <div className="relative z-[2] overflow-hidden border-t border-white/10 bg-black/55 py-2">
+            <div className="bounty-signal-ticker flex w-max items-center gap-10 whitespace-nowrap text-[0.58rem] font-black uppercase tracking-[0.2em] text-white/34">
+              {[0, 1].map((copy) => (
+                <div className="flex items-center gap-10" aria-hidden={copy === 1} key={copy}>
+                  <span className="text-dyoor-cyan">Signal 01 Online</span>
+                  <span>Mythic Frequency Detected</span>
+                  <span className="text-dyoor-magenta">0 Confirmed Discoveries</span>
+                  <span>Next Transmission Locked</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {traitLabConfig?.bountyEnabled ? (
+          <>
+            <div className="mt-6 flex items-center justify-between gap-3 border-b border-white/10 pb-3">
+              <div>
+                <p className="text-[0.65rem] font-black uppercase tracking-[0.18em] text-dyoor-cyan">On-Chain Campaigns</p>
+                <h3 className="mt-1 text-lg font-black uppercase text-white">Live Reveal Rewards</h3>
+              </div>
+            </div>
+
+            <div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+              {traitBountyLoading && !traitBounties.length ? (
+                <div className="md:col-span-2 xl:col-span-3"><LoadingSkeleton lines={4} /></div>
+              ) : traitBounties.filter((bounty) => (
+                bounty.status === "active" || bounty.status === "upcoming"
+              )).length ? traitBounties.filter((bounty) => (
+                bounty.status === "active" || bounty.status === "upcoming"
+              )).map((bounty) => (
+                <div className="rounded border border-dyoor-purple/25 bg-black/30 p-4" key={bounty.id}>
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <p className="text-xs font-black uppercase tracking-[0.14em] text-white/40">{bounty.label}</p>
+                      <h3 className="mt-2 text-lg font-black text-dyoor-cyan">{bounty.traitType}: {bounty.traitValue}</h3>
+                    </div>
+                    <span className={`rounded border px-2 py-1 text-[0.62rem] font-black uppercase tracking-[0.12em] ${bounty.status === "active" ? "border-dyoor-cyan/35 bg-dyoor-cyan/10 text-dyoor-cyan" : "border-yellow-300/25 bg-yellow-300/10 text-yellow-100"}`}>
+                      {bounty.status}
+                    </span>
+                  </div>
+                  <p className="mt-4 text-3xl font-black text-white">+{bounty.rewardEnergy} <span className="text-sm uppercase text-white/45">Energy</span></p>
+                  <div className="mt-4 grid gap-2 text-xs font-bold text-white/55 sm:grid-cols-2">
+                    <span>Remaining: <strong className="text-white">{bounty.remainingClaims}/{bounty.maxClaims}</strong></span>
+                    <span>Wallet cap: <strong className="text-white">{bounty.perWalletLimit}</strong></span>
+                    <span>Droid cap: <strong className="text-white">{bounty.perTokenLimit}</strong></span>
+                    <span>Actions: <strong className="text-white">{bounty.actions.join(", ")}</strong></span>
+                  </div>
+                  <div className="mt-3 border-t border-white/10 pt-3 text-[0.68rem] font-semibold leading-5 text-white/38">
+                    {bounty.status === "upcoming" && bounty.startsAt ? <p>Starts {new Date(bounty.startsAt).toLocaleString()}</p> : null}
+                    <p>{bounty.endsAt ? `Ends ${new Date(bounty.endsAt).toLocaleString()}` : "No scheduled end"}</p>
+                  </div>
+                </div>
+              )) : (
+                <div className="md:col-span-2 xl:col-span-3">
+                  <EmptyState title="No Active Bounties" copy="The owner can publish a new immutable campaign from the Admin Command Center." />
+                </div>
+              )}
+            </div>
+
+            {traitBountyWinners.length ? (
+              <div className="mt-6 overflow-x-auto rounded border border-white/10">
+                <div className="grid min-w-[46rem] grid-cols-[minmax(9rem,1fr)_8rem_5rem_minmax(12rem,1.4fr)_7rem] gap-2 border-b border-white/10 bg-white/[0.04] px-3 py-2 text-[0.65rem] font-black uppercase tracking-[0.12em] text-white/40">
+                  <span>Campaign</span>
+                  <span>Wallet</span>
+                  <span>Droid</span>
+                  <span>Reveal</span>
+                  <span>Reward</span>
+                </div>
+                {traitBountyWinners.slice(0, 15).map((winner) => (
+                  <div
+                    className="grid min-w-[46rem] grid-cols-[minmax(9rem,1fr)_8rem_5rem_minmax(12rem,1.4fr)_7rem] gap-2 border-b border-white/10 px-3 py-3 text-sm font-bold text-white/65 last:border-b-0"
+                    key={winner.settlementKey}
+                  >
+                    <span className="font-black text-white">{winner.bountyLabel}</span>
+                    <span>{shortAddress(winner.wallet)}</span>
+                    <span>#{winner.tokenId}</span>
+                    <span className="text-dyoor-cyan">{winner.traitType}: {winner.traitValue}</span>
+                    <span className="font-black text-white">+{winner.rewardEnergy}</span>
+                  </div>
+                ))}
+              </div>
+            ) : null}
+          </>
+        ) : (
+          <Alert className="mt-5" tone="idle">
+            <strong className="text-white">No live payout campaign.</strong> The signal above is a preview, not a promise of Energy, until the owner publishes and activates an on-chain bounty.
+          </Alert>
+        )}
+      </Card>
+
+      {traitLabConfig?.leaderboardEnabled ? (
+        <Card className="scroll-mt-24 p-5" id="trait-lab-leaderboard">
+          <div className="flex flex-col justify-between gap-3 md:flex-row md:items-end">
+            <div>
+              <p className="eyebrow">Completed Operations Only</p>
+              <h2 className="mt-2 text-2xl font-black uppercase text-white">Trait Lab Leaderboard</h2>
+              <p className="mt-2 max-w-3xl text-sm font-semibold leading-6 text-white/58">
+                Rankings count durable completed Trait Lab records. Paid previews, failed confirmations, and recovery-pending operations never contribute.
+              </p>
+            </div>
+            <Button variant="secondary" disabled={leaderboardLoading} onClick={() => void loadLeaderboard()}>
+              {leaderboardLoading ? "Loading" : "Refresh"}
+            </Button>
+          </div>
+          <div className="mt-5">
+            {leaderboardLoading && !leaderboardRows.length ? (
+              <LoadingSkeleton lines={5} />
+            ) : leaderboardRows.length ? (
+              <div className="overflow-x-auto rounded border border-white/10">
+                <div className="grid min-w-[46rem] grid-cols-[4rem_minmax(10rem,1fr)_7rem_6rem_6rem_6rem] gap-2 border-b border-white/10 bg-white/[0.04] px-3 py-2 text-[0.65rem] font-black uppercase tracking-[0.12em] text-white/40">
+                  <span>Rank</span>
+                  <span>Wallet</span>
+                  <span>Completed</span>
+                  <span>Rerolls</span>
+                  <span>Unlocks</span>
+                  <span>Recycles</span>
+                </div>
+                {leaderboardRows.map((row) => (
+                  <div
+                    key={row.wallet}
+                    className="grid min-w-[46rem] grid-cols-[4rem_minmax(10rem,1fr)_7rem_6rem_6rem_6rem] gap-2 border-b border-white/10 px-3 py-3 text-sm font-bold text-white/68 last:border-b-0"
+                  >
+                    <span className="font-black text-dyoor-cyan">#{row.rank}</span>
+                    <span>{shortAddress(row.wallet)}</span>
+                    <span className="text-white">{row.completedOperations}</span>
+                    <span>{row.rerolls + row.rerollAlls}</span>
+                    <span>{row.unlocks}</span>
+                    <span>{row.recycles}</span>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <EmptyState title="No Completed Operations" copy="The leaderboard will populate after completed Trait Lab changes are recorded." />
+            )}
+          </div>
+        </Card>
+      ) : null}
 
       {pendingBurnClaim ? (
         <Card className="border-yellow-300/30 bg-yellow-400/10 p-5">
