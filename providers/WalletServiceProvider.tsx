@@ -105,16 +105,6 @@ function normalizeAddress(value: unknown) {
   return /^0x[a-fA-F0-9]{40}$/.test(String(value || "")) ? String(value).toLowerCase() : "";
 }
 
-function timeout<T>(promise: Promise<T>, ms: number, message: string): Promise<T> {
-  let timer: number;
-  return Promise.race([
-    promise,
-    new Promise<T>((_, reject) => {
-      timer = window.setTimeout(() => reject(new Error(message)), ms);
-    }),
-  ]).finally(() => window.clearTimeout(timer));
-}
-
 function useInjectedWallet() {
   const [address, setAddress] = useState("");
   const [error, setError] = useState("");
@@ -302,12 +292,12 @@ function PrivyFirstWalletServiceProvider({ children }: { children: ReactNode }) 
   const privyAddress = rawPrivyAddress && rawPrivyAddress !== suppressedPrivyAddress ? rawPrivyAddress : "";
   const address = privyAddress || injected.address;
   const source: WalletSource = privyAddress ? "privy" : injected.source;
-  const uiReady = authReady || readyTimedOut || injected.ready;
   const hasInjectedWallet = Boolean(injected.providerName);
+  const uiReady = authReady || readyTimedOut || hasInjectedWallet || Boolean(privyAddress);
 
   useEffect(() => {
     if (authReady) return;
-    const timer = window.setTimeout(() => setReadyTimedOut(true), 4500);
+    const timer = window.setTimeout(() => setReadyTimedOut(true), 12_000);
     return () => window.clearTimeout(timer);
   }, [authReady]);
 
@@ -366,35 +356,32 @@ function PrivyFirstWalletServiceProvider({ children }: { children: ReactNode }) 
         await injected.connect();
         return;
       }
-      if (authReady && !readyTimedOut) {
-        await timeout(Promise.resolve(login()), 8_000, "Privy connection timed out.");
+      if (authReady) {
+        login();
         return;
       }
-      await injected.connect();
-    } catch (privyError) {
-      try {
-        await injected.connect();
-      } catch (injectedError) {
-        const message = injectedError instanceof Error
-          ? injectedError.message
-          : privyError instanceof Error
-            ? privyError.message
-            : "Wallet connection failed.";
-        setError(message);
-        throw new Error(message);
-      }
+      throw new Error(
+        "Privy is still loading. Wait a moment, then tap Connect Wallet again.",
+      );
+    } catch (connectionError) {
+      const message = connectionError instanceof Error
+        ? connectionError.message
+        : "Wallet connection failed.";
+      setError(message);
+      throw new Error(message);
     } finally {
       setConnecting(false);
     }
-  }, [authReady, hasInjectedWallet, injected, login, readyTimedOut]);
+  }, [authReady, hasInjectedWallet, injected, login]);
 
   const disconnect = useCallback(async () => {
     setError("");
     setWrongNetwork(false);
     if (rawPrivyAddress) setSuppressedPrivyAddress(rawPrivyAddress);
+    await Promise.resolve(wallet?.disconnect?.()).catch(() => undefined);
     if (authenticated) await Promise.resolve(logout()).catch(() => undefined);
     await injected.disconnect();
-  }, [authenticated, injected, logout, rawPrivyAddress]);
+  }, [authenticated, injected, logout, rawPrivyAddress, wallet]);
 
   const service = useMemo<WalletService>(() => ({
     address,

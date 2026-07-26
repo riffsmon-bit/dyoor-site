@@ -1552,7 +1552,7 @@ export function DyoorWorldClient({ sessionWallet }: { sessionWallet: string }) {
             </span>
             <span className="hidden min-[360px]:inline">Threads</span>
           </button>
-          <div className="flex min-w-0 items-center gap-3">
+          <div className="hidden min-w-0 items-center gap-3 sm:flex">
             <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded border border-dyoor-cyan/40 bg-dyoor-cyan/10 text-dyoor-cyan">
               <DyoorWorldGlyph className="h-6 w-6" />
             </div>
