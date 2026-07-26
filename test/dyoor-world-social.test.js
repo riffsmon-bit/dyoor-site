@@ -201,7 +201,9 @@ test("World social APIs remain holder-gated and financial relays verify chain re
   for (const file of [
     "app/api/dyoor-world/media/[wallet]/[mediaId]/route.ts",
     "app/api/dyoor-world/media/upload/route.ts",
+    "app/api/dyoor-world/direct-messages/route.ts",
     "app/api/dyoor-world/profile/route.ts",
+    "app/api/dyoor-world/push/route.ts",
     "app/api/dyoor-world/rewards/route.ts",
     "app/api/dyoor-world/tips/route.ts",
     "app/api/dyoor-world/trades/route.ts",

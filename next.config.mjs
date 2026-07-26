@@ -19,6 +19,7 @@ const csp = [
 const nextConfig = {
   reactStrictMode: true,
   poweredByHeader: false,
+  serverExternalPackages: ["web-push"],
   outputFileTracingExcludes: {
     "/*": [
       "./artifacts/**/*",
@@ -51,6 +52,19 @@ const nextConfig = {
   async headers() {
     return [
       {
+        source: "/dyoor-world-sw.js",
+        headers: [
+          {
+            key: "Cache-Control",
+            value: "public, max-age=0, must-revalidate",
+          },
+          {
+            key: "Service-Worker-Allowed",
+            value: "/",
+          },
+        ],
+      },
+      {
         source: "/api/metadata/:tokenId",
         headers: [
           {
@@ -82,6 +96,10 @@ const nextConfig = {
     return [
       { source: "/admin-ascension", destination: "/admin", permanent: false },
       { source: "/admin-ascension.html", destination: "/admin", permanent: false },
+      { source: "/blueprint-checker", destination: "/", permanent: false },
+      { source: "/blueprint-checker.html", destination: "/", permanent: false },
+      { source: "/verify", destination: "/", permanent: false },
+      { source: "/verify.html", destination: "/", permanent: false },
       { source: "/quests", destination: "/", permanent: false },
       { source: "/quests.html", destination: "/", permanent: false },
       { source: "/stake", destination: "/ascension", permanent: false },

@@ -18,7 +18,7 @@ import {
   useState,
 } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import {
   DYOOR_WORLD_CHANNELS,
   type DyoorWorldAvatar,
@@ -39,6 +39,8 @@ import {
   DyoorWorldMediaComposer,
   DyoorWorldStickerCard,
 } from "@/components/dyoor-world/DyoorWorldMediaComposer";
+import { DyoorWorldDirectMessages } from "@/components/dyoor-world/DyoorWorldDirectMessages";
+import { DyoorWorldNotifications } from "@/components/dyoor-world/DyoorWorldNotifications";
 import { useWalletService } from "@/providers/WalletServiceProvider";
 
 type WorldConfig = {
@@ -574,6 +576,7 @@ function DyoorEnergyWheel({
 
 export function DyoorWorldClient({ sessionWallet }: { sessionWallet: string }) {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const wallet = useWalletService();
   const connectedWallet = normalizeAddress(wallet.address);
   const normalizedSessionWallet = normalizeAddress(sessionWallet);
@@ -602,6 +605,9 @@ export function DyoorWorldClient({ sessionWallet }: { sessionWallet: string }) {
   const [rewardAction, setRewardAction] = useState("");
   const [wheelSpinning, setWheelSpinning] = useState(false);
   const [tipTarget, setTipTarget] = useState<TipTarget>(null);
+  const [directMessageTarget, setDirectMessageTarget] = useState<TipTarget>(null);
+  const [directMessagesOpen, setDirectMessagesOpen] = useState(false);
+  const [directMessageUnread, setDirectMessageUnread] = useState(0);
   const [tipAmount, setTipAmount] = useState("1");
   const [tipping, setTipping] = useState(false);
   const [tradeBusy, setTradeBusy] = useState("");
@@ -644,6 +650,22 @@ export function DyoorWorldClient({ sessionWallet }: { sessionWallet: string }) {
     () => tagMenuDismissed ? null : activeWorldChannelMention(draft, draftCursor),
     [draft, draftCursor, tagMenuDismissed],
   );
+
+  useEffect(() => {
+    const linkedChannel = worldChannelFromTag(searchParams.get("channel"));
+    const directWallet = normalizeAddress(searchParams.get("dm") || "");
+    const timer = window.setTimeout(() => {
+      if (linkedChannel) setChannelId(linkedChannel);
+      if (directWallet && directWallet !== normalizedSessionWallet) {
+        setDirectMessageTarget({
+          wallet: directWallet,
+          author: shortWorldWallet(directWallet),
+        });
+        setDirectMessagesOpen(true);
+      }
+    }, 0);
+    return () => window.clearTimeout(timer);
+  }, [normalizedSessionWallet, searchParams]);
   const channelTagSuggestions = useMemo(() => {
     if (!channelMention) return [];
     return DYOOR_WORLD_CHANNELS.filter((channel) =>
@@ -1458,6 +1480,13 @@ export function DyoorWorldClient({ sessionWallet }: { sessionWallet: string }) {
 
   return (
     <main className="mx-auto min-h-[100dvh] min-w-0 max-w-[1680px] overflow-x-clip px-0 py-0 sm:px-5 sm:py-6">
+      <DyoorWorldDirectMessages
+        initialTarget={directMessageTarget}
+        onClose={() => setDirectMessagesOpen(false)}
+        onUnreadChange={setDirectMessageUnread}
+        open={directMessagesOpen}
+        sessionWallet={normalizedSessionWallet}
+      />
       {mobileIdentityOpen ? (
         <button
           aria-label="Close World identity and Energy"
@@ -1533,6 +1562,25 @@ export function DyoorWorldClient({ sessionWallet }: { sessionWallet: string }) {
             </div>
           </div>
           <div className="ml-auto flex items-center gap-2">
+            <button
+              aria-label={`Open direct messages${directMessageUnread > 0 ? `, ${directMessageUnread} unread` : ""}`}
+              className="world-mobile-panel-trigger relative shrink-0 border-dyoor-cyan/35 text-dyoor-cyan"
+              onClick={() => {
+                setMobileThreadsOpen(false);
+                setMobileIdentityOpen(false);
+                setDirectMessageTarget(null);
+                setDirectMessagesOpen(true);
+              }}
+              type="button"
+            >
+              <span aria-hidden="true">✉</span>
+              <span className="hidden sm:inline">DMs</span>
+              {directMessageUnread > 0 ? (
+                <span className="absolute -right-1.5 -top-1.5 min-w-4 rounded-full bg-fuchsia-400 px-1 py-0.5 text-[0.45rem] font-black leading-none text-black">
+                  {Math.min(99, directMessageUnread)}
+                </span>
+              ) : null}
+            </button>
             <button
               aria-controls="world-mobile-identity"
               aria-expanded={mobileIdentityOpen}
@@ -1905,15 +1953,34 @@ export function DyoorWorldClient({ sessionWallet }: { sessionWallet: string }) {
                           <span className="text-[0.62rem] font-bold text-white/25">{messageTime(message.createdAt)}</span>
                           {isSystem ? <span className="text-[0.53rem] font-black uppercase tracking-[0.12em] text-white/28">verified {message.kind}</span> : null}
                           {!isSystem && selectedChannelCanPost ? (
-                            <button
-                              aria-label={`Reply to ${message.author}`}
-                              className="rounded border border-white/10 bg-white/[0.035] px-2 py-0.5 text-[0.53rem] font-black uppercase tracking-[0.08em] text-white/35 opacity-75 transition hover:border-dyoor-cyan/35 hover:bg-dyoor-cyan/10 hover:text-dyoor-cyan sm:opacity-0 sm:group-hover:opacity-100 sm:focus-visible:opacity-100"
-                              onClick={() => beginWorldReply(message)}
-                              title={`Reply to ${message.author}`}
-                              type="button"
-                            >
-                              ↩ Reply
-                            </button>
+                            <>
+                              {!isOwn ? (
+                                <button
+                                  aria-label={`Direct message ${message.author}`}
+                                  className="rounded border border-white/10 bg-white/[0.035] px-2 py-0.5 text-[0.53rem] font-black uppercase tracking-[0.08em] text-white/35 opacity-75 transition hover:border-dyoor-monad/35 hover:bg-dyoor-monad/10 hover:text-dyoor-monad sm:opacity-0 sm:group-hover:opacity-100 sm:focus-visible:opacity-100"
+                                  onClick={() => {
+                                    setDirectMessageTarget({
+                                      wallet: message.wallet,
+                                      author: message.author,
+                                    });
+                                    setDirectMessagesOpen(true);
+                                  }}
+                                  title={`Direct message ${message.author}`}
+                                  type="button"
+                                >
+                                  ✉ DM
+                                </button>
+                              ) : null}
+                              <button
+                                aria-label={`Reply to ${message.author}`}
+                                className="rounded border border-white/10 bg-white/[0.035] px-2 py-0.5 text-[0.53rem] font-black uppercase tracking-[0.08em] text-white/35 opacity-75 transition hover:border-dyoor-cyan/35 hover:bg-dyoor-cyan/10 hover:text-dyoor-cyan sm:opacity-0 sm:group-hover:opacity-100 sm:focus-visible:opacity-100"
+                                onClick={() => beginWorldReply(message)}
+                                title={`Reply to ${message.author}`}
+                                type="button"
+                              >
+                                ↩ Reply
+                              </button>
+                            </>
                           ) : null}
                         </div>
                         {message.replyTo ? (
@@ -2294,6 +2361,8 @@ export function DyoorWorldClient({ sessionWallet }: { sessionWallet: string }) {
                 </button>
               </form>
             ) : null}
+
+            <DyoorWorldNotifications />
 
             <div className="relative mt-4 overflow-hidden rounded-xl border border-dyoor-monad/35 bg-[radial-gradient(circle_at_15%_15%,rgba(57,255,226,.12),transparent_34%),radial-gradient(circle_at_90%_5%,rgba(255,79,227,.16),transparent_38%),linear-gradient(145deg,#171035,#08091c_58%,#062526)] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,.08),0_20px_55px_rgba(0,0,0,.35),0_0_36px_rgba(131,110,249,.12)]">
               <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(rgba(255,255,255,.025)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,.02)_1px,transparent_1px)] bg-[size:18px_18px] [mask-image:linear-gradient(to_bottom,black,transparent_80%)]" />

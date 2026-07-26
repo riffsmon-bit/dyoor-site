@@ -1,4 +1,9 @@
-import { createHmac, randomUUID, timingSafeEqual } from "node:crypto";
+import {
+  createHash,
+  createHmac,
+  randomUUID,
+  timingSafeEqual,
+} from "node:crypto";
 import { ethers } from "ethers";
 import {
   DYOOR_WORLD_CHALLENGE_TTL_MS,
@@ -27,6 +32,15 @@ import {
   normalizeDyoorWorldAttachment,
   type DyoorWorldMessageAttachment,
 } from "@/lib/dyoor-world-media";
+import type {
+  DyoorWorldDirectConversationView,
+  DyoorWorldDirectMessage,
+  DyoorWorldDirectMessageView,
+} from "@/lib/dyoor-world-direct";
+import {
+  enqueueDyoorWorldPush,
+  processDyoorWorldPushOutbox as processPushOutbox,
+} from "@/lib/dyoor-world-push-server";
 import {
   DYOOR_WORLD_CHAT_REWARD_COOLDOWN_MS,
   DYOOR_WORLD_CHAT_REWARD_DAILY_CAP,
@@ -113,6 +127,18 @@ type DyoorWorldTipRecord = {
   amountWei: string;
   amountMon: string;
   createdAt: string;
+};
+
+type DyoorWorldDirectInboxRecord = {
+  version: 1;
+  conversationId: string;
+  wallet: string;
+  otherWallet: string;
+  lastMessageId: string;
+  lastMessage: string;
+  lastMessageAt: string;
+  lastSender: string;
+  unreadCount: number;
 };
 
 type RequestSession = {
@@ -1007,12 +1033,300 @@ export async function createDyoorWorldMessage(input: {
         return null;
       }),
   ]);
-  return {
+  const author = profile?.displayName || shortWorldWallet(wallet);
+  const view = {
     ...message,
-    author: profile?.displayName || shortWorldWallet(wallet),
+    author,
     avatar,
     energyReward: reward?.amountEnergy,
   } satisfies DyoorWorldMessageView;
+  const summary = directMessageSummary(content, attachment || undefined);
+  if (ownerChannel) {
+    await enqueueDyoorWorldPush({
+      category: "announcements",
+      title: "Official dYOOR World announcement",
+      body: summary,
+      privateBody: "A new official announcement is waiting in dYOOR World.",
+      channelId: "announcements",
+      tag: `world-announcement-${id}`,
+      excludedWallets: [wallet],
+    });
+  } else {
+    const replyWallet = normalizeWorldWallet(replyTo?.wallet);
+    if (replyWallet && replyWallet !== wallet) {
+      await enqueueDyoorWorldPush({
+        category: "replies",
+        title: `${author} replied to you`,
+        body: summary,
+        privateBody: "A holder replied to your dYOOR World message.",
+        channelId,
+        tag: `world-reply-${replyTo?.messageId || id}`,
+        targetWallets: [replyWallet],
+        excludedWallets: [wallet],
+      });
+    }
+    await enqueueDyoorWorldPush({
+      category: "chat",
+      title: `#${channelId} · ${author}`,
+      body: summary,
+      privateBody: `New activity in #${channelId}.`,
+      channelId,
+      tag: `world-chat-${channelId}`,
+      excludedWallets: [wallet, replyWallet],
+    });
+  }
+  return view;
+}
+
+function directConversationId(leftWallet: string, rightWallet: string) {
+  return createHash("sha256")
+    .update([leftWallet, rightWallet].sort().join(":"))
+    .digest("hex");
+}
+
+function directMessagePrefix(conversationId: string) {
+  return `direct-messages/conversations/${conversationId}/`;
+}
+
+function directInboxKey(wallet: string, conversationId: string) {
+  return `direct-messages/inbox/${wallet}/${conversationId}.json`;
+}
+
+function validDirectMessage(
+  message: DyoorWorldDirectMessage | null,
+): message is DyoorWorldDirectMessage {
+  return Boolean(
+    message
+      && message.version === 1
+      && normalizeWorldMessageId(message.id)
+      && /^[a-f0-9]{64}$/.test(message.conversationId)
+      && normalizeWorldWallet(message.from) === message.from
+      && normalizeWorldWallet(message.to) === message.to
+      && message.from !== message.to
+      && (message.content || normalizeDyoorWorldAttachment(message.attachment))
+      && (!message.attachment || normalizeDyoorWorldAttachment(message.attachment))
+      && Number.isFinite(Date.parse(message.createdAt)),
+  );
+}
+
+function validDirectInbox(
+  record: DyoorWorldDirectInboxRecord | null,
+): record is DyoorWorldDirectInboxRecord {
+  return Boolean(
+    record
+      && record.version === 1
+      && /^[a-f0-9]{64}$/.test(record.conversationId)
+      && normalizeWorldWallet(record.wallet) === record.wallet
+      && normalizeWorldWallet(record.otherWallet) === record.otherWallet
+      && record.wallet !== record.otherWallet
+      && normalizeWorldMessageId(record.lastMessageId)
+      && normalizeWorldWallet(record.lastSender) === record.lastSender
+      && Number.isFinite(Date.parse(record.lastMessageAt))
+      && Number.isSafeInteger(record.unreadCount)
+      && record.unreadCount >= 0,
+  );
+}
+
+function directMessageSummary(
+  content: string,
+  attachment?: DyoorWorldMessageAttachment,
+) {
+  if (content) return content.replace(/\s+/g, " ").trim().slice(0, 160);
+  if (attachment?.kind === "sticker") return "Sent a World sticker.";
+  if (attachment?.kind === "gif") return "Sent a GIF.";
+  return "Sent an image.";
+}
+
+async function loadRawDirectMessages(conversationId: string) {
+  const keys = (await worldStore.listKeys(directMessagePrefix(conversationId)))
+    .slice(-100);
+  const messages = await Promise.all(
+    keys.map((key) => worldStore.getJsonStrict<DyoorWorldDirectMessage>(key)),
+  );
+  return messages
+    .filter(validDirectMessage)
+    .sort((left, right) => Date.parse(left.createdAt) - Date.parse(right.createdAt));
+}
+
+export async function listDyoorWorldDirectConversations(walletValue: unknown) {
+  const wallet = normalizeWorldWallet(walletValue);
+  if (!wallet) throw dyoorWorldError("wallet must be a valid address.", 400);
+  const keys = await worldStore.listKeys(`direct-messages/inbox/${wallet}/`);
+  const records = (await Promise.all(
+    keys.map((key) => worldStore.getJsonStrict<DyoorWorldDirectInboxRecord>(key)),
+  ))
+    .filter(validDirectInbox)
+    .sort((left, right) => Date.parse(right.lastMessageAt) - Date.parse(left.lastMessageAt));
+  const [profiles, avatars] = await Promise.all([
+    worldProfilesForWallets(records.map((record) => record.otherWallet)),
+    worldAvatarsForWallets(records.map((record) => record.otherWallet)),
+  ]);
+  const conversations = records.map((record): DyoorWorldDirectConversationView => ({
+    conversationId: record.conversationId,
+    wallet: record.otherWallet,
+    author: profiles.get(record.otherWallet)?.displayName
+      || shortWorldWallet(record.otherWallet),
+    profile: profiles.get(record.otherWallet) || null,
+    avatar: avatars.get(record.otherWallet) || null,
+    lastMessage: record.lastMessage,
+    lastMessageAt: record.lastMessageAt,
+    lastSender: record.lastSender,
+    unreadCount: record.unreadCount,
+  }));
+  return {
+    conversations,
+    unreadCount: conversations.reduce(
+      (total, conversation) => total + conversation.unreadCount,
+      0,
+    ),
+  };
+}
+
+export async function listDyoorWorldDirectMessages(input: {
+  wallet: unknown;
+  otherWallet: unknown;
+}) {
+  const wallet = normalizeWorldWallet(input.wallet);
+  const otherWallet = normalizeWorldWallet(input.otherWallet);
+  if (!wallet || !otherWallet || wallet === otherWallet) {
+    throw dyoorWorldError("Choose another holder for this direct conversation.", 400);
+  }
+  const conversationId = directConversationId(wallet, otherWallet);
+  const messages = (await loadRawDirectMessages(conversationId))
+    .filter((message) => (
+      [message.from, message.to].includes(wallet)
+        && [message.from, message.to].includes(otherWallet)
+    ));
+  const [profiles, avatars] = await Promise.all([
+    worldProfilesForWallets([wallet, otherWallet]),
+    worldAvatarsForWallets([wallet, otherWallet]),
+  ]);
+  const inboxKey = directInboxKey(wallet, conversationId);
+  const inbox = await worldStore.getJsonStrict<DyoorWorldDirectInboxRecord>(inboxKey);
+  if (validDirectInbox(inbox) && inbox.unreadCount > 0) {
+    await worldStore.setJson(inboxKey, {
+      ...inbox,
+      unreadCount: 0,
+    });
+  }
+  return {
+    conversationId,
+    other: {
+      wallet: otherWallet,
+      author: profiles.get(otherWallet)?.displayName || shortWorldWallet(otherWallet),
+      profile: profiles.get(otherWallet) || null,
+      avatar: avatars.get(otherWallet) || null,
+    },
+    messages: messages.map((message): DyoorWorldDirectMessageView => ({
+      ...message,
+      author: profiles.get(message.from)?.displayName || shortWorldWallet(message.from),
+      avatar: avatars.get(message.from) || null,
+    })),
+  };
+}
+
+export async function createDyoorWorldDirectMessage(input: {
+  wallet: unknown;
+  recipient: unknown;
+  content: unknown;
+  attachment?: unknown;
+}) {
+  const wallet = normalizeWorldWallet(input.wallet);
+  const recipient = normalizeWorldWallet(input.recipient);
+  if (!wallet || !recipient || wallet === recipient) {
+    throw dyoorWorldError("Choose another holder for this direct message.", 400);
+  }
+  if (!await hasDyoorWorldAccess(recipient)) {
+    throw dyoorWorldError(
+      "Direct messages can only be sent to a current S2 holder.",
+      403,
+    );
+  }
+  const content = String(input.content || "")
+    .replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/g, "")
+    .trim();
+  const attachment = normalizeDyoorWorldAttachment(input.attachment);
+  if (input.attachment != null && !attachment) {
+    throw dyoorWorldError("Use a supported HTTPS image, GIF, or World sticker.", 400);
+  }
+  if (!content && !attachment) {
+    throw dyoorWorldError("Write a direct message or attach media before sending.", 400);
+  }
+  if (content.length > 800) {
+    throw dyoorWorldError("Direct messages must contain 800 characters or fewer.", 400);
+  }
+
+  const createdAt = new Date().toISOString();
+  const id = `${Date.now().toString().padStart(13, "0")}-${randomUUID()}`;
+  const conversationId = directConversationId(wallet, recipient);
+  const message: DyoorWorldDirectMessage = {
+    version: 1,
+    id,
+    conversationId,
+    from: wallet,
+    to: recipient,
+    content,
+    ...(attachment ? { attachment } : {}),
+    createdAt,
+  };
+  await worldStore.setJson(
+    `${directMessagePrefix(conversationId)}${id}.json`,
+    message,
+  );
+
+  const summary = directMessageSummary(content, attachment || undefined);
+  const recipientInboxKey = directInboxKey(recipient, conversationId);
+  const recipientInbox = await worldStore.getJsonStrict<DyoorWorldDirectInboxRecord>(
+    recipientInboxKey,
+  );
+  await Promise.all([
+    worldStore.setJson(directInboxKey(wallet, conversationId), {
+      version: 1,
+      conversationId,
+      wallet,
+      otherWallet: recipient,
+      lastMessageId: id,
+      lastMessage: summary,
+      lastMessageAt: createdAt,
+      lastSender: wallet,
+      unreadCount: 0,
+    } satisfies DyoorWorldDirectInboxRecord),
+    worldStore.setJson(recipientInboxKey, {
+      version: 1,
+      conversationId,
+      wallet: recipient,
+      otherWallet: wallet,
+      lastMessageId: id,
+      lastMessage: summary,
+      lastMessageAt: createdAt,
+      lastSender: wallet,
+      unreadCount: validDirectInbox(recipientInbox)
+        ? Math.min(999, recipientInbox.unreadCount + 1)
+        : 1,
+    } satisfies DyoorWorldDirectInboxRecord),
+  ]);
+
+  const [sender, avatar] = await Promise.all([
+    getDyoorWorldProfile(wallet),
+    getDyoorWorldAvatar(wallet),
+  ]);
+  const author = sender?.displayName || shortWorldWallet(wallet);
+  await enqueueDyoorWorldPush({
+    category: "directMessages",
+    title: `Direct signal from ${author}`,
+    body: summary,
+    privateBody: "A holder sent you a private dYOOR World message.",
+    channelId: "world-lobby",
+    url: `/dyoor-world?dm=${encodeURIComponent(wallet)}`,
+    tag: `world-dm-${conversationId}`,
+    targetWallets: [recipient],
+    excludedWallets: [wallet],
+  });
+  return {
+    ...message,
+    author,
+    avatar,
+  } satisfies DyoorWorldDirectMessageView;
 }
 
 function rewardPrefix(wallet: string, utcDate?: string) {
@@ -1457,6 +1771,16 @@ export async function verifyDyoorWorldTip(input: {
     },
   });
   await worldStore.setJson(key, record);
+  await enqueueDyoorWorldPush({
+    category: "tips",
+    title: "Verified MON tip received",
+    body: `${sender?.displayName || shortWorldWallet(wallet)} tipped you ${amountMon} MON.`,
+    privateBody: "A verified MON tip is waiting in your dYOOR World ledger.",
+    channelId: "tip-ledger",
+    tag: `world-tip-${txHash.slice(2, 34)}`,
+    targetWallets: [recipient],
+    excludedWallets: [wallet],
+  });
   return {
     tip: record,
     reward: await createDyoorWorldTipReward(record),
@@ -1474,6 +1798,12 @@ export function requireDyoorWorldAutomationRequest(request: Request) {
   }
   const allowed = timingSafeEqual(Buffer.from(supplied), Buffer.from(expected));
   if (!allowed) throw dyoorWorldError("World automation authorization failed.", 401);
+}
+
+export async function processDyoorWorldPushNotifications() {
+  return await processPushOutbox({
+    verifyHolder: async (wallet) => await hasDyoorWorldAccess(wallet, true),
+  });
 }
 
 type OpenSeaSaleEvent = {
@@ -1594,12 +1924,13 @@ export async function processDyoorWorldSales() {
     const buyer = normalizeWorldWallet(event.buyer);
     const seller = normalizeWorldWallet(event.seller);
     const createdAt = openSeaSaleTime(event.event_timestamp);
+    const content = `${event.nft?.name || `D.Y.O.O.R #${tokenId}`} sold for ${amount} ${symbol}.`;
     await createDyoorWorldSystemMessage({
       id: `sale-${eventId}`,
       channelId: "sales-feed",
       kind: "sale",
       systemAuthor: "D.Y.O.O.R Sales Bot",
-      content: `${event.nft?.name || `D.Y.O.O.R #${tokenId}`} sold for ${amount} ${symbol}.`,
+      content,
       createdAt,
       data: {
         tokenId,
@@ -1614,6 +1945,14 @@ export async function processDyoorWorldSales() {
         ),
         openSeaUrl: safeOpenSeaUrl(event.nft?.opensea_url),
       },
+    });
+    await enqueueDyoorWorldPush({
+      category: "sales",
+      title: "D.Y.O.O.R sale confirmed",
+      body: content,
+      privateBody: "A verified D.Y.O.O.R sale was posted in dYOOR World.",
+      channelId: "sales-feed",
+      tag: `world-sale-${tokenId}`,
     });
     await worldStore.setJson(key, { version: 1, eventId, txHash, tokenId, createdAt });
     posted += 1;
@@ -1809,12 +2148,13 @@ export async function processDyoorWorldBurns() {
     totalBurns += 1;
     const createdAt = explorerBurnTime(burn.timeStamp);
     const supplyAfter = Math.max(0, S2_ISSUED_SUPPLY_FALLBACK - totalBurns);
+    const content = `S2 Droid #${verified.tokenId} was permanently burned. Live supply contracted to ${supplyAfter.toLocaleString("en-US")}.`;
     await createDyoorWorldSystemMessage({
       id: `burn-${eventId}`,
       channelId: "burn-log",
       kind: "burn",
       systemAuthor: "D.Y.O.O.R Burn Relay",
-      content: `S2 Droid #${verified.tokenId} was permanently burned. Live supply contracted to ${supplyAfter.toLocaleString("en-US")}.`,
+      content,
       createdAt,
       data: {
         tokenId: verified.tokenId,
@@ -1825,6 +2165,14 @@ export async function processDyoorWorldBurns() {
         burnNumber: totalBurns,
         supplyAfter,
       },
+    });
+    await enqueueDyoorWorldPush({
+      category: "burns",
+      title: "Permanent S2 burn confirmed",
+      body: content,
+      privateBody: "A verified S2 burn was posted in dYOOR World.",
+      channelId: "burn-log",
+      tag: `world-burn-${verified.tokenId}`,
     });
     await worldStore.setJson(markerKey, {
       version: 1,
@@ -1976,6 +2324,21 @@ export async function verifyDyoorWorldTradeTransaction(input: {
       },
     });
     recorded.push(message);
+    await enqueueDyoorWorldPush({
+      category: "trades",
+      title: `World trade #${tradeId} ${action}`,
+      body: content,
+      privateBody: `Your World trade #${tradeId} has a verified update.`,
+      channelId: "trade-desk",
+      tag: `world-trade-${tradeId}`,
+      targetWallets: Array.from(new Set([maker, taker, eventTaker]))
+        .filter((participant) => (
+          participant
+            && participant !== ZERO_ADDRESS
+            && participant !== wallet
+        )),
+      excludedWallets: [wallet],
+    });
     if (parsed.name === "TradeCompleted") {
       const completedRewards = await Promise.all(
         Array.from(new Set([maker, taker]))

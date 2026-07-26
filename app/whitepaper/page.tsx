@@ -186,8 +186,8 @@ export default function WhitepaperPage() {
               flywheel.
             </p>
             <div className="mt-7 flex flex-wrap gap-3">
-              <Link className="btn-primary" href="/blueprint-checker">
-                Check Blueprint
+              <Link className="btn-primary" href="/reroll">
+                Enter Trait Lab
               </Link>
               <Link className="btn-secondary" href="/ascension">
                 Open Ascension
@@ -482,11 +482,8 @@ export default function WhitepaperPage() {
             copy="D.Y.O.O.R combines evolving metadata with permanent on-chain supply reduction. Each action is governed by explicit Trait Lab rules, Energy accounting, and verifiable burn transactions."
           />
           <div className="flex flex-wrap gap-3">
-            <Link className="rounded border border-dyoor-cyan bg-dyoor-cyan px-4 py-3 text-sm font-black uppercase text-black" href="/blueprint-checker">
-              Check Blueprint
-            </Link>
-            <Link className="rounded border border-white/20 px-4 py-3 text-sm font-black uppercase text-white/80" href="/verify">
-              Verify Roles
+            <Link className="rounded border border-dyoor-cyan bg-dyoor-cyan px-4 py-3 text-sm font-black uppercase text-black" href="/reroll">
+              Open Trait Lab
             </Link>
             <Link className="rounded border border-dyoor-purple/45 bg-dyoor-purple/10 px-4 py-3 text-sm font-black uppercase text-dyoor-monad" href="/dyoor-world">
               Enter dYOOR World

@@ -10,6 +10,17 @@ export const dynamic = "force-dynamic";
 export const metadata: Metadata = {
   title: "dYOOR World",
   description: "The private Monad social world for verified D.Y.O.O.R S2 holders.",
+  applicationName: "dYOOR World",
+  manifest: "/manifest.webmanifest",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "black-translucent",
+    title: "dYOOR World",
+  },
+  icons: {
+    icon: "/dyoor-world-icon.svg",
+    apple: "/dyoor-world-icon.svg",
+  },
   robots: {
     index: false,
     follow: false,

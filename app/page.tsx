@@ -62,9 +62,6 @@ export default function HomePage() {
               <Link className="btn-primary" href="/reroll">
                 Enter Trait Lab
               </Link>
-              <Link className="btn-secondary" href="/blueprint-checker">
-                Check Blueprint
-              </Link>
               <Link className="btn-secondary" href="/#swap">
                 Swap On Monad
               </Link>
@@ -93,7 +90,7 @@ export default function HomePage() {
       <section className="mx-auto grid max-w-7xl gap-4 px-5 py-12 md:grid-cols-3">
         {[
           ["Ascension", "Ascend S1, generate Energy, and unlock Season 2 allocation eligibility.", "/ascension"],
-          ["Blueprints", "Check saved Ascension Blueprints against minted Season 2 Droid traits.", "/blueprint-checker"],
+          ["dYOOR World", "Enter the holder-exclusive community, direct messages, rewards, and verified activity feeds.", "/dyoor-world"],
           ["Trait Lab", "Evolve live metadata, recycle eligible traits, and permanently burn Droids for Energy.", "/reroll"],
         ].map(([title, copy, href]) => (
           <Link key={href} href={href} className="glass-panel hover-lift p-5">
@@ -158,7 +155,7 @@ export default function HomePage() {
           ["Dynamic Traits", "Use Energy to reroll, unlock, recycle, and evolve eligible Droid metadata in Trait Lab.", "/reroll"],
           ["Energy Flywheel", "Generate Energy, evolve traits, recycle assets, and reinvest into the remaining collection.", "/#energy-flywheel"],
           ["Deflationary Supply", "Track permanent on-chain burns as the live Season 2 Droid supply contracts.", "/whitepaper#deflationary-supply"],
-          ["Role Sync", "Verify Discord roles against holder and Ascension wallet state.", "/verify"],
+          ["Holder Network", "Join dYOOR World for private holder chat, direct messages, tips, trades, and Energy rewards.", "/dyoor-world"],
         ].map(([title, copy, href]) => (
           <Link key={title} href={href} className="glass-panel hover-lift p-5">
             <h2 className="text-xl font-black uppercase text-white">{title}</h2>

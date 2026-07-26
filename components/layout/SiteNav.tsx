@@ -13,8 +13,6 @@ const navLinks = [
   { href: "/#swap", label: "Swap" },
   { href: "/ascension", label: "Ascension" },
   { href: "/reroll", label: "Reroll" },
-  { href: "/verify", label: "Verify" },
-  { href: "/blueprint-checker", label: "Checker" },
   { href: "/whitepaper", label: "Whitepaper" },
 ];
 
