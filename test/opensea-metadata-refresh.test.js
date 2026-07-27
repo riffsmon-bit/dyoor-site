@@ -31,3 +31,19 @@ test("Netlify processes the persistent OpenSea refresh queue every two minutes",
   assert.match(source, /exports\.config\s*=\s*\{\s*schedule:\s*"\*\/2 \* \* \* \*"\s*\}/);
   assert.match(source, /\/api\/s2\/trait-lab\/opensea-refresh/);
 });
+
+test("targeted OpenSea refreshes are secret-protected and contract-allowlisted", () => {
+  const source = fs.readFileSync(
+    "app/api/s2/trait-lab/opensea-refresh/route.ts",
+    "utf8",
+  );
+
+  assert.match(source, /action\s*===\s*"refresh-token"/);
+  assert.match(source, /verifyTraitBountyProcessorSecret/);
+  assert.match(source, /x-dyoor-bounty-secret/);
+  assert.match(source, /refreshOpenSeaTokenMetadataNowAndLater/);
+  assert.match(source, /getAddress\(dyoorS2Contract\)/);
+  assert.match(source, /DEFAULT_WORLD_NAMES_CONTRACT/);
+  assert.match(source, /That contract is not eligible for metadata refreshes/);
+  assert.match(source, /A valid uint256 token ID is required/);
+});
