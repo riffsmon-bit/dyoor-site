@@ -27,23 +27,26 @@ test("mobile World navigation keeps DMs separate from the decorative glyph", () 
   );
 });
 
-test("wallet service opens a direct wallet-app chooser without blocking injected wallets", () => {
+test("Privy is the primary wallet chooser when its app ID is configured", () => {
   assert.match(
     walletService,
-    /if \(injectedProvider\(\)\) \{\s+await injected\.connect\(\);/,
+    /function PrivyWalletServiceProvider/,
   );
   assert.match(
     walletService,
-    /setWalletChooserOpen\(true\);/,
+    /connectWallet\(\{\s+description: "Choose the wallet that holds your D\.Y\.O\.O\.R\."/,
   );
   assert.match(
     walletService,
-    /<WalletAppChooser[\s\S]*onClose=\{closeWalletChooser\}[\s\S]*open=\{walletChooserOpen && !injected\.providerName\}/,
+    /walletList: \["detected_ethereum_wallets", "wallet_connect"\]/,
   );
-  assert.doesNotMatch(walletService, /usePrivy|useConnectWallet|PrivyFirst/);
+  assert.match(
+    walletService,
+    /privyEnabled\s+\? <PrivyWalletServiceProvider>\{children\}<\/PrivyWalletServiceProvider>/,
+  );
 });
 
-test("injected wallets connect directly when the browser exposes a provider", () => {
+test("direct injected-wallet support remains available as the no-Privy fallback", () => {
   assert.match(
     walletService,
     /if \(injectedProvider\(\)\) \{\s+await injected\.connect\(\);/,
@@ -52,7 +55,7 @@ test("injected wallets connect directly when the browser exposes a provider", ()
   assert.match(walletService, /eip6963:requestProvider/);
   assert.match(walletService, /eip6963:announceProvider/);
   assert.doesNotMatch(walletService, /providers\.find\([^)]*isMetaMask/);
-  assert.doesNotMatch(walletService, /walletConnect|WalletConnect|Reown/);
+  assert.doesNotMatch(walletService, /@walletconnect|Reown|walletConnectProjectId/);
 });
 
 test("standard mobile browsers get equal, service-free wallet app handoffs", () => {
@@ -66,9 +69,12 @@ test("standard mobile browsers get equal, service-free wallet app handoffs", () 
   assert.doesNotMatch(walletChooser, /Connect with MetaMask|Open in MetaMask/);
 });
 
-test("app provider no longer needs a WalletConnect or Reown project ID", () => {
-  assert.match(providers, /<WalletServiceProvider>\{children\}<\/WalletServiceProvider>/);
+test("app provider mounts Privy without requiring a separate Reown project", () => {
+  assert.match(providers, /import \{ PrivyProvider, type WalletListEntry \} from "@privy-io\/react-auth"/);
+  assert.match(providers, /process\.env\.NEXT_PUBLIC_PRIVY_APP_ID/);
+  assert.match(providers, /<PrivyProvider[\s\S]*appId=\{appId\}/);
+  assert.match(providers, /"detected_ethereum_wallets",\s+"wallet_connect"/);
+  assert.match(providers, /<WalletServiceProvider privyEnabled=\{Boolean\(appId\)\}>/);
   assert.doesNotMatch(providers, /NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID|walletConnectProjectId/);
-  assert.doesNotMatch(providers, /PrivyProvider|NEXT_PUBLIC_PRIVY_APP_ID/);
   assert.doesNotMatch(providers, /Reown|WalletConnect/);
 });

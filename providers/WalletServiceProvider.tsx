@@ -1,8 +1,10 @@
 "use client";
 
+import { useConnectWallet, usePrivy } from "@privy-io/react-auth";
 import { BrowserProvider } from "ethers";
 import { createContext, ReactNode, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import { WalletAppChooser } from "@/components/wallet/WalletAppChooser";
+import { useActivePrivyWallet } from "@/hooks/useActivePrivyWallet";
 import { MONAD_CHAIN_HEX, MONAD_CHAIN_ID, MONAD_EXPLORER_URL, MONAD_RPC_URL } from "@/lib/monad";
 
 export type Eip1193Provider = {
@@ -27,7 +29,7 @@ type Eip6963ProviderDetail = {
 };
 
 type WalletStatus = "loading" | "idle" | "connecting" | "connected" | "wrong-network" | "error";
-type WalletSource = "browser" | "none";
+type WalletSource = "privy" | "browser" | "none";
 
 export type WalletService = {
   address: string;
@@ -106,6 +108,18 @@ function injectedProvider() {
 
 function normalizeAddress(value: unknown) {
   return /^0x[a-fA-F0-9]{40}$/.test(String(value || "")) ? String(value).toLowerCase() : "";
+}
+
+function walletConnectionError(error: unknown) {
+  const message = error instanceof Error
+    ? error.message
+    : typeof error === "string"
+      ? error
+      : "";
+  if (/cancel|closed|rejected|denied/i.test(message)) return "Wallet connection was cancelled.";
+  return message && !/^[a-z0-9_]+$/i.test(message)
+    ? message
+    : "Wallet connection failed. Close any stale wallet request, then try again.";
 }
 
 function useInjectedWallet() {
@@ -293,6 +307,169 @@ function useInjectedWallet() {
   return service;
 }
 
+function PrivyWalletServiceProvider({
+  children,
+}: {
+  children: ReactNode;
+}) {
+  const {
+    authenticated,
+    error: privyInitializationError,
+    logout,
+    ready: authReady,
+  } = usePrivy();
+  const { wallet, ready: walletsReady } = useActivePrivyWallet();
+  const [connectionError, setConnectionError] = useState("");
+  const [connecting, setConnecting] = useState(false);
+  const [suppressedAddress, setSuppressedAddress] = useState("");
+  const [wrongNetwork, setWrongNetwork] = useState(false);
+  const rawAddress = normalizeAddress(wallet?.address);
+  const address = rawAddress && rawAddress !== suppressedAddress ? rawAddress : "";
+  const ready = authReady && walletsReady;
+
+  const { connectWallet } = useConnectWallet({
+    onError: (caught) => {
+      setConnecting(false);
+      setConnectionError(walletConnectionError(caught));
+    },
+    onSuccess: () => {
+      setConnecting(false);
+      setConnectionError("");
+      setSuppressedAddress("");
+    },
+  });
+
+  const getProvider = useCallback(async () => {
+    if (!wallet || !address) throw new Error("Wallet is not connected.");
+    return await wallet.getEthereumProvider() as Eip1193Provider;
+  }, [address, wallet]);
+
+  useEffect(() => {
+    let active = true;
+
+    async function checkChain() {
+      if (!address) {
+        if (active) setWrongNetwork(false);
+        return;
+      }
+      try {
+        const provider = await getProvider();
+        const chainId = await provider.request({ method: "eth_chainId" });
+        if (active) setWrongNetwork(String(chainId || "").toLowerCase() !== MONAD_CHAIN_HEX);
+      } catch {
+        if (active) setWrongNetwork(false);
+      }
+    }
+
+    void checkChain();
+    return () => {
+      active = false;
+    };
+  }, [address, getProvider]);
+
+  const connect = useCallback(async () => {
+    setConnectionError("");
+    setSuppressedAddress("");
+    if (!ready) {
+      const message = privyInitializationError?.message
+        || "Wallet choices are still loading. Wait a moment, then try again.";
+      setConnectionError(message);
+      throw new Error(message);
+    }
+
+    setConnecting(true);
+    try {
+      connectWallet({
+        description: "Choose the wallet that holds your D.Y.O.O.R.",
+        walletChainType: "ethereum-only",
+        walletList: ["detected_ethereum_wallets", "wallet_connect"],
+      });
+    } catch (caught) {
+      const message = walletConnectionError(caught);
+      setConnectionError(message);
+      throw new Error(message);
+    } finally {
+      // Privy's modal owns the remainder of the connection lifecycle. Its
+      // callbacks update the final success/error state without locking the
+      // site's Connect button if the user closes the modal.
+      setConnecting(false);
+    }
+  }, [connectWallet, privyInitializationError?.message, ready]);
+
+  const disconnect = useCallback(async () => {
+    setConnectionError("");
+    setWrongNetwork(false);
+    if (rawAddress) setSuppressedAddress(rawAddress);
+    await Promise.resolve(wallet?.disconnect?.()).catch(() => undefined);
+    if (authenticated) await Promise.resolve(logout()).catch(() => undefined);
+  }, [authenticated, logout, rawAddress, wallet]);
+
+  const switchChain = useCallback(async () => {
+    if (!wallet || !address) throw new Error("Wallet is not connected.");
+    await wallet.switchChain(MONAD_CHAIN_ID);
+    const provider = await wallet.getEthereumProvider() as Eip1193Provider;
+    const chainId = await provider.request({ method: "eth_chainId" }).catch(() => "");
+    setWrongNetwork(String(chainId || "").toLowerCase() !== MONAD_CHAIN_HEX);
+  }, [address, wallet]);
+
+  const error = connectionError || privyInitializationError?.message || "";
+  const service = useMemo<WalletService>(() => ({
+    address,
+    connected: Boolean(address),
+    error,
+    providerName: wallet?.meta?.name || "Privy Wallet",
+    ready,
+    source: address ? "privy" : "none",
+    status: !ready
+      ? error
+        ? "error"
+        : "loading"
+      : connecting
+        ? "connecting"
+        : error
+          ? "error"
+          : address
+            ? wrongNetwork
+              ? "wrong-network"
+              : "connected"
+            : "idle",
+    connect,
+    disconnect,
+    getAddress: async () => {
+      if (!address) throw new Error("Wallet is not connected.");
+      return address;
+    },
+    getProvider,
+    getSigner: async () => {
+      const provider = await getProvider();
+      return new BrowserProvider(provider, MONAD_CHAIN_ID).getSigner();
+    },
+    sendTransaction: async (request) => {
+      const provider = await getProvider();
+      return await provider.request({ method: "eth_sendTransaction", params: [request] }) as string;
+    },
+    signMessage: async (message) => {
+      const provider = await getProvider();
+      if (!address) throw new Error("Wallet is not connected.");
+      return await provider.request({ method: "personal_sign", params: [message, address] }) as string;
+    },
+    switchChain,
+  }), [
+    address,
+    connect,
+    connecting,
+    disconnect,
+    error,
+    getProvider,
+    ready,
+    switchChain,
+    wallet?.meta?.name,
+    wrongNetwork,
+  ]);
+
+  return <WalletServiceContext.Provider value={service}>{children}</WalletServiceContext.Provider>;
+}
+
 function UniversalWalletServiceProvider({
   children,
 }: {
@@ -395,7 +572,7 @@ function UniversalWalletServiceProvider({
       <WalletServiceContext.Provider value={service}>{children}</WalletServiceContext.Provider>
       <WalletAppChooser
         onClose={closeWalletChooser}
-        open={walletChooserOpen && !injected.providerName}
+        open={walletChooserOpen}
       />
     </>
   );
@@ -403,10 +580,14 @@ function UniversalWalletServiceProvider({
 
 export function WalletServiceProvider({
   children,
+  privyEnabled,
 }: {
   children: ReactNode;
+  privyEnabled: boolean;
 }) {
-  return <UniversalWalletServiceProvider>{children}</UniversalWalletServiceProvider>;
+  return privyEnabled
+    ? <PrivyWalletServiceProvider>{children}</PrivyWalletServiceProvider>
+    : <UniversalWalletServiceProvider>{children}</UniversalWalletServiceProvider>;
 }
 
 export function useWalletService() {
