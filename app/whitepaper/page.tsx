@@ -3,48 +3,114 @@ import Image from "next/image";
 import type { ReactNode } from "react";
 import homeBanner from "@/assets/home_banner.png";
 import { S2SupplyStat } from "@/components/s2/S2SupplyStat";
+import {
+  DYOOR_WORLD_CHAT_REWARD_COOLDOWN_MS,
+  DYOOR_WORLD_CHAT_REWARD_DAILY_ENERGY_CAP,
+  DYOOR_WORLD_CHAT_REWARD_ENERGY,
+  DYOOR_WORLD_DAILY_REWARD_TABLE,
+  DYOOR_WORLD_TIP_REWARD_DAILY_CAP,
+  DYOOR_WORLD_TIP_REWARD_ENERGY,
+  DYOOR_WORLD_TIP_REWARD_MIN_MON,
+  DYOOR_WORLD_TRADE_REWARD_DAILY_CAP,
+  DYOOR_WORLD_TRADE_REWARD_ENERGY,
+} from "@/lib/dyoor-world-rewards";
+import {
+  S2_TRAIT_LAB_COSTS,
+  S2_TRAIT_LAB_DROID_BURN_REWARD_ENERGY,
+  S2_TRAIT_LAB_FLAT_UNLOCK_COST,
+  S2_TRAIT_LAB_RECYCLE_REWARDS,
+  S2_TRAIT_LAB_REROLL_ALL_COST,
+} from "@/lib/s2-trait-lab-config";
+import { S2_POST_BURN_SUPPLY_CAP } from "@/lib/s2-supply";
 
 const TREASURY_ADDRESS = "0x4D540f7D0Eb841c839334655C9f88313D750c6d5";
+const S1_ENERGY_PER_DAY = 24;
+const INITIAL_S2_SUPPLY = 1_096;
+const INITIAL_TRAIT_BOUNTY_ENERGY = 25_000;
+const WORLD_WHEEL_MIN = DYOOR_WORLD_DAILY_REWARD_TABLE[0].energy;
+const WORLD_WHEEL_MAX = DYOOR_WORLD_DAILY_REWARD_TABLE.at(-1)?.energy || 1_000;
+const WORLD_CHAT_COOLDOWN_MINUTES = DYOOR_WORLD_CHAT_REWARD_COOLDOWN_MS / 60_000;
+const worldWheelOdds = DYOOR_WORLD_DAILY_REWARD_TABLE.map((entry, index) => {
+  const previousUpperBound = index === 0 ? 0 : DYOOR_WORLD_DAILY_REWARD_TABLE[index - 1].upperBound;
+  return `${entry.energy.toLocaleString("en-US")} Energy: ${entry.upperBound - previousUpperBound}%`;
+}).join(" · ");
 
 const callouts = [
-  ["1,096", "Season 2 Droids issued before burns"],
-  ["1:1", "Ascended S1 allocation"],
-  ["70%", "Season 2 mint funds to treasury"],
-  ["S1 + S2", "Secondary fees to treasury"],
-  ["Swap", "Support fees to treasury"],
-  ["Deflationary", "Permanent burns contract live supply"],
+  [INITIAL_S2_SUPPLY.toLocaleString("en-US"), "Season 2 Droids issued before burns"],
+  [S2_POST_BURN_SUPPLY_CAP.toLocaleString("en-US"), "Target final live supply"],
+  [String(S1_ENERGY_PER_DAY), "Energy per Ascended S1 each day"],
+  [`${WORLD_WHEEL_MIN}–${WORLD_WHEEL_MAX.toLocaleString("en-US")}`, "Daily World wheel range"],
+  ["Gasless", "Trait Lab Energy settlement"],
+  ["Holder-gated", "dYOOR World access"],
 ];
 
-const overviewCards = [
-  {
-    title: "Season 1 Was The Key",
-    copy: "Season 1 DYOOR NFTs are the foundation of the ecosystem. Ascended Season 1 holders receive a 1:1 D.Y.O.O.R Season 2 allocation.",
-  },
-  {
-    title: "The Ascension Has Begun",
-    copy: "Ascension Protocol lets Season 1 holders stake and ascend NFTs, generate Energy over time, and build eligibility for Season 2 participation.",
-  },
-  {
-    title: "Droids Evolve",
-    copy: "Season 2 introduces modular Droids with locked core traits and mutable traits designed for future upgrades, rerolls, marketplace systems, and seasonal activations.",
-  },
-  {
-    title: "A Deflationary Dynamic Collection",
-    copy: "Trait Lab lets eligible metadata evolve while permanent on-chain Droid burns contract the live collection from its 1,096 issued supply.",
-  },
-];
-
-const energyUses = [
-  "Trait Lab rerolls",
-  "Unlocking eligible empty trait slots",
-  "Recycling eligible wearable traits",
-  "Permanent Droid burn rewards",
-  "Dynamic metadata progression",
-  "Seasonal trait mechanics",
+const flywheelSteps = [
+  ["01", "Ascend S1", "Generate pending Energy through Ascension."],
+  ["02", "Harvest", "Credit verified Energy into the spendable Energy Bank."],
+  ["03", "Evolve S2", "Use Energy for compatible Trait Lab reveals and unlocks."],
+  ["04", "Recycle Or Burn", "Return Energy through trait recycling or an irreversible Droid burn."],
+  ["05", "Participate", "Earn capped rewards from verified activity inside dYOOR World."],
+  ["06", "Reinvest", "Use the returned Energy on the remaining live collection."],
 ];
 
 const lockedTraits = ["Droid", "Background"];
 const mutableTraits = ["Eyes", "Mouth", "Clothes", "Hat", "Accessories", "Accessories 2", "Stickers / Body Art"];
+
+const energyEarningPaths = [
+  {
+    title: "Ascend Season 1",
+    value: `${S1_ENERGY_PER_DAY} Energy / NFT / day`,
+    copy: "Energy accrues as pending Energy and becomes spendable after a confirmed harvest credits the Energy Bank.",
+  },
+  {
+    title: "Recycle A Standard Trait",
+    value: `${S2_TRAIT_LAB_RECYCLE_REWARDS.Hat} Energy`,
+    copy: "Eligible Clothes, Hat, Accessories, Accessories 2, or Stickers/Body Art return the slot to None.",
+  },
+  {
+    title: "Recycle A Special Trait",
+    value: `${S2_TRAIT_LAB_RECYCLE_REWARDS.Special} Energy`,
+    copy: "An eligible existing Special trait can return a larger recycling reward where its compatibility rules allow removal.",
+  },
+  {
+    title: "Burn A Season 2 Droid",
+    value: `${S2_TRAIT_LAB_DROID_BURN_REWARD_ENERGY.toLocaleString("en-US")} Energy`,
+    copy: "The reward is credited only after the permanent on-chain NFT burn is verified.",
+  },
+  {
+    title: "Daily World Wheel",
+    value: `${WORLD_WHEEL_MIN}–${WORLD_WHEEL_MAX.toLocaleString("en-US")} Energy`,
+    copy: `One verified spin per UTC day. Current odds: ${worldWheelOdds}.`,
+  },
+  {
+    title: "Meaningful World Messages",
+    value: `${DYOOR_WORLD_CHAT_REWARD_ENERGY} Energy / qualifying message`,
+    copy: `${WORLD_CHAT_COOLDOWN_MINUTES}-minute reward cooldown with a ${DYOOR_WORLD_CHAT_REWARD_DAILY_ENERGY_CAP} Energy daily cap.`,
+  },
+  {
+    title: "Verified Holder Tips",
+    value: `${DYOOR_WORLD_TIP_REWARD_ENERGY} Energy`,
+    copy: `Awarded to the sender for a direct tip of at least ${DYOOR_WORLD_TIP_REWARD_MIN_MON} MON, up to ${DYOOR_WORLD_TIP_REWARD_DAILY_CAP} rewarded tips per UTC day.`,
+  },
+  {
+    title: "Completed World Trades",
+    value: `${DYOOR_WORLD_TRADE_REWARD_ENERGY} Energy / participant`,
+    copy: `Both parties can earn the reward after a verified completed escrow trade, up to ${DYOOR_WORLD_TRADE_REWARD_DAILY_CAP} rewarded trade per wallet each UTC day.`,
+  },
+  {
+    title: "Trait Bounty Campaigns",
+    value: "Campaign-specific",
+    copy: `The initial BOB Mask discovery campaign funded a ${INITIAL_TRAIT_BOUNTY_ENERGY.toLocaleString("en-US")} Energy first-reveal bounty. Live Trait Lab terms control eligibility.`,
+  },
+];
+
+const rerollCosts = [
+  ["Eyes / Mouth", `${S2_TRAIT_LAB_COSTS.reroll.Eyes} Energy`],
+  ["Hat / Clothes", `${S2_TRAIT_LAB_COSTS.reroll.Hat} Energy`],
+  ["Accessories / Accessories 2 / Stickers", `${S2_TRAIT_LAB_COSTS.reroll.Accessories} Energy`],
+  ["Eligible empty-slot unlock", `${S2_TRAIT_LAB_FLAT_UNLOCK_COST} Energy`],
+  ["Reroll All filled mutable traits", `${S2_TRAIT_LAB_REROLL_ALL_COST.toLocaleString("en-US")} Energy`],
+];
 
 const blueprintBenefits = [
   "Architect Rank",
@@ -75,28 +141,6 @@ const treasuryPurposes = [
   "Long-term ecosystem sustainability",
 ];
 
-const ecosystemInputs = [
-  "Season 2 mint proceeds",
-  "S1 secondary market fees",
-  "S2 secondary market fees",
-  "Swap support fees",
-  "Trait marketplace activity",
-  "Trait reroll mechanics",
-  "Future ecosystem products",
-  "Strategic Monad ecosystem participation",
-];
-
-const traitSystems = [
-  "Energy-powered Trait Lab rerolls",
-  "Unlocking eligible empty slots",
-  "Recycling eligible traits for Energy",
-  "Locked core Droid identity",
-  "Versioned metadata and artwork refreshes",
-  "Supply-aware limited traits",
-  "Permanent Droid burns",
-  "Burn transaction provenance",
-];
-
 const roadmap = [
   {
     phase: "Phase 1",
@@ -106,7 +150,7 @@ const roadmap = [
   {
     phase: "Phase 2",
     title: "Blueprints And Droids",
-    items: ["Ascension Blueprints", "D.Y.O.O.R Season 2 Mint", "1:1 allocation for Ascended S1", "Droid reveal"],
+    items: ["Ascension Blueprints", "D.Y.O.O.R Season 2 Mint", "Ascended S1 allocation", "Droid reveal"],
   },
   {
     phase: "Phase 3",
@@ -203,7 +247,7 @@ export default function WhitepaperPage() {
               <div className="mt-2 text-3xl font-black uppercase text-white">Monad</div>
             </div>
             <div className="grid grid-cols-2 gap-3">
-              {callouts.slice(0, 4).map(([value, label]) => (
+              {callouts.map(([value, label]) => (
                 <div key={label} className="rounded border border-white/12 bg-black/35 p-4">
                   <div className="text-2xl font-black text-white">{value}</div>
                   <div className="mt-1 text-xs font-bold uppercase leading-5 text-white/56">{label}</div>
@@ -214,86 +258,104 @@ export default function WhitepaperPage() {
         </div>
       </section>
 
-      <section className="mt-6 grid gap-3 md:grid-cols-3 lg:grid-cols-6">
-        {callouts.map(([value, label]) => (
-          <div key={label} className="glass-panel hover-lift p-4">
-            <div className="text-2xl font-black text-dyoor-cyan">{value}</div>
-            <div className="mt-2 text-xs font-black uppercase leading-5 text-white/60">{label}</div>
-          </div>
-        ))}
-      </section>
-
       <div className="mt-8 grid gap-6">
-        <Panel id="overview">
-          <SectionHeading
-            eyebrow="Overview"
-            title="A Deflationary Dynamic NFT Ecosystem"
-            copy="D.Y.O.O.R Season 2 is built around active participation: ascend S1, generate Energy, register Blueprints, evolve modular Droids, recycle eligible traits, and permanently contract supply through on-chain burns."
-          />
-          <div className="grid gap-4 md:grid-cols-2">
-            {overviewCards.map((card) => (
-              <article key={card.title} className="terminal-panel hover-lift p-4">
-                <h3 className="text-lg font-black uppercase text-white">{card.title}</h3>
-                <p className="mt-3 text-sm font-semibold leading-6 text-white/66">{card.copy}</p>
-              </article>
-            ))}
-          </div>
-        </Panel>
-
         <Panel id="season-one-season-two">
           <SectionHeading
             eyebrow="Season 1 To Season 2"
             title="Season 1 Was The Key"
-            copy="Season 1 DYOOR NFTs are the foundation. Ascended Season 1 holders receive a 1:1 D.Y.O.O.R Season 2 allocation. For example, 20 Ascended Season 1 NFTs means 20 D.Y.O.O.R Season 2 allocations."
+            copy="Season 1 established the collection and provided the historical bridge into Season 2. Its continuing role is Ascension: each ascended S1 NFT currently generates 24 Energy per day for the holder to harvest and use."
           />
-          <div className="grid gap-4 md:grid-cols-3">
-            <div className="rounded border border-dyoor-cyan/20 bg-dyoor-cyan/[0.07] p-4">
-              <S2SupplyStat
-                valueClassName="text-5xl"
-                label="Live Season 2 Supply"
-              />
-              <p className="mt-3 text-sm font-semibold leading-6 text-white/62">
-                The counter starts from 1,096 issued Droids and decreases with verified on-chain burns.
+          <div className="grid gap-4 md:grid-cols-2">
+            <div className="rounded border border-white/10 bg-black/25 p-4">
+              <p className="text-xs font-black uppercase tracking-[0.18em] text-dyoor-cyan">Historical Bridge</p>
+              <h3 className="mt-2 text-xl font-black uppercase text-white">The Ascended Allocation</h3>
+              <p className="mt-3 text-sm font-semibold leading-6 text-white/68">
+                Ascended Season 1 holders originally received a 1:1 D.Y.O.O.R Season 2 allocation, connecting the
+                collection’s origin directly to the Droid generation.
               </p>
             </div>
-            <div className="rounded border border-white/10 bg-black/25 p-4 md:col-span-2">
-              <h3 className="text-xl font-black uppercase text-white">Ascension Protocol</h3>
+            <div className="rounded border border-dyoor-cyan/20 bg-dyoor-cyan/[0.07] p-4">
+              <p className="text-xs font-black uppercase tracking-[0.18em] text-dyoor-cyan">Continuing Utility</p>
+              <h3 className="mt-2 text-xl font-black uppercase text-white">Ascension Energy</h3>
               <p className="mt-3 text-sm font-semibold leading-6 text-white/68">
-                Ascension Protocol allows Season 1 holders to stake and ascend their NFTs, generate Energy over time,
-                and build eligibility for Season 2 and future ecosystem participation. The Ascension has begun.
+                Energy accrues as pending Energy while an S1 NFT remains ascended. A confirmed harvest moves it into
+                the holder’s spendable Energy Bank balance.
               </p>
             </div>
           </div>
         </Panel>
 
-        <div className="grid gap-6 lg:grid-cols-2">
-          <Panel id="energy">
-            <SectionHeading
-              eyebrow="Energy"
-              title="Energy Powers The Flywheel"
-              copy="Energy is the participation resource of the DYOOR ecosystem, not a publicly tradeable token. Ascension generates it, Trait Lab spends it, and recycling or burning can return it for use on the remaining collection."
-            />
-            <BulletList items={energyUses} />
-          </Panel>
+        <Panel id="energy" className="overflow-hidden border-dyoor-cyan/25 bg-dyoor-cyan/[0.04]">
+          <SectionHeading
+            eyebrow="Energy Flywheel"
+            title="Participation Becomes Progression"
+            copy="Energy is the internal participation resource of D.Y.O.O.R, not a publicly tradeable token. Ascension creates it, verified ecosystem actions can return it, and Trait Lab converts it into dynamic Season 2 progression."
+          />
+          <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+            {flywheelSteps.map(([step, title, copy]) => (
+              <article key={step} className="relative rounded border border-white/10 bg-black/30 p-4">
+                <p className="text-xs font-black tracking-[0.2em] text-dyoor-cyan">{step}</p>
+                <h3 className="mt-2 text-lg font-black uppercase text-white">{title}</h3>
+                <p className="mt-2 text-sm font-semibold leading-6 text-white/60">{copy}</p>
+              </article>
+            ))}
+          </div>
+          <div className="mt-7">
+            <h3 className="text-xl font-black uppercase text-white">Current Ways To Earn Energy</h3>
+            <p className="mt-2 max-w-4xl text-sm font-semibold leading-6 text-white/55">
+              Reward caps and verification rules make each path explicit. World rewards accumulate as pending Energy
+              until the holder claims them into the Energy Bank.
+            </p>
+            <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+              {energyEarningPaths.map((path) => (
+                <article key={path.title} className="terminal-panel hover-lift p-4">
+                  <p className="text-xs font-black uppercase tracking-[0.14em] text-dyoor-cyan">{path.title}</p>
+                  <p className="mt-2 text-xl font-black text-white">{path.value}</p>
+                  <p className="mt-2 text-xs font-semibold leading-5 text-white/52">{path.copy}</p>
+                </article>
+              ))}
+            </div>
+          </div>
+        </Panel>
 
-          <Panel id="droids">
-            <SectionHeading
-              eyebrow="Season 2 Droid System"
-              title="Droids Evolve"
-              copy="Core identity traits stay locked while eligible visual layers can evolve now through Energy-powered Trait Lab rerolls, unlocks, recycling, metadata versioning, and artwork refreshes."
-            />
-            <div className="grid gap-4 sm:grid-cols-2">
+        <Panel id="dynamic-traits" className="overflow-hidden">
+          <SectionHeading
+            eyebrow="Dynamic Traits + Rerolls"
+            title="One Reveal. One Decision."
+            copy="Trait Lab generates one approved, compatibility-checked result at a time. Energy is spent to reveal it; the holder may accept the update, leave the current metadata unchanged, or roll again and permanently close the previous result."
+          />
+          <div className="grid gap-5 lg:grid-cols-[0.8fr_1.2fr]">
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-1">
               <div>
-                <h3 className="mb-3 text-sm font-black uppercase tracking-[0.18em] text-dyoor-cyan">Locked Traits</h3>
+                <h3 className="mb-3 text-sm font-black uppercase tracking-[0.18em] text-dyoor-cyan">Locked Identity</h3>
                 <BulletList items={lockedTraits} />
               </div>
               <div>
-                <h3 className="mb-3 text-sm font-black uppercase tracking-[0.18em] text-dyoor-cyan">Mutable Traits</h3>
+                <h3 className="mb-3 text-sm font-black uppercase tracking-[0.18em] text-dyoor-cyan">Mutable Layers</h3>
                 <BulletList items={mutableTraits} />
               </div>
             </div>
-          </Panel>
-        </div>
+            <div>
+              <h3 className="mb-3 text-sm font-black uppercase tracking-[0.18em] text-dyoor-cyan">Current Energy Costs</h3>
+              <div className="grid gap-2 sm:grid-cols-2">
+                {rerollCosts.map(([action, cost]) => (
+                  <div key={action} className="rounded border border-white/10 bg-black/25 p-3">
+                    <p className="text-xs font-bold leading-5 text-white/48">{action}</p>
+                    <p className="mt-1 text-lg font-black text-white">{cost}</p>
+                  </div>
+                ))}
+              </div>
+              <div className="mt-4 rounded border border-dyoor-purple/30 bg-dyoor-purple/[0.08] p-4">
+                <p className="text-xs font-black uppercase tracking-[0.16em] text-dyoor-monad">Settlement Model</p>
+                <p className="mt-2 text-sm font-semibold leading-6 text-white/62">
+                  Rerolls and unlocks use gasless wallet signatures rather than MON transactions. Accepting a result
+                  writes versioned metadata and refreshed artwork. Recycling clears an eligible optional layer and
+                  returns Energy; only a full Droid burn destroys the NFT on-chain.
+                </p>
+              </div>
+            </div>
+          </div>
+        </Panel>
 
         <Panel id="blueprints" className="overflow-hidden">
           <div className="grid gap-6 lg:grid-cols-[1fr_0.8fr]">
@@ -325,16 +387,25 @@ export default function WhitepaperPage() {
             </div>
             <SectionHeading
               eyebrow="dYOOR World"
-              title="The Holder-Exclusive Community Layer"
-              copy="dYOOR World is the primary private community for active Season 2 holders. A read-only ownership check and wallet signature unlock persistent identity, live conversation, verified ecosystem feeds, and participation rewards without handing custody of a Droid to the site."
+              title="From Public Servers To A Holder-Native Home"
+              copy="dYOOR World is the primary private community for active Season 2 holders. It anchors access and identity to verified ownership while Discord and Telegram remain public onboarding channels for newcomers."
             />
+            <div className="mb-5 rounded border border-dyoor-monad/25 bg-dyoor-monad/[0.07] p-4">
+              <p className="text-xs font-black uppercase tracking-[0.18em] text-dyoor-monad">Why The Community Model Changed</p>
+              <p className="mt-3 text-sm font-semibold leading-7 text-white/64">
+                General-purpose public servers separate conversation from asset ownership and create familiar attack
+                surfaces: impersonated staff, fake support accounts, malicious links, unsolicited DMs, bot spam, and
+                unverifiable holder roles. dYOOR World narrows that surface with a live S2 ownership gate, wallet
+                signatures, owner-wallet announcements, and activity relays tied to confirmed public events.
+              </p>
+            </div>
             <div className="grid gap-5 lg:grid-cols-[1.2fr_0.8fr]">
               <div className="grid gap-3 sm:grid-cols-2">
                 {[
-                  ["Identity", "Claim one .dYOOR name and use an owned Season 2 Droid as your World PFP."],
-                  ["Community", "Join holder threads, reply, tag channels, share media, and earn capped Energy for meaningful messages."],
-                  ["Verified Activity", "Follow confirmed sales, burns, direct MON tips, and non-custodial Trade Desk activity."],
-                  ["Official Dispatches", "Read owner-wallet announcements and open official HTTPS links posted directly inside the World."],
+                  ["Persistent Identity", "Claim one .dYOOR name and use an owned Season 2 Droid as a recognizable World PFP."],
+                  ["Holder Conversation", "Use focused threads, replies, channel tags, direct messages, and approved media sharing."],
+                  ["Verified Exchange", "Send direct wallet-to-wallet MON tips and coordinate S2 swaps through smart-contract escrow."],
+                  ["Official Signals", "Follow confirmed sales and burns, plus announcements restricted to the designated owner wallet."],
                 ].map(([title, copy]) => (
                   <article key={title} className="terminal-panel hover-lift p-4">
                     <h3 className="text-sm font-black uppercase tracking-[0.14em] text-dyoor-cyan">{title}</h3>
@@ -364,6 +435,11 @@ export default function WhitepaperPage() {
                 </Link>
               </aside>
             </div>
+            <p className="mt-5 rounded border border-white/10 bg-black/25 p-4 text-xs font-semibold leading-6 text-white/46">
+              Token gating reduces common impersonation and role-verification problems; it does not make every user or
+              link automatically trustworthy. Wallet connection is non-custodial, World bots only relay verified
+              activity, and holders should still inspect every signature and transaction before approval.
+            </p>
           </div>
         </Panel>
 
@@ -424,33 +500,18 @@ export default function WhitepaperPage() {
             <SectionHeading
               eyebrow="Deflationary Supply"
               title="Burned Means Gone"
-              copy="Season 2 issued 1,096 Droids. Every successful on-chain burn permanently removes one token from the live supply."
+              copy={`Season 2 issued ${INITIAL_S2_SUPPLY.toLocaleString("en-US")} Droids and targets a final live supply of ${S2_POST_BURN_SUPPLY_CAP.toLocaleString("en-US")}. Every successful on-chain burn moves the collection one step toward that cap.`}
             />
-            <p className="text-sm font-semibold leading-7 text-white/68">
-              The collection contract reports live supply after burns, while the Trait Lab burn gallery preserves each
-              claimed burn’s token and transaction provenance. Burning is irreversible: the remaining collection gets
-              smaller as the Energy flywheel continues.
-            </p>
-          </Panel>
-        </div>
-
-        <div className="grid gap-6 lg:grid-cols-2">
-          <Panel id="ecosystem-inputs">
-            <SectionHeading
-              eyebrow="Ecosystem Inputs"
-              title="Multiple Paths Support The System"
-              copy="Primary mint activity, secondary markets, swap support, trait systems, future products, and strategic Monad participation can support continued ecosystem development."
-            />
-            <BulletList items={ecosystemInputs} />
-          </Panel>
-
-          <Panel id="dynamic-traits">
-            <SectionHeading
-              eyebrow="Dynamic Traits + Energy"
-              title="NFTs That Evolve With Participation"
-              copy="Trait Lab lets eligible D.Y.O.O.R metadata change through Energy-powered rerolls, unlocks, recycling, and supply-aware trait mechanics while core Droid identity remains locked."
-            />
-            <BulletList items={traitSystems} />
+            <div className="grid gap-4 sm:grid-cols-[0.8fr_1.2fr] sm:items-start">
+              <div className="rounded border border-dyoor-cyan/20 bg-dyoor-cyan/[0.07] p-4">
+                <S2SupplyStat valueClassName="text-5xl" label="Live Season 2 Supply" />
+              </div>
+              <p className="text-sm font-semibold leading-7 text-white/68">
+                The collection contract reports live supply directly. The Trait Lab burn gallery preserves each
+                claimed burn’s token and transaction provenance, but the NFT itself is irrecoverable after
+                confirmation.
+              </p>
+            </div>
           </Panel>
         </div>
 
@@ -477,11 +538,14 @@ export default function WhitepaperPage() {
 
         <Panel className="border-white/10 bg-black/35">
           <SectionHeading
-            eyebrow="Living Mechanics"
-            title="Built For Participation"
-            copy="D.Y.O.O.R combines evolving metadata with permanent on-chain supply reduction. Each action is governed by explicit Trait Lab rules, Energy accounting, and verifiable burn transactions."
+            eyebrow="Live Interfaces"
+            title="Enter The System"
+            copy="Live interfaces display current balances, active reward parameters, campaign availability, and wallet-specific eligibility."
           />
           <div className="flex flex-wrap gap-3">
+            <Link className="rounded border border-white/20 bg-white/[0.04] px-4 py-3 text-sm font-black uppercase text-white/75" href="/ascension">
+              Open Ascension
+            </Link>
             <Link className="rounded border border-dyoor-cyan bg-dyoor-cyan px-4 py-3 text-sm font-black uppercase text-black" href="/reroll">
               Open Trait Lab
             </Link>
