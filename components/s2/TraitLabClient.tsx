@@ -1654,7 +1654,19 @@ export function TraitLabClient() {
         eyebrow="Season 2 Dynamic Metadata"
         title="D.Y.O.O.R Trait Lab"
         copy="Reroll filled traits, upgrade base droids by unlocking empty trait slots, and spend Energy through server-verified ownership."
-        actions={<WalletButton />}
+        actions={(
+          <div className="flex flex-wrap items-center gap-2">
+            {traitLabConfig?.leaderboardEnabled ? (
+              <a
+                className="btn-secondary inline-flex min-h-11 items-center justify-center px-4 text-xs"
+                href="#trait-lab-leaderboard"
+              >
+                View Leaderboard
+              </a>
+            ) : null}
+            <WalletButton />
+          </div>
+        )}
       />
 
       <Alert tone={alertTone}>{error || status}</Alert>

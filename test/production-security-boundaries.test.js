@@ -178,6 +178,10 @@ test("Trait Lab leaderboard is default-off and aggregates completion records onl
   assert.equal(rows[0].energySpentRaw, "100");
   assert.equal(rows[0].energyEarnedRaw, "50");
   assert.equal(rows[1].completedOperations, 1);
+
+  const client = fs.readFileSync("components/s2/TraitLabClient.tsx", "utf8");
+  assert.match(client, /href="#trait-lab-leaderboard"/);
+  assert.match(client, />\s*View Leaderboard\s*</);
 });
 
 test("production metadata scope rejects legacy testnet configuration", () => {

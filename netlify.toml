@@ -13,3 +13,10 @@
     "data/ascension-blueprints.json",
     "data/ascension-blueprint-wallets.json"
   ]
+
+[[headers]]
+  for = "/dyoor-world-sw.js"
+  [headers.values]
+    Cache-Control = "public, max-age=0, must-revalidate"
+    Content-Type = "application/javascript; charset=UTF-8"
+    Service-Worker-Allowed = "/"

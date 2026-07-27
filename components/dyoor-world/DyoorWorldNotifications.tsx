@@ -107,6 +107,55 @@ function isStandaloneApp() {
     || Boolean((window.navigator as Navigator & { standalone?: boolean }).standalone);
 }
 
+const WORLD_WORKER_PATH = "/dyoor-world-sw.js";
+const WORLD_WORKER_SCOPE = "/";
+
+function registrationUsesWorldWorker(registration: ServiceWorkerRegistration | undefined) {
+  const worker = registration?.active || registration?.waiting || registration?.installing;
+  if (!worker) return false;
+  try {
+    return new URL(worker.scriptURL).pathname === WORLD_WORKER_PATH;
+  } catch {
+    return false;
+  }
+}
+
+async function registerDyoorWorldWorker() {
+  const existing = await window.navigator.serviceWorker.getRegistration(
+    WORLD_WORKER_SCOPE,
+  );
+  if (registrationUsesWorldWorker(existing)) {
+    void existing?.update().catch(() => undefined);
+    return existing!;
+  }
+
+  const register = () => window.navigator.serviceWorker.register(
+    WORLD_WORKER_PATH,
+    {
+      scope: WORLD_WORKER_SCOPE,
+      updateViaCache: "none",
+    },
+  );
+
+  try {
+    return await register();
+  } catch (caught) {
+    if (!(caught instanceof DOMException) || caught.name !== "AbortError") {
+      throw caught;
+    }
+
+    // Another browser registration/update job can abort this one. Reuse the
+    // registration if it won the race; otherwise allow that job to settle and
+    // make one clean retry.
+    const recovered = await window.navigator.serviceWorker.getRegistration(
+      WORLD_WORKER_SCOPE,
+    );
+    if (registrationUsesWorldWorker(recovered)) return recovered!;
+    await new Promise((resolve) => window.setTimeout(resolve, 250));
+    return await register();
+  }
+}
+
 async function readResponse<T extends { error?: string }>(response: Response) {
   const data = await response.json().catch(() => ({})) as T;
   if (!response.ok) throw new Error(data.error || `Request failed (${response.status}).`);
@@ -125,12 +174,18 @@ export function DyoorWorldNotifications() {
   const [error, setError] = useState("");
   const [iosInstallRequired, setIosInstallRequired] = useState(false);
   const subscriptionRef = useRef<PushSubscription | null>(null);
+  const workerRegistrationRef = useRef<Promise<ServiceWorkerRegistration> | null>(null);
 
   const registerWorker = useCallback(async () => {
-    return await window.navigator.serviceWorker.register(
-      "/dyoor-world-sw.js",
-      { scope: "/" },
-    );
+    if (workerRegistrationRef.current) {
+      return await workerRegistrationRef.current;
+    }
+    const pending = registerDyoorWorldWorker().catch((caught) => {
+      workerRegistrationRef.current = null;
+      throw caught;
+    });
+    workerRegistrationRef.current = pending;
+    return await pending;
   }, []);
 
   const synchronize = useCallback(async () => {
@@ -202,8 +257,19 @@ export function DyoorWorldNotifications() {
   }, [registerWorker]);
 
   useEffect(() => {
-    const timer = window.setTimeout(() => void synchronize(), 0);
-    return () => window.clearTimeout(timer);
+    let timer = 0;
+    const start = () => {
+      timer = window.setTimeout(() => void synchronize(), 0);
+    };
+    if (document.readyState === "complete") {
+      start();
+    } else {
+      window.addEventListener("load", start, { once: true });
+    }
+    return () => {
+      window.removeEventListener("load", start);
+      window.clearTimeout(timer);
+    };
   }, [synchronize]);
 
   async function enableNotifications() {

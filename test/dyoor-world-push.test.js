@@ -80,9 +80,27 @@ test("World notifications use a durable outbox and a non-caching PWA worker", ()
   assert.match(worker, /addEventListener\("push"/);
   assert.match(worker, /showNotification/);
   assert.match(worker, /addEventListener\("notificationclick"/);
+  assert.match(worker, /event\.waitUntil\(self\.skipWaiting\(\)\)/);
   assert.doesNotMatch(worker, /addEventListener\("fetch"/);
   assert.match(manifest, /start_url: "\/dyoor-world"/);
   assert.match(manifest, /display: "standalone"/);
+});
+
+test("World alert registration reuses the active worker and retries browser update races", () => {
+  const component = fs.readFileSync(
+    "components/dyoor-world/DyoorWorldNotifications.tsx",
+    "utf8",
+  );
+  const netlify = fs.readFileSync("netlify.toml", "utf8");
+
+  assert.match(component, /getRegistration\(\s*WORLD_WORKER_SCOPE/);
+  assert.match(component, /registrationUsesWorldWorker/);
+  assert.match(component, /updateViaCache:\s*"none"/);
+  assert.match(component, /caught\.name !== "AbortError"/);
+  assert.match(component, /workerRegistrationRef/);
+  assert.match(component, /window\.addEventListener\("load", start/);
+  assert.match(netlify, /for = "\/dyoor-world-sw\.js"/);
+  assert.match(netlify, /Service-Worker-Allowed = "\/"/);
 });
 
 test("direct messages are participant-only and create private push jobs", () => {
