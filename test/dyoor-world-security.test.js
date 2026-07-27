@@ -13,6 +13,7 @@ import {
   verifyDyoorWorldSessionToken,
 } from "../lib/dyoor-world-auth.ts";
 import {
+  dyoorWorldPixelTextSvg,
   dyoorWorldNamePng,
   dyoorWorldNameSvg,
 } from "../lib/dyoor-world-name-image.ts";
@@ -91,6 +92,16 @@ test("World name metadata uses marketplace-compatible hosted PNG artwork", async
   assert.match(svg, /SOULBOUND HOLDER IDENTITY/);
   assert.match(svg, /S2 HOLDER VERIFIED/);
   assert.doesNotMatch(svg, /<script/i);
+  assert.doesNotMatch(svg, /<text/i);
+  const spacedVectorText = dyoorWorldPixelTextSvg({
+    text: "A A",
+    centerX: 100,
+    topY: 0,
+    maxWidth: 200,
+    height: 20,
+    fill: "#fff",
+  });
+  assert.equal(spacedVectorText.match(/<path/g)?.length, 2);
 
   const png = await dyoorWorldNamePng({
     displayName: "riffs.dYOOR",
@@ -107,7 +118,7 @@ test("World name metadata uses marketplace-compatible hosted PNG artwork", async
     "app/api/dyoor-world/names/metadata/[tokenId]/route.ts",
     "utf8",
   );
-  assert.match(metadataSource, /\/api\/dyoor-world\/names\/image\/.*\.png/);
+  assert.match(metadataSource, /\/api\/dyoor-world\/names\/image\/.*\.v3\.png/);
   assert.doesNotMatch(metadataSource, /data:image/);
 
   const imageRouteSource = fs.readFileSync(
@@ -116,6 +127,7 @@ test("World name metadata uses marketplace-compatible hosted PNG artwork", async
   );
   assert.match(imageRouteSource, /image\/png/);
   assert.match(imageRouteSource, /dyoorWorldNamePng/);
+  assert.match(imageRouteSource, /x-dyoor-media-version": "3/);
   assert.match(imageRouteSource, /getDyoorWorldNameToken/);
 });
 

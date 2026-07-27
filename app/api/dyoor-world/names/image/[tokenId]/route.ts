@@ -15,7 +15,7 @@ export async function GET(
 ) {
   try {
     const { tokenId: requestedTokenId } = await context.params;
-    const tokenId = requestedTokenId.replace(/\.png$/i, "");
+    const tokenId = requestedTokenId.replace(/(?:\.v\d+)?\.png$/i, "");
     assertDyoorWorldRateLimit(
       `name-image:${tokenId}:${dyoorWorldClientIp(request)}`,
       60,
@@ -35,7 +35,7 @@ export async function GET(
         "access-control-allow-origin": "*",
         "cross-origin-resource-policy": "cross-origin",
         "x-content-type-options": "nosniff",
-        "x-dyoor-media-version": "2",
+        "x-dyoor-media-version": "3",
       },
     });
   } catch (error) {
