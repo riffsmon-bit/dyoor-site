@@ -15,6 +15,10 @@ const worldClient = fs.readFileSync(
   "components/dyoor-world/DyoorWorldClient.tsx",
   "utf8",
 );
+const worldGate = fs.readFileSync(
+  "components/dyoor-world/DyoorWorldGate.tsx",
+  "utf8",
+);
 
 test("mobile World navigation keeps DMs separate from the decorative glyph", () => {
   assert.match(
@@ -77,4 +81,13 @@ test("app provider mounts Privy without requiring a separate Reown project", () 
   assert.match(providers, /<WalletServiceProvider privyEnabled=\{Boolean\(appId\)\}>/);
   assert.doesNotMatch(providers, /NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID|walletConnectProjectId/);
   assert.doesNotMatch(providers, /Reown|WalletConnect/);
+});
+
+test("holder authentication is chain-neutral while on-chain World actions enforce Monad", () => {
+  assert.doesNotMatch(worldGate, /wallet\.status === "wrong-network"/);
+  assert.doesNotMatch(worldGate, /Switch to Monad/);
+  assert.match(
+    worldClient,
+    /if \(wallet\.status === "wrong-network"\) await wallet\.switchChain\(\)/,
+  );
 });

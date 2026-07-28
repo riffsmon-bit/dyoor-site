@@ -84,6 +84,19 @@ test("World notifications use a durable outbox and a non-caching PWA worker", ()
   assert.doesNotMatch(worker, /addEventListener\("fetch"/);
   assert.match(manifest, /start_url: "\/dyoor-world"/);
   assert.match(manifest, /display: "standalone"/);
+  assert.match(manifest, /dyoor-world-icon-192\.png/);
+  assert.match(manifest, /dyoor-world-icon-512\.png/);
+  assert.match(manifest, /dyoor-world-icon-maskable-512\.png/);
+  assert.doesNotMatch(manifest, /dyoor-world-icon\.svg/);
+  for (const icon of [
+    "public/dyoor-world-app-icon-source.png",
+    "public/dyoor-world-apple-touch-icon.png",
+    "public/dyoor-world-icon-192.png",
+    "public/dyoor-world-icon-512.png",
+    "public/dyoor-world-icon-maskable-512.png",
+  ]) {
+    assert.equal(fs.existsSync(icon), true, `${icon} must exist`);
+  }
 });
 
 test("World alert registration reuses the active worker and retries browser update races", () => {

@@ -62,10 +62,6 @@ export function DyoorWorldGate() {
       });
       return;
     }
-    if (wallet.status === "wrong-network") {
-      await wallet.switchChain().catch(() => {});
-      return;
-    }
 
     setWorking(true);
     setError("");
@@ -100,15 +96,13 @@ export function DyoorWorldGate() {
     ? wallet.status === "connecting"
       ? "Preparing wallet connection"
       : "Connect holder wallet"
-    : wallet.status === "wrong-network"
-      ? "Switch to Monad"
-      : eligible === false
-        ? "S2 Droid required"
-        : eligible === null
-          ? "Scanning S2 ownership"
-          : working
-            ? "Awaiting holder signature"
-            : "Authenticate and enter";
+    : eligible === false
+      ? "S2 Droid required"
+      : eligible === null
+        ? "Scanning S2 ownership"
+        : working
+          ? "Awaiting holder signature"
+          : "Authenticate and enter";
 
   return (
     <>
@@ -148,7 +142,7 @@ export function DyoorWorldGate() {
               disabled={
                 working ||
                 wallet.status === "connecting" ||
-                Boolean(address && eligible !== true && wallet.status !== "wrong-network")
+                Boolean(address && eligible !== true)
               }
               onClick={() => void enterWorld()}
               type="button"
@@ -161,7 +155,7 @@ export function DyoorWorldGate() {
               </p>
             ) : null}
             <p className="mt-5 text-[0.68rem] font-black uppercase tracking-[0.14em] text-white/32">
-              Signing does not spend MON, Energy, or approve a transaction.
+              Signing does not spend MON, Energy, approve a transaction, or require a network switch.
             </p>
           </div>
         </section>
