@@ -39,6 +39,8 @@ test("World GIF search is optional, holder-gated, rate-limited, and keeps its ke
   assert.doesNotMatch(route, /apiKey[,}]\s*$/m);
   assert.match(composer, /Search KLIPY/);
   assert.match(composer, /Powered by KLIPY/);
+  assert.match(composer, /h-36 min-h-36 w-full/);
+  assert.doesNotMatch(composer, /group relative aspect-square/);
 });
 
 test("World mobile shell is route-scoped, width-locked, and uses a compact composer", () => {
@@ -56,6 +58,7 @@ test("World mobile shell is route-scoped, width-locked, and uses a compact compo
   assert.match(client, /className="min-h-10 flex-1 resize-none/);
   assert.match(client, /rows=\{1\}/);
   assert.match(client, /className="btn-primary min-h-9/);
+  assert.match(client, /`Message #\$\{selectedChannel\.label\}`/);
 });
 
 test("World operator setup and curated sticker upload paths are documented", () => {

@@ -296,11 +296,11 @@ export function DyoorWorldMediaComposer({
             </button>
           </div>
           {gifResults.length > 0 ? (
-            <div className="mt-3 grid max-h-72 grid-cols-2 gap-2 overflow-y-auto sm:grid-cols-3">
+            <div className="mt-3 grid max-h-72 grid-cols-2 gap-2 overflow-y-auto pr-1 sm:grid-cols-3">
               {gifResults.map((gif) => (
                 <button
                   aria-label={`Select GIF: ${gif.title}`}
-                  className="group relative aspect-square overflow-hidden rounded-lg border border-white/10 bg-black/30 transition hover:border-dyoor-cyan/55"
+                  className="group relative h-36 min-h-36 w-full overflow-hidden rounded-lg border border-white/10 bg-black/30 transition hover:border-dyoor-cyan/55 sm:h-40 sm:min-h-40"
                   key={gif.id}
                   onClick={() => {
                     onChange({

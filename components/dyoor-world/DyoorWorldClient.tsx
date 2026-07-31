@@ -2264,8 +2264,8 @@ export function DyoorWorldClient({ sessionWallet }: { sessionWallet: string }) {
                     onSelect={(event) =>
                       setDraftCursor(event.currentTarget.selectionStart || 0)}
                     placeholder={selectedChannel.id === "announcements"
-                      ? `Publish to #announcements as ${identity}`
-                      : `Message #${selectedChannel.label} as ${identity}`}
+                      ? "Publish to #announcements"
+                      : `Message #${selectedChannel.label}`}
                     ref={composerRef}
                     rows={1}
                     value={draft}
