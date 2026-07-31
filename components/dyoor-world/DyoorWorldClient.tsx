@@ -34,6 +34,11 @@ import {
   normalizeDyoorWorldAttachment,
   type DyoorWorldMessageAttachment,
 } from "@/lib/dyoor-world-media";
+import {
+  DYOOR_WORLD_SESSION_EXPIRED_EVENT,
+  isDyoorWorldAbortError,
+  readDyoorWorldResponse,
+} from "@/lib/dyoor-world-client";
 import { DyoorWorldGlyph } from "@/components/dyoor-world/DyoorWorldDiscovery";
 import {
   DyoorWorldMediaComposer,
@@ -228,12 +233,6 @@ function mediaUrl(uri?: string) {
     return `https://jade-efficient-beaver-697.mypinata.cloud/ipfs/${value.slice(7)}`;
   }
   return value;
-}
-
-async function readResponse<T>(response: Response): Promise<T> {
-  const data = await response.json().catch(() => ({}));
-  if (!response.ok) throw new Error(data?.error || "dYOOR World request failed.");
-  return data as T;
 }
 
 function messageTime(value: string) {
@@ -631,6 +630,14 @@ export function DyoorWorldClient({ sessionWallet }: { sessionWallet: string }) {
   const composerRef = useRef<HTMLTextAreaElement>(null);
   const tipAmountRef = useRef<HTMLInputElement>(null);
   const messageListAtBottomRef = useRef(true);
+  const messageRequestRef = useRef<{
+    sequence: number;
+    controller: AbortController | null;
+  }>({
+    sequence: 0,
+    controller: null,
+  });
+  const sessionRecoveryRef = useRef(false);
   const messageTrackerRef = useRef({
     channelId: "world-lobby" as DyoorWorldChannelId,
     lastMessageId: "",
@@ -674,7 +681,7 @@ export function DyoorWorldClient({ sessionWallet }: { sessionWallet: string }) {
 
   const loadProfile = useCallback(async () => {
     const response = await fetch("/api/dyoor-world/profile", { cache: "no-store" });
-    const data = await readResponse<ProfileResponse>(response);
+    const data = await readDyoorWorldResponse<ProfileResponse>(response);
     setProfile(data.profile || null);
     setAvatar(data.avatar || null);
     setAvatarTokenId(data.avatar?.tokenId || "");
@@ -685,7 +692,7 @@ export function DyoorWorldClient({ sessionWallet }: { sessionWallet: string }) {
 
   const loadRewards = useCallback(async () => {
     const response = await fetch("/api/dyoor-world/rewards", { cache: "no-store" });
-    const data = await readResponse<{ status?: RewardStatus }>(response);
+    const data = await readDyoorWorldResponse<{ status?: RewardStatus }>(response);
     setRewards(data.status || null);
     return data.status || null;
   }, []);
@@ -695,7 +702,7 @@ export function DyoorWorldClient({ sessionWallet }: { sessionWallet: string }) {
       `/api/s2/owned-tokens?wallet=${encodeURIComponent(normalizedSessionWallet)}`,
       { cache: "no-store" },
     );
-    const data = await readResponse<{ tokenIds?: string[] }>(response);
+    const data = await readDyoorWorldResponse<{ tokenIds?: string[] }>(response);
     const ids = Array.isArray(data.tokenIds) ? data.tokenIds.map(String) : [];
     setOwnedTokenIds(ids);
     if (ids[0]) setAvatarTokenId((current) => current || ids[0]);
@@ -703,19 +710,35 @@ export function DyoorWorldClient({ sessionWallet }: { sessionWallet: string }) {
   }, [normalizedSessionWallet]);
 
   const loadMessages = useCallback(async (silent = false) => {
+    const sequence = messageRequestRef.current.sequence + 1;
+    messageRequestRef.current.controller?.abort();
+    const controller = new AbortController();
+    messageRequestRef.current = { sequence, controller };
     if (!silent) setLoadingMessages(true);
     try {
       const response = await fetch(
         `/api/dyoor-world/messages?channel=${encodeURIComponent(channelId)}`,
-        { cache: "no-store" },
+        { cache: "no-store", signal: controller.signal },
       );
-      const data = await readResponse<{ messages?: DyoorWorldMessageView[] }>(response);
+      const data = await readDyoorWorldResponse<{
+        messages?: DyoorWorldMessageView[];
+      }>(response);
+      if (messageRequestRef.current.sequence !== sequence) return;
       setMessages(Array.isArray(data.messages) ? data.messages : []);
       setError("");
     } catch (caught) {
+      if (
+        isDyoorWorldAbortError(caught)
+        || messageRequestRef.current.sequence !== sequence
+      ) {
+        return;
+      }
       setError(caught instanceof Error ? caught.message : "Could not load World messages.");
     } finally {
-      if (!silent) setLoadingMessages(false);
+      if (messageRequestRef.current.sequence === sequence) {
+        messageRequestRef.current.controller = null;
+        if (!silent) setLoadingMessages(false);
+      }
     }
   }, [channelId]);
 
@@ -749,7 +772,7 @@ export function DyoorWorldClient({ sessionWallet }: { sessionWallet: string }) {
           `/api/metadata/${encodeURIComponent(avatarTokenId)}`,
           { cache: "no-store" },
         );
-        const metadata = await readResponse<{ image?: string }>(response);
+        const metadata = await readDyoorWorldResponse<{ image?: string }>(response);
         if (active) setAvatarPreview(mediaUrl(metadata.image));
       } catch {
         if (active && avatar?.tokenId !== avatarTokenId) setAvatarPreview("");
@@ -772,7 +795,7 @@ export function DyoorWorldClient({ sessionWallet }: { sessionWallet: string }) {
           `/api/dyoor-world/names/availability?label=${encodeURIComponent(validation.label)}`,
           { cache: "no-store", signal: controller.signal },
         );
-        const data = await readResponse<{ availability?: WorldNameAvailability }>(response);
+        const data = await readDyoorWorldResponse<{ availability?: WorldNameAvailability }>(response);
         if (!controller.signal.aborted) {
           setNameAvailability(data.availability || null);
         }
@@ -807,8 +830,30 @@ export function DyoorWorldClient({ sessionWallet }: { sessionWallet: string }) {
     return () => {
       window.clearTimeout(initialTimer);
       window.clearInterval(timer);
+      messageRequestRef.current.controller?.abort();
     };
   }, [loadMessages]);
+
+  useEffect(() => {
+    const recoverExpiredSession = () => {
+      if (sessionRecoveryRef.current) return;
+      sessionRecoveryRef.current = true;
+      setError("Your holder session expired. Returning to secure sign-in…");
+      void fetch("/api/dyoor-world/session", { method: "DELETE" })
+        .catch(() => undefined)
+        .finally(() => router.refresh());
+    };
+    window.addEventListener(
+      DYOOR_WORLD_SESSION_EXPIRED_EVENT,
+      recoverExpiredSession,
+    );
+    return () => {
+      window.removeEventListener(
+        DYOOR_WORLD_SESSION_EXPIRED_EVENT,
+        recoverExpiredSession,
+      );
+    };
+  }, [router]);
 
   useEffect(() => {
     const newestMessageId = messages.at(-1)?.id || "";
@@ -879,6 +924,8 @@ export function DyoorWorldClient({ sessionWallet }: { sessionWallet: string }) {
 
   function selectWorldChannel(nextChannel: DyoorWorldChannelId) {
     if (nextChannel !== channelId) {
+      messageRequestRef.current.controller?.abort();
+      setMessages([]);
       setChannelId(nextChannel);
       setReplyingTo(null);
       setTagMenuDismissed(false);
@@ -1052,7 +1099,7 @@ export function DyoorWorldClient({ sessionWallet }: { sessionWallet: string }) {
           `/api/dyoor-world/names/availability?label=${encodeURIComponent(normalizedLabel)}`,
           { cache: "no-store" },
         );
-        const availabilityData = await readResponse<{
+        const availabilityData = await readDyoorWorldResponse<{
           availability?: WorldNameAvailability;
         }>(availabilityResponse);
         const availability = availabilityData.availability;
@@ -1085,7 +1132,7 @@ export function DyoorWorldClient({ sessionWallet }: { sessionWallet: string }) {
           headers: { "content-type": "application/json" },
           body: JSON.stringify({ action: "reserve-name", label: normalizedLabel }),
         });
-        const data = await readResponse<ProfileResponse>(response);
+        const data = await readDyoorWorldResponse<ProfileResponse>(response);
         setProfile(data.profile || null);
         setConfig(data.config || null);
         setNotice(`${data.profile?.displayName || "World name"} reserved for this preview.`);
@@ -1109,7 +1156,7 @@ export function DyoorWorldClient({ sessionWallet }: { sessionWallet: string }) {
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ action: "set-pfp", tokenId: avatarTokenId }),
       });
-      const data = await readResponse<ProfileResponse>(response);
+      const data = await readDyoorWorldResponse<ProfileResponse>(response);
       setAvatar(data.avatar || null);
       setAvatarPreview(mediaUrl(data.avatar?.imageUrl));
       setNotice(`S2 Droid #${data.avatar?.tokenId} is now your World PFP.`);
@@ -1125,6 +1172,7 @@ export function DyoorWorldClient({ sessionWallet }: { sessionWallet: string }) {
     event.preventDefault();
     const content = draft.trim();
     if (!content && !composerAttachment) return;
+    messageRequestRef.current.controller?.abort();
     setSending(true);
     setError("");
     try {
@@ -1138,12 +1186,15 @@ export function DyoorWorldClient({ sessionWallet }: { sessionWallet: string }) {
           replyToMessageId: replyingTo?.id,
         }),
       });
-      const data = await readResponse<{ message?: DyoorWorldMessageView }>(response);
+      const data = await readDyoorWorldResponse<{ message?: DyoorWorldMessageView }>(response);
       if (data.message) {
         messageListAtBottomRef.current = true;
         setMessageListAtBottom(true);
         setNewMessageCount(0);
-        setMessages((current) => [...current, data.message!]);
+        setMessages((current) => [
+          ...current.filter((message) => message.id !== data.message!.id),
+          data.message!,
+        ]);
         if (data.message.energyReward) {
           setNotice(`Signal accepted · +${data.message.energyReward} Energy pending.`);
           await loadRewards();
@@ -1171,7 +1222,7 @@ export function DyoorWorldClient({ sessionWallet }: { sessionWallet: string }) {
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ action }),
       });
-      const data = await readResponse<{
+      const data = await readDyoorWorldResponse<{
         reward?: { amountEnergy?: number };
         status?: RewardStatus;
         claim?: { amountEnergy?: number; txHash?: string };
@@ -1212,7 +1263,7 @@ export function DyoorWorldClient({ sessionWallet }: { sessionWallet: string }) {
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ recipient: tipTarget.wallet, txHash }),
       });
-      const data = await readResponse<{
+      const data = await readDyoorWorldResponse<{
         reward?: { amountEnergy?: number };
       }>(response);
       if (data.reward?.amountEnergy) await loadRewards();
@@ -1237,7 +1288,7 @@ export function DyoorWorldClient({ sessionWallet }: { sessionWallet: string }) {
       headers: { "content-type": "application/json" },
       body: JSON.stringify({ txHash }),
     });
-    const data = await readResponse<{
+    const data = await readDyoorWorldResponse<{
       rewards?: Array<{ wallet?: string; amountEnergy?: number }>;
       messages?: DyoorWorldMessageView[];
     }>(response);
@@ -1252,7 +1303,7 @@ export function DyoorWorldClient({ sessionWallet }: { sessionWallet: string }) {
       `/api/dyoor-world/trades?id=${encodeURIComponent(id)}`,
       { cache: "no-store" },
     );
-    const data = await readResponse<{ trade?: WorldTrade }>(response);
+    const data = await readDyoorWorldResponse<{ trade?: WorldTrade }>(response);
     if (!data.trade) throw new Error(`World trade #${id} was not found.`);
     return data.trade;
   }
@@ -1449,8 +1500,29 @@ export function DyoorWorldClient({ sessionWallet }: { sessionWallet: string }) {
     router.refresh();
   }
 
+  async function connectWorldWallet() {
+    setError("");
+    setNotice("");
+    try {
+      await wallet.connect();
+      setNotice("Wallet chooser opened. Select the wallet used for this holder session.");
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : "Could not open the wallet chooser.");
+    }
+  }
+
   const identity = profile?.displayName || shortWorldWallet(normalizedSessionWallet);
   const walletMismatch = Boolean(connectedWallet && connectedWallet !== normalizedSessionWallet);
+  const walletAttached = connectedWallet === normalizedSessionWallet;
+  const walletConnectionLabel = !wallet.ready
+    ? "Loading wallet options"
+    : wallet.status === "connecting"
+      ? "Opening wallet chooser"
+      : walletMismatch
+        ? "Different wallet connected"
+        : walletAttached
+          ? "Holder wallet attached"
+          : "Wallet connection required";
   const loadedTradeActive = loadedTrade?.status === 1;
   const loadedTradeIsMaker = normalizeAddress(loadedTrade?.maker) === normalizedSessionWallet;
   const loadedTradeTargetsSession = Boolean(
@@ -1616,8 +1688,17 @@ export function DyoorWorldClient({ sessionWallet }: { sessionWallet: string }) {
         </header>
 
         {walletMismatch ? (
-          <div className="border-b border-yellow-300/30 bg-yellow-300/10 px-4 py-3 text-sm font-bold text-yellow-100">
-            Connected wallet does not match this holder session. Exit and authenticate the connected wallet before using on-chain features.
+          <div className="flex flex-wrap items-center gap-3 border-b border-yellow-300/30 bg-yellow-300/10 px-4 py-3 text-sm font-bold text-yellow-100">
+            <span className="min-w-0 flex-1">
+              Connected wallet does not match this holder session. Sign out before authenticating a different holder wallet.
+            </span>
+            <button
+              className="btn-ghost min-h-9 shrink-0 border-yellow-200/30 px-3 text-[0.62rem] text-yellow-50"
+              onClick={() => void exitWorld()}
+              type="button"
+            >
+              Sign out + switch
+            </button>
           </div>
         ) : null}
         {error ? (
@@ -2098,7 +2179,7 @@ export function DyoorWorldClient({ sessionWallet }: { sessionWallet: string }) {
             ) : null}
 
             {selectedChannelCanPost ? (
-              <form className="border-t border-dyoor-purple/20 bg-black/20 p-3 sm:p-4" onSubmit={sendMessage}>
+              <form className="border-t border-dyoor-purple/20 bg-black/20 p-2.5 sm:p-4" onSubmit={sendMessage}>
                 {selectedChannel.id === "announcements" ? (
                   <div className="mb-2 rounded-lg border border-dyoor-monad/30 bg-gradient-to-r from-dyoor-monad/[0.13] to-dyoor-cyan/[0.06] px-3 py-2">
                     <p className="text-[0.58rem] font-black uppercase tracking-[0.12em] text-dyoor-monad">
@@ -2163,13 +2244,13 @@ export function DyoorWorldClient({ sessionWallet }: { sessionWallet: string }) {
                     ))}
                   </div>
                 ) : null}
-                <div className="flex items-end gap-2 rounded border border-dyoor-purple/25 bg-black/35 p-2 focus-within:border-dyoor-cyan/55">
+                <div className="flex items-center gap-2 rounded border border-dyoor-purple/25 bg-black/35 p-1.5 focus-within:border-dyoor-cyan/55 sm:p-2">
                   <textarea
                     aria-controls={channelTagSuggestions.length > 0
                       ? "world-channel-tag-suggestions"
                       : undefined}
                     aria-label={`Message ${selectedChannel.label}`}
-                    className="min-h-12 flex-1 resize-none bg-transparent px-2 py-2 text-sm font-bold text-white outline-none placeholder:text-white/25"
+                    className="min-h-10 flex-1 resize-none bg-transparent px-2 py-2 text-sm font-bold leading-5 text-white outline-none placeholder:text-white/25"
                     maxLength={800}
                     onChange={(event) => {
                       setDraft(event.target.value);
@@ -2186,11 +2267,11 @@ export function DyoorWorldClient({ sessionWallet }: { sessionWallet: string }) {
                       ? `Publish to #announcements as ${identity}`
                       : `Message #${selectedChannel.label} as ${identity}`}
                     ref={composerRef}
-                    rows={2}
+                    rows={1}
                     value={draft}
                   />
                   <button
-                    className="btn-primary min-h-10 shrink-0 px-4 py-2 text-xs"
+                    className="btn-primary min-h-9 shrink-0 px-3 py-2 text-[0.68rem] sm:min-h-10 sm:px-4 sm:text-xs"
                     disabled={sending || (!draft.trim() && !composerAttachment)}
                     type="submit"
                   >
@@ -2208,14 +2289,19 @@ export function DyoorWorldClient({ sessionWallet }: { sessionWallet: string }) {
                   disabled={sending}
                   onChange={setComposerAttachment}
                 />
-                <p className="mt-2 px-1 text-[0.62rem] font-bold text-white/25">
+                <p className="mt-1.5 px-1 text-[0.55rem] font-bold text-white/25 sm:text-[0.62rem]">
                   {selectedChannel.id === "announcements" ? (
                     <>
                       {draft.length}/800 · HTTPS links become clickable · <span className="hidden md:inline">Enter publishes · Shift+Enter newline</span>
                     </>
                   ) : (
                     <>
-                      {draft.length}/800 · type # to tag a thread · tap ↩ to reply · <span className="hidden md:inline">Enter sends · Shift+Enter newline · </span>meaningful text can earn {rewards?.chat.rewardEnergy || 5} Energy · media and stickers alone do not earn
+                      <span className="sm:hidden">
+                        {draft.length}/800 · qualifying messages can earn {rewards?.chat.rewardEnergy || 5} Energy
+                      </span>
+                      <span className="hidden sm:inline">
+                        {draft.length}/800 · type # to tag a thread · tap ↩ to reply · <span className="hidden md:inline">Enter sends · Shift+Enter newline · </span>meaningful text can earn {rewards?.chat.rewardEnergy || 5} Energy · media and stickers alone do not earn
+                      </span>
                     </>
                   )}
                 </p>
@@ -2254,6 +2340,56 @@ export function DyoorWorldClient({ sessionWallet }: { sessionWallet: string }) {
               </button>
             </div>
             <p className="text-[0.62rem] font-black uppercase tracking-[0.2em] text-white/35">World identity</p>
+            <div className="mt-3 rounded border border-white/10 bg-black/25 p-3">
+              <div className="flex items-start gap-3">
+                <span
+                  aria-hidden="true"
+                  className={`mt-1 h-2.5 w-2.5 shrink-0 rounded-full ${
+                    walletAttached
+                      ? wallet.status === "wrong-network"
+                        ? "bg-yellow-300 shadow-[0_0_12px_rgba(253,224,71,.65)]"
+                        : "bg-emerald-300 shadow-[0_0_12px_rgba(110,231,183,.65)]"
+                      : walletMismatch
+                        ? "bg-red-300 shadow-[0_0_12px_rgba(252,165,165,.55)]"
+                        : "bg-white/30"
+                  }`}
+                />
+                <div className="min-w-0 flex-1">
+                  <p className="text-[0.58rem] font-black uppercase tracking-[0.14em] text-white/35">
+                    Action wallet
+                  </p>
+                  <p className="mt-1 text-xs font-black text-white">{walletConnectionLabel}</p>
+                  <p className="mt-1 text-[0.58rem] font-bold leading-4 text-white/35">
+                    {walletAttached
+                      ? `${wallet.providerName || "Wallet"} is ready. Monad is requested only when an on-chain action starts.`
+                      : walletMismatch
+                        ? `${shortWorldWallet(connectedWallet)} does not match this holder session.`
+                        : "Chat remains available, but names, tips, and trades need the authenticated holder wallet attached."}
+                  </p>
+                </div>
+              </div>
+              {!walletAttached && !walletMismatch ? (
+                <button
+                  className="btn-secondary mt-3 w-full text-[0.62rem]"
+                  disabled={!wallet.ready || wallet.status === "connecting"}
+                  onClick={() => void connectWorldWallet()}
+                  type="button"
+                >
+                  {wallet.status === "connecting"
+                    ? "Opening wallet chooser…"
+                    : "Connect holder wallet"}
+                </button>
+              ) : null}
+              {walletMismatch ? (
+                <button
+                  className="btn-ghost mt-3 w-full text-[0.62rem]"
+                  onClick={() => void exitWorld()}
+                  type="button"
+                >
+                  Sign out and switch wallet
+                </button>
+              ) : null}
+            </div>
             <div className="mt-3 overflow-hidden rounded border border-dyoor-cyan/25 bg-gradient-to-br from-dyoor-cyan/[0.09] via-transparent to-dyoor-purple/[0.12]">
               <div className="flex items-center gap-3 p-3">
                 <div className="h-16 w-16 shrink-0 overflow-hidden rounded border border-dyoor-cyan/35 bg-black/35 shadow-[0_0_24px_rgba(76,255,229,.12)]">

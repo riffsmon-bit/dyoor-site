@@ -3,26 +3,31 @@ export const DYOOR_WORLD_STICKERS = [
     id: "gm-droid",
     label: "GM, DROID",
     signal: "SIGNAL ONLINE",
+    imageUrl: "/dyoor-world/stickers/gm-droid.webp",
   },
   {
     id: "charged-up",
     label: "CHARGED UP",
     signal: "ENERGY GRID",
+    imageUrl: "/dyoor-world/stickers/charged-up.webp",
   },
   {
     id: "diamond-droid",
     label: "DIAMOND DROID",
     signal: "HOLD THE LINE",
+    imageUrl: "/dyoor-world/stickers/diamond-droid.webp",
   },
   {
     id: "burn-verified",
     label: "BURN VERIFIED",
     signal: "SUPPLY DOWN",
+    imageUrl: "/dyoor-world/stickers/burn-verified.webp",
   },
   {
     id: "send-it",
     label: "SEND IT",
     signal: "MONAD MODE",
+    imageUrl: "/dyoor-world/stickers/send-it.webp",
   },
 ] as const;
 
@@ -56,6 +61,10 @@ const EXTENSIONLESS_MEDIA_HOSTS = new Set([
   "media.discordapp.net",
   "media.giphy.com",
   "media.tenor.com",
+  "static.klipy.co",
+  "static.klipy.com",
+  "static2.klipy.co",
+  "static2.klipy.com",
 ]);
 
 const WORLD_MEDIA_ID_SOURCE = "[a-z0-9]{10}-[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}";
@@ -128,7 +137,8 @@ export function normalizeDyoorWorldMediaUrl(
 
     const isGif = extension === "gif"
       || /(^|\.)giphy\.com$/i.test(url.hostname)
-      || /(^|\.)tenor\.com$/i.test(url.hostname);
+      || /(^|\.)tenor\.com$/i.test(url.hostname)
+      || /(^|\.)klipy\.(?:co|com)$/i.test(url.hostname);
     return {
       kind: isGif ? "gif" : "image",
       url: url.toString(),

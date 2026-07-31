@@ -387,7 +387,7 @@ export default function WhitepaperPage() {
             </div>
             <SectionHeading
               eyebrow="dYOOR World"
-              title="From Public Servers To A Holder-Native Home"
+              title="Holder-Exclusive Community Layer"
               copy="dYOOR World is the primary private community for active Season 2 holders. It anchors access and identity to verified ownership while Discord and Telegram remain public onboarding channels for newcomers."
             />
             <div className="mb-5 rounded border border-dyoor-monad/25 bg-dyoor-monad/[0.07] p-4">

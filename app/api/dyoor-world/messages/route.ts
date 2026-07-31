@@ -1,5 +1,7 @@
 import {
+  assertDyoorWorldRateLimit,
   createDyoorWorldMessage,
+  dyoorWorldClientIp,
   dyoorWorldErrorStatus,
   listDyoorWorldMessages,
   requireDyoorWorldRequest,
@@ -17,7 +19,12 @@ function json(status: number, body: Record<string, unknown>) {
 
 export async function GET(request: Request) {
   try {
-    await requireDyoorWorldRequest(request);
+    const { wallet } = await requireDyoorWorldRequest(request);
+    assertDyoorWorldRateLimit(
+      `world-message-read:${wallet}:${dyoorWorldClientIp(request)}`,
+      45,
+      60_000,
+    );
     const channelId = new URL(request.url).searchParams.get("channel");
     return json(200, {
       ok: true,

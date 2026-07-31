@@ -24,6 +24,10 @@ import {
   type DyoorWorldMessageAttachment,
 } from "@/lib/dyoor-world-media";
 import { shortWorldWallet } from "@/lib/dyoor-world";
+import {
+  isDyoorWorldAbortError,
+  readDyoorWorldResponse,
+} from "@/lib/dyoor-world-client";
 
 type DirectTarget = {
   wallet: string;
@@ -45,12 +49,6 @@ type ConversationResponse = {
   };
   error?: string;
 };
-
-async function readResponse<T extends { error?: string }>(response: Response) {
-  const data = await response.json().catch(() => ({})) as T;
-  if (!response.ok) throw new Error(data.error || `Request failed (${response.status}).`);
-  return data;
-}
 
 function directMessageTime(value: string) {
   const date = new Date(value);
@@ -91,23 +89,53 @@ export function DyoorWorldDirectMessages({
   const [error, setError] = useState("");
   const endRef = useRef<HTMLDivElement>(null);
   const composerRef = useRef<HTMLTextAreaElement>(null);
+  const inboxRequestRef = useRef<{
+    sequence: number;
+    controller: AbortController | null;
+  }>({
+    sequence: 0,
+    controller: null,
+  });
+  const conversationRequestRef = useRef<{
+    sequence: number;
+    controller: AbortController | null;
+  }>({
+    sequence: 0,
+    controller: null,
+  });
 
   const loadInbox = useCallback(async (silent = false) => {
+    const sequence = inboxRequestRef.current.sequence + 1;
+    inboxRequestRef.current.controller?.abort();
+    const controller = new AbortController();
+    inboxRequestRef.current = { sequence, controller };
     try {
       const response = await fetch("/api/dyoor-world/direct-messages", {
         cache: "no-store",
+        signal: controller.signal,
       });
-      const data = await readResponse<InboxResponse>(response);
+      const data = await readDyoorWorldResponse<InboxResponse>(response);
+      if (inboxRequestRef.current.sequence !== sequence) return [];
       const next = Array.isArray(data.conversations) ? data.conversations : [];
       setConversations(next);
       onUnreadChange(Math.max(0, Number(data.unreadCount || 0)));
       if (!silent) setError("");
       return next;
     } catch (caught) {
+      if (
+        isDyoorWorldAbortError(caught)
+        || inboxRequestRef.current.sequence !== sequence
+      ) {
+        return [];
+      }
       if (!silent) {
         setError(caught instanceof Error ? caught.message : "Could not load direct messages.");
       }
       return [];
+    } finally {
+      if (inboxRequestRef.current.sequence === sequence) {
+        inboxRequestRef.current.controller = null;
+      }
     }
   }, [onUnreadChange]);
 
@@ -116,22 +144,36 @@ export function DyoorWorldDirectMessages({
     silent = false,
   ) => {
     if (!otherWallet) return;
+    const sequence = conversationRequestRef.current.sequence + 1;
+    conversationRequestRef.current.controller?.abort();
+    const controller = new AbortController();
+    conversationRequestRef.current = { sequence, controller };
     if (!silent) setLoadingConversation(true);
     try {
       const response = await fetch(
         `/api/dyoor-world/direct-messages?with=${encodeURIComponent(otherWallet)}`,
-        { cache: "no-store" },
+        { cache: "no-store", signal: controller.signal },
       );
-      const data = await readResponse<ConversationResponse>(response);
+      const data = await readDyoorWorldResponse<ConversationResponse>(response);
+      if (conversationRequestRef.current.sequence !== sequence) return;
       setMessages(Array.isArray(data.messages) ? data.messages : []);
       setActiveAuthor(data.other?.author || shortWorldWallet(otherWallet));
       setActiveAvatar(data.other?.avatar || null);
       setError("");
       void loadInbox(true);
     } catch (caught) {
+      if (
+        isDyoorWorldAbortError(caught)
+        || conversationRequestRef.current.sequence !== sequence
+      ) {
+        return;
+      }
       setError(caught instanceof Error ? caught.message : "Could not load this conversation.");
     } finally {
-      if (!silent) setLoadingConversation(false);
+      if (conversationRequestRef.current.sequence === sequence) {
+        conversationRequestRef.current.controller = null;
+        if (!silent) setLoadingConversation(false);
+      }
     }
   }, [loadInbox]);
 
@@ -143,6 +185,7 @@ export function DyoorWorldDirectMessages({
     return () => {
       window.clearTimeout(initial);
       window.clearInterval(timer);
+      inboxRequestRef.current.controller?.abort();
     };
   }, [loadInbox]);
 
@@ -173,6 +216,7 @@ export function DyoorWorldDirectMessages({
     return () => {
       window.clearTimeout(initial);
       window.clearInterval(timer);
+      conversationRequestRef.current.controller?.abort();
     };
   }, [activeWallet, loadConversation, open]);
 
@@ -196,6 +240,7 @@ export function DyoorWorldDirectMessages({
   }, [onClose, open]);
 
   function selectConversation(conversation: DyoorWorldDirectConversationView) {
+    conversationRequestRef.current.controller?.abort();
     setActiveWallet(conversation.wallet);
     setActiveAuthor(conversation.author);
     setActiveAvatar(conversation.avatar);
@@ -206,6 +251,11 @@ export function DyoorWorldDirectMessages({
   async function sendDirectMessage(event?: FormEvent) {
     event?.preventDefault();
     if (!activeWallet || sending || (!draft.trim() && !attachment)) return;
+    conversationRequestRef.current.controller?.abort();
+    conversationRequestRef.current = {
+      sequence: conversationRequestRef.current.sequence + 1,
+      controller: null,
+    };
     setSending(true);
     setError("");
     try {
@@ -218,11 +268,16 @@ export function DyoorWorldDirectMessages({
           attachment,
         }),
       });
-      const data = await readResponse<{
+      const data = await readDyoorWorldResponse<{
         message?: DyoorWorldDirectMessageView;
         error?: string;
       }>(response);
       if (data.message) {
+        conversationRequestRef.current.controller?.abort();
+        conversationRequestRef.current = {
+          sequence: conversationRequestRef.current.sequence + 1,
+          controller: null,
+        };
         setMessages((current) => [
           ...current.filter((message) => message.id !== data.message?.id),
           data.message!,
@@ -443,7 +498,7 @@ export function DyoorWorldDirectMessages({
                 </div>
 
                 <form
-                  className="border-t border-dyoor-purple/20 bg-black/20 p-3 sm:p-4"
+                  className="border-t border-dyoor-purple/20 bg-black/20 p-2.5 sm:p-4"
                   onSubmit={sendDirectMessage}
                 >
                   {error ? (
@@ -451,20 +506,20 @@ export function DyoorWorldDirectMessages({
                       {error}
                     </p>
                   ) : null}
-                  <div className="flex items-end gap-2 rounded-xl border border-dyoor-purple/25 bg-black/35 p-2 focus-within:border-dyoor-cyan/50">
+                  <div className="flex items-center gap-2 rounded-xl border border-dyoor-purple/25 bg-black/35 p-1.5 focus-within:border-dyoor-cyan/50 sm:p-2">
                     <textarea
                       aria-label={`Direct message ${activeAuthor}`}
-                      className="min-h-12 flex-1 resize-none bg-transparent px-2 py-2 text-sm font-bold text-white outline-none placeholder:text-white/25"
+                      className="min-h-10 flex-1 resize-none bg-transparent px-2 py-2 text-sm font-bold leading-5 text-white outline-none placeholder:text-white/25"
                       maxLength={800}
                       onChange={(event) => setDraft(event.target.value)}
                       onKeyDown={handleComposerKeyDown}
                       placeholder={`Message ${activeAuthor}`}
                       ref={composerRef}
-                      rows={2}
+                      rows={1}
                       value={draft}
                     />
                     <button
-                      className="btn-primary min-h-10 shrink-0 px-4 py-2 text-xs"
+                      className="btn-primary min-h-9 shrink-0 px-3 py-2 text-[0.68rem] sm:min-h-10 sm:px-4 sm:text-xs"
                       disabled={sending || (!draft.trim() && !attachment)}
                       type="submit"
                     >
@@ -476,8 +531,8 @@ export function DyoorWorldDirectMessages({
                     disabled={sending}
                     onChange={setAttachment}
                   />
-                  <p className="mt-2 px-1 text-[0.55rem] font-bold text-white/24">
-                    {draft.length}/800 · Enter sends on desktop · private to participants, not end-to-end encrypted
+                  <p className="mt-1.5 px-1 text-[0.55rem] font-bold text-white/24">
+                    {draft.length}/800 · <span className="hidden sm:inline">Enter sends on desktop · </span>private to participants, not end-to-end encrypted
                   </p>
                 </form>
               </>
