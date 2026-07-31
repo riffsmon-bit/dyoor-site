@@ -238,14 +238,16 @@ function useInjectedWallet() {
       if (!nextAddress) throw new Error("Wallet did not return an account.");
       setAddress(nextAddress);
       const chainId = await active.request({ method: "eth_chainId" }).catch(() => "");
-      if (String(chainId || "").toLowerCase() !== MONAD_CHAIN_HEX) await switchChain();
+      // Holder authentication only needs the wallet address and a signature.
+      // Defer any Monad switch until the holder starts an on-chain World action.
+      setWrongNetwork(String(chainId || "").toLowerCase() !== MONAD_CHAIN_HEX);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Wallet connection failed.");
       throw err;
     } finally {
       setConnecting(false);
     }
-  }, [getProvider, switchChain]);
+  }, [getProvider]);
 
   const disconnect = useCallback(async () => {
     setError("");

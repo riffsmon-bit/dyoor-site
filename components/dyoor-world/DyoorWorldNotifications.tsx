@@ -10,6 +10,7 @@ import {
   DYOOR_WORLD_DEFAULT_PUSH_PREFERENCES,
   type DyoorWorldPushPreferences,
 } from "@/lib/dyoor-world-push";
+import { readDyoorWorldResponse } from "@/lib/dyoor-world-client";
 
 type PushStatusResponse = {
   config?: {
@@ -156,12 +157,6 @@ async function registerDyoorWorldWorker() {
   }
 }
 
-async function readResponse<T extends { error?: string }>(response: Response) {
-  const data = await response.json().catch(() => ({})) as T;
-  if (!response.ok) throw new Error(data.error || `Request failed (${response.status}).`);
-  return data;
-}
-
 export function DyoorWorldNotifications() {
   const [browserState, setBrowserState] = useState<BrowserState>("loading");
   const [publicKey, setPublicKey] = useState("");
@@ -209,7 +204,7 @@ export function DyoorWorldNotifications() {
           : ""}`,
         { cache: "no-store" },
       );
-      const data = await readResponse<PushStatusResponse>(response);
+      const data = await readDyoorWorldResponse<PushStatusResponse>(response);
       const nextPublicKey = String(data.config?.publicKey || "");
       setPublicKey(nextPublicKey);
       setSubscriptionCount(Math.max(0, Number(data.subscriptionCount || 0)));
@@ -243,7 +238,7 @@ export function DyoorWorldNotifications() {
             preferences: data.preferences,
           }),
         });
-        const synced = await readResponse<PushStatusResponse>(syncResponse);
+        const synced = await readDyoorWorldResponse<PushStatusResponse>(syncResponse);
         setSubscriptionCount(Math.max(1, Number(synced.subscriptionCount || 1)));
         setPreferences(synced.preferences || {
           ...DYOOR_WORLD_DEFAULT_PUSH_PREFERENCES,
@@ -308,7 +303,7 @@ export function DyoorWorldNotifications() {
           preferences,
         }),
       });
-      const data = await readResponse<PushStatusResponse>(response);
+      const data = await readDyoorWorldResponse<PushStatusResponse>(response);
       subscriptionRef.current = subscription;
       setPreferences(data.preferences || preferences);
       setSubscriptionCount(Math.max(1, Number(data.subscriptionCount || 1)));
@@ -338,7 +333,7 @@ export function DyoorWorldNotifications() {
           preferences: next,
         }),
       });
-      const data = await readResponse<PushStatusResponse>(response);
+      const data = await readDyoorWorldResponse<PushStatusResponse>(response);
       setPreferences(data.preferences || next);
     } catch (caught) {
       setPreferences(previous);
@@ -363,7 +358,7 @@ export function DyoorWorldNotifications() {
           endpoint: subscription.endpoint,
         }),
       });
-      await readResponse<{ error?: string }>(response);
+      await readDyoorWorldResponse<{ error?: string }>(response);
       setMessage("Test signal sent. Check this device’s notification tray.");
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "Could not send the test alert.");
@@ -385,7 +380,7 @@ export function DyoorWorldNotifications() {
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ endpoint }),
       });
-      await readResponse<{ error?: string }>(response);
+      await readDyoorWorldResponse<{ error?: string }>(response);
       subscriptionRef.current = null;
       setSubscriptionCount((count) => Math.max(0, count - 1));
       setBrowserState("prompt");

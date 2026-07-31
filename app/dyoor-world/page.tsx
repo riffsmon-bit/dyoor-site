@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { cookies } from "next/headers";
 import { DyoorWorldClient } from "@/components/dyoor-world/DyoorWorldClient";
 import { DyoorWorldGate } from "@/components/dyoor-world/DyoorWorldGate";
@@ -44,12 +44,26 @@ export const metadata: Metadata = {
   },
 };
 
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
+  viewportFit: "cover",
+  interactiveWidget: "resizes-content",
+  themeColor: "#080918",
+};
+
 export default async function DyoorWorldPage() {
   const cookieStore = await cookies();
   const token = cookieStore.get(DYOOR_WORLD_SESSION_COOKIE)?.value || "";
   const authenticated = await authenticateDyoorWorldToken(token).catch(() => null);
 
-  return authenticated
-    ? <DyoorWorldClient sessionWallet={authenticated.wallet} />
-    : <DyoorWorldGate />;
+  return (
+    <div className="dyoor-world-app">
+      {authenticated
+        ? <DyoorWorldClient sessionWallet={authenticated.wallet} />
+        : <DyoorWorldGate />}
+    </div>
+  );
 }
