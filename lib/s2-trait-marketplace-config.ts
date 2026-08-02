@@ -28,7 +28,7 @@ export const S2_TRAIT_MARKETPLACE_ENERGY_PRICES: Record<S2TraitMarketplaceRarity
   Uncommon: 450,
   Rare: 700,
   "Super Rare": 1000,
-  Legendary: 1500,
+  Legendary: 3000,
   Mythic: 7500,
 };
 

@@ -22,7 +22,7 @@ Special, Eyes, Mouth, Background, and Droid are not sold. This preserves the exi
 | Uncommon | 450 | 9 |
 | Rare | 700 | 14 |
 | Super Rare | 1,000 | 75 |
-| Legendary | 1,500 | 125 |
+| Legendary | 3,000 | 125 |
 | Mythic | 7,500 | 300 |
 
 Energy and MON use separate fixed rarity tiers. Direct selection is intentionally more expensive than a random Trait Lab roll.
