@@ -19,9 +19,9 @@ test("marketplace Energy and MON prices rise from Common through Mythic", () => 
   const prices = S2_TRAIT_MARKETPLACE_RARITIES.map((rarity) => traitMarketplacePrice(rarity));
   assert.deepEqual(S2_TRAIT_MARKETPLACE_ENERGY_PRICES, {
     Common: 300,
-    Uncommon: 450,
-    Rare: 700,
-    "Super Rare": 1000,
+    Uncommon: 500,
+    Rare: 750,
+    "Super Rare": 1500,
     Legendary: 3000,
     Mythic: 7500,
   });

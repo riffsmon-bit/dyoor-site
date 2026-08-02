@@ -19,9 +19,9 @@ Special, Eyes, Mouth, Background, and Droid are not sold. This preserves the exi
 | Rarity | Energy | MON |
 | --- | ---: | ---: |
 | Common | 300 | 6 |
-| Uncommon | 450 | 9 |
-| Rare | 700 | 14 |
-| Super Rare | 1,000 | 75 |
+| Uncommon | 500 | 9 |
+| Rare | 750 | 14 |
+| Super Rare | 1,500 | 75 |
 | Legendary | 3,000 | 125 |
 | Mythic | 7,500 | 300 |
 

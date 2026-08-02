@@ -25,9 +25,9 @@ export const S2_TRAIT_MARKETPLACE_QUOTE_TTL_MS = 10 * 60 * 1000;
 // roll. Energy and MON are separate fixed-price tracks.
 export const S2_TRAIT_MARKETPLACE_ENERGY_PRICES: Record<S2TraitMarketplaceRarity, number> = {
   Common: 300,
-  Uncommon: 450,
-  Rare: 700,
-  "Super Rare": 1000,
+  Uncommon: 500,
+  Rare: 750,
+  "Super Rare": 1500,
   Legendary: 3000,
   Mythic: 7500,
 };
