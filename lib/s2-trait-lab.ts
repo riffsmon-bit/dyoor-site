@@ -34,6 +34,11 @@ import {
   traitLabLeaderboardEnabled,
 } from "@/lib/s2-trait-lab-leaderboard";
 import {
+  accessoryLayerGroup,
+  accessoryLayerSideEffect,
+  accessoryLayersConflict,
+} from "@/lib/s2-trait-accessory-rules";
+import {
   settleTraitLabBountiesForCompletion,
   traitBountyEngineEnabled,
 } from "@/lib/s2-trait-bounties";
@@ -939,50 +944,6 @@ function hasBandannaAccessory(traits: Record<string, string>) {
   return isBandanna(traits.Accessories) || isBandanna(traits["Accessories 2"]);
 }
 
-const ACCESSORY_SLOT_TRAITS = new Set<S2TraitLabTrait>(["Accessories", "Accessories 2"]);
-const ACCESSORY_LAYER_GROUPS = [
-  {
-    name: "face accessory",
-    values: new Set([
-      "bandaid",
-      "bandana black",
-      "bandana pink",
-      "mesh bandanna",
-    ]),
-  },
-  {
-    name: "neck accessory",
-    values: new Set([
-      "bob-chain",
-      "bob chain",
-      "choker necklace",
-      "sealuminati chain",
-    ]),
-  },
-  {
-    name: "companion accessory",
-    values: new Set([
-      "10ksquad",
-      "molandak",
-      "mouch",
-      "shramp",
-      "the hive",
-    ]),
-  },
-];
-
-function accessoryLayerGroup(value: unknown) {
-  const normalized = normalizeComparable(value);
-  if (!normalized) return "";
-  return ACCESSORY_LAYER_GROUPS.find((group) => group.values.has(normalized))?.name || "";
-}
-
-function oppositeAccessoryTrait(traitType: S2TraitLabTrait) {
-  if (traitType === "Accessories") return "Accessories 2";
-  if (traitType === "Accessories 2") return "Accessories";
-  return "";
-}
-
 function explicitCompatibilityConflict(traits: Record<string, string>) {
   if (!isEmptyTraitValue(traits.Accessories)
     && !isEmptyTraitValue(traits["Accessories 2"])
@@ -991,11 +952,9 @@ function explicitCompatibilityConflict(traits: Record<string, string>) {
   }
 
   const accessoriesGroup = accessoryLayerGroup(traits.Accessories);
-  const accessories2Group = accessoryLayerGroup(traits["Accessories 2"]);
   if (!isEmptyTraitValue(traits.Accessories)
     && !isEmptyTraitValue(traits["Accessories 2"])
-    && accessoriesGroup
-    && accessoriesGroup === accessories2Group) {
+    && accessoryLayersConflict(traits.Accessories, traits["Accessories 2"])) {
     return `Accessories and Accessories 2 cannot both use a ${accessoriesGroup}.`;
   }
 
@@ -1073,16 +1032,10 @@ function applySpecialSideEffects(traits: Record<string, string>) {
 }
 
 function applyAccessoryLayerSideEffects(traits: Record<string, string>, changedTraitType: S2TraitLabTrait) {
-  const next = { ...traits };
-  if (!ACCESSORY_SLOT_TRAITS.has(changedTraitType)) return next;
-
-  const oppositeTrait = oppositeAccessoryTrait(changedTraitType);
-  if (!oppositeTrait) return next;
-
-  const changedGroup = accessoryLayerGroup(next[changedTraitType]);
-  const oppositeGroup = accessoryLayerGroup(next[oppositeTrait]);
-  if (changedGroup && changedGroup === oppositeGroup) next[oppositeTrait] = "None";
-  return next;
+  return {
+    ...traits,
+    ...accessoryLayerSideEffect(traits, changedTraitType),
+  };
 }
 
 function applyTraitSideEffects(traits: Record<string, string>, changedTraitType: S2TraitLabTrait) {

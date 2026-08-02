@@ -53,6 +53,8 @@ Quotes reserve one unit for ten minutes. Charged quotes extend their reservation
 
 The replaced active trait is burned under the existing Trait Lab accounting model. If compatibility rules clear an opposite accessory slot, that side effect is shown before payment.
 
+Shramp occupies the opposite shoulder from The Hive, Molandak, Mouch, and 10KSquad. Equipping Shramp alongside any of those four preserves both accessory slots and does not create a burn for the existing companion. The four same-shoulder companions remain mutually exclusive with one another. This shared rule applies to both Marketplace purchases and Trait Lab results.
+
 For direct Hat selections, the purchased Hat takes visual layer priority over existing eye or face traits. The previous Hat is replaced and burned; existing Eyes and Mouth traits remain unchanged so a Hat purchase never silently removes an identity trait.
 
 ## MON Payment Binding
