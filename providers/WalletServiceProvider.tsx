@@ -5,11 +5,14 @@ import { BrowserProvider } from "ethers";
 import { createContext, ReactNode, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import { WalletAppChooser } from "@/components/wallet/WalletAppChooser";
 import { useActivePrivyWallet } from "@/hooks/useActivePrivyWallet";
-import { MONAD_CHAIN_HEX, MONAD_CHAIN_ID, MONAD_EXPLORER_URL, MONAD_RPC_URL } from "@/lib/monad";
+import {
+  isMonadMainnetChain,
+  MONAD_CHAIN_ID,
+  switchProviderToMonadMainnet,
+  type MonadEip1193Provider,
+} from "@/lib/monad";
 
-export type Eip1193Provider = {
-  request: (args: { method: string; params?: unknown[] }) => Promise<unknown>;
-};
+export type Eip1193Provider = MonadEip1193Provider;
 
 type BrowserEthereum = Eip1193Provider & {
   isMetaMask?: boolean;
@@ -185,7 +188,7 @@ function useInjectedWallet() {
       }
       setAddress(nextAddress);
       const chainId = await active.request({ method: "eth_chainId" }).catch(() => "");
-      setWrongNetwork(String(chainId || "").toLowerCase() !== MONAD_CHAIN_HEX);
+      setWrongNetwork(!isMonadMainnetChain(chainId));
     } catch {
       setAddress("");
     }
@@ -210,21 +213,17 @@ function useInjectedWallet() {
 
   const switchChain = useCallback(async () => {
     const active = await getProvider();
+    setError("");
     try {
-      await active.request({ method: "wallet_switchEthereumChain", params: [{ chainId: MONAD_CHAIN_HEX }] });
-    } catch {
-      await active.request({
-        method: "wallet_addEthereumChain",
-        params: [{
-          chainId: MONAD_CHAIN_HEX,
-          chainName: "Monad",
-          rpcUrls: [MONAD_RPC_URL],
-          nativeCurrency: { name: "MON", symbol: "MON", decimals: 18 },
-          blockExplorerUrls: [MONAD_EXPLORER_URL],
-        }],
-      });
+      await switchProviderToMonadMainnet(active);
+      await refreshAccounts();
+      setWrongNetwork(false);
+    } catch (caught) {
+      const message = caught instanceof Error ? caught.message : "Wallet could not switch to Monad mainnet.";
+      setError(message);
+      setWrongNetwork(true);
+      throw new Error(message);
     }
-    await refreshAccounts();
   }, [getProvider, refreshAccounts]);
 
   const connect = useCallback(async () => {
@@ -240,7 +239,7 @@ function useInjectedWallet() {
       const chainId = await active.request({ method: "eth_chainId" }).catch(() => "");
       // Holder authentication only needs the wallet address and a signature.
       // Defer any Monad switch until the holder starts an on-chain World action.
-      setWrongNetwork(String(chainId || "").toLowerCase() !== MONAD_CHAIN_HEX);
+      setWrongNetwork(!isMonadMainnetChain(chainId));
     } catch (err) {
       setError(err instanceof Error ? err.message : "Wallet connection failed.");
       throw err;
@@ -273,7 +272,17 @@ function useInjectedWallet() {
     providerName,
     ready: true,
     source: address ? "browser" : "none",
-    status: connecting ? "connecting" : error ? "error" : address ? wrongNetwork ? "wrong-network" : "connected" : "idle",
+    status: connecting
+      ? "connecting"
+      : address
+        ? wrongNetwork
+          ? "wrong-network"
+          : error
+            ? "error"
+            : "connected"
+        : error
+          ? "error"
+          : "idle",
     connect,
     disconnect,
     getAddress: async () => {
@@ -348,6 +357,10 @@ function PrivyWalletServiceProvider({
 
   useEffect(() => {
     let active = true;
+    let activeProvider: Eip1193Provider | null = null;
+    const onChainChanged = (chainId: unknown) => {
+      if (active) setWrongNetwork(!isMonadMainnetChain(chainId));
+    };
 
     async function checkChain() {
       if (!address) {
@@ -356,8 +369,10 @@ function PrivyWalletServiceProvider({
       }
       try {
         const provider = await getProvider();
+        activeProvider = provider;
+        provider.on?.("chainChanged", onChainChanged);
         const chainId = await provider.request({ method: "eth_chainId" });
-        if (active) setWrongNetwork(String(chainId || "").toLowerCase() !== MONAD_CHAIN_HEX);
+        if (active) setWrongNetwork(!isMonadMainnetChain(chainId));
       } catch {
         if (active) setWrongNetwork(false);
       }
@@ -366,6 +381,7 @@ function PrivyWalletServiceProvider({
     void checkChain();
     return () => {
       active = false;
+      activeProvider?.removeListener?.("chainChanged", onChainChanged);
     };
   }, [address, getProvider]);
 
@@ -408,10 +424,17 @@ function PrivyWalletServiceProvider({
 
   const switchChain = useCallback(async () => {
     if (!wallet || !address) throw new Error("Wallet is not connected.");
-    await wallet.switchChain(MONAD_CHAIN_ID);
+    setConnectionError("");
     const provider = await wallet.getEthereumProvider() as Eip1193Provider;
-    const chainId = await provider.request({ method: "eth_chainId" }).catch(() => "");
-    setWrongNetwork(String(chainId || "").toLowerCase() !== MONAD_CHAIN_HEX);
+    try {
+      await switchProviderToMonadMainnet(provider);
+      setWrongNetwork(false);
+    } catch (caught) {
+      const message = caught instanceof Error ? caught.message : "Wallet could not switch to Monad mainnet.";
+      setConnectionError(message);
+      setWrongNetwork(true);
+      throw new Error(message);
+    }
   }, [address, wallet]);
 
   const error = connectionError || privyInitializationError?.message || "";
@@ -428,12 +451,14 @@ function PrivyWalletServiceProvider({
         : "loading"
       : connecting
         ? "connecting"
-        : error
-          ? "error"
-          : address
-            ? wrongNetwork
-              ? "wrong-network"
+        : address
+          ? wrongNetwork
+            ? "wrong-network"
+            : error
+              ? "error"
               : "connected"
+          : error
+            ? "error"
             : "idle",
     connect,
     disconnect,
@@ -530,12 +555,14 @@ function UniversalWalletServiceProvider({
     source,
     status: connecting
       ? "connecting"
-      : error
-        ? "error"
-        : address
-          ? wrongNetwork
-            ? "wrong-network"
+      : address
+        ? wrongNetwork
+          ? "wrong-network"
+          : error
+            ? "error"
             : "connected"
+        : error
+          ? "error"
           : "idle",
     connect,
     disconnect,

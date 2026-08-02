@@ -15,6 +15,7 @@ import {
 } from "@/lib/s2-trait-marketplace-config";
 import { traitMarketplaceQuoteAuthorizationMessage } from "@/lib/s2-trait-marketplace-auth";
 import { getStorageItem, removeStorageItem, setStorageJson } from "@/lib/browser-storage";
+import { describeEvmChain, isMonadMainnetChain, MONAD_MAINNET_CHAIN_ID } from "@/lib/monad";
 import { useWalletService } from "@/providers/WalletServiceProvider";
 
 type MetadataJson = {
@@ -547,9 +548,13 @@ export function TraitMarketplaceClient() {
       if (targetQuote.paymentMode === "mon" && !paymentTxHash && !quoteCanRecover(targetQuote.status)) {
         const payment = targetQuote.monPaymentRequest;
         if (!payment?.to || !payment.value || !payment.data) throw new Error("MON payment request is incomplete.");
-        setStatus("Switching to Monad for the MON payment.");
+        setStatus(`Switching to Monad mainnet (chain ${MONAD_MAINNET_CHAIN_ID}) for the MON payment.`);
         await wallet.switchChain();
         const provider = await wallet.getProvider();
+        const activeChain = await provider.request({ method: "eth_chainId" }).catch(() => "");
+        if (!isMonadMainnetChain(activeChain)) {
+          throw new Error(`Wallet is still on ${describeEvmChain(activeChain)}. MON purchases require Monad mainnet (chain ${MONAD_MAINNET_CHAIN_ID}).`);
+        }
         const accounts = await provider.request({ method: "eth_accounts" }).catch(() => []) as string[];
         const activeWallet = normalizeAddress(accounts?.[0]);
         if (activeWallet !== walletAddress) {
