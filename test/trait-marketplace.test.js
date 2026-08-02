@@ -23,7 +23,7 @@ test("marketplace Energy and MON prices rise from Common through Mythic", () => 
     Rare: 700,
     "Super Rare": 1000,
     Legendary: 1500,
-    Mythic: 2500,
+    Mythic: 7500,
   });
   assert.deepEqual(S2_TRAIT_MARKETPLACE_MON_PRICES, {
     Common: 6,
@@ -106,8 +106,8 @@ test("quote and purchase signatures bind the Droid, exact trait, payment mode, a
     traitType: "Hat",
     traitValue: "BOB Mask",
     paymentMode: "energy",
-    costLabel: "2500 Energy",
-    costRaw: "2500000000000000000000",
+    costLabel: "7500 Energy",
+    costRaw: "7500000000000000000000",
     expiresAt: "2026-08-02T12:10:00.000Z",
     nonce: "purchase-nonce",
   };

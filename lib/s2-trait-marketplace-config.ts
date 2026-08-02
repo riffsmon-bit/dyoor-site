@@ -29,7 +29,7 @@ export const S2_TRAIT_MARKETPLACE_ENERGY_PRICES: Record<S2TraitMarketplaceRarity
   Rare: 700,
   "Super Rare": 1000,
   Legendary: 1500,
-  Mythic: 2500,
+  Mythic: 7500,
 };
 
 export const S2_TRAIT_MARKETPLACE_MON_PRICES: Record<S2TraitMarketplaceRarity, number> = {
