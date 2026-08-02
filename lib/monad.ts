@@ -15,11 +15,9 @@ export const MONAD_CHAIN_ID = MONAD_MAINNET_CHAIN_ID;
 export const MONAD_CHAIN_HEX = `0x${MONAD_CHAIN_ID.toString(16)}`;
 export const MONAD_EXPLORER_URL = "https://monadscan.com";
 export const DEFAULT_MONAD_RPC_URL = "https://rpc.monad.xyz";
-const configuredRpcUrl = String(process.env.NEXT_PUBLIC_MONAD_RPC_URL || "").trim();
-if (configuredRpcUrl && /testnet/i.test(configuredRpcUrl)) {
-  throw new Error("Production wallet configuration cannot use a Monad testnet RPC URL.");
-}
-export const MONAD_RPC_URL = configuredRpcUrl || DEFAULT_MONAD_RPC_URL;
+// Wallet-facing code must never inline a vendor RPC credential. Protected RPC
+// endpoints belong in server-only environment variables.
+export const MONAD_RPC_URL = DEFAULT_MONAD_RPC_URL;
 
 export type MonadEip1193Provider = {
   request: (args: { method: string; params?: unknown[] }) => Promise<unknown>;

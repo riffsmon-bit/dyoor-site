@@ -70,3 +70,15 @@ test("network-switch failures are visible instead of being swallowed", () => {
   assert.match(button, /role="alert"/);
   assert.match(marketplace, /MON purchases require Monad mainnet/);
 });
+
+test("browser bundles and public Marketplace responses never expose configured RPC credentials", () => {
+  const monad = fs.readFileSync("lib/monad.ts", "utf8");
+  const rpc = fs.readFileSync("lib/rpc.ts", "utf8");
+  const marketplace = fs.readFileSync("lib/s2-trait-marketplace.ts", "utf8");
+  const mintConsole = fs.readFileSync("components/s2/S2MintTestClient.tsx", "utf8");
+
+  assert.doesNotMatch(monad, /process\.env\.NEXT_PUBLIC_MONAD_RPC_URL/);
+  assert.doesNotMatch(rpc, /process\.env\.NEXT_PUBLIC_MONAD/);
+  assert.doesNotMatch(marketplace, /rpcUrl: labConfig\.rpcUrl/);
+  assert.doesNotMatch(mintConsole, /NEXT_PUBLIC_.*RPC|testnet-rpc\.monad/);
+});

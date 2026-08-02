@@ -218,7 +218,6 @@ export async function getTraitMarketplaceCatalog() {
     chainId: labConfig.chainId,
     chainHex: labConfig.chainHex,
     chainName: labConfig.chainName,
-    rpcUrl: labConfig.rpcUrl,
     explorerUrl: labConfig.explorerUrl,
     treasuryWallet: labConfig.treasuryWallet,
     contractAddress: labConfig.contractAddress,

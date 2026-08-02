@@ -50,7 +50,6 @@ type MarketplaceCatalog = {
   chainId?: number;
   chainHex?: string;
   chainName?: string;
-  rpcUrl?: string;
   explorerUrl?: string;
   treasuryWallet?: string;
   contractAddress?: string;
