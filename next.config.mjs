@@ -48,6 +48,15 @@ const nextConfig = {
     "/api/s2/trait-lab/render/[imageId]": [
       "./data/dyoor-s2-base-layers/**/*",
     ],
+    "/api/s2/trait-marketplace/quote": [
+      "./data/dyoor-s2-base-layers/**/*",
+    ],
+    "/api/s2/trait-marketplace/preview": [
+      "./data/dyoor-s2-base-layers/**/*",
+    ],
+    "/api/s2/trait-marketplace/purchase": [
+      "./data/dyoor-s2-base-layers/**/*",
+    ],
   },
   async headers() {
     return [

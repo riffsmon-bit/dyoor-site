@@ -659,6 +659,19 @@ export async function saveTraitSupplyReservation(reservation: TraitSupplyReserva
   return { reservation: next, deduped: false };
 }
 
+export async function extendTraitSupplyReservation(rollId: string, expiresAt: string) {
+  const existing = await getTraitSupplyReservation(rollId);
+  if (!existing) return null;
+  const requestedExpiry = Date.parse(String(expiresAt || ""));
+  const currentExpiry = Date.parse(String(existing.expiresAt || ""));
+  if (!Number.isFinite(requestedExpiry) || (Number.isFinite(currentExpiry) && currentExpiry >= requestedExpiry)) {
+    return existing;
+  }
+  const next = { ...existing, expiresAt: new Date(requestedExpiry).toISOString() };
+  await store.setJson(supplyReservationKey(rollId), next);
+  return next;
+}
+
 export async function deleteTraitSupplyReservation(rollId: string) {
   await store.deleteJson(supplyReservationKey(rollId));
 }

@@ -102,7 +102,7 @@ type TraitLabImageRenderResult = {
   };
 };
 
-type TraitOption = {
+export type TraitOption = {
   traitType: S2TraitLabTrait;
   file: string;
   value: string;
@@ -661,7 +661,7 @@ function formatCooldown(ms: number) {
   return `${minutes} minute${minutes === 1 ? "" : "s"}`;
 }
 
-function assertTokenCooldownComplete(override: { updatedAt?: unknown } | null | undefined) {
+export function assertTokenCooldownComplete(override: { updatedAt?: unknown } | null | undefined) {
   const cooldownMs = traitLabTokenCooldownMs();
   if (cooldownMs <= 0 || !override?.updatedAt) return;
 
@@ -744,12 +744,12 @@ export function confirmationMessageFromPreviewId(previewId: string, timestamp: s
   return traitLabMessage(payload, timestamp, nonce);
 }
 
-async function renderTraitLabImageRuntime(
+export async function renderTraitLabImageRuntime(
   tokenId: number,
   metadata: MetadataJson,
   origin = "",
   options: { baseImageUrl?: string; overlayTraitTypes?: string[]; dryRun?: boolean; includeDataUrl?: boolean } = {},
-) {
+): Promise<TraitLabImageRenderResult> {
   const { renderTraitLabImage } = await import("@/lib/s2-trait-lab-render");
   return renderTraitLabImage(tokenId, metadata, origin, options);
 }
@@ -872,7 +872,7 @@ function supplyDeltaForTrait(traitType: string, value: string, delta: number, re
   };
 }
 
-function supplyDeltasForPatch(currentTraits: Record<string, string>, proposedAttributes: Record<string, string>) {
+export function supplyDeltasForPatch(currentTraits: Record<string, string>, proposedAttributes: Record<string, string>) {
   const deltas: TraitSupplyDelta[] = [];
 
   for (const [traitType, nextValue] of Object.entries(proposedAttributes)) {
@@ -890,7 +890,7 @@ function supplyDeltasForPatch(currentTraits: Record<string, string>, proposedAtt
   return deltas;
 }
 
-async function assertSupplyDeltasAvailable(deltas: TraitSupplyDelta[], excludeRollId = "") {
+export async function assertSupplyDeltasAvailable(deltas: TraitSupplyDelta[], excludeRollId = "") {
   const ledger = await getTraitSupplyAvailabilityLedger({ excludeRollId });
   for (const delta of deltas) {
     if (delta.delta <= 0) continue;
@@ -1104,6 +1104,45 @@ function proposedAttributePatchForAll(previous: Record<string, string>, next: Re
     if (!valuesMatch(previous[editable], next[editable])) patch[editable] = next[editable] || "None";
   }
   return patch;
+}
+
+export function prepareTraitMarketplaceSelection(
+  traits: Record<string, string>,
+  traitType: S2TraitLabTrait,
+  requestedValue: string,
+) {
+  if (!isS2UnlockableTrait(traitType)) {
+    throw Object.assign(new Error(`${traitType} is not sold in the Trait Marketplace.`), { status: 400 });
+  }
+
+  const option = resolveTraitOption(traitType, requestedValue);
+  if (!option || !Number.isSafeInteger(option.traitId)) {
+    throw Object.assign(new Error("This trait is not an approved marketplace listing."), { status: 404 });
+  }
+  if (valuesMatch(traits[traitType], option.value)) {
+    throw Object.assign(new Error(`Droid already has ${traitType}: ${option.value}.`), { status: 409 });
+  }
+
+  const nextTraits = applyTraitSideEffects({
+    ...traits,
+    [traitType]: option.value,
+  }, traitType);
+  if (!valuesMatch(nextTraits[traitType], option.value)) {
+    throw Object.assign(new Error(`The current Special trait hides ${traitType}. Remove it before buying this trait.`), { status: 409 });
+  }
+
+  const conflict = validationConflict(nextTraits);
+  const existingConflict = validationConflict(traits);
+  const selectedHatTakesLayerPriority = traitType === "Hat" && Boolean(conflict) && !existingConflict;
+  if (conflict && !selectedHatTakesLayerPriority) {
+    throw Object.assign(new Error(conflict), { status: 409 });
+  }
+
+  return {
+    option,
+    nextTraits,
+    proposedAttributes: proposedAttributePatch(traits, nextTraits, traitType),
+  };
 }
 
 function rerollAllEligibleTraits(traits: Record<string, string>, supplyLedger?: TraitSupplyLedger) {
