@@ -34,6 +34,11 @@ import {
   traitLabLeaderboardEnabled,
 } from "@/lib/s2-trait-lab-leaderboard";
 import {
+  accessoryLayerGroup,
+  accessoryLayerSideEffect,
+  accessoryLayersConflict,
+} from "@/lib/s2-trait-accessory-rules";
+import {
   settleTraitLabBountiesForCompletion,
   traitBountyEngineEnabled,
 } from "@/lib/s2-trait-bounties";
@@ -102,7 +107,7 @@ type TraitLabImageRenderResult = {
   };
 };
 
-type TraitOption = {
+export type TraitOption = {
   traitType: S2TraitLabTrait;
   file: string;
   value: string;
@@ -312,10 +317,7 @@ function configuredS2RpcUrl() {
 }
 
 function configuredS2PublicRpcUrl() {
-  return firstUsableRpc(
-    ["NEXT_PUBLIC_DYOOR_S2_RPC_URL", "NEXT_PUBLIC_MONAD_RPC_URL"],
-    true,
-  ) || DEFAULT_MONAD_MAINNET_RPC_URL;
+  return DEFAULT_MONAD_MAINNET_RPC_URL;
 }
 
 function isAlchemyLikeUrl(value: string) {
@@ -661,7 +663,7 @@ function formatCooldown(ms: number) {
   return `${minutes} minute${minutes === 1 ? "" : "s"}`;
 }
 
-function assertTokenCooldownComplete(override: { updatedAt?: unknown } | null | undefined) {
+export function assertTokenCooldownComplete(override: { updatedAt?: unknown } | null | undefined) {
   const cooldownMs = traitLabTokenCooldownMs();
   if (cooldownMs <= 0 || !override?.updatedAt) return;
 
@@ -744,12 +746,12 @@ export function confirmationMessageFromPreviewId(previewId: string, timestamp: s
   return traitLabMessage(payload, timestamp, nonce);
 }
 
-async function renderTraitLabImageRuntime(
+export async function renderTraitLabImageRuntime(
   tokenId: number,
   metadata: MetadataJson,
   origin = "",
   options: { baseImageUrl?: string; overlayTraitTypes?: string[]; dryRun?: boolean; includeDataUrl?: boolean } = {},
-) {
+): Promise<TraitLabImageRenderResult> {
   const { renderTraitLabImage } = await import("@/lib/s2-trait-lab-render");
   return renderTraitLabImage(tokenId, metadata, origin, options);
 }
@@ -872,7 +874,7 @@ function supplyDeltaForTrait(traitType: string, value: string, delta: number, re
   };
 }
 
-function supplyDeltasForPatch(currentTraits: Record<string, string>, proposedAttributes: Record<string, string>) {
+export function supplyDeltasForPatch(currentTraits: Record<string, string>, proposedAttributes: Record<string, string>) {
   const deltas: TraitSupplyDelta[] = [];
 
   for (const [traitType, nextValue] of Object.entries(proposedAttributes)) {
@@ -890,7 +892,7 @@ function supplyDeltasForPatch(currentTraits: Record<string, string>, proposedAtt
   return deltas;
 }
 
-async function assertSupplyDeltasAvailable(deltas: TraitSupplyDelta[], excludeRollId = "") {
+export async function assertSupplyDeltasAvailable(deltas: TraitSupplyDelta[], excludeRollId = "") {
   const ledger = await getTraitSupplyAvailabilityLedger({ excludeRollId });
   for (const delta of deltas) {
     if (delta.delta <= 0) continue;
@@ -939,50 +941,6 @@ function hasBandannaAccessory(traits: Record<string, string>) {
   return isBandanna(traits.Accessories) || isBandanna(traits["Accessories 2"]);
 }
 
-const ACCESSORY_SLOT_TRAITS = new Set<S2TraitLabTrait>(["Accessories", "Accessories 2"]);
-const ACCESSORY_LAYER_GROUPS = [
-  {
-    name: "face accessory",
-    values: new Set([
-      "bandaid",
-      "bandana black",
-      "bandana pink",
-      "mesh bandanna",
-    ]),
-  },
-  {
-    name: "neck accessory",
-    values: new Set([
-      "bob-chain",
-      "bob chain",
-      "choker necklace",
-      "sealuminati chain",
-    ]),
-  },
-  {
-    name: "companion accessory",
-    values: new Set([
-      "10ksquad",
-      "molandak",
-      "mouch",
-      "shramp",
-      "the hive",
-    ]),
-  },
-];
-
-function accessoryLayerGroup(value: unknown) {
-  const normalized = normalizeComparable(value);
-  if (!normalized) return "";
-  return ACCESSORY_LAYER_GROUPS.find((group) => group.values.has(normalized))?.name || "";
-}
-
-function oppositeAccessoryTrait(traitType: S2TraitLabTrait) {
-  if (traitType === "Accessories") return "Accessories 2";
-  if (traitType === "Accessories 2") return "Accessories";
-  return "";
-}
-
 function explicitCompatibilityConflict(traits: Record<string, string>) {
   if (!isEmptyTraitValue(traits.Accessories)
     && !isEmptyTraitValue(traits["Accessories 2"])
@@ -991,11 +949,9 @@ function explicitCompatibilityConflict(traits: Record<string, string>) {
   }
 
   const accessoriesGroup = accessoryLayerGroup(traits.Accessories);
-  const accessories2Group = accessoryLayerGroup(traits["Accessories 2"]);
   if (!isEmptyTraitValue(traits.Accessories)
     && !isEmptyTraitValue(traits["Accessories 2"])
-    && accessoriesGroup
-    && accessoriesGroup === accessories2Group) {
+    && accessoryLayersConflict(traits.Accessories, traits["Accessories 2"])) {
     return `Accessories and Accessories 2 cannot both use a ${accessoriesGroup}.`;
   }
 
@@ -1073,16 +1029,10 @@ function applySpecialSideEffects(traits: Record<string, string>) {
 }
 
 function applyAccessoryLayerSideEffects(traits: Record<string, string>, changedTraitType: S2TraitLabTrait) {
-  const next = { ...traits };
-  if (!ACCESSORY_SLOT_TRAITS.has(changedTraitType)) return next;
-
-  const oppositeTrait = oppositeAccessoryTrait(changedTraitType);
-  if (!oppositeTrait) return next;
-
-  const changedGroup = accessoryLayerGroup(next[changedTraitType]);
-  const oppositeGroup = accessoryLayerGroup(next[oppositeTrait]);
-  if (changedGroup && changedGroup === oppositeGroup) next[oppositeTrait] = "None";
-  return next;
+  return {
+    ...traits,
+    ...accessoryLayerSideEffect(traits, changedTraitType),
+  };
 }
 
 function applyTraitSideEffects(traits: Record<string, string>, changedTraitType: S2TraitLabTrait) {
@@ -1104,6 +1054,45 @@ function proposedAttributePatchForAll(previous: Record<string, string>, next: Re
     if (!valuesMatch(previous[editable], next[editable])) patch[editable] = next[editable] || "None";
   }
   return patch;
+}
+
+export function prepareTraitMarketplaceSelection(
+  traits: Record<string, string>,
+  traitType: S2TraitLabTrait,
+  requestedValue: string,
+) {
+  if (!isS2UnlockableTrait(traitType)) {
+    throw Object.assign(new Error(`${traitType} is not sold in the Trait Marketplace.`), { status: 400 });
+  }
+
+  const option = resolveTraitOption(traitType, requestedValue);
+  if (!option || !Number.isSafeInteger(option.traitId)) {
+    throw Object.assign(new Error("This trait is not an approved marketplace listing."), { status: 404 });
+  }
+  if (valuesMatch(traits[traitType], option.value)) {
+    throw Object.assign(new Error(`Droid already has ${traitType}: ${option.value}.`), { status: 409 });
+  }
+
+  const nextTraits = applyTraitSideEffects({
+    ...traits,
+    [traitType]: option.value,
+  }, traitType);
+  if (!valuesMatch(nextTraits[traitType], option.value)) {
+    throw Object.assign(new Error(`The current Special trait hides ${traitType}. Remove it before buying this trait.`), { status: 409 });
+  }
+
+  const conflict = validationConflict(nextTraits);
+  const existingConflict = validationConflict(traits);
+  const selectedHatTakesLayerPriority = traitType === "Hat" && Boolean(conflict) && !existingConflict;
+  if (conflict && !selectedHatTakesLayerPriority) {
+    throw Object.assign(new Error(conflict), { status: 409 });
+  }
+
+  return {
+    option,
+    nextTraits,
+    proposedAttributes: proposedAttributePatch(traits, nextTraits, traitType),
+  };
 }
 
 function rerollAllEligibleTraits(traits: Record<string, string>, supplyLedger?: TraitSupplyLedger) {

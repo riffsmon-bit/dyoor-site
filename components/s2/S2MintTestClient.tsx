@@ -17,6 +17,7 @@ import {
 } from "viem";
 import { dyoorSeason2SeaDropAbi } from "@/lib/contracts/abis";
 import { dyoorS2Contract } from "@/lib/contracts/addresses";
+import { MONAD_CHAIN_HEX, MONAD_CHAIN_ID, MONAD_EXPLORER_URL, MONAD_RPC_URL } from "@/lib/monad";
 import { useWalletService } from "@/providers/WalletServiceProvider";
 import { Alert, Button, EmptyState, LoadingSkeleton, PageShell, SectionHeader, StatCard } from "@/components/ui/DyoorUi";
 
@@ -49,11 +50,11 @@ const MINT_MODES: Array<{ value: MintMode; label: string; proof: boolean }> = [
   { value: "public", label: "Public", proof: false },
 ];
 
-const S2_CHAIN_ID = Number(process.env.NEXT_PUBLIC_DYOOR_S2_CHAIN_ID || process.env.NEXT_PUBLIC_MONAD_TESTNET_CHAIN_ID || "10143");
-const S2_CHAIN_HEX = `0x${Math.max(1, S2_CHAIN_ID || 10143).toString(16)}`;
-const S2_CHAIN_NAME = process.env.NEXT_PUBLIC_DYOOR_S2_CHAIN_NAME || "Monad Testnet";
-const S2_RPC_URL = process.env.NEXT_PUBLIC_DYOOR_S2_RPC_URL || process.env.NEXT_PUBLIC_MONAD_TESTNET_RPC_URL || "https://testnet-rpc.monad.xyz";
-const S2_EXPLORER_URL = (process.env.NEXT_PUBLIC_DYOOR_S2_EXPLORER_URL || "https://testnet.monadscan.com").replace(/\/$/, "");
+const S2_CHAIN_ID = MONAD_CHAIN_ID;
+const S2_CHAIN_HEX = MONAD_CHAIN_HEX;
+const S2_CHAIN_NAME = "Monad Mainnet";
+const S2_RPC_URL = MONAD_RPC_URL;
+const S2_EXPLORER_URL = MONAD_EXPLORER_URL;
 const S2_START_BLOCK = BigInt(Math.max(0, Number(process.env.NEXT_PUBLIC_DYOOR_S2_START_BLOCK || "0") || 0));
 const S2_LOG_CHUNK_SIZE = BigInt(Math.min(100, Math.max(1, Number(process.env.NEXT_PUBLIC_DYOOR_S2_LOG_CHUNK_SIZE || "100") || 100)));
 const NFT_OWNER_SCAN_LIMIT = 250n;
@@ -62,7 +63,7 @@ const NFT_LOG_REQUEST_DELAY_MS = 60;
 const TRANSFER_EVENT = parseAbiItem("event Transfer(address indexed from, address indexed to, uint256 indexed tokenId)");
 
 const s2Chain = defineChain({
-  id: Math.max(1, S2_CHAIN_ID || 10143),
+  id: S2_CHAIN_ID,
   name: S2_CHAIN_NAME,
   nativeCurrency: { decimals: 18, name: "MON", symbol: "MON" },
   rpcUrls: {
@@ -129,14 +130,14 @@ function normalizePhaseConfig(raw: unknown): PhaseConfig {
 function normalizeError(error: unknown) {
   const message = error instanceof Error ? error.message : String(error || "");
   if (/user rejected|user denied|rejected request|denied transaction/i.test(message)) return "Transaction rejected in wallet.";
-  if (/requests limited|rate limit|too many requests/i.test(message)) return "Monad testnet RPC rate limit hit. Wait a moment and refresh NFTs.";
+  if (/requests limited|rate limit|too many requests/i.test(message)) return "Monad RPC rate limit hit. Wait a moment and refresh NFTs.";
   if (/insufficient funds/i.test(message)) return "Insufficient MON for mint price or gas.";
   if (/allowlist|proof|Merkle/i.test(message)) return "Allowlist proof rejected for this wallet.";
   if (/walletlimit|wallet limit/i.test(message)) return "Wallet mint limit reached.";
   if (/mintinactive|inactive/i.test(message)) return "Selected mint phase is not active.";
   if (/incorrectpayment|payment/i.test(message)) return "Mint payment did not match contract price.";
   if (/maxsupply|supply/i.test(message)) return "Mint would exceed remaining supply.";
-  if (/network|chain/i.test(message)) return "Wrong network. Switch to Monad testnet.";
+  if (/network|chain/i.test(message)) return "Wrong network. Switch to Monad mainnet.";
   return message || "Mint test failed.";
 }
 
@@ -260,7 +261,7 @@ export function S2MintTestClient() {
     }
   }, [wallet]);
 
-  const switchToTestnet = useCallback(async () => {
+  const switchToMonad = useCallback(async () => {
     const provider = await wallet.getProvider();
     try {
       await provider.request({ method: "wallet_switchEthereumChain", params: [{ chainId: S2_CHAIN_HEX }] });
@@ -282,8 +283,8 @@ export function S2MintTestClient() {
   const connectWallet = useCallback(async () => {
     setError("");
     await wallet.connect();
-    await switchToTestnet().catch(() => undefined);
-  }, [switchToTestnet, wallet]);
+    await switchToMonad().catch(() => undefined);
+  }, [switchToMonad, wallet]);
 
   const refreshReads = useCallback(async () => {
     const requestId = ++readRequest.current;
@@ -516,7 +517,7 @@ export function S2MintTestClient() {
       return;
     }
     if (wrongNetwork) {
-      await switchToTestnet();
+      await switchToMonad();
       return;
     }
 
@@ -579,7 +580,7 @@ export function S2MintTestClient() {
       <SectionHeader
         eyebrow="Internal Test Route"
         title="Season 2 Mint Test"
-        copy="Hidden test console for dyoor.xyz direct mints on Monad testnet."
+        copy="Hidden test console for dyoor.xyz direct mints on Monad mainnet."
         actions={(
           <div className="flex flex-wrap gap-3">
             {!wallet.connected ? (
@@ -587,7 +588,7 @@ export function S2MintTestClient() {
                 {wallet.status === "connecting" ? "Connecting" : "Connect Wallet"}
               </Button>
             ) : wrongNetwork ? (
-              <Button variant="primary" onClick={() => void switchToTestnet()}>
+              <Button variant="primary" onClick={() => void switchToMonad()}>
                 Switch Network
               </Button>
             ) : (

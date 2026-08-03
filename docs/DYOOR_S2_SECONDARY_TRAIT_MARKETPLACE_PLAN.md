@@ -2,6 +2,8 @@
 
 This is a planning document, not an implementation spec or audit.
 
+> Update (August 2026): the site now includes a direct-equip primary Trait Marketplace where holders buy approved optional traits with Energy or MON. See `docs/DYOOR_S2_TRAIT_MARKETPLACE.md`. The ERC-1155 inventory and user-to-user secondary market described below remain future work.
+
 ## Why This Matters
 
 If the final Season 2 NFT supply is cut below 3,333, individual traits become more sensitive to active supply. The Trait Lab already moves traits through reroll, unlock, remove, and burn-style accounting. A secondary trait marketplace should build on that accounting instead of treating metadata edits as arbitrary JSON changes.

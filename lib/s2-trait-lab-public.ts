@@ -99,10 +99,7 @@ function configuredS2RpcUrl() {
 }
 
 function configuredS2PublicRpcUrl() {
-  return firstUsableRpc(
-    ["NEXT_PUBLIC_DYOOR_S2_RPC_URL", "NEXT_PUBLIC_MONAD_RPC_URL"],
-    true,
-  ) || DEFAULT_MONAD_MAINNET_RPC_URL;
+  return DEFAULT_MONAD_MAINNET_RPC_URL;
 }
 
 function isAlchemyLikeUrl(value: string) {

@@ -118,6 +118,9 @@ export async function GET(_request: Request, context: EnergyRouteContext) {
     serverSettledTraitLabDebitRaw: traitLabDebits.debitRaw,
     serverSettledTraitLabDebitEnergy: format(traitLabDebits.debitRaw),
     serverSettledTraitLabDebitCount: traitLabDebits.debitCount,
+    serverSettledEnergyDebitRaw: traitLabDebits.debitRaw,
+    serverSettledEnergyDebitEnergy: format(traitLabDebits.debitRaw),
+    serverSettledEnergyDebitCount: traitLabDebits.debitCount,
     missingSpendableRaw: "0",
     missingSpendableEnergy: "0",
     energyBankSyncPending: false,
@@ -125,6 +128,6 @@ export async function GET(_request: Request, context: EnergyRouteContext) {
     lifetimeEnergy: format(lifetimeRaw),
     entryCount: balance.entryCount,
     lastUpdatedAt: balance.lastUpdatedAt,
-    dataSource: "energy-bank+server-trait-lab-ledger+staking-pending",
+    dataSource: "energy-bank+server-settled-energy-ledger+staking-pending",
   });
 }

@@ -16,11 +16,7 @@ const DEFAULT_RETRIES = 2;
 const inFlightReads = new Map<ReadKey, Promise<unknown>>();
 
 function configuredUrls() {
-  return [
-    process.env.NEXT_PUBLIC_MONAD_RPC_URL,
-    process.env.NEXT_PUBLIC_MONAD_FALLBACK_RPC,
-    DEFAULT_MONAD_RPC_URL,
-  ].filter((url, index, urls): url is string => Boolean(url) && urls.indexOf(url) === index);
+  return [DEFAULT_MONAD_RPC_URL];
 }
 
 function timeout<T>(promise: Promise<T>, timeoutMs: number, label: string): Promise<T> {

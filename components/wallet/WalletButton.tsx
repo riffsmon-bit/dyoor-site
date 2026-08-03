@@ -10,6 +10,7 @@ function shortAddress(address?: string) {
 export function WalletButton() {
   const wallet = useWalletService();
   const [menuOpen, setMenuOpen] = useState(false);
+  const [switchError, setSwitchError] = useState("");
   const menuRef = useRef<HTMLDivElement>(null);
   const loading = wallet.status === "loading";
   const connecting = wallet.status === "connecting";
@@ -38,10 +39,16 @@ export function WalletButton() {
 
   async function onClick() {
     if (wrongNetwork) {
-      await wallet.switchChain().catch(() => {});
+      setSwitchError("");
+      try {
+        await wallet.switchChain();
+      } catch (caught) {
+        setSwitchError(caught instanceof Error ? caught.message : "Wallet could not switch to Monad mainnet.");
+      }
       return;
     }
     if (connected) {
+      setSwitchError("");
       setMenuOpen((open) => !open);
       return;
     }
@@ -85,10 +92,17 @@ export function WalletButton() {
         type="button"
         disabled={loading || connecting}
         onClick={() => void onClick()}
-        title={wallet.error || (wrongNetwork ? "Switch wallet to Monad" : connected ? "Open wallet options" : "Connect wallet")}
+        title={wrongNetwork
+          ? switchError || wallet.error || "Switch wallet to Monad mainnet (chain 143)"
+          : wallet.error || (connected ? "Open wallet options" : "Connect wallet")}
       >
         <span className="block truncate">{label}</span>
       </button>
+      {wrongNetwork && switchError ? (
+        <div className="absolute right-0 top-[calc(100%+0.55rem)] z-[130] w-72 rounded border border-red-300/40 bg-[#160a14] p-3 text-left text-xs font-bold normal-case text-red-100 shadow-[0_18px_42px_rgba(0,0,0,.55)]" role="alert">
+          {switchError}
+        </div>
+      ) : null}
       {showMenu ? (
         <div
           className="absolute right-0 top-[calc(100%+0.55rem)] z-[120] w-56 rounded border border-dyoor-cyan/35 bg-[#060817] p-2 text-left shadow-[0_18px_42px_rgba(0,0,0,.55)]"
