@@ -65,10 +65,12 @@ A MON transaction must match all of the following:
 - Quote wallet as sender
 - Configured treasury as recipient
 - Exact tier price as value
-- Exact quote ID in transaction data
+- Empty transaction data so delegated treasury accounts receive a plain native transfer
+- Confirmation within the quote payment window
 - Successful confirmed receipt
+- Transaction hash claimed by only one marketplace quote
 
-The quote reference prevents one same-priced transaction from being replayed for another listing or Droid.
+The signed purchase authorization identifies the exact quote, listing, and Droid. Exact payment checks plus the one-use transaction claim prevent a confirmed transfer from settling more than one purchase without invoking treasury contract code.
 
 ## API Routes
 

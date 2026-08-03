@@ -108,7 +108,6 @@ type MarketplaceQuote = {
     from: string;
     to: string;
     value: string;
-    data: string;
   } | null;
   error?: string;
   recoveryRequired?: boolean;
@@ -546,7 +545,7 @@ export function TraitMarketplaceClient() {
       const signature = await wallet.signMessage(targetQuote.purchaseAuthorization.message);
       if (targetQuote.paymentMode === "mon" && !paymentTxHash && !quoteCanRecover(targetQuote.status)) {
         const payment = targetQuote.monPaymentRequest;
-        if (!payment?.to || !payment.value || !payment.data) throw new Error("MON payment request is incomplete.");
+        if (!payment?.to || !payment.value) throw new Error("MON payment request is incomplete.");
         setStatus(`Switching to Monad mainnet (chain ${MONAD_MAINNET_CHAIN_ID}) for the MON payment.`);
         await wallet.switchChain();
         const provider = await wallet.getProvider();
@@ -564,7 +563,6 @@ export function TraitMarketplaceClient() {
           from: walletAddress,
           to: payment.to,
           value: hexQuantity(payment.value),
-          data: payment.data,
         });
         persistPending({
           wallet: walletAddress,

@@ -120,7 +120,7 @@ test("quote and purchase signatures bind the Droid, exact trait, payment mode, a
   );
 });
 
-test("marketplace settlement enforces live supply and quote-bound exact MON payments", () => {
+test("marketplace settlement enforces live supply and exact one-use MON payments", () => {
   const source = fs.readFileSync("lib/s2-trait-marketplace.ts", "utf8");
   const energyRoute = fs.readFileSync("app/api/energy/[wallet]/route.ts", "utf8");
   const client = fs.readFileSync("components/s2/TraitMarketplaceClient.tsx", "utf8");
@@ -133,9 +133,14 @@ test("marketplace settlement enforces live supply and quote-bound exact MON paym
   assert.match(source, /assertSupplyDeltasAvailable\(supplyDeltas, record\.quoteId\)/);
   assert.match(source, /verifyS2TokenOwner/);
   assert.match(source, /tx\.value !== BigInt\(quote\.costMonRaw\)/);
-  assert.match(source, /tx\.data.*traitMarketplaceMonPaymentData/);
+  assert.match(source, /String\(tx\.data \|\| "0x"\)\.toLowerCase\(\) !== "0x"/);
+  assert.match(source, /provider\.getBlock\(receipt\.blockNumber\)/);
+  assert.match(source, /paymentMinedAt < quoteCreatedAt - MON_PAYMENT_CLOCK_SKEW_MS/);
+  assert.match(source, /paymentMinedAt > quoteExpiresAt \+ MON_PAYMENT_EXPIRY_GRACE_MS/);
+  assert.doesNotMatch(source, /DYOOR Trait Marketplace:/);
   assert.match(source, /normalizeWallet\(tx\.from\) !== quote\.wallet/);
   assert.match(source, /normalizeWallet\(tx\.to\).*treasuryWallet/);
+  assert.match(source, /claimTraitMarketplaceMonPayment/);
   assert.match(source, /claimTraitLabEnergyDebit/);
   assert.match(source, /extendTraitSupplyReservation/);
   assert.match(source, /createTraitMarketplaceLivePreview/);
@@ -146,6 +151,7 @@ test("marketplace settlement enforces live supply and quote-bound exact MON paym
   assert.match(client, /\/api\/s2\/trait-marketplace\/preview/);
   assert.match(client, /Pay Energy/);
   assert.match(client, /Pay MON/);
+  assert.doesNotMatch(client, /data: payment\.data/);
   assert.match(previewRoute, /marketplace-live-preview/);
   assert.match(nextConfig, /\/api\/s2\/trait-marketplace\/preview/);
   assert.match(nextConfig, /\/api\/s2\/trait-marketplace\/quote/);

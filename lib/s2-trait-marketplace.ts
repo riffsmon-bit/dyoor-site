@@ -107,6 +107,8 @@ type MarketplaceRegistryListing = {
 const ENERGY_BANK_ABI = ["function spendableEnergy(address user) view returns (uint256)"];
 const QUOTE_AUTH_WINDOW_MS = 5 * 60 * 1000;
 const RESERVATION_SETTLE_MS = 75;
+const MON_PAYMENT_CLOCK_SKEW_MS = 60 * 1000;
+const MON_PAYMENT_EXPIRY_GRACE_MS = 2 * 60 * 1000;
 
 function positiveInteger(value: unknown) {
   const parsed = Number(value || 0);
@@ -320,10 +322,6 @@ function purchaseAuthorization(quote: TraitMarketplaceQuoteRecord) {
   return { message };
 }
 
-export function traitMarketplaceMonPaymentData(quoteId: string) {
-  return ethers.hexlify(ethers.toUtf8Bytes(`DYOOR Trait Marketplace:${quoteId.toLowerCase()}`));
-}
-
 function quoteResponse(quote: TraitMarketplaceQuoteRecord, previewDataUrl = "") {
   const config = traitLabPublicConfig();
   return {
@@ -358,7 +356,6 @@ function quoteResponse(quote: TraitMarketplaceQuoteRecord, previewDataUrl = "") 
       from: quote.wallet,
       to: config.treasuryWallet,
       value: quote.costMonRaw,
-      data: traitMarketplaceMonPaymentData(quote.quoteId),
     } : null,
   };
 }
@@ -546,12 +543,26 @@ async function verifyTraitMarketplaceMonPayment(quote: TraitMarketplaceQuoteReco
   if (!tx) throw Object.assign(new Error("Marketplace payment is not available yet."), { status: 409 });
   if (!receipt) throw Object.assign(new Error("Marketplace payment is not confirmed yet."), { status: 409 });
   if (receipt.status !== 1) throw Object.assign(new Error("Marketplace payment failed on-chain."), { status: 400 });
+  const paymentBlock = await provider.getBlock(receipt.blockNumber);
+  if (!paymentBlock) throw Object.assign(new Error("Marketplace payment block is not available yet."), { status: 409 });
   if (Number(tx.chainId) !== MONAD_CHAIN_ID) throw Object.assign(new Error("Marketplace payment used the wrong network."), { status: 400 });
   if (normalizeWallet(tx.from) !== quote.wallet) throw Object.assign(new Error("Marketplace payment sender does not match the quote wallet."), { status: 400 });
   if (normalizeWallet(tx.to) !== normalizeWallet(config.treasuryWallet)) throw Object.assign(new Error("Marketplace payment recipient does not match the treasury."), { status: 400 });
   if (tx.value !== BigInt(quote.costMonRaw)) throw Object.assign(new Error("Marketplace payment amount does not exactly match the quote."), { status: 400 });
-  if (String(tx.data || "0x").toLowerCase() !== traitMarketplaceMonPaymentData(quote.quoteId).toLowerCase()) {
-    throw Object.assign(new Error("Marketplace payment reference does not match this quote."), { status: 400 });
+  if (String(tx.data || "0x").toLowerCase() !== "0x") {
+    throw Object.assign(new Error("Marketplace payment must be a plain MON transfer without contract calldata."), { status: 400 });
+  }
+  const quoteCreatedAt = Date.parse(quote.createdAt);
+  const quoteExpiresAt = Date.parse(quote.expiresAt);
+  const paymentMinedAt = Number(paymentBlock.timestamp) * 1000;
+  if (!Number.isFinite(quoteCreatedAt) || !Number.isFinite(quoteExpiresAt) || !Number.isFinite(paymentMinedAt)) {
+    throw Object.assign(new Error("Marketplace payment timing could not be verified."), { status: 500 });
+  }
+  if (paymentMinedAt < quoteCreatedAt - MON_PAYMENT_CLOCK_SKEW_MS) {
+    throw Object.assign(new Error("Marketplace payment predates this quote."), { status: 400 });
+  }
+  if (paymentMinedAt > quoteExpiresAt + MON_PAYMENT_EXPIRY_GRACE_MS) {
+    throw Object.assign(new Error("Marketplace payment was confirmed after the quote payment window closed."), { status: 400 });
   }
   return {
     txHash,
