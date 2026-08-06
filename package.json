@@ -20,6 +20,7 @@
     "test:ascension-blueprints": "node scripts/test-ascension-blueprints.js",
     "export-ascension-blueprints": "node scripts/export-ascension-blueprints.js",
     "export-ascension-wallets": "node scripts/export-ascension-wallets.js",
+    "export:robinhood-gtd": "node scripts/export-robinhood-gtd-wallets.js",
     "check-blueprint-matches": "node scripts/check-blueprint-matches.js",
     "generate:s2-allowlist": "node scripts/generate-s2-direct-allowlist.js",
     "upload:pinata": "node scripts/upload-pinata-folder.js",

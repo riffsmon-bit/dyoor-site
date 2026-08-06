@@ -26,6 +26,7 @@ function normalizeAddress(address?: string) {
 export function SiteNav() {
   const pathname = usePathname();
   const isWorldApp = pathname.startsWith("/dyoor-world");
+  const isStandaloneCampaign = pathname.startsWith("/robinhood");
   const walletService = useWalletService();
   const walletAddress = normalizeAddress(walletService.address);
   const [menuOpen, setMenuOpen] = useState(false);
@@ -33,7 +34,7 @@ export function SiteNav() {
   const menuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (!menuOpen || isWorldApp) return;
+    if (!menuOpen || isWorldApp || isStandaloneCampaign) return;
     const previousOverflow = document.body.style.overflow;
     document.body.style.overflow = "hidden";
 
@@ -46,11 +47,11 @@ export function SiteNav() {
       document.body.style.overflow = previousOverflow;
       document.removeEventListener("keydown", onKeyDown);
     };
-  }, [isWorldApp, menuOpen]);
+  }, [isStandaloneCampaign, isWorldApp, menuOpen]);
 
   useEffect(() => {
     let active = true;
-    if (isWorldApp || !walletAddress) return () => {
+    if (isWorldApp || isStandaloneCampaign || !walletAddress) return () => {
       active = false;
     };
 
@@ -68,7 +69,7 @@ export function SiteNav() {
     return () => {
       active = false;
     };
-  }, [isWorldApp, walletAddress]);
+  }, [isStandaloneCampaign, isWorldApp, walletAddress]);
 
   const isActive = (href: string) => {
     if (href === "/#swap") return pathname === "/";
@@ -78,7 +79,7 @@ export function SiteNav() {
   const showAdminLink = Boolean(walletAddress && authorizedAdminWallet === walletAddress) || pathname.startsWith("/admin");
   const links = showAdminLink ? [...navLinks, adminLink] : navLinks;
 
-  if (isWorldApp) return null;
+  if (isWorldApp || isStandaloneCampaign) return null;
 
   return (
     <header className="sticky top-0 z-[90] border-b border-dyoor-purple/25 bg-[#050513] shadow-[0_0_34px_rgba(131,110,249,.16)]">
