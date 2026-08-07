@@ -15,7 +15,7 @@ const socials = [
 
 export function SiteFooter() {
   const pathname = usePathname();
-  if (pathname.startsWith("/dyoor-world")) return null;
+  if (pathname.startsWith("/dyoor-world") || pathname.startsWith("/robinhood")) return null;
 
   return (
     <footer className="border-t border-dyoor-purple/25 bg-[#050513]/72 shadow-[0_-26px_54px_rgba(131,110,249,.10)]">
