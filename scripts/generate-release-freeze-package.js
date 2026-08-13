@@ -3,6 +3,7 @@ import { execFileSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { RELEASE_CONTRACTS } from "./lib/release-artifacts.js";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const MONAD_COLLECTION = "0x349D8eb480c92cF75371fbA5C6344A4d11b9103A";
@@ -123,24 +124,30 @@ if (
 
 const frozenAt = new Date().toISOString();
 const branch = run("git", ["branch", "--show-current"]);
-const artifacts = reproducibility.runA.records.map((record) => ({
-  ...record,
-  sourceCommit,
-  compiler: "0.8.24+commit.e11b9ed9",
-  compilerSettings: {
-    optimizerEnabled: true,
-    optimizerRuns: 200,
-    viaIR: true,
-    evmVersion: "paris",
-    metadataBytecodeHash: "ipfs",
-    foundryProfile: "release",
-    releaseScope: ["src/droid", "src/economic"],
-  },
-  libraries: [],
-  linkedAddresses: [],
-  createBehavior: "CREATE",
-  auditStatus: "NOT_STARTED",
-}));
+const artifacts = reproducibility.runA.records.map((record) => {
+  const definition = RELEASE_CONTRACTS.find((candidate) => candidate.contract === record.contract);
+  if (!definition) throw new Error(`Missing release definition for ${record.contract}.`);
+  return {
+    ...record,
+    source: definition.source,
+    chainTargets: definition.chains,
+    sourceCommit,
+    compiler: "0.8.24+commit.e11b9ed9",
+    compilerSettings: {
+      optimizerEnabled: true,
+      optimizerRuns: 200,
+      viaIR: true,
+      evmVersion: "paris",
+      metadataBytecodeHash: "ipfs",
+      foundryProfile: "release",
+      releaseScope: ["src/droid", "src/economic"],
+    },
+    libraries: [],
+    linkedAddresses: [],
+    createBehavior: "CREATE",
+    auditStatus: "NOT_STARTED",
+  };
+});
 const artifactManifest = {
   schema: "hoodyoor-contract-artifact-freeze-v2",
   frozenAt,
