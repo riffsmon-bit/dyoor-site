@@ -1,0 +1,15 @@
+node_modules/
+dist/
+coverage/
+*.log
+
+.env
+.env.local
+.env.*
+!.env.example
+
+backups/discord/*.json
+database/*.db
+database/*.db-*
+
+.DS_Store

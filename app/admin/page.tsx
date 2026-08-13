@@ -1405,6 +1405,7 @@ export default function AdminPage() {
           actions={(
             <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
               <Link className="btn-secondary text-center" href="/admin/metadata">Metadata Manager</Link>
+              <Link className="btn-secondary text-center" href="/admin/droid-economy">Droid Economy</Link>
               <WalletButton />
               <Button variant="primary" onClick={runSnapshotPrimaryAction} disabled={loading}>{loading ? "Working..." : snapshotPrimaryLabel}</Button>
             </div>

@@ -1,0 +1,34 @@
+{
+  "schema": "dyoor-hoodyoor-opensea-details-v1",
+  "collection": {
+    "name": "HoodYØØR",
+    "chain": "robinhood",
+    "contractAddress": null,
+    "totalSupply": 3333,
+    "category": "Art",
+    "description": "HoodYØØR is a collection of 3,333 dynamic Droids built for Robinhood Chain. Every 128×128 image and its metadata are generated entirely onchain from a frozen 201-trait catalog. Holders can spend non-transferable Energy to reroll mutable traits while each Droid’s background and body remain locked. DYOR—and stay in the hood.",
+    "disclaimer": "Independent collection built for Robinhood Chain. Not affiliated with Robinhood Markets, Inc.",
+    "website": "https://dyoor.netlify.app/robinhood",
+    "x": "https://x.com/dyoor_",
+    "telegram": "https://t.me/dyoorintake"
+  },
+  "creatorEarnings": {
+    "contractBasisPoints": 300,
+    "percentage": 3,
+    "receiver": "0xC7f55cE6A7dF9A79cc4A643a5081230F890c7AA6"
+  },
+  "launch": {
+    "mintPriceWei": "2500000000000000",
+    "ownerReserve": 150,
+    "secondaryTradingInitiallyLocked": true,
+    "automaticTradingUnlockSupply": 1667
+  },
+  "branding": {
+    "desktopBanner": "data/robinhood/branding/opensea/opensea-banner-desktop.png",
+    "mobileBanner": "data/robinhood/branding/opensea/opensea-banner-mobile.png",
+    "bannerLogo": "data/robinhood/branding/opensea/opensea-banner-logo.png",
+    "overviewBackground": "data/robinhood/branding/opensea/opensea-overview-background.png",
+    "pixelArtPreview": "data/robinhood/branding/opensea/opensea-pixel-art-preview.png",
+    "socialShare": "data/robinhood/branding/opensea/opensea-social-share.png"
+  }
+}

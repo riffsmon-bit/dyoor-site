@@ -1,0 +1,16 @@
+{
+  "generatedAt": "2026-07-14T03:22:21.089Z",
+  "contractAddress": "0x349D8eb480c92cF75371fbA5C6344A4d11b9103A",
+  "contract": "contracts/DYOORSeason2SeaDrop.sol:DYOORSeason2SeaDrop",
+  "chainId": "143",
+  "rpcUrl": "https://rpc.monad.xyz",
+  "compiler": "v0.8.17+commit.8df45f5f",
+  "optimizer": true,
+  "optimizerRuns": 1,
+  "seaDrop": "0x00005EA00Ac477B1030CE78506496e8C2dE24bf5",
+  "alreadyVerified": null,
+  "execute": true,
+  "command": "forge verify-contract 0x349D8eb480c92cF75371fbA5C6344A4d11b9103A contracts/DYOORSeason2SeaDrop.sol:DYOORSeason2SeaDrop --chain-id 143 --compiler-version v0.8.17+commit.8df45f5f --num-of-optimizations 1 --constructor-args $(cast abi-encode constructor(string,string,address[]) \"D.Y.O.O.R\" \"DYOOR\" [0x00005EA00Ac477B1030CE78506496e8C2dE24bf5]) --etherscan-api-key $MONADSCAN_API_KEY --watch",
+  "output": "Start verifying contract `0x349D8eb480c92cF75371fbA5C6344A4d11b9103A` deployed on 143\nCompiler version: v0.8.17+commit.8df45f5f\nOptimizations:    1\nConstructor args: 0x000000000000000000000000000000000000000000000000000000000000006000000000000000000000000000000000000000000000000000000000000000a000000000000000000000000000000000000000000000000000000000000000e00000000000000000000000000000000000000000000000000000000000000009442e592e4f2e4f2e520000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000544594f4f52000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000005ea00ac477b1030ce78506496e8c2de24bf5\nAttempting to verify on Sourcify. Pass the --etherscan-api-key <API_KEY> to verify on Etherscan, or use the --verifier flag to verify on another provider.\n\nSubmitting verification for [DYOORSeason2SeaDrop] \"0x349D8eb480c92cF75371fbA5C6344A4d11b9103A\".\nSubmitted contract for verification:\n\tVerification Job ID: `70d6cdd7-8f4a-468f-816d-cf7476cdc76c`\n\tURL: https://sourcify.dev/server/v2/verify/70d6cdd7-8f4a-468f-816d-cf7476cdc76c\nContract successfully verified:\nStatus: `exact_match`\n",
+  "error": "Warning: Verification is still pending...; waiting 15 seconds before trying again (7 tries remaining)\n"
+}

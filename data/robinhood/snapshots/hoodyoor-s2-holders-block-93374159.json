@@ -1,0 +1,2065 @@
+{
+  "schema": "hoodyoor-s2-holder-snapshot-v2",
+  "generatedAt": "2026-08-05T14:55:43.286Z",
+  "source": {
+    "chain": "Monad",
+    "chainId": 143,
+    "contract": "0x349D8eb480c92cF75371fbA5C6344A4d11b9103A",
+    "blockNumber": 93374159,
+    "blockHash": "0x9c3aca99feff816b4e43a4f696db3ffa916a16a608ef99d46f278aa1cc5d9ade",
+    "blockTimestamp": "2026-08-05T14:44:55.000Z",
+    "name": "D.Y.O.O.R",
+    "symbol": "DYOOR",
+    "owner": "0xC7f55cE6A7dF9A79cc4A643a5081230F890c7AA6",
+    "treasury": "0x4D540f7D0Eb841c839334655C9f88313D750c6d5",
+    "totalSupply": 1038,
+    "totalMinted": 1096,
+    "maxSupply": 3333
+  },
+  "destination": {
+    "collection": "HoodYØØR",
+    "chain": "Robinhood Chain",
+    "chainId": 4663,
+    "eligibility": "paid-gtd",
+    "maxMintPerHolder": 1
+  },
+  "summary": {
+    "liveSourceTokens": 1038,
+    "burnedSourceTokens": 58,
+    "holderWallets": 133,
+    "contractHolderWallets": 61,
+    "gtdEligibleWallets": 133,
+    "gtdSpots": 133
+  },
+  "burnedSourceTokenIds": [
+    4,
+    23,
+    43,
+    47,
+    134,
+    137,
+    138,
+    139,
+    140,
+    143,
+    147,
+    151,
+    152,
+    155,
+    156,
+    157,
+    161,
+    163,
+    164,
+    165,
+    167,
+    170,
+    171,
+    176,
+    183,
+    388,
+    394,
+    399,
+    402,
+    404,
+    464,
+    465,
+    466,
+    468,
+    471,
+    472,
+    474,
+    479,
+    483,
+    607,
+    667,
+    688,
+    694,
+    744,
+    836,
+    838,
+    879,
+    913,
+    927,
+    929,
+    934,
+    954,
+    956,
+    1006,
+    1024,
+    1042,
+    1043,
+    1065
+  ],
+  "holders": [
+    {
+      "address": "0x01b840c7824eAbC167709A16A69D562ac28940f6",
+      "quantity": 15,
+      "sourceTokenIds": [
+        1047,
+        1048,
+        1049,
+        1050,
+        1051,
+        1052,
+        1053,
+        1054,
+        1055,
+        1056,
+        1069,
+        1070,
+        1071,
+        1072,
+        1073
+      ],
+      "isContract": true
+    },
+    {
+      "address": "0x02A712e8Efe2b29463ec632329BFEE7eC846Ad1c",
+      "quantity": 10,
+      "sourceTokenIds": [
+        2,
+        36,
+        592,
+        621,
+        622,
+        623,
+        626,
+        627,
+        628,
+        629
+      ],
+      "isContract": false
+    },
+    {
+      "address": "0x059354259D7D7b00965fc06C992Cb1f6cd9A9f5d",
+      "quantity": 2,
+      "sourceTokenIds": [
+        743,
+        776
+      ],
+      "isContract": true
+    },
+    {
+      "address": "0x0857dadB540E0729E58561C16125174D47D34ceC",
+      "quantity": 17,
+      "sourceTokenIds": [
+        405,
+        406,
+        407,
+        408,
+        409,
+        411,
+        412,
+        413,
+        414,
+        415,
+        417,
+        418,
+        420,
+        422,
+        423,
+        424,
+        425
+      ],
+      "isContract": true
+    },
+    {
+      "address": "0x08bBbaDea958a744135e888C7ed799ec2cbBC70c",
+      "quantity": 1,
+      "sourceTokenIds": [
+        868
+      ],
+      "isContract": false
+    },
+    {
+      "address": "0x090c6F36DF8a3a803bCBbE5fB26A91d036Fe669D",
+      "quantity": 2,
+      "sourceTokenIds": [
+        649,
+        1034
+      ],
+      "isContract": true
+    },
+    {
+      "address": "0x09EDB6c8Bde79bFC984151F2DFf8ea02deFD364d",
+      "quantity": 3,
+      "sourceTokenIds": [
+        566,
+        567,
+        568
+      ],
+      "isContract": false
+    },
+    {
+      "address": "0x0b03Dbd7149B344B9f5Ce9842ac4652b7Be45c1c",
+      "quantity": 14,
+      "sourceTokenIds": [
+        636,
+        637,
+        638,
+        640,
+        642,
+        643,
+        644,
+        842,
+        843,
+        844,
+        845,
+        857,
+        902,
+        1039
+      ],
+      "isContract": false
+    },
+    {
+      "address": "0x0b795456538a64116a51FbF85A3f2fb6eE3f7F08",
+      "quantity": 1,
+      "sourceTokenIds": [
+        1023
+      ],
+      "isContract": true
+    },
+    {
+      "address": "0x0BDc5A99B42587F14e2e5bb2794931733Bab8600",
+      "quantity": 1,
+      "sourceTokenIds": [
+        953
+      ],
+      "isContract": false
+    },
+    {
+      "address": "0x0da745F2Bd7655E4c70D6b02695ca772c8D2f69E",
+      "quantity": 1,
+      "sourceTokenIds": [
+        816
+      ],
+      "isContract": false
+    },
+    {
+      "address": "0x13DAA913a674D6dE42224A71D616c83dB61632a2",
+      "quantity": 4,
+      "sourceTokenIds": [
+        203,
+        221,
+        674,
+        805
+      ],
+      "isContract": false
+    },
+    {
+      "address": "0x182FC64F221607583bCA8043bB4171FadeE6dB8a",
+      "quantity": 1,
+      "sourceTokenIds": [
+        609
+      ],
+      "isContract": true
+    },
+    {
+      "address": "0x1C1700b4be79a4aCeEE9B4B3Df64a193426a49d7",
+      "quantity": 2,
+      "sourceTokenIds": [
+        723,
+        1005
+      ],
+      "isContract": false
+    },
+    {
+      "address": "0x1c32c58554b50639796777ee29d84fb9b25dadc1",
+      "quantity": 6,
+      "sourceTokenIds": [
+        834,
+        837,
+        967,
+        968,
+        969,
+        970
+      ],
+      "isContract": true
+    },
+    {
+      "address": "0x1C6a32bb24bf0Fce26CdFEEDdC575C8689dcE108",
+      "quantity": 1,
+      "sourceTokenIds": [
+        593
+      ],
+      "isContract": false
+    },
+    {
+      "address": "0x1f239b5f4556640AF9eBBFAccaEe7255D6acE6fC",
+      "quantity": 2,
+      "sourceTokenIds": [
+        753,
+        754
+      ],
+      "isContract": true
+    },
+    {
+      "address": "0x20ad217EE0D8dD723a593D93816aBeF60932Cc65",
+      "quantity": 8,
+      "sourceTokenIds": [
+        515,
+        516,
+        517,
+        518,
+        519,
+        520,
+        521,
+        522
+      ],
+      "isContract": false
+    },
+    {
+      "address": "0x2127833402462D8144F83e508c1648F76236B85F",
+      "quantity": 1,
+      "sourceTokenIds": [
+        889
+      ],
+      "isContract": true
+    },
+    {
+      "address": "0x238ed3354973d6B9697D866303b56a0FB16957Ab",
+      "quantity": 1,
+      "sourceTokenIds": [
+        827
+      ],
+      "isContract": false
+    },
+    {
+      "address": "0x23929AB6e97a753B38A1C06D1733A25624a9d5DF",
+      "quantity": 1,
+      "sourceTokenIds": [
+        594
+      ],
+      "isContract": true
+    },
+    {
+      "address": "0x2482E633aB14c32Ef2c9c1EdC8Ee4e1171D08ADb",
+      "quantity": 6,
+      "sourceTokenIds": [
+        265,
+        269,
+        273,
+        277,
+        288,
+        297
+      ],
+      "isContract": false
+    },
+    {
+      "address": "0x25175dE9eB8c5D9AA82bD65ceeDF1dFE435DEc9f",
+      "quantity": 2,
+      "sourceTokenIds": [
+        887,
+        888
+      ],
+      "isContract": false
+    },
+    {
+      "address": "0x256b6364fBaDB3b35A4De23eFbb70781A392713b",
+      "quantity": 1,
+      "sourceTokenIds": [
+        20
+      ],
+      "isContract": false
+    },
+    {
+      "address": "0x27100FF4Fa73d604eafc781513a31884DA3E75F8",
+      "quantity": 9,
+      "sourceTokenIds": [
+        724,
+        725,
+        726,
+        727,
+        728,
+        729,
+        730,
+        732,
+        733
+      ],
+      "isContract": false
+    },
+    {
+      "address": "0x27950a917301210eB4F16bfB2d03c92aaA53063f",
+      "quantity": 1,
+      "sourceTokenIds": [
+        963
+      ],
+      "isContract": true
+    },
+    {
+      "address": "0x28135235541742bc1424d10b5dE1963292f0C1E4",
+      "quantity": 2,
+      "sourceTokenIds": [
+        421,
+        977
+      ],
+      "isContract": false
+    },
+    {
+      "address": "0x284a9e688Fa5356F0ef73B28Cf5c0209e275079d",
+      "quantity": 1,
+      "sourceTokenIds": [
+        867
+      ],
+      "isContract": false
+    },
+    {
+      "address": "0x28E5D11C90838e7f24a8d99f916ce1292cDD367E",
+      "quantity": 1,
+      "sourceTokenIds": [
+        781
+      ],
+      "isContract": false
+    },
+    {
+      "address": "0x291bC9AaAe885625605429d8ef4aa25Babe3966F",
+      "quantity": 14,
+      "sourceTokenIds": [
+        734,
+        735,
+        736,
+        772,
+        795,
+        796,
+        797,
+        858,
+        859,
+        860,
+        890,
+        972,
+        973,
+        974
+      ],
+      "isContract": false
+    },
+    {
+      "address": "0x29CAcC19c8e9F0e10De66ea31C348a1e766137eA",
+      "quantity": 1,
+      "sourceTokenIds": [
+        933
+      ],
+      "isContract": true
+    },
+    {
+      "address": "0x2b23c8C503CdA2fE9dC8cCE83056e7A0732E5D12",
+      "quantity": 2,
+      "sourceTokenIds": [
+        822,
+        823
+      ],
+      "isContract": true
+    },
+    {
+      "address": "0x302Dbc0640dC3917dA8102608F2a0B6bab251c84",
+      "quantity": 2,
+      "sourceTokenIds": [
+        596,
+        1038
+      ],
+      "isContract": false
+    },
+    {
+      "address": "0x3155D4C7FF1becf9D5B7517276C12F72a5fcF84D",
+      "quantity": 4,
+      "sourceTokenIds": [
+        847,
+        848,
+        849,
+        852
+      ],
+      "isContract": false
+    },
+    {
+      "address": "0x335671Daf9a8A003359A7103fFc803Fb869f6974",
+      "quantity": 3,
+      "sourceTokenIds": [
+        924,
+        925,
+        926
+      ],
+      "isContract": true
+    },
+    {
+      "address": "0x33A3850086ECC3039957DeCEE1edAFC9fa87C12A",
+      "quantity": 1,
+      "sourceTokenIds": [
+        1046
+      ],
+      "isContract": false
+    },
+    {
+      "address": "0x3769e808aAfd0688062864292c6B23DDF7815FA2",
+      "quantity": 2,
+      "sourceTokenIds": [
+        850,
+        851
+      ],
+      "isContract": false
+    },
+    {
+      "address": "0x3BaF9a519367613aD4B0C096B137AA433A2C1059",
+      "quantity": 2,
+      "sourceTokenIds": [
+        580,
+        581
+      ],
+      "isContract": false
+    },
+    {
+      "address": "0x3d0de3A76cd9f856664DC5a3adfd4056E45da9ED",
+      "quantity": 7,
+      "sourceTokenIds": [
+        233,
+        554,
+        555,
+        556,
+        557,
+        624,
+        647
+      ],
+      "isContract": true
+    },
+    {
+      "address": "0x445fE5258ECb8bcA8A9eE76617cE0Bbb507059DF",
+      "quantity": 18,
+      "sourceTokenIds": [
+        538,
+        539,
+        540,
+        541,
+        542,
+        543,
+        635,
+        706,
+        813,
+        1057,
+        1058,
+        1059,
+        1060,
+        1061,
+        1062,
+        1063,
+        1067,
+        1068
+      ],
+      "isContract": false
+    },
+    {
+      "address": "0x447d3809aB984e75431854432f9d7b9325112E07",
+      "quantity": 38,
+      "sourceTokenIds": [
+        94,
+        95,
+        96,
+        97,
+        98,
+        99,
+        100,
+        101,
+        102,
+        103,
+        104,
+        105,
+        106,
+        107,
+        108,
+        109,
+        110,
+        111,
+        112,
+        113,
+        114,
+        115,
+        116,
+        117,
+        118,
+        119,
+        120,
+        121,
+        122,
+        123,
+        124,
+        125,
+        126,
+        127,
+        128,
+        129,
+        130,
+        131
+      ],
+      "isContract": true
+    },
+    {
+      "address": "0x4615B68a98A4E5bf48dC835eb2e74A296B0e2940",
+      "quantity": 2,
+      "sourceTokenIds": [
+        846,
+        976
+      ],
+      "isContract": true
+    },
+    {
+      "address": "0x47db21FaA120Afbd9BeCdF00d8d24991BE6BF57F",
+      "quantity": 1,
+      "sourceTokenIds": [
+        475
+      ],
+      "isContract": true
+    },
+    {
+      "address": "0x48477b50818b75f4b4A5C86D5fcbB35d3c0fb14D",
+      "quantity": 29,
+      "sourceTokenIds": [
+        1,
+        381,
+        382,
+        383,
+        384,
+        385,
+        386,
+        387,
+        389,
+        390,
+        391,
+        392,
+        393,
+        395,
+        397,
+        398,
+        400,
+        401,
+        403,
+        684,
+        685,
+        686,
+        687,
+        689,
+        690,
+        692,
+        693,
+        749,
+        862
+      ],
+      "isContract": false
+    },
+    {
+      "address": "0x49b9e94F9841da5dF27CB44Ede19d963b8FF6E78",
+      "quantity": 2,
+      "sourceTokenIds": [
+        462,
+        470
+      ],
+      "isContract": false
+    },
+    {
+      "address": "0x49eDE6242535bB3e2CB329a9169037473F94956E",
+      "quantity": 1,
+      "sourceTokenIds": [
+        597
+      ],
+      "isContract": false
+    },
+    {
+      "address": "0x4B7d3876955ec60b2A4c4342De9346023c2CCcc9",
+      "quantity": 30,
+      "sourceTokenIds": [
+        205,
+        460,
+        473,
+        476,
+        481,
+        482,
+        486,
+        571,
+        578,
+        664,
+        677,
+        683,
+        713,
+        774,
+        812,
+        854,
+        855,
+        880,
+        955,
+        957,
+        958,
+        961,
+        1007,
+        1008,
+        1010,
+        1017,
+        1064,
+        1066,
+        1095,
+        1096
+      ],
+      "isContract": true
+    },
+    {
+      "address": "0x4C23f74B7DA9e62ef2c2286e848B6C91f7351b07",
+      "quantity": 3,
+      "sourceTokenIds": [
+        864,
+        865,
+        866
+      ],
+      "isContract": false
+    },
+    {
+      "address": "0x4D540f7D0Eb841c839334655C9f88313D750c6d5",
+      "quantity": 101,
+      "sourceTokenIds": [
+        132,
+        135,
+        136,
+        141,
+        142,
+        144,
+        145,
+        146,
+        148,
+        149,
+        150,
+        153,
+        154,
+        158,
+        159,
+        160,
+        162,
+        166,
+        168,
+        169,
+        172,
+        173,
+        174,
+        177,
+        178,
+        179,
+        180,
+        181,
+        182,
+        184,
+        185,
+        186,
+        188,
+        190,
+        193,
+        194,
+        195,
+        196,
+        197,
+        198,
+        199,
+        200,
+        201,
+        202,
+        204,
+        206,
+        207,
+        208,
+        209,
+        210,
+        211,
+        212,
+        213,
+        214,
+        215,
+        216,
+        217,
+        218,
+        219,
+        220,
+        222,
+        223,
+        224,
+        225,
+        226,
+        227,
+        228,
+        229,
+        230,
+        232,
+        234,
+        235,
+        236,
+        237,
+        238,
+        239,
+        240,
+        241,
+        242,
+        243,
+        244,
+        245,
+        246,
+        247,
+        248,
+        249,
+        250,
+        251,
+        252,
+        253,
+        254,
+        255,
+        256,
+        258,
+        259,
+        260,
+        261,
+        262,
+        263,
+        264,
+        861
+      ],
+      "isContract": true
+    },
+    {
+      "address": "0x4e8657693c7FaBC1c22AEf935ad9c28F40892F3A",
+      "quantity": 8,
+      "sourceTokenIds": [
+        544,
+        545,
+        546,
+        547,
+        548,
+        828,
+        829,
+        830
+      ],
+      "isContract": false
+    },
+    {
+      "address": "0x4f64512f1a4A2e754D571dC81FAc34550048113a",
+      "quantity": 24,
+      "sourceTokenIds": [
+        41,
+        485,
+        487,
+        488,
+        489,
+        490,
+        491,
+        492,
+        493,
+        494,
+        679,
+        680,
+        681,
+        682,
+        872,
+        873,
+        874,
+        883,
+        886,
+        947,
+        948,
+        949,
+        950,
+        962
+      ],
+      "isContract": true
+    },
+    {
+      "address": "0x523c6F0Fd640055350aF22fA5e5b83Cd773d6fFd",
+      "quantity": 55,
+      "sourceTokenIds": [
+        355,
+        356,
+        357,
+        358,
+        359,
+        360,
+        361,
+        362,
+        363,
+        364,
+        365,
+        366,
+        367,
+        368,
+        369,
+        370,
+        371,
+        373,
+        374,
+        375,
+        376,
+        377,
+        378,
+        379,
+        380,
+        666,
+        668,
+        669,
+        671,
+        672,
+        714,
+        715,
+        716,
+        717,
+        718,
+        719,
+        720,
+        721,
+        722,
+        767,
+        768,
+        769,
+        778,
+        779,
+        875,
+        1002,
+        1003,
+        1004,
+        1026,
+        1027,
+        1028,
+        1029,
+        1030,
+        1031,
+        1032
+      ],
+      "isContract": true
+    },
+    {
+      "address": "0x5967c5080b0CeA77d6BFc133F3d926753b471501",
+      "quantity": 2,
+      "sourceTokenIds": [
+        786,
+        787
+      ],
+      "isContract": false
+    },
+    {
+      "address": "0x5aB59A28F190E0BdeB73aD880FA0F7b8a063FDD7",
+      "quantity": 35,
+      "sourceTokenIds": [
+        271,
+        372,
+        569,
+        579,
+        625,
+        630,
+        631,
+        632,
+        704,
+        705,
+        708,
+        709,
+        710,
+        711,
+        814,
+        856,
+        905,
+        915,
+        935,
+        943,
+        945,
+        979,
+        983,
+        984,
+        985,
+        987,
+        1018,
+        1020,
+        1022,
+        1074,
+        1075,
+        1077,
+        1078,
+        1089,
+        1093
+      ],
+      "isContract": false
+    },
+    {
+      "address": "0x5eE89be87d5356BD97b441669A2a21dC1dA627D6",
+      "quantity": 15,
+      "sourceTokenIds": [
+        446,
+        447,
+        448,
+        449,
+        450,
+        451,
+        452,
+        453,
+        454,
+        455,
+        456,
+        457,
+        458,
+        459,
+        461
+      ],
+      "isContract": false
+    },
+    {
+      "address": "0x5eEbD2F16495C647EBa84749f0d1C48cC4b8118D",
+      "quantity": 11,
+      "sourceTokenIds": [
+        648,
+        652,
+        675,
+        747,
+        748,
+        771,
+        884,
+        941,
+        959,
+        1035,
+        1037
+      ],
+      "isContract": false
+    },
+    {
+      "address": "0x60205BAb990Bf54C701F8850e56BC52446008930",
+      "quantity": 5,
+      "sourceTokenIds": [
+        191,
+        192,
+        582,
+        583,
+        756
+      ],
+      "isContract": false
+    },
+    {
+      "address": "0x6a55D987b74de7F2a0aAf4ce3d23c08131a6BD4C",
+      "quantity": 17,
+      "sourceTokenIds": [
+        469,
+        558,
+        559,
+        560,
+        561,
+        606,
+        775,
+        870,
+        904,
+        1009,
+        1011,
+        1019,
+        1076,
+        1090,
+        1091,
+        1092,
+        1094
+      ],
+      "isContract": false
+    },
+    {
+      "address": "0x6a640d5E3793562071D327868d79d853B2211abF",
+      "quantity": 2,
+      "sourceTokenIds": [
+        599,
+        937
+      ],
+      "isContract": false
+    },
+    {
+      "address": "0x6c284d3C5f73A8d5b0772F217aBCAD6EAb8492DB",
+      "quantity": 1,
+      "sourceTokenIds": [
+        324
+      ],
+      "isContract": false
+    },
+    {
+      "address": "0x6d2CeA496ba329A0Ce2a8e58719fC162C3d82c04",
+      "quantity": 15,
+      "sourceTokenIds": [
+        584,
+        585,
+        742,
+        766,
+        806,
+        807,
+        808,
+        809,
+        810,
+        839,
+        840,
+        921,
+        922,
+        923,
+        946
+      ],
+      "isContract": true
+    },
+    {
+      "address": "0x6d3A0Dac690994fEE3D9dd0c124b9cB8A8F2e35D",
+      "quantity": 1,
+      "sourceTokenIds": [
+        600
+      ],
+      "isContract": true
+    },
+    {
+      "address": "0x6E5dEF44c636A8E538e9448817b374C598B5369a",
+      "quantity": 10,
+      "sourceTokenIds": [
+        50,
+        133,
+        484,
+        586,
+        595,
+        650,
+        760,
+        991,
+        993,
+        997
+      ],
+      "isContract": true
+    },
+    {
+      "address": "0x6f8633E91a2AEFA1e02839a5050d7Eb25BeF92af",
+      "quantity": 3,
+      "sourceTokenIds": [
+        477,
+        788,
+        817
+      ],
+      "isContract": true
+    },
+    {
+      "address": "0x70daA14Ba6e7691815b10ff27beF779CA94De823",
+      "quantity": 2,
+      "sourceTokenIds": [
+        313,
+        990
+      ],
+      "isContract": true
+    },
+    {
+      "address": "0x7179af9DBe43f1dBfed8733B83260ECac18515C4",
+      "quantity": 27,
+      "sourceTokenIds": [
+        328,
+        329,
+        330,
+        331,
+        332,
+        333,
+        334,
+        335,
+        336,
+        337,
+        338,
+        339,
+        340,
+        341,
+        342,
+        343,
+        344,
+        345,
+        346,
+        347,
+        348,
+        349,
+        350,
+        351,
+        352,
+        353,
+        354
+      ],
+      "isContract": false
+    },
+    {
+      "address": "0x72967D57223D0C78CdcBfBeC510C74bDDc1C20b5",
+      "quantity": 25,
+      "sourceTokenIds": [
+        266,
+        267,
+        268,
+        270,
+        272,
+        274,
+        275,
+        276,
+        278,
+        279,
+        280,
+        282,
+        283,
+        284,
+        285,
+        286,
+        287,
+        289,
+        290,
+        291,
+        292,
+        293,
+        294,
+        295,
+        296
+      ],
+      "isContract": false
+    },
+    {
+      "address": "0x7938698ea7145D86321BaEca36d5eF469651d902",
+      "quantity": 3,
+      "sourceTokenIds": [
+        639,
+        641,
+        645
+      ],
+      "isContract": true
+    },
+    {
+      "address": "0x7A5B8D4fC5D11634B4AdA09AED859D20f538C3c7",
+      "quantity": 5,
+      "sourceTokenIds": [
+        300,
+        831,
+        832,
+        833,
+        835
+      ],
+      "isContract": false
+    },
+    {
+      "address": "0x82320FE9480b0a0e5Df7011A9a1CD9Ceedef784e",
+      "quantity": 3,
+      "sourceTokenIds": [
+        790,
+        791,
+        792
+      ],
+      "isContract": true
+    },
+    {
+      "address": "0x854038f3D137E753C7E3245D9163C58BBd068D91",
+      "quantity": 10,
+      "sourceTokenIds": [
+        495,
+        496,
+        497,
+        498,
+        499,
+        500,
+        501,
+        502,
+        503,
+        504
+      ],
+      "isContract": true
+    },
+    {
+      "address": "0x8DEfF44b520D753ceEb9636cF2A54adC5c74BB04",
+      "quantity": 1,
+      "sourceTokenIds": [
+        960
+      ],
+      "isContract": false
+    },
+    {
+      "address": "0x90Bd88256B02Ba3e3515Ed1e563B574c57c2aC7c",
+      "quantity": 1,
+      "sourceTokenIds": [
+        396
+      ],
+      "isContract": false
+    },
+    {
+      "address": "0x916958BC6DB45A32E0aEf7d7ed225A29a0314342",
+      "quantity": 2,
+      "sourceTokenIds": [
+        613,
+        676
+      ],
+      "isContract": false
+    },
+    {
+      "address": "0x921D16B13fe619E4510C082892B3871f3c85498c",
+      "quantity": 2,
+      "sourceTokenIds": [
+        965,
+        966
+      ],
+      "isContract": false
+    },
+    {
+      "address": "0x93a4d3D4454644A3dF432D196999424283420cD0",
+      "quantity": 1,
+      "sourceTokenIds": [
+        783
+      ],
+      "isContract": false
+    },
+    {
+      "address": "0x95334dF32d4BfCD30480Ed8FbcfA9Ce8D702E121",
+      "quantity": 1,
+      "sourceTokenIds": [
+        601
+      ],
+      "isContract": true
+    },
+    {
+      "address": "0x96724dc6B5bc79b54C56AbA4098A69Bbe935B13e",
+      "quantity": 1,
+      "sourceTokenIds": [
+        602
+      ],
+      "isContract": false
+    },
+    {
+      "address": "0x96fbE9110edFff6AC54cb2A5887BcCC0E64D74Ce",
+      "quantity": 10,
+      "sourceTokenIds": [
+        505,
+        506,
+        507,
+        508,
+        509,
+        510,
+        511,
+        512,
+        513,
+        514
+      ],
+      "isContract": true
+    },
+    {
+      "address": "0x9a06d523Fea656b41d9FBBdd0330126861a02998",
+      "quantity": 18,
+      "sourceTokenIds": [
+        187,
+        231,
+        572,
+        573,
+        574,
+        755,
+        757,
+        758,
+        759,
+        761,
+        773,
+        799,
+        800,
+        818,
+        819,
+        820,
+        821,
+        1036
+      ],
+      "isContract": true
+    },
+    {
+      "address": "0x9BEaBDa657C236Aa92e63ef32359bf69e31F4D18",
+      "quantity": 2,
+      "sourceTokenIds": [
+        633,
+        878
+      ],
+      "isContract": true
+    },
+    {
+      "address": "0x9ee7ac5BCD6aCE77F1861C8dBb7845967e9B9b46",
+      "quantity": 3,
+      "sourceTokenIds": [
+        777,
+        815,
+        824
+      ],
+      "isContract": true
+    },
+    {
+      "address": "0x9F6f33149fcb1A24dE8054b35C90ebFb9ab4B132",
+      "quantity": 1,
+      "sourceTokenIds": [
+        853
+      ],
+      "isContract": true
+    },
+    {
+      "address": "0xa235550Af7255d350Ef23c5e17e4Dc9BE0fD6086",
+      "quantity": 4,
+      "sourceTokenIds": [
+        784,
+        785,
+        794,
+        869
+      ],
+      "isContract": true
+    },
+    {
+      "address": "0xa26f5DC12BaE4b0A8a684526a3beB77F34f99426",
+      "quantity": 41,
+      "sourceTokenIds": [
+        53,
+        54,
+        55,
+        56,
+        57,
+        58,
+        59,
+        60,
+        61,
+        62,
+        63,
+        64,
+        65,
+        66,
+        67,
+        68,
+        69,
+        70,
+        71,
+        72,
+        73,
+        74,
+        75,
+        76,
+        77,
+        78,
+        79,
+        80,
+        81,
+        82,
+        83,
+        84,
+        85,
+        86,
+        87,
+        88,
+        89,
+        90,
+        91,
+        92,
+        93
+      ],
+      "isContract": true
+    },
+    {
+      "address": "0xA5cB9569a5711F71c16f48654b85f908bdd0fc93",
+      "quantity": 3,
+      "sourceTokenIds": [
+        603,
+        811,
+        964
+      ],
+      "isContract": true
+    },
+    {
+      "address": "0xA69E80f995e16abAa5eB76C395bD4E4A1B8fBDbc",
+      "quantity": 12,
+      "sourceTokenIds": [
+        467,
+        712,
+        738,
+        898,
+        901,
+        906,
+        907,
+        908,
+        1012,
+        1013,
+        1014,
+        1016
+      ],
+      "isContract": false
+    },
+    {
+      "address": "0xAAA5eB75cCAD5239774ff6450efd12609e7B3706",
+      "quantity": 5,
+      "sourceTokenIds": [
+        892,
+        893,
+        894,
+        895,
+        896
+      ],
+      "isContract": false
+    },
+    {
+      "address": "0xaB8dAdA7F6BdB042710812f5EB7223982e70e79f",
+      "quantity": 2,
+      "sourceTokenIds": [
+        570,
+        604
+      ],
+      "isContract": false
+    },
+    {
+      "address": "0xABe0f7d96e080bbAb2Ecdcb1e5785f6db2E0397d",
+      "quantity": 1,
+      "sourceTokenIds": [
+        1045
+      ],
+      "isContract": true
+    },
+    {
+      "address": "0xaD5AeEe8654E24d1D34714fCcDb832e4Ce33Fc42",
+      "quantity": 9,
+      "sourceTokenIds": [
+        1080,
+        1081,
+        1082,
+        1083,
+        1084,
+        1085,
+        1086,
+        1087,
+        1088
+      ],
+      "isContract": true
+    },
+    {
+      "address": "0xB0E06AdD73dDd276d731F5419eBaF81D6615b14e",
+      "quantity": 1,
+      "sourceTokenIds": [
+        891
+      ],
+      "isContract": false
+    },
+    {
+      "address": "0xb1469ABb3Dbe207484bBBB1044B3716E878b06A8",
+      "quantity": 3,
+      "sourceTokenIds": [
+        801,
+        802,
+        803
+      ],
+      "isContract": true
+    },
+    {
+      "address": "0xB17231B64C1cB5935Df15A33D4A13A019e063735",
+      "quantity": 1,
+      "sourceTokenIds": [
+        798
+      ],
+      "isContract": false
+    },
+    {
+      "address": "0xb30584C258159E08029395ABEf05af94693ba82c",
+      "quantity": 15,
+      "sourceTokenIds": [
+        611,
+        612,
+        614,
+        615,
+        616,
+        617,
+        618,
+        619,
+        620,
+        739,
+        740,
+        741,
+        916,
+        917,
+        918
+      ],
+      "isContract": true
+    },
+    {
+      "address": "0xb45B3A0286f3d61Faa6691e16c852afe64917ab5",
+      "quantity": 7,
+      "sourceTokenIds": [
+        549,
+        550,
+        551,
+        552,
+        553,
+        707,
+        1079
+      ],
+      "isContract": false
+    },
+    {
+      "address": "0xB881B610fCB1D2199D658F9825cFC7BdE71DAE4a",
+      "quantity": 3,
+      "sourceTokenIds": [
+        588,
+        589,
+        745
+      ],
+      "isContract": true
+    },
+    {
+      "address": "0xB92764398dFDf3A41c15c9126d495f44c53B3F87",
+      "quantity": 44,
+      "sourceTokenIds": [
+        298,
+        299,
+        301,
+        302,
+        303,
+        304,
+        305,
+        306,
+        307,
+        308,
+        309,
+        310,
+        311,
+        312,
+        314,
+        315,
+        316,
+        317,
+        318,
+        319,
+        320,
+        321,
+        322,
+        323,
+        325,
+        326,
+        327,
+        695,
+        696,
+        697,
+        698,
+        699,
+        700,
+        701,
+        702,
+        703,
+        763,
+        764,
+        765,
+        780,
+        899,
+        988,
+        989,
+        1021
+      ],
+      "isContract": true
+    },
+    {
+      "address": "0xba2201d3AF52098fba5C53ceECcC630C2010eed3",
+      "quantity": 1,
+      "sourceTokenIds": [
+        605
+      ],
+      "isContract": true
+    },
+    {
+      "address": "0xBE62a547E90f9BbBf9BFae90BCa010647Ab1BA19",
+      "quantity": 3,
+      "sourceTokenIds": [
+        750,
+        751,
+        752
+      ],
+      "isContract": false
+    },
+    {
+      "address": "0xBF98e5FEf825CcD68dcFF3cF0a766faB413D6207",
+      "quantity": 1,
+      "sourceTokenIds": [
+        8
+      ],
+      "isContract": true
+    },
+    {
+      "address": "0xBfd8686e74fd6A317969c31A73f9a8dc1E1761C2",
+      "quantity": 1,
+      "sourceTokenIds": [
+        920
+      ],
+      "isContract": false
+    },
+    {
+      "address": "0xC05E09abBB11C16f04f584660826c57e64A4b9fa",
+      "quantity": 1,
+      "sourceTokenIds": [
+        793
+      ],
+      "isContract": false
+    },
+    {
+      "address": "0xc4e7E70a3A41c655B1b634Da13Dd2689AF821616",
+      "quantity": 9,
+      "sourceTokenIds": [
+        523,
+        524,
+        525,
+        526,
+        527,
+        528,
+        529,
+        530,
+        919
+      ],
+      "isContract": true
+    },
+    {
+      "address": "0xC7f55cE6A7dF9A79cc4A643a5081230F890c7AA6",
+      "quantity": 43,
+      "sourceTokenIds": [
+        3,
+        6,
+        7,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        16,
+        17,
+        19,
+        21,
+        22,
+        27,
+        28,
+        29,
+        30,
+        31,
+        32,
+        33,
+        34,
+        35,
+        37,
+        38,
+        39,
+        40,
+        42,
+        45,
+        46,
+        48,
+        49,
+        51,
+        52,
+        257,
+        882,
+        885,
+        939,
+        992,
+        994,
+        996,
+        999,
+        1000
+      ],
+      "isContract": true
+    },
+    {
+      "address": "0xC84839229a27b288c94323141A69Ea5b5560de7c",
+      "quantity": 1,
+      "sourceTokenIds": [
+        691
+      ],
+      "isContract": true
+    },
+    {
+      "address": "0xC84bCea0311b79DD3Fa09564132C618756397419",
+      "quantity": 1,
+      "sourceTokenIds": [
+        897
+      ],
+      "isContract": false
+    },
+    {
+      "address": "0xD06ab7eCf90336310BF8dA3CF5BdAC5E71Ec9897",
+      "quantity": 3,
+      "sourceTokenIds": [
+        1040,
+        1041,
+        1044
+      ],
+      "isContract": true
+    },
+    {
+      "address": "0xd14475fAa8AF1a4b2a441Ea639F4Feb5cA552B13",
+      "quantity": 1,
+      "sourceTokenIds": [
+        911
+      ],
+      "isContract": false
+    },
+    {
+      "address": "0xd1a5b91957530E1B3e9cfac1543467C60c352F69",
+      "quantity": 1,
+      "sourceTokenIds": [
+        841
+      ],
+      "isContract": true
+    },
+    {
+      "address": "0xd2439aEeB3380AFd57f5d9D69Cc1bE3fE835F160",
+      "quantity": 13,
+      "sourceTokenIds": [
+        608,
+        863,
+        871,
+        877,
+        881,
+        936,
+        938,
+        942,
+        971,
+        975,
+        980,
+        1001,
+        1025
+      ],
+      "isContract": false
+    },
+    {
+      "address": "0xD3B0D7217392989d832Cee985EFA2AA49f228CB4",
+      "quantity": 10,
+      "sourceTokenIds": [
+        654,
+        655,
+        656,
+        657,
+        658,
+        659,
+        660,
+        661,
+        662,
+        663
+      ],
+      "isContract": false
+    },
+    {
+      "address": "0xD52b90413165C5fA35e33060B62509c95D56ac7b",
+      "quantity": 13,
+      "sourceTokenIds": [
+        5,
+        25,
+        175,
+        189,
+        478,
+        531,
+        532,
+        533,
+        534,
+        535,
+        536,
+        537,
+        646
+      ],
+      "isContract": true
+    },
+    {
+      "address": "0xd55a1CA7d9843c6c507A1D5521cEcF865eF2b02B",
+      "quantity": 2,
+      "sourceTokenIds": [
+        782,
+        789
+      ],
+      "isContract": true
+    },
+    {
+      "address": "0xD8b7e874c495227aa12A13C8dD73808EdfC94EDA",
+      "quantity": 1,
+      "sourceTokenIds": [
+        634
+      ],
+      "isContract": false
+    },
+    {
+      "address": "0xdC197822e435596584dA6BA7F6328bc62D93fb0B",
+      "quantity": 2,
+      "sourceTokenIds": [
+        825,
+        826
+      ],
+      "isContract": true
+    },
+    {
+      "address": "0xe12d417f8b00Eb726c545F26772B48C1bd49bc6B",
+      "quantity": 4,
+      "sourceTokenIds": [
+        928,
+        930,
+        931,
+        932
+      ],
+      "isContract": false
+    },
+    {
+      "address": "0xE4514aF5804793BEE090d28979cF6983BF52f383",
+      "quantity": 6,
+      "sourceTokenIds": [
+        463,
+        587,
+        651,
+        653,
+        940,
+        1033
+      ],
+      "isContract": false
+    },
+    {
+      "address": "0xE46DD62eCB9B9BD5FfC545E8826Fc5fF18Eab8f2",
+      "quantity": 1,
+      "sourceTokenIds": [
+        876
+      ],
+      "isContract": true
+    },
+    {
+      "address": "0xe5313C05eBeE79ddC3B1cCf0c861A1eB21Da762d",
+      "quantity": 2,
+      "sourceTokenIds": [
+        9,
+        910
+      ],
+      "isContract": false
+    },
+    {
+      "address": "0xE5DC1B6eCE650A8e6bdF038D35090A61fB5Dc24C",
+      "quantity": 4,
+      "sourceTokenIds": [
+        575,
+        576,
+        577,
+        770
+      ],
+      "isContract": false
+    },
+    {
+      "address": "0xe9Bb13DaC6dCe29Cf85ecC516ccffa67292FEfE4",
+      "quantity": 20,
+      "sourceTokenIds": [
+        26,
+        281,
+        410,
+        416,
+        419,
+        480,
+        598,
+        670,
+        673,
+        731,
+        737,
+        900,
+        909,
+        914,
+        944,
+        951,
+        952,
+        978,
+        981,
+        1015
+      ],
+      "isContract": false
+    },
+    {
+      "address": "0xECfC7Ae80C5a7E58B897f16a416F47B2A1B18eac",
+      "quantity": 1,
+      "sourceTokenIds": [
+        986
+      ],
+      "isContract": false
+    },
+    {
+      "address": "0xf224FDe44A4585240318Bd4b2b3f7119D0316CFB",
+      "quantity": 1,
+      "sourceTokenIds": [
+        804
+      ],
+      "isContract": false
+    },
+    {
+      "address": "0xf2D502A223c84A8Cea37C4BFCBEC32863a490c99",
+      "quantity": 1,
+      "sourceTokenIds": [
+        665
+      ],
+      "isContract": true
+    },
+    {
+      "address": "0xF408D17dF0187B90d33FDFF1E604F08fC74a0c00",
+      "quantity": 1,
+      "sourceTokenIds": [
+        982
+      ],
+      "isContract": true
+    },
+    {
+      "address": "0xf5830A568Edd42e0388Fa002c4eb272ddad54076",
+      "quantity": 4,
+      "sourceTokenIds": [
+        18,
+        590,
+        591,
+        746
+      ],
+      "isContract": true
+    },
+    {
+      "address": "0xF7874033c7E4A6B13410A651A6f25e2589b6d8D8",
+      "quantity": 1,
+      "sourceTokenIds": [
+        912
+      ],
+      "isContract": false
+    },
+    {
+      "address": "0xf8bAF2541defAB76f2c344Ff10cD6d4eF74D3432",
+      "quantity": 6,
+      "sourceTokenIds": [
+        24,
+        44,
+        678,
+        903,
+        995,
+        998
+      ],
+      "isContract": false
+    },
+    {
+      "address": "0xFB62D5f136e14Bae195C9c6a2b6d32B7CD74DA63",
+      "quantity": 1,
+      "sourceTokenIds": [
+        762
+      ],
+      "isContract": true
+    },
+    {
+      "address": "0xFB8960AbE3F37Af8FfAce0E646bA18681568A845",
+      "quantity": 4,
+      "sourceTokenIds": [
+        562,
+        563,
+        564,
+        565
+      ],
+      "isContract": false
+    },
+    {
+      "address": "0xFD8F78F708B8b0B768204FFF10ca83FE46f6A391",
+      "quantity": 1,
+      "sourceTokenIds": [
+        610
+      ],
+      "isContract": false
+    },
+    {
+      "address": "0xffe9309A3c8eB35c587130B9d5d1BaF60eAFB61b",
+      "quantity": 20,
+      "sourceTokenIds": [
+        426,
+        427,
+        428,
+        429,
+        430,
+        431,
+        432,
+        433,
+        434,
+        435,
+        436,
+        437,
+        438,
+        439,
+        440,
+        441,
+        442,
+        443,
+        444,
+        445
+      ],
+      "isContract": true
+    }
+  ]
+}

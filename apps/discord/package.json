@@ -1,0 +1,54 @@
+{
+  "name": "dyoor-discord",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Secure Discord, holder verification, role sync, moderation, tickets, and sales platform for DYØØR",
+  "type": "module",
+  "scripts": {
+    "dev": "node --env-file=../../.env.local --import tsx --watch src/index.ts",
+    "start": "node --env-file=../../.env.local dist/src/index.js",
+    "setup": "node --env-file=../../.env.local --import tsx scripts/setup.ts",
+    "discord:plan": "node --env-file=../../.env.local --import tsx scripts/plan.ts",
+    "discord:invite": "node --env-file=../../.env.local --import tsx scripts/invite.ts",
+    "discord:deploy": "node --env-file=../../.env.local --import tsx scripts/deploy.ts",
+    "discord:audit": "node --env-file=../../.env.local --import tsx scripts/audit.ts",
+    "discord:snapshot": "node --env-file=../../.env.local --import tsx scripts/snapshot.ts",
+    "holder:check": "node --env-file=../../.env.local --import tsx scripts/holder-check.ts",
+    "db:migrate": "node --env-file=../../.env.local --import tsx scripts/migrate.ts",
+    "build": "tsc -p tsconfig.build.json",
+    "lint": "eslint .",
+    "format:check": "prettier --check .",
+    "test": "vitest run --exclude 'dist/**'",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "engines": {
+    "node": ">=24 <25"
+  },
+  "dependencies": {
+    "@fastify/cookie": "11.1.2",
+    "@fastify/helmet": "13.1.0",
+    "@fastify/rate-limit": "11.2.0",
+    "@fastify/static": "10.1.3",
+    "better-sqlite3": "13.0.3",
+    "discord-api-types": "0.38.53",
+    "discord.js": "14.27.0",
+    "dotenv": "17.4.2",
+    "fastify": "5.11.3",
+    "pino": "10.3.1",
+    "viem": "2.55.11",
+    "zod": "4.4.3"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@types/better-sqlite3": "9.6.0",
+    "@types/node": "24.13.3",
+    "eslint": "10.8.1",
+    "eslint-config-prettier": "10.1.8",
+    "pino-pretty": "13.1.3",
+    "prettier": "3.9.6",
+    "tsx": "4.23.11",
+    "typescript": "6.0.3",
+    "typescript-eslint": "8.66.0",
+    "vitest": "4.1.10"
+  }
+}

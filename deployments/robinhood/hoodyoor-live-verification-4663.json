@@ -1,0 +1,135 @@
+{
+  "schema": "dyoor-hoodyoor-live-verification-v1",
+  "capturedAt": "2026-08-09T23:17:36Z",
+  "status": "pass",
+  "chainId": 4663,
+  "blockNumber": 32324833,
+  "sourceTreeKeccak256": "0xe1d826b0509fa93d8373e9f8cea20fac2b8015f8dfcebc3d670824923794598c",
+  "securityReview": {
+    "independentReviewApproved": false,
+    "explicitOwnerWaiver": true,
+    "note": "The owner explicitly accepted unaudited mainnet risk. This waiver is not an independent audit."
+  },
+  "compiler": {
+    "version": "v0.8.24+commit.e11b9ed9",
+    "optimizerEnabled": true,
+    "optimizerRuns": 200,
+    "viaIR": true,
+    "evmVersion": "paris"
+  },
+  "explorer": {
+    "baseUrl": "https://robinhoodchain.blockscout.com",
+    "allContractsVerified": true,
+    "allRuntimeBytecodeUnchanged": true
+  },
+  "contracts": [
+    {
+      "label": "packed-trait-store",
+      "name": "HoodYOORPackedTraitStore",
+      "address": "0xaD7be6b27efDF619759375aF719A9D69e25818c1",
+      "explorerUrl": "https://robinhoodchain.blockscout.com/address/0xaD7be6b27efDF619759375aF719A9D69e25818c1",
+      "verifiedAt": "2026-08-09T22:23:43.586143Z",
+      "runtimeBytes": 7683,
+      "normalizedRuntimeHash": "0x7160bdaf3efe60f2cd6fad21c7807a9d901f31585c3c4cd8006ae275e25543b3",
+      "matchesFrozenArtifact": true,
+      "changedBytecode": false
+    },
+    {
+      "label": "pixel-renderer",
+      "name": "HoodYOORPixelRenderer",
+      "address": "0xb9cB0563013D9741f76a802d2F658EbF3433eE12",
+      "explorerUrl": "https://robinhoodchain.blockscout.com/address/0xb9cB0563013D9741f76a802d2F658EbF3433eE12",
+      "verifiedAt": "2026-08-09T23:02:34.509203Z",
+      "runtimeBytes": 5013,
+      "normalizedRuntimeHash": "0x532a65e357e0f2c9bdb8467ebb969a8afe4ad0fa5370f8e4fb9268e024aea356",
+      "matchesFrozenArtifact": true,
+      "changedBytecode": false
+    },
+    {
+      "label": "collection",
+      "name": "HoodYOOR",
+      "address": "0x1Ece69C63F0b49C7a5B02eaf209059B4E2aF69a1",
+      "explorerUrl": "https://robinhoodchain.blockscout.com/address/0x1Ece69C63F0b49C7a5B02eaf209059B4E2aF69a1",
+      "verifiedAt": "2026-08-09T22:20:35.499853Z",
+      "runtimeBytes": 15805,
+      "normalizedRuntimeHash": "0x9cc43f351b8eb4799c73708adefb88ecc89008d69fcdb181af9162d596c672ff",
+      "matchesFrozenArtifact": true,
+      "changedBytecode": false
+    },
+    {
+      "label": "energy-bank",
+      "name": "HoodYOOREnergyBank",
+      "address": "0x9bA9aa6c6A1CB04bc0477E90f4D93214c6b1D7c3",
+      "explorerUrl": "https://robinhoodchain.blockscout.com/address/0x9bA9aa6c6A1CB04bc0477E90f4D93214c6b1D7c3",
+      "verifiedAt": "2026-08-09T23:04:08.087971Z",
+      "runtimeBytes": 3766,
+      "normalizedRuntimeHash": "0xe898f1bacf9446b20eee643a6255a30743db063069d155846003614fd27fea68",
+      "matchesFrozenArtifact": true,
+      "changedBytecode": false
+    },
+    {
+      "label": "trait-rules",
+      "name": "HoodYOORTraitRules",
+      "address": "0xd4E7F224539e628f58c4A6159A7a0eeE27991640",
+      "explorerUrl": "https://robinhoodchain.blockscout.com/address/0xd4E7F224539e628f58c4A6159A7a0eeE27991640",
+      "verifiedAt": "2026-08-09T23:08:01.317802Z",
+      "runtimeBytes": 2586,
+      "normalizedRuntimeHash": "0x740d5e4287e0b1c21ea1c902411d5d84bd68f560093bd5812a701b95e088a52d",
+      "matchesFrozenArtifact": true,
+      "changedBytecode": false
+    },
+    {
+      "label": "reroll-controller",
+      "name": "HoodYOORRerollController",
+      "address": "0x69Ec96b8EF47e1f241389260d190b0ce61D67C2B",
+      "explorerUrl": "https://robinhoodchain.blockscout.com/address/0x69Ec96b8EF47e1f241389260d190b0ce61D67C2B",
+      "verifiedAt": "2026-08-09T23:11:43.106005Z",
+      "runtimeBytes": 6276,
+      "normalizedRuntimeHash": "0x53c346021573703f1d5291116d1f5ac3fe5573d65d043f020a84e5ea3a7a88f5",
+      "matchesFrozenArtifact": true,
+      "changedBytecode": false
+    }
+  ],
+  "liveState": {
+    "owner": "0xC7f55cE6A7dF9A79cc4A643a5081230F890c7AA6",
+    "treasury": "0xC7f55cE6A7dF9A79cc4A643a5081230F890c7AA6",
+    "royaltyReceiver": "0xC7f55cE6A7dF9A79cc4A643a5081230F890c7AA6",
+    "maxSupply": 3333,
+    "mintPriceWei": "2500000000000000",
+    "ownerReserveAllocation": 150,
+    "secondaryAutoUnlockSupply": 1667,
+    "mintEnergyReward": 1000,
+    "gtdMerkleRoot": "0x915e9b6ddcfe13a197ade8f6b776d37beb8ce2f766001e6579bd0601ffc5dd31",
+    "provenanceHash": "0x2b3049a8235d705dba39542b53990e584e3815e4e6a32efae6ecb810b8f506a3",
+    "revealCommitment": "0xb2131dd75cab47d3b89a7c8de088af6825ffb9cb8b431daa0462aef67d57a27e",
+    "catalogHash": "0x50e0424b927b0da11b01947b6839070d81b6aa982b214c63f78f4adb8cb756d3",
+    "rulesHash": "0x14a33149be765254e70441c4ba2674c662f5b3f746fb3ac8a717a4f49b47ab0f",
+    "registeredTraitCount": 201,
+    "expectedTraitCount": 201,
+    "rulePairCount": 329,
+    "expectedRulePairCount": 329,
+    "initialTraitsAssigned": 3333,
+    "indahoodBackgroundsAssigned": 3323,
+    "traitStoreFrozen": true,
+    "initialTraitsFrozen": true,
+    "rendererFrozen": true,
+    "rerollControllerFrozen": true,
+    "energyConfigurationFrozen": true,
+    "collectionCanCreditEnergy": true,
+    "controllerCanSpendEnergy": true,
+    "energyBankPaused": false,
+    "rerollControllerPaused": false,
+    "totalSupply": 0,
+    "ownerReserveMinted": false,
+    "gtdSaleActive": false,
+    "publicSaleActive": false,
+    "secondaryTradingEnabled": false
+  },
+  "openSea": {
+    "chainApiStatus": 200,
+    "chainSlug": "robinhood",
+    "chainSupported": true,
+    "automaticImportPendingFirstMint": true,
+    "note": "OpenSea automatically displays an eligible custom collection after at least one NFT is minted. Opening GTD remains a separate owner transaction and atomically mints the 150-token reserve."
+  }
+}

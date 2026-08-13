@@ -1,0 +1,44 @@
+{
+  "schema": "dyoor-hoodyoor-v1-abandonment-v1",
+  "recordedAt": "2026-08-09T23:53:46Z",
+  "chainId": 4663,
+  "status": "superseded-before-mint",
+  "ownerDecision": {
+    "authorized": true,
+    "statement": "Abandon 0x1Ece…69a1 and rebuild HoodYØØR as a SeaDrop-compatible OpenSea Drop."
+  },
+  "supersededCollection": {
+    "address": "0x1Ece69C63F0b49C7a5B02eaf209059B4E2aF69a1",
+    "totalSupplyAtDecision": 0,
+    "ownerReserveMintedAtDecision": false,
+    "gtdSaleActiveAtDecision": false,
+    "publicSaleActiveAtDecision": false,
+    "secondaryTradingEnabledAtDecision": false,
+    "note": "The immutable contract remains deployed. It is being treated as a zero-supply legacy deployment and must not be opened for minting."
+  },
+  "reason": "The superseded collection is a custom ERC-721 and is not compatible with OpenSea Studio's SeaDrop Drop Setup flow.",
+  "replacementRequirements": {
+    "openSeaSeaDropCompatible": true,
+    "fullyOnchainArtAndMetadata": true,
+    "rerollPaymentMethods": [
+      "Energy",
+      "native ETH",
+      "USDG"
+    ],
+    "ownerReserve": 150,
+    "ownerReserveCountsTowardSecondaryUnlock": true,
+    "secondaryAutoUnlockSupply": 1667,
+    "mintEnergyRewardPerPaidToken": 1000
+  },
+  "reusedFrozenContracts": {
+    "packedTraitStore": "0xaD7be6b27efDF619759375aF719A9D69e25818c1",
+    "pixelRenderer": "0xb9cB0563013D9741f76a802d2F658EbF3433eE12",
+    "energyBank": "0x9bA9aa6c6A1CB04bc0477E90f4D93214c6b1D7c3",
+    "traitRules": "0xd4E7F224539e628f58c4A6159A7a0eeE27991640"
+  },
+  "replacedContracts": {
+    "collection": "0x1Ece69C63F0b49C7a5B02eaf209059B4E2aF69a1",
+    "rerollController": "0x69Ec96b8EF47e1f241389260d190b0ce61D67C2B"
+  },
+  "deploymentGate": "No replacement mainnet broadcast is authorized by this record. The v2 source, tests, deployment inputs, role migration, and source hash require a fresh explicit deployment gate."
+}

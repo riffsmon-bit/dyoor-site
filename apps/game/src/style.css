@@ -1,0 +1,84 @@
+:root {
+  color: #f7f5ff;
+  background: #03030b;
+  font-family: "Arial Black", "Trebuchet MS", system-ui, sans-serif;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#app,
+#game-shell,
+#game-root {
+  width: 100%;
+  height: 100%;
+  min-height: 100%;
+  margin: 0;
+  overflow: hidden;
+}
+
+body {
+  min-height: 100dvh;
+  background:
+    radial-gradient(circle at 20% 15%, rgb(33 255 219 / 14%), transparent 32rem),
+    radial-gradient(circle at 80% 80%, rgb(160 72 255 / 18%), transparent 34rem),
+    #03030b;
+  overscroll-behavior: none;
+  touch-action: none;
+}
+
+#game-shell {
+  position: relative;
+  min-height: 100dvh;
+}
+
+#game-root canvas {
+  display: block;
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+  outline: none;
+}
+
+.dyoor-callsign-input {
+  height: 46px;
+  border: 2px solid rgb(85 255 231 / 90%);
+  border-radius: 0;
+  outline: none;
+  color: #f8f6ff;
+  background:
+    linear-gradient(90deg, rgb(21 80 83 / 52%), transparent 22%),
+    rgb(5 8 22 / 98%);
+  box-shadow:
+    0 0 0 3px rgb(77 50 128 / 42%),
+    0 0 22px rgb(71 255 226 / 14%);
+  font-family: "Arial Black", "Trebuchet MS", sans-serif;
+  font-size: 18px;
+  letter-spacing: 0.16em;
+  text-align: center;
+  text-transform: uppercase;
+}
+
+.dyoor-callsign-input:focus {
+  border-color: #ffd969;
+  box-shadow:
+    0 0 0 3px rgb(122 82 194 / 58%),
+    0 0 28px rgb(255 217 105 / 20%);
+}
+
+#game-status {
+  position: absolute;
+  inset: 50% auto auto 50%;
+  max-width: min(34rem, calc(100vw - 2rem));
+  padding: 1rem 1.25rem;
+  border: 1px solid rgb(57 255 226 / 55%);
+  color: #8fffee;
+  background: rgb(4 9 25 / 92%);
+  letter-spacing: 0.08em;
+  text-align: center;
+  transform: translate(-50%, -50%);
+}

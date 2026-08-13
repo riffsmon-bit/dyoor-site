@@ -280,7 +280,7 @@ test("World mobile side drawers and atomic trade desk stay streamlined", () => {
   assert.match(client, /Eject from dYOOR World to the main D\.Y\.O\.O\.R site/);
   assert.match(gate, /Standalone holder app/);
   assert.match(gate, /↗ Eject/);
-  assert.match(siteNav, /if \(isWorldApp\) return null/);
+  assert.match(siteNav, /if \(isWorldApp \|\| isStandaloneCampaign\) return null/);
   assert.match(siteFooter, /pathname\.startsWith\(\"\/dyoor-world\"\)/);
   assert.match(client, /hidden border-r .* lg:block/);
   assert.match(client, /function OwnedDroidPicker/);

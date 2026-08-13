@@ -1,0 +1,266 @@
+{
+  "schema": "hoodyoor-robinhood-pre-mint-release-plan-v1",
+  "frozenAt": "2026-08-12T14:35:56Z",
+  "status": "PRE_MINT_CONFIGURATION_HOLD",
+  "deploymentAuthorized": false,
+  "broadcastCapability": false,
+  "broadcastAttempted": false,
+  "privateKeyRead": false,
+  "chain": {
+    "name": "Robinhood Chain",
+    "chainId": 4663,
+    "nativeGasSymbol": "ETH"
+  },
+  "repositoryStateCorrection": {
+    "promptAssumption": "upcoming NFT address may be unset",
+    "verifiedState": "The final replacement collection and immutable Droid Account V1 infrastructure are already deployed, while mint remains unopened and supply remains zero.",
+    "inventedAddress": false
+  },
+  "collection": {
+    "name": "HoodYØØR",
+    "address": "0x8277F8126722B11D7b44C5C453bcF62A78AAFa25",
+    "deploymentBlock": 32414048,
+    "runtimeCodeHash": "0xb0fdec098263081f9f48307f5af421919d5393822e7e7581a01044aadf8e405e",
+    "lifecycle": "deployed-pre-mint",
+    "totalSupplyAtFreeze": 0,
+    "ownerReserveMintedAtFreeze": false,
+    "revealedAtFreeze": false,
+    "secondaryTradingEnabledAtFreeze": false,
+    "deployCollectionAgain": false
+  },
+  "readOnlyCheckpoint": {
+    "generatedAt": "2026-08-12T14:32:32.440Z",
+    "observedBlock": 34602847,
+    "gasPriceWei": "51052000",
+    "maxFeePerGasWei": "101264000",
+    "existingDependencyCodePresent": true,
+    "accountWiringMatched": true,
+    "economicAddressesUnset": true,
+    "allEconomicAndAutonomyFlagsDisabled": true
+  },
+  "existingDroidAccountV1": {
+    "canonicalRegistry": "0x000000006551c19487814612e58FE06813775758",
+    "implementation": "0x0FFDc6ACb41D39ee7b535026202AA8fe0054F52A",
+    "resolver": "0x190602Aa70199ec3623ad3bc97a10B534b26fE48",
+    "tokenChainId": 4663,
+    "tokenContract": "0x8277F8126722B11D7b44C5C453bcF62A78AAFa25",
+    "accountSalt": "0x0000000000000000000000000000000000000000000000000000000000000000",
+    "verified": true,
+    "redeploy": false
+  },
+  "sourceControl": {
+    "gitCommit": "e498144f033ef3c302a2bab73225552d290fd033",
+    "worktreeDirty": true,
+    "freezeRule": "Economic release approval must bind artifact and source checksums plus a clean reviewed snapshot."
+  },
+  "economicCompiler": {
+    "version": "0.8.24+commit.e11b9ed9",
+    "optimizerEnabled": true,
+    "optimizerRuns": 200,
+    "viaIR": true,
+    "evmVersion": "paris",
+    "releaseArtifactPipeline": "Foundry contracts/hoodyoor/foundry.toml",
+    "note": "This corrects an older report that described a non-matching optimizer profile."
+  },
+  "plannedEconomicDeployments": [
+    {
+      "order": 1,
+      "contractName": "HoodYoorDroidRegistry",
+      "address": null,
+      "constructorArguments": [null],
+      "constructorArgumentNames": ["initialAdminSafe"],
+      "creationCodeHash": "0x95a023ee34b6d3884f3ab15d2fdd7b35c10b75d06872bf2481aa7ff9bfb6a924",
+      "runtimeTemplateArtifactHash": "0x0fbaaa973cc4f6f78e226beccc71bf11406376a25e9efe32eb7877f5de97e9e6",
+      "artifactSha256": "0xbb35013b58e5f5955fb71c05ed86e7c1b395e45acb3e926ec45f9d8c88c564d2",
+      "sourceSha256": "0x7f2b111c5ee8ce98447a10ced160ab7d78e0d82bec8f9fc87eedc2da0f93e8d6"
+    },
+    {
+      "order": 2,
+      "contractName": "HoodYoorAssetRegistry",
+      "address": null,
+      "constructorArguments": [null],
+      "constructorArgumentNames": ["initialAdminSafe"],
+      "creationCodeHash": "0x97bcb5d329437756089e72c42d0bf05f1862183c3471fea8fdd35b1bb968df7f",
+      "runtimeTemplateArtifactHash": "0x0ca3ab50658dbc135259107c7bd5ff4bbd2eee92ab13b6c539cec3ca9de9596e",
+      "artifactSha256": "0xf7a9effe1ecefa668394c424a6bce251274af32b25f1ebf672a535addec1775c",
+      "sourceSha256": "0x58ef1d64589aa49351450d68278ed978fc32dec7ae88fa7ba0fc6b152239a588"
+    },
+    {
+      "order": 3,
+      "contractName": "HoodYoorRewardsDistributor",
+      "address": null,
+      "constructorArguments": [null, "$HoodYoorDroidRegistry", "$HoodYoorAssetRegistry"],
+      "constructorArgumentNames": ["initialAdminSafe", "droidRegistry", "assetRegistry"],
+      "creationCodeHash": "0x5f1d55f77b38c4af10ca4eb1097bfb0af5d19a1bb48edca3f7baa13bad017697",
+      "runtimeTemplateArtifactHash": "0x04af2b8595073237e605ac440033bb72a9db54c81851501ad99a024a5a637f8d",
+      "artifactSha256": "0xa5b33717867f94b8d6d8694ffa74abdaf3cadef54f3c9f88df0f32da38d576bc",
+      "sourceSha256": "0xde87d4a58cdfe49e0ebb886bff7ac4844a703059b31043a4a781034822c77a27"
+    },
+    {
+      "order": 4,
+      "contractName": "HoodYoorRevenueVault",
+      "address": null,
+      "constructorArguments": [
+        null,
+        "$HoodYoorAssetRegistry",
+        null,
+        "$HoodYoorRewardsDistributor",
+        null,
+        null,
+        null,
+        null
+      ],
+      "constructorArgumentNames": [
+        "initialAdminSafe",
+        "assetRegistry",
+        "treasurySafe",
+        "rewardsDistributor",
+        "otherAllocationSafe",
+        "treasuryBps",
+        "rewardBps",
+        "otherBps"
+      ],
+      "creationCodeHash": "0xc5ff05ca738ee6c6356e899f158d17b59e7348f7261a600c87251aa5b83ae431",
+      "runtimeTemplateArtifactHash": "0x5142e1488d8e3ac797183d345ef541c6bcf48520fd2e159342b50bce24156c8f",
+      "artifactSha256": "0x9a947708ffe169aebf7c2767df69a86cba5ffb1c218cd69d4de731976cda21fa",
+      "sourceSha256": "0xeb359b427127c29c45dfc81609dc064d6d1bd021fe120ddea0123e86767b999f",
+      "creationBytes": 12077,
+      "runtimeBytes": 10140,
+      "releaseCandidateChangedInThisPass": true,
+      "changeReason": "Add the explicitly required third other-approved allocation bucket before first deployment."
+    },
+    {
+      "order": 5,
+      "contractName": "HoodYoorStrategyRegistry",
+      "address": null,
+      "constructorArguments": [null, "$HoodYoorDroidRegistry", "$HoodYoorAssetRegistry"],
+      "constructorArgumentNames": ["initialAdminSafe", "droidRegistry", "assetRegistry"],
+      "creationCodeHash": "0x6d49ec96ccdff2eb43b3ef9f68d66a300f9e7f61623e96220e567c6dabee4ce5",
+      "runtimeTemplateArtifactHash": "0x393a7bf6ada8a62392bc1b7f6f9e31d9b991486b15f331917086fc891ad9b261",
+      "artifactSha256": "0xac3ca48fd66c3b366818a4989e47645c5dfc18aa3a0424ac4479c4df645be4f0",
+      "sourceSha256": "0xb82a6a61e677375d07b2d2cabeb5750f2732a2fde55af75e22a10dc3aab121e9"
+    },
+    {
+      "order": 6,
+      "contractName": "HoodYoorAchievementRegistry",
+      "address": null,
+      "constructorArguments": [null, "$HoodYoorDroidRegistry"],
+      "constructorArgumentNames": ["initialAdminSafe", "droidRegistry"],
+      "creationCodeHash": "0x1c0f870a1e463ee7b098c4bd10ca19e886065e03cadaa0b14c12434ca9e6ca2b",
+      "runtimeTemplateArtifactHash": "0xa1ffcf88e66297ac2067eeb87400a4a6b802bfbfdfbbc3d2bc27b70239265036",
+      "artifactSha256": "0x53f1ccb76367f3f85f8c29652e22bb1e484e6426772cd126f1a845e3dcb8cec2",
+      "sourceSha256": "0xe3832729e3ea59ca6c177c2b8121c84006e5cc3e8282ac77f6525bb81f846085"
+    }
+  ],
+  "gasBenchmark": {
+    "source": "Foundry gas report using valid local constructor fixtures; final calldata and live estimate remain pending",
+    "measuredAt": "2026-08-12T14:20:00Z",
+    "constructorGasByContract": {
+      "HoodYoorDroidRegistry": "2007992",
+      "HoodYoorAssetRegistry": "1804850",
+      "HoodYoorRewardsDistributor": "2422400",
+      "HoodYoorRevenueVault": "2564760",
+      "HoodYoorStrategyRegistry": "2171725",
+      "HoodYoorAchievementRegistry": "1693949"
+    },
+    "totalConstructorGas": "12665676",
+    "readOnlyCheckpointMaxFeePerGasWei": "101264000",
+    "estimatedEthAtCheckpointMaxFee": "0.001282577014464",
+    "planningThreeTimesReserveEth": "0.003847731043392",
+    "fundingAuthorized": false,
+    "refreshAndFinalConstructorSimulationRequired": true
+  },
+  "postDeploymentConfigurationOrder": [
+    "configure the distributor funding vault exactly once",
+    "register the deployed HoodYØØR collection",
+    "register immutable account resolver V1 as account version 1",
+    "grant approved least-privilege roles and remove deployer roles",
+    "configure only reviewed chain-address-qualified assets",
+    "configure only reviewed revenue sources",
+    "keep strategy execution adapters zero until a separate adapter review",
+    "verify all source, bytecode, roles, and pause behavior",
+    "run a separately approved funded canary before any feature gate changes"
+  ],
+  "governanceConfiguration": {
+    "initialAdminSafe": null,
+    "treasurySafe": null,
+    "rewardSafe": null,
+    "otherAllocationSafe": null,
+    "collectionAdmin": null,
+    "assetAdmin": null,
+    "strategyAdmin": null,
+    "achievementAdmin": null,
+    "revenueSourceAdmin": null,
+    "allocationAdmin": null,
+    "releaseAdmin": null,
+    "destinationAdmin": null,
+    "rewardAdmin": null,
+    "pauser": null,
+    "treasuryBps": null,
+    "rewardBps": null,
+    "otherBps": null,
+    "allocationValidation": {
+      "eachMinimum": 0,
+      "eachMaximum": 10000,
+      "requiredTotalBps": 10000,
+      "roundingRemainderDestination": "project-treasury"
+    },
+    "approvedAssets": [],
+    "approvedRevenueSources": [],
+    "strategies": [],
+    "failClosed": true
+  },
+  "featureFlagsAtFreeze": {
+    "ROBINHOOD_DROIDS_ENABLED": false,
+    "NEXT_PUBLIC_ROBINHOOD_DROIDS_ENABLED": false,
+    "DROID_REWARDS_ENABLED": false,
+    "DROID_STRATEGIES_ENABLED": false,
+    "SHARED_TREASURY_ENABLED": false,
+    "CROSS_CHAIN_BRIDGE_ENABLED": false,
+    "DROID_AGENT_ENABLED": false
+  },
+  "simulationCoverage": [
+    "first mint and multiple collection-local token IDs",
+    "current-owner account authority and stale-owner rejection",
+    "strategy selection changes no historical account assets",
+    "claim with no strategy pays the active Droid Account",
+    "double claim and over-allocation rejection",
+    "disabled and unsupported assets fail closed",
+    "disabled strategies and paused modules fail closed",
+    "three allocation shares must total 10000 bps and rounding dust stays in project treasury",
+    "project, reward, and other-approved liabilities/releases remain separate",
+    "all three release destinations change atomically only after the configured delay",
+    "same token ID on Monad and Robinhood produces distinct identity, records, routes, and account references"
+  ],
+  "phaseGates": {
+    "beforeNftMint": [
+      "keep sale and owner reserve closed",
+      "approve NFT launch procedure independently from economics",
+      "complete independent review of already-deployed NFT/account contracts",
+      "keep all economic contracts and governance inputs unset"
+    ],
+    "atNftDeployment": [
+      "already complete; do not redeploy collection or Account V1"
+    ],
+    "afterNftMint": [
+      "verify first token ownership, metadata, transfer, Energy, reroll, and account derivation",
+      "enable holder account activation only through a separate approved release"
+    ],
+    "beforeEconomicActivation": [
+      "approve Safes, roles, split, assets, sources, weight policy, strategies, canary cap, and audit",
+      "deploy and verify six modules only when operationally needed",
+      "fund a capped canary only under separate authorization",
+      "enable rewards and strategies only after reconciliation"
+    ]
+  },
+  "blockers": [
+    "independent audit is outstanding",
+    "all Safe and role addresses are unset",
+    "three-part treasury/reward/other split and other-allocation destination are unset",
+    "approved assets and revenue sources are empty",
+    "reward weight policy and first epoch are unset",
+    "strategy catalog and acquisition paths are unset",
+    "clean reviewed source snapshot is not approved",
+    "no economic deployment or activation authorization exists"
+  ]
+}

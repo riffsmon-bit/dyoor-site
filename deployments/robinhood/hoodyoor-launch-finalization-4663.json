@@ -1,0 +1,737 @@
+{
+  "schema": "dyoor-hoodyoor-launch-finalization-v1",
+  "chainId": 4663,
+  "deployer": "0xC7f55cE6A7dF9A79cc4A643a5081230F890c7AA6",
+  "collection": "0x1Ece69C63F0b49C7a5B02eaf209059B4E2aF69a1",
+  "energyBank": "0x9bA9aa6c6A1CB04bc0477E90f4D93214c6b1D7c3",
+  "renderer": "0xb9cB0563013D9741f76a802d2F658EbF3433eE12",
+  "rules": "0xd4E7F224539e628f58c4A6159A7a0eeE27991640",
+  "controller": "0x69Ec96b8EF47e1f241389260d190b0ce61D67C2B",
+  "resultSigner": "0xff9331640C0529Bcb72b7a3652A41aE3C574afeD",
+  "relayer": "0x438891BEF6052769934B6D667baFc021e6Da374D",
+  "provenanceHash": "0x2b3049a8235d705dba39542b53990e584e3815e4e6a32efae6ecb810b8f506a3",
+  "revealCommitment": "0xb2131dd75cab47d3b89a7c8de088af6825ffb9cb8b431daa0462aef67d57a27e",
+  "gtdMerkleRoot": "0x915e9b6ddcfe13a197ade8f6b776d37beb8ce2f766001e6579bd0601ffc5dd31",
+  "mintEnergyReward": 1000,
+  "assignmentBatches": [
+    {
+      "label": "assignments-1-50",
+      "hash": "0x60c90c993d272b693c0c902e93ce900ff3e583fefacd1229ad2d13648ac49706",
+      "blockNumber": 32283423
+    },
+    {
+      "label": "assignments-51-100",
+      "hash": "0xd998d0be4bd609e6eafeb842d9d29d344d417c29385372fedd41daaf5e114f01",
+      "blockNumber": 32283471
+    },
+    {
+      "label": "assignments-101-150",
+      "hash": "0x8b89a1203ac806b456a305deef135f643bac08111e3ed922082cd6ec7fc09bfd",
+      "blockNumber": 32283520
+    },
+    {
+      "label": "assignments-151-200",
+      "hash": "0xe5502af8877f6fa44c1b2d00bb896e05c4518355ab555f58b3d0d33b9b3835f7",
+      "blockNumber": 32283568
+    },
+    {
+      "label": "assignments-201-250",
+      "hash": "0xd69f2b05822c122719827732bc23625389c2348c9141e0aa5a84a35753cde1e1",
+      "blockNumber": 32283616
+    },
+    {
+      "label": "assignments-251-300",
+      "hash": "0xad0c72400fa489f4b6754bdab6ca28969d4fabd6c9680a7723e0c6d9173c7db4",
+      "blockNumber": 32283664
+    },
+    {
+      "label": "assignments-301-350",
+      "hash": "0x950e4ed9b2b6d1e73bd464083756011bd985de52aadfa738a17143938c8e955f",
+      "blockNumber": 32283734
+    },
+    {
+      "label": "assignments-351-400",
+      "hash": "0x9c5f593af1249e58559dcd27b698f2ab891b2c85f6259313e4b68669c2944413",
+      "blockNumber": 32283782
+    },
+    {
+      "label": "assignments-401-450",
+      "hash": "0xf02041abed1c1471fac1b3fe5607688bb5acfd0ce5e1b76fd582ef8e9e6a68b5",
+      "blockNumber": 32283830
+    },
+    {
+      "label": "assignments-451-500",
+      "hash": "0xf59e9cabfba0ac9e005bbb36af09e90ba5e35a0e445fc648fc8806be57f59bed",
+      "blockNumber": 32283890
+    },
+    {
+      "label": "assignments-501-550",
+      "hash": "0x6d0a515a99f9f59d9bebe4de8ae29b6c797a9a731d3184a4326784acb741f4b4",
+      "blockNumber": 32283938
+    },
+    {
+      "label": "assignments-551-600",
+      "hash": "0x7964253650c0e78b789c0d4f93c22c3f45bb5a057d7ea88909f9115c0a5ad17c",
+      "blockNumber": 32283986
+    },
+    {
+      "label": "assignments-601-650",
+      "hash": "0xc90cc6747e4835a574d362b06bdf65ab8e8a86066f3723fb52f9c81d9c89afef",
+      "blockNumber": 32284033
+    },
+    {
+      "label": "assignments-651-700",
+      "hash": "0xb99b9f5e841e885bb890d0c18da351b7c68c1fc4439352ed7278c3798f184ac2",
+      "blockNumber": 32284082
+    },
+    {
+      "label": "assignments-701-750",
+      "hash": "0xa3cf940908bd0aea32819e33b637eca42d9322c6ccdb05d45040145d40f68dff",
+      "blockNumber": 32284130
+    },
+    {
+      "label": "assignments-751-800",
+      "hash": "0xf94d874d24213686b22ecde5838a6d7e57ecd7d83223e3ed8c77c281501f1f2a",
+      "blockNumber": 32284177
+    },
+    {
+      "label": "assignments-801-850",
+      "hash": "0xba47f10df1bbd98c61fe83f59449719ecc323e59f600ac0b307de1fb154b37a6",
+      "blockNumber": 32284225
+    },
+    {
+      "label": "assignments-851-900",
+      "hash": "0x50177f7b45aff3636da657c9accebf62d058876702a47e122ba092d34f40c351",
+      "blockNumber": 32284273
+    },
+    {
+      "label": "assignments-901-950",
+      "hash": "0x0f059a08099d5f615b7ea63beb9b15cea3c9aef4656d343dab5532c0e0a15880",
+      "blockNumber": 32284321
+    },
+    {
+      "label": "assignments-951-1000",
+      "hash": "0xfda04ca8a37df94b54945a01a58a636e1623a06743a49b5468bb9b377c43b5d4",
+      "blockNumber": 32284368
+    },
+    {
+      "label": "assignments-1001-1050",
+      "hash": "0x296ba88cbf421063261cf72a499a282c7aec3cd7772d02381feef7ad921d514f",
+      "blockNumber": 32284416
+    },
+    {
+      "label": "assignments-1051-1100",
+      "hash": "0x16c4c7b6ca0b91477820c5b4929d7141d4eae82c62c0662b9df2ee4c15a1b4cf",
+      "blockNumber": 32284465
+    },
+    {
+      "label": "assignments-1101-1150",
+      "hash": "0x7fe77a49bcf1665dd28b9c5756de958e1f29ad938286e4ff80903780e505b179",
+      "blockNumber": 32284512
+    },
+    {
+      "label": "assignments-1151-1200",
+      "hash": "0x2c5ec35e407c53b7b0ca3082e888c9030065e1cae096ddc2578e15cf5f7a9156",
+      "blockNumber": 32284559
+    },
+    {
+      "label": "assignments-1201-1250",
+      "hash": "0x3d92cbee8834aec883bd44c5b637abeaae40256e78a96487c27aedb3e540edc6",
+      "blockNumber": 32284607
+    },
+    {
+      "label": "assignments-1251-1300",
+      "hash": "0xdfc8bf41235852c94ecaf7341ee71fa8a4c4c2b59e46a4915c4e195600fb99a4",
+      "blockNumber": 32284655
+    },
+    {
+      "label": "assignments-1301-1350",
+      "hash": "0x827587d4c88b2165185b1e7708a748db6d9571bca9888674442d9aede098d8bc",
+      "blockNumber": 32284703
+    },
+    {
+      "label": "assignments-1351-1400",
+      "hash": "0x8c280417f9296b22cee733bc1aee4ee450fbeca997125154fd15388c38568662",
+      "blockNumber": 32284752
+    },
+    {
+      "label": "assignments-1401-1450",
+      "hash": "0x2a7b32dde024ace348c94ecc8af00eee86ed77e92f1065b315c6cbda4a02d0e0",
+      "blockNumber": 32284800
+    },
+    {
+      "label": "assignments-1451-1500",
+      "hash": "0x50a9752e27aa1384a8c0e809fe2195a8867c7a77f60112754d88217355d0b60d",
+      "blockNumber": 32284848
+    },
+    {
+      "label": "assignments-1501-1550",
+      "hash": "0xe4e3755a6bc9482e1f990c71ca26ecdcc34ff350790696664d579783ddbb190f",
+      "blockNumber": 32284895
+    },
+    {
+      "label": "assignments-1551-1600",
+      "hash": "0x4bf57871c6db8818bbdf661883ef46c993f691e0d234693a7e227cf959c5871c",
+      "blockNumber": 32284943
+    },
+    {
+      "label": "assignments-1601-1650",
+      "hash": "0x62895714cec7f6e45c638cf750ef58f758cd2cc5965d43ea4b9ceb69c646b65b",
+      "blockNumber": 32284991
+    },
+    {
+      "label": "assignments-1651-1700",
+      "hash": "0xac0dd2d0a2cbf249e4297bede4ef1cbad5d861dbefe0073bea22d64162318636",
+      "blockNumber": 32285039
+    },
+    {
+      "label": "assignments-1701-1750",
+      "hash": "0x67489b2b817a8a9bc38262cfaed54397e81fbf37f9e38384cdee38b2065db253",
+      "blockNumber": 32285086
+    },
+    {
+      "label": "assignments-1751-1800",
+      "hash": "0x0b2936bcba4a4d9089b465f52092b9776d9250f20fd598d157b49f25871f2e34",
+      "blockNumber": 32285133
+    },
+    {
+      "label": "assignments-1801-1850",
+      "hash": "0xcf29d35c3dce6ebddde99588be40f37caf2f94208a3a4de0aba8c43b4dd2a9c3",
+      "blockNumber": 32285181
+    },
+    {
+      "label": "assignments-1851-1900",
+      "hash": "0xdf34e98520fe47c14524c24d598d3ce3316bc23ad4e1f6d06fc238418ce90ca8",
+      "blockNumber": 32285229
+    },
+    {
+      "label": "assignments-1901-1950",
+      "hash": "0x7e25fb3077c5b7933d60d2992d0811fcf5d2eaaa423bfb7fce54cb6fe2c3bca0",
+      "blockNumber": 32285277
+    },
+    {
+      "label": "assignments-1951-2000",
+      "hash": "0xf98e02bf52176dbb9fc62ae4f49430d85a7fb2b640654d279a2d9dc3003c359b",
+      "blockNumber": 32285324
+    },
+    {
+      "label": "assignments-2001-2050",
+      "hash": "0x5a58f5cb043e8619cea236fbed86be7d575fc74489a31aa7dea233b71422547b",
+      "blockNumber": 32285372
+    },
+    {
+      "label": "assignments-2051-2100",
+      "hash": "0x20dccdfc5882817f3c5d7e8b2874c9203238cf3b968b682d860de5f93dbd8dbf",
+      "blockNumber": 32285420
+    },
+    {
+      "label": "assignments-2101-2150",
+      "hash": "0xe062ec530eff227a2fc37f6d9fde95ee6486489feed006b9477ee87c9b1cf033",
+      "blockNumber": 32285468
+    },
+    {
+      "label": "assignments-2151-2200",
+      "hash": "0x7e3423d87ac38366db507609029037e5faeaf200eb3eeaa503911cc085df16ef",
+      "blockNumber": 32285516
+    },
+    {
+      "label": "assignments-2201-2250",
+      "hash": "0x25a6f301db9a58917e2b7f0b0c0ae8cd77ca360953b2c16d6b8f103a033ceaaa",
+      "blockNumber": 32285564
+    },
+    {
+      "label": "assignments-2251-2300",
+      "hash": "0x66681b4a992d701f0fa8b06bfa93de662f9315c29c750e3e087ae1282467de72",
+      "blockNumber": 32285612
+    },
+    {
+      "label": "assignments-2301-2350",
+      "hash": "0x6cbd7beffd54bb5078cb6d2563b7108190d595d06d84b70991a25d6224ffd3ac",
+      "blockNumber": 32285660
+    },
+    {
+      "label": "assignments-2351-2400",
+      "hash": "0x0e4244d5a9a619616bfd9a7434cf4428d89a8c8391f4367f9752b6f721d9df8e",
+      "blockNumber": 32285708
+    },
+    {
+      "label": "assignments-2401-2450",
+      "hash": "0x8f96be7df67ddc2770fd5ce4742778d16cf34172a6229aedce5bbc4945c4788e",
+      "blockNumber": 32285756
+    },
+    {
+      "label": "assignments-2451-2500",
+      "hash": "0x80f6c8156d53a1e2783421a8d54c9834c137e4165f58fdb6a3475363ceee9a39",
+      "blockNumber": 32285804
+    },
+    {
+      "label": "assignments-2501-2550",
+      "hash": "0xc6423c647f85ac215eaee2929017cc9dec73c9748a341a72c57620a6a44c6393",
+      "blockNumber": 32285851
+    },
+    {
+      "label": "assignments-2551-2600",
+      "hash": "0x4d56ae79e5db220d7a65e38e518274008466938e6b9e6f7d50426ab4f4306b12",
+      "blockNumber": 32285898
+    },
+    {
+      "label": "assignments-2601-2650",
+      "hash": "0x6e806c755010e2d7148151c50e517028b67ae1b8ee20a0566210932de6866c8f",
+      "blockNumber": 32285946
+    },
+    {
+      "label": "assignments-2651-2700",
+      "hash": "0x118467fd84b6562f85089344df2f78c9e9a846e23034b7da60194db88be3035a",
+      "blockNumber": 32285994
+    },
+    {
+      "label": "assignments-2701-2750",
+      "hash": "0xefd58c01d0d66447c6406d14b06a4dc70f64f5bd12f706d7cf9eed6e7bc636f5",
+      "blockNumber": 32286042
+    },
+    {
+      "label": "assignments-2751-2800",
+      "hash": "0xde04e1b46739d6269c9233e1080a810f3ffb8af1b05bf9663669aa437011c118",
+      "blockNumber": 32286090
+    },
+    {
+      "label": "assignments-2801-2850",
+      "hash": "0x2aea3decdffd54d48a0734efbacc42c89254b762c40d7c819aa9adfb248b54f2",
+      "blockNumber": 32286138
+    },
+    {
+      "label": "assignments-2851-2900",
+      "hash": "0x9743a5985b6e3c35422774b64d8137cd8b3f99e56a2dd8e8140243315fb5123d",
+      "blockNumber": 32286186
+    },
+    {
+      "label": "assignments-2901-2950",
+      "hash": "0x97ebe3edf5257cb8fdac8f2e25acf4749b6cb20a949bf08ac43565ce85817e1c",
+      "blockNumber": 32286234
+    },
+    {
+      "label": "assignments-2951-3000",
+      "hash": "0x3fe32f9e29ac88813cb28aec5ce934eeeb85db37ffd8ba00a9bd2150635061b1",
+      "blockNumber": 32286282
+    },
+    {
+      "label": "assignments-3001-3050",
+      "hash": "0xdc21f6d5ae8660a39285fbfe9b182db1e1825bd8a602407d820b502e2a863045",
+      "blockNumber": 32286329
+    },
+    {
+      "label": "assignments-3051-3100",
+      "hash": "0x04aa1da529500184e2a6cf559b5a5d41165704ec8db38f3d312e78396b16ea39",
+      "blockNumber": 32286377
+    },
+    {
+      "label": "assignments-3101-3150",
+      "hash": "0xf1df4eb43e691d260b9d88dd2db6f6584239f6ab905e65983ffdb538f04b2bb4",
+      "blockNumber": 32286425
+    },
+    {
+      "label": "assignments-3151-3200",
+      "hash": "0x8c16e3ddc33a64a0a7b10f703ba5d58d496ee6c9a0caa026573e77b97350cb47",
+      "blockNumber": 32286473
+    },
+    {
+      "label": "assignments-3201-3250",
+      "hash": "0x3e1289ded6f6038eb66e0df21158f23902172d3e26257bd739ab442a2251fe48",
+      "blockNumber": 32286521
+    },
+    {
+      "label": "assignments-3251-3300",
+      "hash": "0x38be898c79ec841e44d2469f7fdaa61e023ba3802bae8becff2119cab2f2459b",
+      "blockNumber": 32286569
+    },
+    {
+      "label": "assignments-3301-3333",
+      "hash": "0x7026c492d4ae4bbcf54590d397aebf873ffc99d271208e0d6be48f54afbd4c34",
+      "blockNumber": 32286616
+    }
+  ],
+  "transactions": [
+    {
+      "label": "set-reroll-controller",
+      "hash": "0x56652e003bb8aa94e1392c9c34ddb33dcb16dd373119f254ce135d366f833dbc",
+      "blockNumber": 32283141
+    },
+    {
+      "label": "freeze-reroll-controller",
+      "hash": "0x2a6621b19a3ce721f342d88696f155618f85f2ac69893004699b487401c9c9db",
+      "blockNumber": 32283188
+    },
+    {
+      "label": "grant-controller-spender-role",
+      "hash": "0xef74c6a2772c4a0b5bedfe45825871bc24166e6f50228fa9ae3508d9e9de0ff0",
+      "blockNumber": 32283235
+    },
+    {
+      "label": "grant-collection-mint-energy-credit-role",
+      "hash": "0x0c711d69787f7654302e10d30452bbeb8da517fd5f67c7a5c228a8d5348ec94f",
+      "blockNumber": 32283282
+    },
+    {
+      "label": "set-mint-energy-configuration",
+      "hash": "0x792c88015c0c0d0611098e92c1dc2dd47496de97c6fcca8c7af60d18139c8a95",
+      "blockNumber": 32283329
+    },
+    {
+      "label": "freeze-mint-energy-configuration",
+      "hash": "0xa7587d6d82a68c5438e46ab82b2b576fd127b400605a8e00e461b5bd454b62b9",
+      "blockNumber": 32283376
+    },
+    {
+      "label": "assignments-1-50",
+      "hash": "0x60c90c993d272b693c0c902e93ce900ff3e583fefacd1229ad2d13648ac49706",
+      "blockNumber": 32283423
+    },
+    {
+      "label": "assignments-51-100",
+      "hash": "0xd998d0be4bd609e6eafeb842d9d29d344d417c29385372fedd41daaf5e114f01",
+      "blockNumber": 32283471
+    },
+    {
+      "label": "assignments-101-150",
+      "hash": "0x8b89a1203ac806b456a305deef135f643bac08111e3ed922082cd6ec7fc09bfd",
+      "blockNumber": 32283520
+    },
+    {
+      "label": "assignments-151-200",
+      "hash": "0xe5502af8877f6fa44c1b2d00bb896e05c4518355ab555f58b3d0d33b9b3835f7",
+      "blockNumber": 32283568
+    },
+    {
+      "label": "assignments-201-250",
+      "hash": "0xd69f2b05822c122719827732bc23625389c2348c9141e0aa5a84a35753cde1e1",
+      "blockNumber": 32283616
+    },
+    {
+      "label": "assignments-251-300",
+      "hash": "0xad0c72400fa489f4b6754bdab6ca28969d4fabd6c9680a7723e0c6d9173c7db4",
+      "blockNumber": 32283664
+    },
+    {
+      "label": "assignments-301-350",
+      "hash": "0x950e4ed9b2b6d1e73bd464083756011bd985de52aadfa738a17143938c8e955f",
+      "blockNumber": 32283734
+    },
+    {
+      "label": "assignments-351-400",
+      "hash": "0x9c5f593af1249e58559dcd27b698f2ab891b2c85f6259313e4b68669c2944413",
+      "blockNumber": 32283782
+    },
+    {
+      "label": "assignments-401-450",
+      "hash": "0xf02041abed1c1471fac1b3fe5607688bb5acfd0ce5e1b76fd582ef8e9e6a68b5",
+      "blockNumber": 32283830
+    },
+    {
+      "label": "assignments-451-500",
+      "hash": "0xf59e9cabfba0ac9e005bbb36af09e90ba5e35a0e445fc648fc8806be57f59bed",
+      "blockNumber": 32283890
+    },
+    {
+      "label": "assignments-501-550",
+      "hash": "0x6d0a515a99f9f59d9bebe4de8ae29b6c797a9a731d3184a4326784acb741f4b4",
+      "blockNumber": 32283938
+    },
+    {
+      "label": "assignments-551-600",
+      "hash": "0x7964253650c0e78b789c0d4f93c22c3f45bb5a057d7ea88909f9115c0a5ad17c",
+      "blockNumber": 32283986
+    },
+    {
+      "label": "assignments-601-650",
+      "hash": "0xc90cc6747e4835a574d362b06bdf65ab8e8a86066f3723fb52f9c81d9c89afef",
+      "blockNumber": 32284033
+    },
+    {
+      "label": "assignments-651-700",
+      "hash": "0xb99b9f5e841e885bb890d0c18da351b7c68c1fc4439352ed7278c3798f184ac2",
+      "blockNumber": 32284082
+    },
+    {
+      "label": "assignments-701-750",
+      "hash": "0xa3cf940908bd0aea32819e33b637eca42d9322c6ccdb05d45040145d40f68dff",
+      "blockNumber": 32284130
+    },
+    {
+      "label": "assignments-751-800",
+      "hash": "0xf94d874d24213686b22ecde5838a6d7e57ecd7d83223e3ed8c77c281501f1f2a",
+      "blockNumber": 32284177
+    },
+    {
+      "label": "assignments-801-850",
+      "hash": "0xba47f10df1bbd98c61fe83f59449719ecc323e59f600ac0b307de1fb154b37a6",
+      "blockNumber": 32284225
+    },
+    {
+      "label": "assignments-851-900",
+      "hash": "0x50177f7b45aff3636da657c9accebf62d058876702a47e122ba092d34f40c351",
+      "blockNumber": 32284273
+    },
+    {
+      "label": "assignments-901-950",
+      "hash": "0x0f059a08099d5f615b7ea63beb9b15cea3c9aef4656d343dab5532c0e0a15880",
+      "blockNumber": 32284321
+    },
+    {
+      "label": "assignments-951-1000",
+      "hash": "0xfda04ca8a37df94b54945a01a58a636e1623a06743a49b5468bb9b377c43b5d4",
+      "blockNumber": 32284368
+    },
+    {
+      "label": "assignments-1001-1050",
+      "hash": "0x296ba88cbf421063261cf72a499a282c7aec3cd7772d02381feef7ad921d514f",
+      "blockNumber": 32284416
+    },
+    {
+      "label": "assignments-1051-1100",
+      "hash": "0x16c4c7b6ca0b91477820c5b4929d7141d4eae82c62c0662b9df2ee4c15a1b4cf",
+      "blockNumber": 32284465
+    },
+    {
+      "label": "assignments-1101-1150",
+      "hash": "0x7fe77a49bcf1665dd28b9c5756de958e1f29ad938286e4ff80903780e505b179",
+      "blockNumber": 32284512
+    },
+    {
+      "label": "assignments-1151-1200",
+      "hash": "0x2c5ec35e407c53b7b0ca3082e888c9030065e1cae096ddc2578e15cf5f7a9156",
+      "blockNumber": 32284559
+    },
+    {
+      "label": "assignments-1201-1250",
+      "hash": "0x3d92cbee8834aec883bd44c5b637abeaae40256e78a96487c27aedb3e540edc6",
+      "blockNumber": 32284607
+    },
+    {
+      "label": "assignments-1251-1300",
+      "hash": "0xdfc8bf41235852c94ecaf7341ee71fa8a4c4c2b59e46a4915c4e195600fb99a4",
+      "blockNumber": 32284655
+    },
+    {
+      "label": "assignments-1301-1350",
+      "hash": "0x827587d4c88b2165185b1e7708a748db6d9571bca9888674442d9aede098d8bc",
+      "blockNumber": 32284703
+    },
+    {
+      "label": "assignments-1351-1400",
+      "hash": "0x8c280417f9296b22cee733bc1aee4ee450fbeca997125154fd15388c38568662",
+      "blockNumber": 32284752
+    },
+    {
+      "label": "assignments-1401-1450",
+      "hash": "0x2a7b32dde024ace348c94ecc8af00eee86ed77e92f1065b315c6cbda4a02d0e0",
+      "blockNumber": 32284800
+    },
+    {
+      "label": "assignments-1451-1500",
+      "hash": "0x50a9752e27aa1384a8c0e809fe2195a8867c7a77f60112754d88217355d0b60d",
+      "blockNumber": 32284848
+    },
+    {
+      "label": "assignments-1501-1550",
+      "hash": "0xe4e3755a6bc9482e1f990c71ca26ecdcc34ff350790696664d579783ddbb190f",
+      "blockNumber": 32284895
+    },
+    {
+      "label": "assignments-1551-1600",
+      "hash": "0x4bf57871c6db8818bbdf661883ef46c993f691e0d234693a7e227cf959c5871c",
+      "blockNumber": 32284943
+    },
+    {
+      "label": "assignments-1601-1650",
+      "hash": "0x62895714cec7f6e45c638cf750ef58f758cd2cc5965d43ea4b9ceb69c646b65b",
+      "blockNumber": 32284991
+    },
+    {
+      "label": "assignments-1651-1700",
+      "hash": "0xac0dd2d0a2cbf249e4297bede4ef1cbad5d861dbefe0073bea22d64162318636",
+      "blockNumber": 32285039
+    },
+    {
+      "label": "assignments-1701-1750",
+      "hash": "0x67489b2b817a8a9bc38262cfaed54397e81fbf37f9e38384cdee38b2065db253",
+      "blockNumber": 32285086
+    },
+    {
+      "label": "assignments-1751-1800",
+      "hash": "0x0b2936bcba4a4d9089b465f52092b9776d9250f20fd598d157b49f25871f2e34",
+      "blockNumber": 32285133
+    },
+    {
+      "label": "assignments-1801-1850",
+      "hash": "0xcf29d35c3dce6ebddde99588be40f37caf2f94208a3a4de0aba8c43b4dd2a9c3",
+      "blockNumber": 32285181
+    },
+    {
+      "label": "assignments-1851-1900",
+      "hash": "0xdf34e98520fe47c14524c24d598d3ce3316bc23ad4e1f6d06fc238418ce90ca8",
+      "blockNumber": 32285229
+    },
+    {
+      "label": "assignments-1901-1950",
+      "hash": "0x7e25fb3077c5b7933d60d2992d0811fcf5d2eaaa423bfb7fce54cb6fe2c3bca0",
+      "blockNumber": 32285277
+    },
+    {
+      "label": "assignments-1951-2000",
+      "hash": "0xf98e02bf52176dbb9fc62ae4f49430d85a7fb2b640654d279a2d9dc3003c359b",
+      "blockNumber": 32285324
+    },
+    {
+      "label": "assignments-2001-2050",
+      "hash": "0x5a58f5cb043e8619cea236fbed86be7d575fc74489a31aa7dea233b71422547b",
+      "blockNumber": 32285372
+    },
+    {
+      "label": "assignments-2051-2100",
+      "hash": "0x20dccdfc5882817f3c5d7e8b2874c9203238cf3b968b682d860de5f93dbd8dbf",
+      "blockNumber": 32285420
+    },
+    {
+      "label": "assignments-2101-2150",
+      "hash": "0xe062ec530eff227a2fc37f6d9fde95ee6486489feed006b9477ee87c9b1cf033",
+      "blockNumber": 32285468
+    },
+    {
+      "label": "assignments-2151-2200",
+      "hash": "0x7e3423d87ac38366db507609029037e5faeaf200eb3eeaa503911cc085df16ef",
+      "blockNumber": 32285516
+    },
+    {
+      "label": "assignments-2201-2250",
+      "hash": "0x25a6f301db9a58917e2b7f0b0c0ae8cd77ca360953b2c16d6b8f103a033ceaaa",
+      "blockNumber": 32285564
+    },
+    {
+      "label": "assignments-2251-2300",
+      "hash": "0x66681b4a992d701f0fa8b06bfa93de662f9315c29c750e3e087ae1282467de72",
+      "blockNumber": 32285612
+    },
+    {
+      "label": "assignments-2301-2350",
+      "hash": "0x6cbd7beffd54bb5078cb6d2563b7108190d595d06d84b70991a25d6224ffd3ac",
+      "blockNumber": 32285660
+    },
+    {
+      "label": "assignments-2351-2400",
+      "hash": "0x0e4244d5a9a619616bfd9a7434cf4428d89a8c8391f4367f9752b6f721d9df8e",
+      "blockNumber": 32285708
+    },
+    {
+      "label": "assignments-2401-2450",
+      "hash": "0x8f96be7df67ddc2770fd5ce4742778d16cf34172a6229aedce5bbc4945c4788e",
+      "blockNumber": 32285756
+    },
+    {
+      "label": "assignments-2451-2500",
+      "hash": "0x80f6c8156d53a1e2783421a8d54c9834c137e4165f58fdb6a3475363ceee9a39",
+      "blockNumber": 32285804
+    },
+    {
+      "label": "assignments-2501-2550",
+      "hash": "0xc6423c647f85ac215eaee2929017cc9dec73c9748a341a72c57620a6a44c6393",
+      "blockNumber": 32285851
+    },
+    {
+      "label": "assignments-2551-2600",
+      "hash": "0x4d56ae79e5db220d7a65e38e518274008466938e6b9e6f7d50426ab4f4306b12",
+      "blockNumber": 32285898
+    },
+    {
+      "label": "assignments-2601-2650",
+      "hash": "0x6e806c755010e2d7148151c50e517028b67ae1b8ee20a0566210932de6866c8f",
+      "blockNumber": 32285946
+    },
+    {
+      "label": "assignments-2651-2700",
+      "hash": "0x118467fd84b6562f85089344df2f78c9e9a846e23034b7da60194db88be3035a",
+      "blockNumber": 32285994
+    },
+    {
+      "label": "assignments-2701-2750",
+      "hash": "0xefd58c01d0d66447c6406d14b06a4dc70f64f5bd12f706d7cf9eed6e7bc636f5",
+      "blockNumber": 32286042
+    },
+    {
+      "label": "assignments-2751-2800",
+      "hash": "0xde04e1b46739d6269c9233e1080a810f3ffb8af1b05bf9663669aa437011c118",
+      "blockNumber": 32286090
+    },
+    {
+      "label": "assignments-2801-2850",
+      "hash": "0x2aea3decdffd54d48a0734efbacc42c89254b762c40d7c819aa9adfb248b54f2",
+      "blockNumber": 32286138
+    },
+    {
+      "label": "assignments-2851-2900",
+      "hash": "0x9743a5985b6e3c35422774b64d8137cd8b3f99e56a2dd8e8140243315fb5123d",
+      "blockNumber": 32286186
+    },
+    {
+      "label": "assignments-2901-2950",
+      "hash": "0x97ebe3edf5257cb8fdac8f2e25acf4749b6cb20a949bf08ac43565ce85817e1c",
+      "blockNumber": 32286234
+    },
+    {
+      "label": "assignments-2951-3000",
+      "hash": "0x3fe32f9e29ac88813cb28aec5ce934eeeb85db37ffd8ba00a9bd2150635061b1",
+      "blockNumber": 32286282
+    },
+    {
+      "label": "assignments-3001-3050",
+      "hash": "0xdc21f6d5ae8660a39285fbfe9b182db1e1825bd8a602407d820b502e2a863045",
+      "blockNumber": 32286329
+    },
+    {
+      "label": "assignments-3051-3100",
+      "hash": "0x04aa1da529500184e2a6cf559b5a5d41165704ec8db38f3d312e78396b16ea39",
+      "blockNumber": 32286377
+    },
+    {
+      "label": "assignments-3101-3150",
+      "hash": "0xf1df4eb43e691d260b9d88dd2db6f6584239f6ab905e65983ffdb538f04b2bb4",
+      "blockNumber": 32286425
+    },
+    {
+      "label": "assignments-3151-3200",
+      "hash": "0x8c16e3ddc33a64a0a7b10f703ba5d58d496ee6c9a0caa026573e77b97350cb47",
+      "blockNumber": 32286473
+    },
+    {
+      "label": "assignments-3201-3250",
+      "hash": "0x3e1289ded6f6038eb66e0df21158f23902172d3e26257bd739ab442a2251fe48",
+      "blockNumber": 32286521
+    },
+    {
+      "label": "assignments-3251-3300",
+      "hash": "0x38be898c79ec841e44d2469f7fdaa61e023ba3802bae8becff2119cab2f2459b",
+      "blockNumber": 32286569
+    },
+    {
+      "label": "assignments-3301-3333",
+      "hash": "0x7026c492d4ae4bbcf54590d397aebf873ffc99d271208e0d6be48f54afbd4c34",
+      "blockNumber": 32286616
+    },
+    {
+      "label": "freeze-initial-traits",
+      "hash": "0x8d612c09be7087a834f5ac6d006c07e8e76a25d3c928caf3dd51b28e57004704",
+      "blockNumber": 32286663
+    },
+    {
+      "label": "freeze-renderer",
+      "hash": "0x04f20df6a740823976a34719e5e0fc688e016e90f2d758b15641681364c00f6b",
+      "blockNumber": 32286711
+    },
+    {
+      "label": "set-gtd-merkle-root",
+      "hash": "0x9a492d6f78cabd257248a3d03b26a94d37717fc508b614bdc17ff75b2e3705f9",
+      "blockNumber": 32286759
+    }
+  ],
+  "status": "staged-sale-closed",
+  "completedAtBlock": 32286806
+}

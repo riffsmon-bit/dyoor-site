@@ -1,0 +1,455 @@
+{
+  "schema": "dyoor-hoodyoor-mainnet-launch-v2",
+  "collection": "HoodYØØR",
+  "targetChain": {
+    "name": "Robinhood Chain",
+    "chainId": 4663,
+    "nativeCurrency": "ETH",
+    "publicRpc": "https://rpc.mainnet.chain.robinhood.com",
+    "explorer": "https://robinhoodchain.blockscout.com"
+  },
+  "broadcast": {
+    "status": "not-deployed",
+    "authorized": false,
+    "readiness": "blocked",
+    "note": "This manifest is preparation evidence and never authorizes a transaction."
+  },
+  "economics": {
+    "maxSupply": 3333,
+    "ownerReserveAllocation": 150,
+    "paidAllocation": 3183,
+    "gtdEligibleWallets": 333,
+    "aggregateGtdMaxMint": 733,
+    "mintPriceWei": "2500000000000000",
+    "royaltyBasisPoints": 300,
+    "configuredOwner": "0xC7f55cE6A7dF9A79cc4A643a5081230F890c7AA6",
+    "configuredTreasury": "0xC7f55cE6A7dF9A79cc4A643a5081230F890c7AA6",
+    "paidMintEnergyReward": 1000,
+    "ownerReserveEarnsMintEnergy": false
+  },
+  "ownerDecisions": {
+    "mintEnergy": {
+      "rewardPerPaidToken": 1000,
+      "status": "approved"
+    },
+    "securityReview": {
+      "status": "explicit-owner-waiver",
+      "independentlyReviewed": false,
+      "explicitOwnerWaiver": true,
+      "note": "Owner explicitly accepted unaudited mainnet deployment risk. This is a waiver, not an audit or independent security approval."
+    }
+  },
+  "ownerReserve": {
+    "allocation": 150,
+    "recipientPolicy": "current-collection-owner",
+    "mintTiming": "first-gtd-activation",
+    "paid": false,
+    "countsTowardSecondaryTradingThreshold": true
+  },
+  "secondaryTrading": {
+    "initiallyLocked": true,
+    "autoUnlockMintedSupply": 1667,
+    "threshold": "50%-rounded-up",
+    "ownerCanUnlockEarly": true,
+    "unlockIsPermanent": true,
+    "newApprovalsBlockedWhileLocked": true,
+    "ownerReserveCountsTowardThreshold": true
+  },
+  "compiler": {
+    "version": "0.8.24+commit.e11b9ed9",
+    "optimizer": {
+      "enabled": true,
+      "runs": 200
+    },
+    "viaIR": true,
+    "evmVersion": "paris",
+    "metadataBytecodeHash": "ipfs"
+  },
+  "sourceTree": {
+    "files": [
+      {
+        "path": "contracts/hoodyoor/src/HoodYOOR.sol",
+        "bytes": 32028,
+        "sha256": "e3f1ca0fcadb3a0c663021708bd7a3dfb7dcbcc152fbc953d0eeb480440bda14",
+        "keccak256": "0xde30cdd856a55fcae126627886359a2e6762d0fdbdff6a915b58964d67de0944"
+      },
+      {
+        "path": "contracts/hoodyoor/src/HoodYOOREnergyBank.sol",
+        "bytes": 7461,
+        "sha256": "842cdc8f4f502e7d902623e3634cafce4dc67f6b39c894786f825a21c894a270",
+        "keccak256": "0xba10a264df097b97fee956a77e2cf328bd560bf441eba9bd83567ee7580eb89b"
+      },
+      {
+        "path": "contracts/hoodyoor/src/HoodYOORPackedTraitStore.sol",
+        "bytes": 10787,
+        "sha256": "7899f417c7a31c7330109b45284c9db355b4ebebde71efe9845123f645c853c6",
+        "keccak256": "0x0f27f9361d5d46c80877455ffbbfc42ca77ad9afd0867ebfa73f4ec53e066853"
+      },
+      {
+        "path": "contracts/hoodyoor/src/HoodYOORPixelRenderer.sol",
+        "bytes": 5064,
+        "sha256": "e8844bd68cb8dc0e3ff89c8d10edd2efe45fdfaa52f1b76e8fafcc79ae41d837",
+        "keccak256": "0x8cc7d5707af877394db2ad3816c6370751aae485d213bbfd686d915897ac5e13"
+      },
+      {
+        "path": "contracts/hoodyoor/src/HoodYOORRerollController.sol",
+        "bytes": 13071,
+        "sha256": "416a45234ca4e8eab3879de4deebc28d35e31224dcbba31373caa2f5df138c24",
+        "keccak256": "0x7e162a45db9757290bbe2bf6cc9f7059cfbb51b5faa4dc4c682d601d07c23bb6"
+      },
+      {
+        "path": "contracts/hoodyoor/src/HoodYOORTraitRules.sol",
+        "bytes": 5448,
+        "sha256": "71d2f3f1598488dc1e315bd7f171dc67ef315ad6457045b916572f3a9c0a3518",
+        "keccak256": "0xd473f4da7d9af1c8bd0d3a5dea8cc1a97f1873d4829d067c806534da9a29015c"
+      },
+      {
+        "path": "contracts/hoodyoor/src/interfaces/IHoodYOORCollection.sol",
+        "bytes": 310,
+        "sha256": "ba4f6bd60cfbdd9753c40b4b2ebc0ceea682a61a42773eefb9ea77dd46f58a60",
+        "keccak256": "0xf47e99f721021c7e9ee9ff80d3824962187efeea72bde8a614083878c7626a8e"
+      },
+      {
+        "path": "contracts/hoodyoor/src/interfaces/IHoodYOOREnergyBank.sol",
+        "bytes": 331,
+        "sha256": "2428745b63bdd8ec5c2ea18476b00ce7b086ebca7447c482651e7d5880d5f2ca",
+        "keccak256": "0xc8ee6ee080ef2ec2d32c7fbc31811bea32d701d208fc74a670d77520d7a3cf7f"
+      },
+      {
+        "path": "contracts/hoodyoor/src/interfaces/IHoodYOORRenderer.sol",
+        "bytes": 325,
+        "sha256": "9de89918e2d2101d99019e96e273a46a4de1a794b57ed39488d8149413bed2f6",
+        "keccak256": "0xa07dc65fa1714e2d16f5d58d50d7e959b770eb017505b3752bae78035f73cd55"
+      },
+      {
+        "path": "contracts/hoodyoor/src/interfaces/IHoodYOORRerollController.sol",
+        "bytes": 905,
+        "sha256": "3ae4e31c30335f6dfe2f2743722f1256a136875c4249c566cfcf93491ccc6032",
+        "keccak256": "0x065ba148cc1ecae9fdbb5aa3f1d82bcce90eb112980a8435857cb10c52a6a1d3"
+      },
+      {
+        "path": "contracts/hoodyoor/src/interfaces/IHoodYOORTraitRules.sol",
+        "bytes": 222,
+        "sha256": "c8f3cd42126dd1a42641f98dddd063c56c79bd05b61ec77aff0cbe745deb64c2",
+        "keccak256": "0xc9f0211bc6f5e68fc9cdce6d8668589dfeab9779ccc85d6d9976ed1e85b7a6d8"
+      },
+      {
+        "path": "contracts/hoodyoor/src/interfaces/IHoodYOORTraitStore.sol",
+        "bytes": 484,
+        "sha256": "c4af471680042f6c73786872fff19e288da48cebe579d86170ed0b562f272181",
+        "keccak256": "0x5dc6389fb4c2d0ebe76c5b268e0a4a01798c5549530ae4832a0ba4ba55a62c56"
+      },
+      {
+        "path": "contracts/hoodyoor/src/interfaces/TokenInterfaces.sol",
+        "bytes": 1791,
+        "sha256": "461d39647586b9ce38357c0b406704ba57487d4e19de6b23623c3dc35ad19132",
+        "keccak256": "0x02224864d893d4a6d6e8d94a0d27c0ad89a56e12fb7685a929b472453ca427f8"
+      },
+      {
+        "path": "contracts/hoodyoor/src/lib/Base64.sol",
+        "bytes": 1680,
+        "sha256": "4974f3cb821a29b2704a6ca3759511097c818cd24f8aa5fb1794c83785bc350b",
+        "keccak256": "0x08a64049c4a96d1e0bfa7137f7c479cf4fbb3d7751843acdca76078b25791020"
+      },
+      {
+        "path": "contracts/hoodyoor/src/lib/BytecodeStorage.sol",
+        "bytes": 2005,
+        "sha256": "20e7377f2a6030f1351d182fe97558660203b71cd8aee4256ce29cc834b83f66",
+        "keccak256": "0x6514c02ddb6bc6d43a365d852b1ca6b7b18b03acbc6253ac90933906cdd6716b"
+      },
+      {
+        "path": "contracts/hoodyoor/src/lib/ECDSA.sol",
+        "bytes": 1283,
+        "sha256": "c2660d0df3b61e744adba19ff85acd0662782d469f7c31f6b420113a0ccc15f5",
+        "keccak256": "0xdcecfb0d6c2e8036d2d22d839b23105704cfc1a3166bb5af6fc33c693039374d"
+      },
+      {
+        "path": "contracts/hoodyoor/src/lib/Json.sol",
+        "bytes": 1845,
+        "sha256": "820689d49baf864fd6aa753a7ffa9a8e185edca35daca4189001d5c5313cc7da",
+        "keccak256": "0x109dfe9be05fbd42ba79c2550d63ab13218b91394d31638a6d12865b6d796bb6"
+      },
+      {
+        "path": "contracts/hoodyoor/src/lib/MerkleProof.sol",
+        "bytes": 781,
+        "sha256": "8d1b846baea5172b8812d32a393180705362e6afc787b43ea8716b2c658f7520",
+        "keccak256": "0x883774342258763dfdd9c50af5c456ffd149b7df921085df7ded6e0a825ffa36"
+      },
+      {
+        "path": "contracts/hoodyoor/src/lib/PixelSVG.sol",
+        "bytes": 6667,
+        "sha256": "143dc01746b21f4244636504f70d97398e1fe27836b6787e8a9c07f882601456",
+        "keccak256": "0x8bf54ff1bb6cafa86ce5fddc95dc96b24e19b55371ad2cb10a3d464e3b14a1c3"
+      },
+      {
+        "path": "contracts/hoodyoor/src/lib/SignatureChecker.sol",
+        "bytes": 891,
+        "sha256": "b1cd989e353f675ecb89eab0ea4151696b2a366e35460138e09c03cb5f461a96",
+        "keccak256": "0x8cf29c16dd88881c1b81dbdd616e17642fa07129d7bf825bd068679706843cd9"
+      },
+      {
+        "path": "contracts/hoodyoor/src/lib/Strings.sol",
+        "bytes": 681,
+        "sha256": "30817e3a4d2fed4f2d11116e4433334a79f52a9d9022dca6d96a3080ab965b78",
+        "keccak256": "0x51dc9549f7aa5f90ff8557f75a29f706af2fceefb93efecaae3008861003f115"
+      }
+    ],
+    "canonicalSha256": "dc930764cddd2b79d28ff52df7111105b60901379573dcd6a3aecd38ffa8daa8",
+    "canonicalKeccak256": "0xe1d826b0509fa93d8373e9f8cea20fac2b8015f8dfcebc3d670824923794598c"
+  },
+  "artifacts": [
+    {
+      "contract": "HoodYOOR",
+      "source": "contracts/hoodyoor/src/HoodYOOR.sol",
+      "artifact": "contracts/hoodyoor/out/HoodYOOR.sol/HoodYOOR.json",
+      "creationBytes": 16253,
+      "creationKeccak256": "0x06359553cd1a22bdb2ca46afba381328fd9a8833ae49ea54c920522bb3c5dbef",
+      "runtimeBytes": 15805,
+      "runtimeKeccak256": "0x9cc43f351b8eb4799c73708adefb88ecc89008d69fcdb181af9162d596c672ff",
+      "abiKeccak256": "0xf0f3d6a102cc8eb6569b43ba8970832ccb540fef012f03265e0e8010aac7187c"
+    },
+    {
+      "contract": "HoodYOOREnergyBank",
+      "source": "contracts/hoodyoor/src/HoodYOOREnergyBank.sol",
+      "artifact": "contracts/hoodyoor/out/HoodYOOREnergyBank.sol/HoodYOOREnergyBank.json",
+      "creationBytes": 4152,
+      "creationKeccak256": "0xac1ecad8770d5e96626013a2c7791452a535564463f9ca94b41a1ef77710bc75",
+      "runtimeBytes": 3766,
+      "runtimeKeccak256": "0xe898f1bacf9446b20eee643a6255a30743db063069d155846003614fd27fea68",
+      "abiKeccak256": "0x2cc4f2db5e884a280225183b86e1419981e260ea196d01c16c8d9d7b2e494608"
+    },
+    {
+      "contract": "HoodYOORPackedTraitStore",
+      "source": "contracts/hoodyoor/src/HoodYOORPackedTraitStore.sol",
+      "artifact": "contracts/hoodyoor/out/HoodYOORPackedTraitStore.sol/HoodYOORPackedTraitStore.json",
+      "creationBytes": 7951,
+      "creationKeccak256": "0x03bd521feff0971a42eeb46845fea4191cb506af3ed2ca745e2a8493286dedd2",
+      "runtimeBytes": 7683,
+      "runtimeKeccak256": "0x7160bdaf3efe60f2cd6fad21c7807a9d901f31585c3c4cd8006ae275e25543b3",
+      "abiKeccak256": "0x72af664e1567b64798047f691491e858f2b2697ff972bb8e681013139565d72d"
+    },
+    {
+      "contract": "HoodYOORPixelRenderer",
+      "source": "contracts/hoodyoor/src/HoodYOORPixelRenderer.sol",
+      "artifact": "contracts/hoodyoor/out/HoodYOORPixelRenderer.sol/HoodYOORPixelRenderer.json",
+      "creationBytes": 5201,
+      "creationKeccak256": "0xa7fb66505451eeefe886af3caab13ea8ce2707138ac049b62a2219d8b275bddf",
+      "runtimeBytes": 5013,
+      "runtimeKeccak256": "0x532a65e357e0f2c9bdb8467ebb969a8afe4ad0fa5370f8e4fb9268e024aea356",
+      "abiKeccak256": "0x1ce89445235232eeaff650bb63a4bf8474f9b4c5711f91fb0707505c1bec2d08"
+    },
+    {
+      "contract": "HoodYOORTraitRules",
+      "source": "contracts/hoodyoor/src/HoodYOORTraitRules.sol",
+      "artifact": "contracts/hoodyoor/out/HoodYOORTraitRules.sol/HoodYOORTraitRules.json",
+      "creationBytes": 2852,
+      "creationKeccak256": "0x5a1c05ea5e487051ca00e3a392f5d2661aa273b8061a07c47de7e914a05d2702",
+      "runtimeBytes": 2586,
+      "runtimeKeccak256": "0x740d5e4287e0b1c21ea1c902411d5d84bd68f560093bd5812a701b95e088a52d",
+      "abiKeccak256": "0xece7c50b337722570c8352fc71a36cd49660e2520d4d9df3a3a87e519ddac315"
+    },
+    {
+      "contract": "HoodYOORRerollController",
+      "source": "contracts/hoodyoor/src/HoodYOORRerollController.sol",
+      "artifact": "contracts/hoodyoor/out/HoodYOORRerollController.sol/HoodYOORRerollController.json",
+      "creationBytes": 7216,
+      "creationKeccak256": "0x6fb428a8cbee210d4764c629bf7306d35ae584b395b65ec5b175b40de3bb3cdd",
+      "runtimeBytes": 6276,
+      "runtimeKeccak256": "0x53c346021573703f1d5291116d1f5ac3fe5573d65d043f020a84e5ea3a7a88f5",
+      "abiKeccak256": "0x99bc6df7b5f97ed865cd629dfd51a65dd98412847f57b643d116409fe5226935"
+    }
+  ],
+  "payloads": {
+    "art": {
+      "binary": {
+        "path": "data/robinhood/onchain-128/hoodyoor-onchain-art.bin",
+        "bytes": 586295,
+        "sha256": "711e94efb62b0d548ea0a8d2616627ff85a4971d64f9d6dd681504e1797d44e4",
+        "keccak256": "0xe6e707009bba6080eeffee21a1dd3ef97d47da5097ef0ea7ffb7f05b71708807"
+      },
+      "records": {
+        "path": "data/robinhood/onchain-128/hoodyoor-trait-records.bin",
+        "bytes": 3417,
+        "sha256": "cbc4d8dd5db96e85d376cd05fb461d95529b99b07e0e1ab7e30e5f7b141461da",
+        "keccak256": "0x6d3ba491d8bdb9c10c8f7de879612eaf82fe86957b181b41f12de8e96681ef81"
+      },
+      "binaryHash": "0xe6e707009bba6080eeffee21a1dd3ef97d47da5097ef0ea7ffb7f05b71708807",
+      "catalogHash": "0x50e0424b927b0da11b01947b6839070d81b6aa982b214c63f78f4adb8cb756d3",
+      "traits": 201,
+      "chunks": 25
+    },
+    "assignments": {
+      "binary": {
+        "path": "data/robinhood/onchain-128/hoodyoor-initial-assignments.bin",
+        "bytes": 59994,
+        "sha256": "973614ad26e2cb8d5187141b3e0fe5abe78d3649ae3300207395df6a11e8186a",
+        "keccak256": "0x2b3049a8235d705dba39542b53990e584e3815e4e6a32efae6ecb810b8f506a3"
+      },
+      "binaryHash": "0x2b3049a8235d705dba39542b53990e584e3815e4e6a32efae6ecb810b8f506a3",
+      "provenanceHash": "0x2b3049a8235d705dba39542b53990e584e3815e4e6a32efae6ecb810b8f506a3",
+      "assignments": 3333,
+      "batches": 67
+    },
+    "rules": {
+      "binary": {
+        "path": "data/robinhood/onchain-128/hoodyoor-reroll-rules.bin",
+        "bytes": 1974,
+        "sha256": "484b05d17f974aa62430783a7d6f937daf9c785aeee376a1099a25397b9e3446",
+        "keccak256": "0x14a33149be765254e70441c4ba2674c662f5b3f746fb3ac8a717a4f49b47ab0f"
+      },
+      "binaryHash": "0x14a33149be765254e70441c4ba2674c662f5b3f746fb3ac8a717a4f49b47ab0f",
+      "rulesHash": "0x14a33149be765254e70441c4ba2674c662f5b3f746fb3ac8a717a4f49b47ab0f",
+      "pairs": 329
+    },
+    "energyMigration": {
+      "binary": {
+        "path": "data/robinhood/onchain-128/hoodyoor-energy-migration.bin",
+        "bytes": 6552,
+        "sha256": "fed89f341bc153a8c142f1f7e33da08630872d7672bac6dde8b518f336a8e4af",
+        "keccak256": "0x9b334fcd14b1bd4de1f9d2787124f9d30775e977dfca5e8e6c887ef592a5bf4f"
+      },
+      "ledger": {
+        "path": "data/robinhood/onchain-128/hoodyoor-energy-migration-ledger.json",
+        "bytes": 61812,
+        "sha256": "803c81419c8602de1fe62ff1b206dda2b119297920e15ad68c5016c0bbd9ff7f",
+        "keccak256": "0x8cb622dcb2f402d34a6e36b2f2a22800a4e37ad16aea7aa79b9b3564dd704dc0"
+      },
+      "csv": {
+        "path": "data/robinhood/onchain-128/hoodyoor-energy-migration.csv",
+        "bytes": 20836,
+        "sha256": "e19575cd8ca0745ace3d2b150fee2c9d61776b32acf94fa3b7339d81864b741d",
+        "keccak256": "0x01cb56d2e26df5c4f4ace2b33a01d289550d4c71189d0782e2185607eccd016f"
+      },
+      "binaryHash": "0x9b334fcd14b1bd4de1f9d2787124f9d30775e977dfca5e8e6c887ef592a5bf4f",
+      "sourceChainId": 143,
+      "sourceEnergyBank": "0x291a8cC0FCa08EBd64a0e4d67B4455d24e9E6767",
+      "snapshotBlock": 94583241,
+      "sourceWallets": 129,
+      "migratedWallets": 126,
+      "destinationEnergy": "2023191",
+      "batches": 3
+    },
+    "gtd": {
+      "binary": {
+        "path": "data/robinhood/onchain-128/hoodyoor-gtd-allowlist.bin",
+        "bytes": 7326,
+        "sha256": "d059fed126035f9f5f0f39d52e9273e1bb8c12e3f84584f4ed652f5c5dd627b1",
+        "keccak256": "0xa422f0b2443dea9c6d3d23e8ec312df7912fab929830aa435ef114923a148b68"
+      },
+      "tree": {
+        "path": "data/robinhood/onchain-128/hoodyoor-gtd-tree.json",
+        "bytes": 91952,
+        "sha256": "e819759599a6d385e724c2677144868266c73ce30ea28c7edd74ac296584fba9",
+        "keccak256": "0x91f8f362741587c3a57aaa95316cc88ad61953e8edbeeb002b8741725cebe6d9"
+      },
+      "csv": {
+        "path": "data/robinhood/onchain-128/hoodyoor-gtd-allowlist.csv",
+        "bytes": 25818,
+        "sha256": "279f61f32e0261806865875e3e4f0bbf4dee6e6b0315d82a1ef06b7e4f60f81e",
+        "keccak256": "0x5903fe5bbef42278ced034173e8d3771c94ca0a7b65c3e21aee795aabdf4e153"
+      },
+      "binaryHash": "0xa422f0b2443dea9c6d3d23e8ec312df7912fab929830aa435ef114923a148b68",
+      "payloadHash": "0xa422f0b2443dea9c6d3d23e8ec312df7912fab929830aa435ef114923a148b68",
+      "merkleRoot": "0x915e9b6ddcfe13a197ade8f6b776d37beb8ce2f766001e6579bd0601ffc5dd31",
+      "uniqueWallets": 333,
+      "aggregateMaxMint": 733,
+      "monadHolderWallets": 133,
+      "robinhoodTopHolderWallets": 200,
+      "overlapWallets": 0
+    }
+  },
+  "ceremony": {
+    "batchLimits": {
+      "artChunkBytes": 24000,
+      "traitRecordsPerTransaction": 20,
+      "rulesPerTransaction": 40,
+      "assignmentsPerTransaction": 50,
+      "energyWalletsPerTransaction": 50
+    },
+    "irreversibleOrder": [
+      "deploy and freeze packed art store",
+      "deploy renderer, collection, Energy Bank, frozen trait rules, and reroll controller",
+      "migrate the exact-block Monad Energy ledger in replay-protected batches",
+      "load all 3,333 assignment slots",
+      "set and freeze the collection reroll controller",
+      "grant the controller Energy SPENDER_ROLE",
+      "grant the collection Energy CREDIT_ROLE and permanently freeze the 1,000-Energy paid-mint reward",
+      "freeze assignments with provenance hash and a privately generated reveal commitment",
+      "freeze the renderer",
+      "set the independently reproduced combined GTD root",
+      "open GTD and atomically mint the 150-token reserve to the current collection owner",
+      "keep secondary trading locked until total minted supply reaches 1,667, including the owner reserve, or a permanent owner early-unlock",
+      "open and close sale phases",
+      "permanently finalize minting and request the delayed reveal",
+      "permissionlessly complete reveal, then enable the Trait Lab service"
+    ],
+    "reveal": {
+      "delayBlocks": 64,
+      "blockHashWindow": 256,
+      "blockClock": "Ethereum-parent height exposed by Robinhood Nitro's Solidity NUMBER opcode",
+      "entropySource": "Canonical Robinhood L2 block hash associated with the target parent height",
+      "approximateDelayMinutes": 13,
+      "approximateHashWindowMinutes": 51,
+      "permutation": "16-round swap-or-not over 3,333 assignments",
+      "secretPolicy": "Generate 32 random bytes offline; publish only its keccak256 commitment before mint."
+    }
+  },
+  "verification": {
+    "localChainId4663Rehearsal": {
+      "status": "pass",
+      "command": "forge test --offline --match-contract HoodYOORLaunchRehearsalTest -vv",
+      "test": "testFullChain4663DeploymentGTDRevealAndReroll",
+      "aggregateTestGas": 422655619,
+      "note": "Aggregate gas covers many simulated transactions and is not a single-transaction estimate."
+    },
+    "assignmentTests": "pass",
+    "publicTestnetDeployment": "skipped",
+    "externalDeployment": "none",
+    "publicMainnetBlockhashCanary": {
+      "status": "pass",
+      "address": "0x3f38DBe5d52f824f3f4738Fe7db5D58dfD1A2216",
+      "deploymentTransaction": "0x09d620cf3492d8dd41a640f52c7ac0c3cbedda237c9823190b8d45d165c16559",
+      "observationTransaction": "0xd87a389f04df92bac95532a89488decff7719959f49e96d400914f24248f6a1e",
+      "targetParentBlock": 25719938,
+      "canonicalRobinhoodBlock": 32238349,
+      "observedBlockHash": "0x00d1ac94c0e080489cb7146f2a62e8e21e4d3360a162661ffba6a7d967f85fe8"
+    }
+  },
+  "blockers": [
+    {
+      "id": "verify-owner-and-treasury-control-on-robinhood",
+      "status": "open",
+      "note": "Confirm the configured owner and treasury are controllable Robinhood-chain receivers before constructor use. If the owner is a contract, verify it accepts ERC-721 safe mints before the 150-token GTD reserve transaction."
+    },
+    {
+      "id": "final-energy-migration-ledger",
+      "status": "complete",
+      "snapshotBlock": 94583241,
+      "ledgerHash": "0x9b334fcd14b1bd4de1f9d2787124f9d30775e977dfca5e8e6c887ef592a5bf4f"
+    },
+    {
+      "id": "result-signer-relayer-and-deployer-addresses",
+      "status": "open"
+    },
+    {
+      "id": "public-chain-reveal-blockhash-validation",
+      "status": "complete",
+      "note": "Validated on Robinhood mainnet with canary 0x3f38DBe5d52f824f3f4738Fe7db5D58dfD1A2216; Solidity NUMBER uses the Ethereum-parent height and BLOCKHASH returned canonical Robinhood block 32238349."
+    },
+    {
+      "id": "reveal-secret-offline-backup",
+      "status": "complete",
+      "note": "Owner confirmed an offline backup; the private record matches the frozen commitment and remains excluded from this manifest."
+    },
+    {
+      "id": "paid-mint-energy-owner-approval",
+      "status": "complete",
+      "note": "Owner approval is required for the permanently frozen 1000-Energy reward on every paid NFT."
+    },
+    {
+      "id": "independent-smart-contract-security-review",
+      "status": "waived",
+      "note": "Owner explicitly waived independent review and accepted unaudited deployment risk; this status must never be represented as audited."
+    }
+  ]
+}

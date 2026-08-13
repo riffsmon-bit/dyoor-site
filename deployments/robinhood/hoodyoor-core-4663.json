@@ -1,0 +1,15 @@
+{
+  "schema": "dyoor-hoodyoor-core-deployment-v1",
+  "chainId": 4663,
+  "deployer": "0xC7f55cE6A7dF9A79cc4A643a5081230F890c7AA6",
+  "owner": "0xC7f55cE6A7dF9A79cc4A643a5081230F890c7AA6",
+  "treasury": "0xC7f55cE6A7dF9A79cc4A643a5081230F890c7AA6",
+  "renderer": "0xb9cB0563013D9741f76a802d2F658EbF3433eE12",
+  "sourceTree": "0xe1d826b0509fa93d8373e9f8cea20fac2b8015f8dfcebc3d670824923794598c",
+  "collection": "0x1Ece69C63F0b49C7a5B02eaf209059B4E2aF69a1",
+  "energyBank": "0x9bA9aa6c6A1CB04bc0477E90f4D93214c6b1D7c3",
+  "transactions": [
+    "0x19476919f9d9618067dae1f60c1de0c75e1c354ec2a993134e23823900cc7b31",
+    "0x90730a76e244311c99444d5f0c5b4f08d69cfe75958adb49f6f87515f3dac738"
+  ]
+}

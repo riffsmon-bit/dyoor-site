@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="referrer" content="no-referrer" />
+    <title>DYØØR — Wallet Verification</title>
+    <link rel="stylesheet" href="/verify/verify.css" />
+  </head>
+  <body>
+    <main class="frame">
+      <section class="gallery-card" aria-labelledby="title">
+        <div class="eyebrow">IDENTITY UPLINK</div>
+        <h1 id="title">DYØØR</h1>
+        <p class="subtitle">Wallet + Discord Role Sync</p>
+        <div class="rule"></div>
+        <p>
+          Connect one wallet at a time. A short-lived signature links it to the Discord account that
+          created this private session, then checks Season 1, Ascension, Season 2, and HoodYØØR.
+        </p>
+        <p class="gas-note">No transaction. No approval. No gas.</p>
+
+        <div class="status" id="status" role="status" aria-live="polite">Ready when you are.</div>
+        <div class="wallet" id="wallet" hidden></div>
+
+        <div class="actions">
+          <button id="connect" type="button">Connect Wallet</button>
+          <button id="verify" type="button" disabled>Sign + Sync Roles</button>
+          <button id="cancel" class="quiet" type="button">Cancel</button>
+        </div>
+
+        <aside class="warning">
+          <strong>DYØØR SECURITY PROTOCOL</strong>
+          Never share a seed phrase, recovery phrase, private key, or signature. This page never
+          requests approve(), setApprovalForAll(), a transfer, or payment.
+        </aside>
+        <p class="network">Authentication network: Monad Mainnet · Chain ID 143</p>
+      </section>
+    </main>
+    <script src="/verify/verify.js" defer></script>
+  </body>
+</html>

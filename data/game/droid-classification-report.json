@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-07-28T15:47:28.325Z",
+  "chainId": 143,
+  "contract": "0x349D8eb480c92cF75371fbA5C6344A4d11b9103A",
+  "deploymentBlock": 87616887,
+  "chainScanBlock": 91096834,
+  "rpcHost": "monad-mainnet.g.alchemy.com",
+  "contractCounts": {
+    "totalMinted": 1096,
+    "totalSupply": 1039,
+    "burned": 57,
+    "maxSupply": 3333
+  },
+  "classifiedCounts": {
+    "surviving_minted": 1039,
+    "burned": 57,
+    "unminted": 2237,
+    "invalid_or_unavailable": 0
+  },
+  "transferLogs": 1443,
+  "uniqueMintEvents": 1096,
+  "ownerReads": 1039,
+  "ownerReadFailures": 0,
+  "ownerMismatches": [],
+  "warnings": [],
+  "privacy": "Owner addresses are intentionally omitted from committed output."
+}

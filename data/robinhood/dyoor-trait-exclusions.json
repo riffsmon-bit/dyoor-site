@@ -1,0 +1,419 @@
+{
+  "schema": "dyoor-robinhood-trait-exclusions-v1",
+  "targetChain": {
+    "name": "Robinhood Chain",
+    "chainId": 4663
+  },
+  "sourceCatalog": "data/dyoor-s2-trait-catalog.json",
+  "policy": {
+    "mode": "case-insensitive-name-substring",
+    "terms": [
+      "monad",
+      "10k",
+      "bob",
+      "hive",
+      "molandak",
+      "mouch",
+      "salmonad",
+      "shramp"
+    ]
+  },
+  "summary": {
+    "excludedTraitEntries": 20,
+    "distinctExcludedNames": 14,
+    "removedSlots": 2,
+    "removedSlotTraitEntries": 13,
+    "removedBackgroundTraitEntries": 12
+  },
+  "traits": [
+    {
+      "slot": "Eyes",
+      "traitId": 5013,
+      "name": "Monad Specs Black",
+      "weight": 2,
+      "selectable": true,
+      "mutable": true
+    },
+    {
+      "slot": "Eyes",
+      "traitId": 5014,
+      "name": "Monad Specs Gold",
+      "weight": 2,
+      "selectable": true,
+      "mutable": true
+    },
+    {
+      "slot": "Hat",
+      "traitId": 6009,
+      "name": "BOB Mask",
+      "weight": 1,
+      "selectable": true,
+      "mutable": true
+    },
+    {
+      "slot": "Hat",
+      "traitId": 6022,
+      "name": "Emonad",
+      "weight": 2,
+      "selectable": true,
+      "mutable": true
+    },
+    {
+      "slot": "Hat",
+      "traitId": 6031,
+      "name": "Monad Cap Black",
+      "weight": 7,
+      "selectable": true,
+      "mutable": true
+    },
+    {
+      "slot": "Hat",
+      "traitId": 6030,
+      "name": "Monad Cap",
+      "weight": 9,
+      "selectable": true,
+      "mutable": true
+    },
+    {
+      "slot": "Hat",
+      "traitId": 6036,
+      "name": "Salmonad Mask",
+      "weight": 3,
+      "selectable": true,
+      "mutable": true
+    },
+    {
+      "slot": "Hat",
+      "traitId": 6038,
+      "name": "Shramp Beanie",
+      "weight": 2,
+      "selectable": true,
+      "mutable": true
+    },
+    {
+      "slot": "Accessories",
+      "traitId": 7000,
+      "name": "10KSquad",
+      "weight": 1,
+      "selectable": true,
+      "mutable": true
+    },
+    {
+      "slot": "Accessories",
+      "traitId": 7004,
+      "name": "BOB-chain",
+      "weight": 1,
+      "selectable": true,
+      "mutable": true
+    },
+    {
+      "slot": "Accessories",
+      "traitId": 7007,
+      "name": "Molandak",
+      "weight": 4,
+      "selectable": true,
+      "mutable": true
+    },
+    {
+      "slot": "Accessories",
+      "traitId": 7008,
+      "name": "Mouch",
+      "weight": 3,
+      "selectable": true,
+      "mutable": true
+    },
+    {
+      "slot": "Accessories",
+      "traitId": 7010,
+      "name": "Shramp",
+      "weight": 1,
+      "selectable": true,
+      "mutable": true
+    },
+    {
+      "slot": "Accessories",
+      "traitId": 7011,
+      "name": "The Hive",
+      "weight": 3,
+      "selectable": true,
+      "mutable": true
+    },
+    {
+      "slot": "Accessories 2",
+      "traitId": 8000,
+      "name": "10KSquad",
+      "weight": 1,
+      "selectable": true,
+      "mutable": true
+    },
+    {
+      "slot": "Accessories 2",
+      "traitId": 8004,
+      "name": "BOB-chain",
+      "weight": 1,
+      "selectable": true,
+      "mutable": true
+    },
+    {
+      "slot": "Accessories 2",
+      "traitId": 8007,
+      "name": "Molandak",
+      "weight": 4,
+      "selectable": true,
+      "mutable": true
+    },
+    {
+      "slot": "Accessories 2",
+      "traitId": 8008,
+      "name": "Mouch",
+      "weight": 3,
+      "selectable": true,
+      "mutable": true
+    },
+    {
+      "slot": "Accessories 2",
+      "traitId": 8010,
+      "name": "Shramp",
+      "weight": 1,
+      "selectable": true,
+      "mutable": true
+    },
+    {
+      "slot": "Accessories 2",
+      "traitId": 8011,
+      "name": "The Hive",
+      "weight": 3,
+      "selectable": true,
+      "mutable": true
+    }
+  ],
+  "removedSlots": [
+    {
+      "slot": "Stickers/Body art",
+      "traits": [
+        {
+          "slot": "Stickers/Body art",
+          "traitId": 2000,
+          "name": "143 Chest Sticker",
+          "weight": 1,
+          "selectable": true,
+          "mutable": true
+        },
+        {
+          "slot": "Stickers/Body art",
+          "traitId": 2001,
+          "name": "143 Face Sticker",
+          "weight": 1,
+          "selectable": true,
+          "mutable": true
+        },
+        {
+          "slot": "Stickers/Body art",
+          "traitId": 2002,
+          "name": "Chog Sticker",
+          "weight": 1,
+          "selectable": true,
+          "mutable": true
+        },
+        {
+          "slot": "Stickers/Body art",
+          "traitId": 2003,
+          "name": "DYOOR Chest Tat",
+          "weight": 4,
+          "selectable": true,
+          "mutable": true
+        },
+        {
+          "slot": "Stickers/Body art",
+          "traitId": 2004,
+          "name": "LeverUp sticker",
+          "weight": 1,
+          "selectable": true,
+          "mutable": true
+        },
+        {
+          "slot": "Stickers/Body art",
+          "traitId": null,
+          "name": "None",
+          "weight": 100,
+          "selectable": true,
+          "mutable": true
+        }
+      ]
+    },
+    {
+      "slot": "Special",
+      "traits": [
+        {
+          "slot": "Special",
+          "traitId": null,
+          "name": "Anime Mask",
+          "weight": 1,
+          "selectable": true,
+          "mutable": true
+        },
+        {
+          "slot": "Special",
+          "traitId": null,
+          "name": "DeepSea Bruh",
+          "weight": 1,
+          "selectable": true,
+          "mutable": true
+        },
+        {
+          "slot": "Special",
+          "traitId": null,
+          "name": "Gimp",
+          "weight": 1,
+          "selectable": true,
+          "mutable": true
+        },
+        {
+          "slot": "Special",
+          "traitId": null,
+          "name": "Green Ski Mask Laser",
+          "weight": 1,
+          "selectable": true,
+          "mutable": true
+        },
+        {
+          "slot": "Special",
+          "traitId": null,
+          "name": "Pink Ski Mask Laser",
+          "weight": 1,
+          "selectable": true,
+          "mutable": true
+        },
+        {
+          "slot": "Special",
+          "traitId": null,
+          "name": "Space Suit",
+          "weight": 1,
+          "selectable": true,
+          "mutable": true
+        },
+        {
+          "slot": "Special",
+          "traitId": null,
+          "name": "None",
+          "weight": 900,
+          "selectable": true,
+          "mutable": true
+        }
+      ]
+    }
+  ],
+  "backgroundPolicy": {
+    "default": "INDAHOOD",
+    "oneOfOnes": [
+      "Cynically Censored-Project M.A.D.",
+      "Don't Look At The Lighthouse-Project M.A.D.",
+      "Eye Sea U-Project M.A.D.",
+      "Fxxk Crabs-Project M.A.D.",
+      "Painfully Here-Project M.A.D.",
+      "Sad Cook-Project M.A.D.",
+      "Simovision-Project M.A.D.",
+      "Soul Catcher-Project M.A.D.",
+      "The Way-Project M.A.D.",
+      "Tisumusem-Project M.A.D."
+    ],
+    "removed": [
+      {
+        "slot": "Background",
+        "traitId": 100,
+        "name": "Abtrastic",
+        "weight": 1,
+        "selectable": true,
+        "mutable": false
+      },
+      {
+        "slot": "Background",
+        "traitId": 104,
+        "name": "Flash",
+        "weight": 1,
+        "selectable": true,
+        "mutable": false
+      },
+      {
+        "slot": "Background",
+        "traitId": 106,
+        "name": "Goldish",
+        "weight": 10,
+        "selectable": true,
+        "mutable": false
+      },
+      {
+        "slot": "Background",
+        "traitId": 107,
+        "name": "Green Grade",
+        "weight": 1,
+        "selectable": true,
+        "mutable": false
+      },
+      {
+        "slot": "Background",
+        "traitId": 108,
+        "name": "Grey",
+        "weight": 10,
+        "selectable": true,
+        "mutable": false
+      },
+      {
+        "slot": "Background",
+        "traitId": 109,
+        "name": "Hawhyte",
+        "weight": 1,
+        "selectable": true,
+        "mutable": false
+      },
+      {
+        "slot": "Background",
+        "traitId": 110,
+        "name": "Kewl",
+        "weight": 1,
+        "selectable": true,
+        "mutable": false
+      },
+      {
+        "slot": "Background",
+        "traitId": 111,
+        "name": "Kinda Blue",
+        "weight": 10,
+        "selectable": true,
+        "mutable": false
+      },
+      {
+        "slot": "Background",
+        "traitId": 113,
+        "name": "Pank",
+        "weight": 10,
+        "selectable": true,
+        "mutable": false
+      },
+      {
+        "slot": "Background",
+        "traitId": 114,
+        "name": "Pernkple",
+        "weight": 1,
+        "selectable": true,
+        "mutable": false
+      },
+      {
+        "slot": "Background",
+        "traitId": 118,
+        "name": "Sunset",
+        "weight": 1,
+        "selectable": true,
+        "mutable": false
+      },
+      {
+        "slot": "Background",
+        "traitId": 121,
+        "name": "Yorange",
+        "weight": 10,
+        "selectable": true,
+        "mutable": false
+      }
+    ]
+  }
+}

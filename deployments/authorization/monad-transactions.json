@@ -1,0 +1,221 @@
+{
+  "schema": "hoodyoor-monad-deployment-authorization-v1",
+  "generatedAt": "2026-08-12T15:00:53Z",
+  "status": "ARTIFACT_FREEZE_BROKEN",
+  "chain": {
+    "name": "Monad Mainnet",
+    "chainId": 143,
+    "nativeGasSymbol": "MON",
+    "collection": "0x349D8eb480c92cF75371fbA5C6344A4d11b9103A"
+  },
+  "transactionAuthorizationPrepared": false,
+  "deploymentAuthorized": false,
+  "broadcastCapability": false,
+  "broadcastAttempted": false,
+  "privateKeyReadByMonadWorkflow": false,
+  "privateKeyReadElsewhereDuringPackageTask": true,
+  "stopReason": "Six rebuilt whole-artifact SHA-256 values, including both Monad artifacts, differ from the prior freeze. Creation and runtime bytecode are unchanged, but the release rule requires review and a new clean-snapshot freeze before authorization.",
+  "artifactCompilerProfile": {
+    "droidContracts": "0.8.24+commit.e11b9ed9; optimizer 200; viaIR true; EVM paris",
+    "canonicalRegistryPayloadCompilerMetadata": "0.8.17+commit.8df45f5f",
+    "externalLibraries": [],
+    "linkedAddresses": []
+  },
+  "auditGate": {
+    "overall": "NOT_STARTED",
+    "criticalOrHighBlocks": true,
+    "artifacts": [
+      {
+        "contract": "ERC6551Registry",
+        "status": "NOT_STARTED",
+        "findings": []
+      },
+      {
+        "contract": "DroidAccountV1",
+        "status": "NOT_STARTED",
+        "findings": []
+      },
+      {
+        "contract": "DroidAccountRegistry",
+        "status": "NOT_STARTED",
+        "findings": []
+      }
+    ]
+  },
+  "refreshedGasCheckpoint": {
+    "generatedAt": "2026-08-12T14:49:54.766Z",
+    "observedBlock": 95373384,
+    "gasPriceWei": "202000000000",
+    "estimatedGas": "1910306",
+    "estimatedDeploymentMON": "0.385881812",
+    "planningThreeTimesReserveMON": "1.157645436",
+    "estimateApproved": false,
+    "refreshAgainImmediatelyBeforeAnyFutureApproval": true,
+    "excludesCanaryFunding": true
+  },
+  "proposedTransactions": [
+    {
+      "txNumber": "MONAD-01",
+      "purpose": "Deploy the canonical ERC-6551 registry through the reviewed deterministic factory payload.",
+      "contract": "ERC6551Registry",
+      "releaseState": "AUDIT_REQUIRED",
+      "immutableDeployment": true,
+      "artifactModel": "reviewed canonical deployment payload",
+      "artifactHash": "0xe3d6a2f96a1664247da7003f047a21fb2dfccd984ac985fbf4d1cae6ed0ad41a",
+      "expectedRuntimeCodeHash": "0xda1d5b06e579f9e42e59b00fbc22939896ecb38dc8830d40de0a2508fecd6735",
+      "from": null,
+      "fromStatus": "UNSET",
+      "to": "0x4e59b44847b379578588920cA78FbF26c0B4956C",
+      "valueWei": "0",
+      "transactionDataSource": "CANONICAL_DEPLOYMENT_DATA in scripts/preflight-monad-droid-accounts.js",
+      "constructorArguments": [],
+      "estimatedGas": "179650",
+      "proposedGasCeiling": "225000",
+      "maxAuthorizedGas": null,
+      "expectedContractAddress": "0x000000006551c19487814612e58FE06813775758",
+      "createBehavior": "deterministic factory deployment to the canonical address",
+      "ownerOrAdmin": "none",
+      "libraries": [],
+      "linkedAddresses": [],
+      "postCondition": "Code exists only at the canonical address and its runtime code hash exactly matches the expectedRuntimeCodeHash.",
+      "rollbackOrPause": "No upgrade or pause exists. Stop the release if the address or hash differs.",
+      "ownerApprovalRequired": true,
+      "ownerApproved": false,
+      "humanPreview": "IMMUTABLE DEPLOYMENT — You would deploy the canonical ERC-6551 registry on Monad chain 143 through the deterministic factory using reviewed payload hash 0xe3d6…d0ad41a. No user funds are transferred. The proposed gas ceiling is 225,000, but no gas maximum is authorized."
+    },
+    {
+      "txNumber": "MONAD-02",
+      "purpose": "Deploy immutable DroidAccountV1.",
+      "contract": "DroidAccountV1",
+      "source": "contracts/hoodyoor/src/droid/DroidAccountV1.sol",
+      "artifact": "contracts/hoodyoor/out/DroidAccountV1.sol/DroidAccountV1.json",
+      "releaseState": "AUDIT_REQUIRED",
+      "immutableDeployment": true,
+      "frozenArtifactSha256": "0x09328148e911aa9293953fbd25f5df66d704483e88991a7dc67c321a3804693e",
+      "rebuiltArtifactSha256": "0xee1a9394343a7935065f7cf4c2c107f15535d956aeae093f645cba200ef50890",
+      "artifactFreezeMatched": false,
+      "abiSha256": "0x6b0634b4080eb4866990fcf8aec6811450c7c1268824f73d58a95226db6ba1e1",
+      "creationCodeHash": "0x2a34579dfc6df3b5d6b2e305974c8c6eddecf2e4a93d643ff575ed2de3941ae1",
+      "runtimeTemplateHash": "0xb94e6bca188572015060c77b916cb21b28906ad88b62eeac8cddeb55ec6199b0",
+      "from": null,
+      "fromStatus": "UNSET",
+      "to": null,
+      "toMeaning": "contract creation",
+      "valueWei": "0",
+      "constructorArguments": [],
+      "estimatedGas": "1188142",
+      "proposedGasCeiling": "1500000",
+      "maxAuthorizedGas": null,
+      "expectedContractAddress": null,
+      "expectedAddressReason": "CREATE address requires the approved deployer and nonce.",
+      "createBehavior": "CREATE",
+      "ownerOrAdmin": "none; implementation owner() resolves to zero when called directly",
+      "immutableValues": [],
+      "libraries": [],
+      "linkedAddresses": [],
+      "postCondition": "Creation and deployed runtime match the newly reviewed release hash; IMPLEMENTATION_VERSION is 1; direct owner is zero; no proxy or admin exists.",
+      "rollbackOrPause": "No upgrade or pause exists. An incorrect deployment is abandoned and a separately reviewed version is deployed; it must never be registered.",
+      "ownerApprovalRequired": true,
+      "ownerApproved": false,
+      "humanPreview": "IMMUTABLE DEPLOYMENT — You would deploy DroidAccountV1 on Monad chain 143. It has no constructor arguments and no project-admin withdrawal path. The proposed gas ceiling is 1,500,000, but the artifact freeze is broken and no deployment is authorized."
+    },
+    {
+      "txNumber": "MONAD-03",
+      "purpose": "Deploy the immutable D.Y.O.O.R collection-specific DroidAccountRegistry facade.",
+      "contract": "DroidAccountRegistry",
+      "source": "contracts/hoodyoor/src/droid/DroidAccountRegistry.sol",
+      "artifact": "contracts/hoodyoor/out/DroidAccountRegistry.sol/DroidAccountRegistry.json",
+      "releaseState": "AUDIT_REQUIRED",
+      "immutableDeployment": true,
+      "frozenArtifactSha256": "0x50876db00cd5b7f9a7e10f6a3ad6a5c42bee4d74343ab80e7e15557258cc5e6e",
+      "rebuiltArtifactSha256": "0x9bf0de528f8b2b5e3df51d233188d604deb424b92411073552d8aa1d6c1b619b",
+      "artifactFreezeMatched": false,
+      "abiSha256": "0x1a3f2ff3bfca25b4be72ff1a2320cae8421e9856667cdeffcb8652c0fe1789de",
+      "creationCodeHash": "0x925073987b0491bf8f3a2adbba10776fcfac2fafb783bc29139b6913df8b0215",
+      "runtimeTemplateHash": "0x80c3d64099222fe1d1975a1b7f606949d55268fdbd287a608f2a02f9665c6070",
+      "from": null,
+      "fromStatus": "UNSET",
+      "to": null,
+      "toMeaning": "contract creation",
+      "valueWei": "0",
+      "constructorArguments": [
+        "0x000000006551c19487814612e58FE06813775758",
+        "0x349D8eb480c92cF75371fbA5C6344A4d11b9103A",
+        null,
+        143,
+        "0x0000000000000000000000000000000000000000000000000000000000000000"
+      ],
+      "constructorArgumentNames": [
+        "canonicalRegistry",
+        "tokenContract",
+        "deployedDroidAccountV1",
+        "tokenChainId",
+        "accountSalt"
+      ],
+      "estimatedGas": "542514",
+      "proposedGasCeiling": "700000",
+      "maxAuthorizedGas": null,
+      "expectedContractAddress": null,
+      "expectedAddressReason": "CREATE address requires the approved implementation address, deployer, and nonce.",
+      "createBehavior": "CREATE",
+      "ownerOrAdmin": "none",
+      "immutableValues": [
+        "canonicalRegistry",
+        "tokenContract",
+        "implementation",
+        "tokenChainId",
+        "accountSalt"
+      ],
+      "libraries": [],
+      "linkedAddresses": [],
+      "postCondition": "Every immutable getter matches the approved constructor; account(tokenId) equals canonical registry derivation; only the current ERC-721 owner can activate.",
+      "rollbackOrPause": "No upgrade or pause exists. An incorrectly wired facade must be abandoned and never configured in the application.",
+      "ownerApprovalRequired": true,
+      "ownerApproved": false,
+      "humanPreview": "IMMUTABLE DEPLOYMENT — You would bind a DroidAccountRegistry permanently to the canonical registry, D.Y.O.O.R collection 0x349D…103A, the separately approved DroidAccountV1 address, chain 143, and zero salt. The implementation address is still UNSET and no deployment is authorized."
+    }
+  ],
+  "hardStopAfterInfrastructure": true,
+  "accountActivationIncluded": false,
+  "postDeploymentAssertions": [
+    "chain ID equals 143",
+    "all three transaction receipts succeeded and addresses match the approved sheet",
+    "deployed runtime hashes match independently computed expectations",
+    "all constructor/immutable values match",
+    "the canonical registry has no owner or admin",
+    "DroidAccountV1 has no proxy or persistent project role",
+    "the facade has no proxy or admin",
+    "counterfactual account derivation matches the canonical registry",
+    "source/explorer verification reports an exact match",
+    "all Monad activation, reward, strategy, agent, and bridge flags remain false",
+    "no unexpected contract balances or role grants exist"
+  ],
+  "canary": {
+    "releaseState": "OWNER_DECISION_REQUIRED",
+    "MONAD_CANARY_TOKEN_ID": null,
+    "MONAD_CANARY_OWNER_A": null,
+    "MONAD_CANARY_OWNER_B": null,
+    "CANARY_MAX_MON_FUNDING": null,
+    "CANARY_APPROVED_TEST_ASSET": null,
+    "approved": false,
+    "observationWindowHours": {
+      "minimum": 24,
+      "maximumSuggested": 72
+    }
+  },
+  "safeCommands": {
+    "offlineRebuild": "cd contracts/hoodyoor && forge build --force --offline",
+    "offlineArtifactCheck": "npm run preflight:droid-os:freeze",
+    "readOnlyLivePreflight": "npm run preflight:monad:droid-accounts",
+    "accountSecurityTests": "npm run test:monad:droid-accounts",
+    "liveForkSimulation": "npm run test:monad:droid-accounts:fork",
+    "authorizationPackageCheck": "npm run preflight:deployment-authorization",
+    "productionDeploymentCommand": null,
+    "productionCommandStatus": "WITHHELD_ARTIFACT_FREEZE_BROKEN"
+  },
+  "verificationTemplates": {
+    "implementation": "cd contracts/hoodyoor && forge verify-contract <APPROVED_DROID_ACCOUNT_V1_ADDRESS> src/droid/DroidAccountV1.sol:DroidAccountV1 --chain-id 143 --compiler-version v0.8.24+commit.e11b9ed9 --num-of-optimizations 200 --watch",
+    "facade": "cd contracts/hoodyoor && forge verify-contract <APPROVED_DROID_ACCOUNT_REGISTRY_ADDRESS> src/droid/DroidAccountRegistry.sol:DroidAccountRegistry --chain-id 143 --compiler-version v0.8.24+commit.e11b9ed9 --num-of-optimizations 200 --constructor-args <OWNER_REVIEWED_ABI_ENCODED_ARGS> --watch",
+    "status": "TEMPLATE_ONLY_NOT_AUTHORIZED"
+  }
+}

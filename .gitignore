@@ -25,3 +25,12 @@ data/snapshots/
 data/runtime/
 .env
 tsconfig.tsbuildinfo
+
+# Isolated D.Y.O.O.R game build and read-only pipeline caches
+apps/game/dist/
+apps/game/coverage/
+apps/game/.vite/
+apps/game/.cache/
+apps/game/public/assets/sprites/generated/
+data/game/cache/
+data/game/private/

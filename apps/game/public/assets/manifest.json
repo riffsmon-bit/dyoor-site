@@ -1,0 +1,68 @@
+{
+  "schemaVersion": 1,
+  "assetPolicy": "Placeholder assets and final assets must remain in separate directories.",
+  "assets": [
+    {
+      "id": "pilot-token-16-walk-v1",
+      "path": "assets/sprites/pilots/dyoor-16-walk-v1.png",
+      "type": "directional-sprite-sheet",
+      "tokenId": 16,
+      "status": "ai-assisted-pilot",
+      "productionReady": false,
+      "frameWidth": 64,
+      "frameHeight": 64,
+      "directions": ["down", "left", "right", "up"],
+      "traits": ["Lime Green", "Blue Hoodie", "Diamond Grill", "Abyss Laser", "McDYOORs"]
+    },
+    {
+      "id": "pilot-token-17-walk-v1",
+      "path": "assets/sprites/pilots/dyoor-17-walk-v1.png",
+      "type": "directional-sprite-sheet",
+      "tokenId": 17,
+      "status": "ai-assisted-pilot",
+      "productionReady": false,
+      "usage": "Dr. Halogen narrative appearance; token remains surviving_minted/player_character",
+      "frameWidth": 64,
+      "frameHeight": 64,
+      "directions": ["down", "left", "right", "up"],
+      "traits": ["Red", "Red Hoodie", "Drool", "Ricky V", "Halo"]
+    },
+    {
+      "id": "pilot-token-132-walk-v1",
+      "path": "assets/sprites/pilots/dyoor-132-walk-v1.png",
+      "type": "directional-sprite-sheet",
+      "tokenId": 132,
+      "status": "ai-assisted-pilot",
+      "productionReady": false,
+      "frameWidth": 64,
+      "frameHeight": 64,
+      "directions": ["down", "left", "right", "up"],
+      "traits": ["Red", "White Shirt W:Tie", "Emo Whatever", "Intense"]
+    },
+    {
+      "id": "pilot-token-1100-walk-v1",
+      "path": "assets/sprites/pilots/dyoor-1100-walk-v1.png",
+      "type": "directional-sprite-sheet",
+      "tokenId": 1100,
+      "status": "ai-assisted-pilot",
+      "productionReady": false,
+      "frameWidth": 64,
+      "frameHeight": 64,
+      "directions": ["down", "left", "right", "up"],
+      "traits": ["Lime Green", "Fur Coat Gold", "AHHH Tongue", "Excited", "Halo"]
+    }
+  ],
+  "placeholderDirectories": [
+    "sprites/placeholders",
+    "tiles/placeholders",
+    "ui/placeholders"
+  ],
+  "generatedProductionDirectory": "sprites/generated",
+  "pilotDirectory": "sprites/pilots",
+  "notes": [
+    "No existing NFT image is treated as a finished game sprite.",
+    "Runtime-generated training art is placeholder-only until directional pixel layers are approved.",
+    "AI-assisted pilots are reference-guided redraws, not resized NFT portraits.",
+    "Pilot sheets may be used in the local prototype but are not final production trait layers."
+  ]
+}

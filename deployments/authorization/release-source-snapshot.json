@@ -1,0 +1,246 @@
+{
+  "schema": "hoodyoor-release-source-snapshot-v1",
+  "capturedAt": "2026-08-12T15:00:53Z",
+  "status": "BLOCKED_DIRTY_WORKTREE",
+  "cleanSourceSnapshot": false,
+  "productionAuthorizationEligible": false,
+  "deploymentAuthorized": false,
+  "broadcastCapability": false,
+  "privateKeyRead": true,
+  "privateKeyReadIncident": {
+    "command": "npm run preflight:robinhood:seadrop-v2",
+    "cause": "The legacy read-only preflight calls loadHoodyoorLocalEnvironment(), loads .env, and derives a deployer address from HOODYOOR_DEPLOYER_PRIVATE_KEY.",
+    "keyPrinted": false,
+    "walletObjectConstructedForAddressDerivation": true,
+    "walletConnectedToProvider": false,
+    "transactionSigned": false,
+    "transactionBroadcast": false,
+    "credentialFilesModified": false,
+    "releaseImpact": "BLOCKED; the incident remains part of this task's audit trail.",
+    "remediation": {
+      "status": "IMPLEMENTED_NOT_INDEPENDENTLY_REVIEWED",
+      "file": "scripts/preflight-robinhood-seadrop-v2.js",
+      "changes": [
+        "removed local environment/key loading",
+        "removed private reveal-backup inspection",
+        "passes an empty keyless environment into launch-gate reporting",
+        "reports privateKeyRead and privateRevealSecretRead false"
+      ]
+    },
+    "additionalEnvironmentLoadersObservedDuringValidation": [
+      {
+        "command": "npm test",
+        "loader": "hardhat.config.js imports dotenv/config",
+        "secretPrinted": false,
+        "transactionSigned": false,
+        "transactionBroadcast": false
+      },
+      {
+        "command": "npm run build",
+        "loader": "Next.js reported loading .env.local and .env",
+        "secretPrinted": false,
+        "transactionSigned": false,
+        "transactionBroadcast": false
+      }
+    ],
+    "operationalRule": "Do not describe general root test/build commands as keyless while deployment credentials live in root env files. Use only the allowlisted release-safe commands or an independently prepared secret-free environment."
+  },
+  "git": {
+    "branch": "agent/s2-trait-marketplace",
+    "commit": "e498144f033ef3c302a2bab73225552d290fd033",
+    "worktreeClean": false,
+    "submodules": [],
+    "statusCountsBeforeAuthorizationOutputs": {
+      "modified": 22,
+      "deleted": 8,
+      "untracked": 113,
+      "total": 143
+    },
+    "statusPorcelainSha256": "0xfbbe3f25962a651e0f4f780a000bd044611b9c3e8182b6135d308711a020e52c",
+    "trackedDiffSha256": "0x5c101fb6ebada56e9b2a968284f0e49435a9919a6162180c296d79bcfcc15ead",
+    "untrackedPathListSha256": "0x19ff5f4333baed1e16bee2833830e79154f2af78d4e4370c11694f8d30cc1e2f",
+    "trackedIndexSha256": "0x182028843c0c42941da855421331358774c3205df9443a5c58451f0b17eab9c4",
+    "releaseRelevantUncommittedScopes": [
+      "contracts/hoodyoor/",
+      "deployments/",
+      "lib/droid-accounts/",
+      "lib/droid-economy/",
+      "app/droids/",
+      "app/monad/",
+      "app/robinhood/",
+      "app/admin/droid-economy/",
+      "app/api/droid-accounts/",
+      "app/api/droid-economy/",
+      "components/droids/",
+      "scripts/preflight-droid-os-release-freeze.js",
+      "scripts/preflight-monad-droid-accounts.js",
+      "scripts/preflight-hoodyoor-economic-droids.js",
+      "test/droid-accounts.test.js",
+      "test/droid-economy.test.js",
+      "test/dual-chain-production-readiness.test.js",
+      "test/monad-droid-accounts.test.js",
+      ".env.example",
+      "hardhat.config.js",
+      "package.json",
+      "package-lock.json"
+    ],
+    "gateReason": "The release-relevant implementation is not bound to a reviewed clean commit. The working tree also contains unrelated user work that this task did not modify or classify as releasable."
+  },
+  "tools": {
+    "node": "v24.14.1",
+    "npm": "11.11.0",
+    "hardhat": "3.11.1",
+    "foundry": {
+      "forge": "1.5.1-stable",
+      "cast": "1.5.1-stable",
+      "commit": "b0a9dd9ceda36f63e2326ce530c10e6916f4b8a2"
+    },
+    "git": "2.37.1 (Apple Git-137.1)"
+  },
+  "solidityReleaseProfile": {
+    "config": "contracts/hoodyoor/foundry.toml",
+    "compiler": "0.8.24+commit.e11b9ed9",
+    "optimizerEnabled": true,
+    "optimizerRuns": 200,
+    "viaIR": true,
+    "evmVersion": "paris",
+    "libraries": [],
+    "linkedAddresses": []
+  },
+  "locksAndConfiguration": [
+    {
+      "path": "package-lock.json",
+      "sha256": "0x6e2c0d42a5d0d82672c81e6132423ba875c1d3f7893d97ef2029cb1db396b743",
+      "lockfileVersion": 3
+    },
+    {
+      "path": "apps/game/package-lock.json",
+      "sha256": "0xc828246957f051143dd565535aa91618a71e9fafa586ae3e22d9377175b29b6c",
+      "lockfileVersion": 3
+    },
+    {
+      "path": "apps/discord/package-lock.json",
+      "sha256": "0xd6207a32f6f35ca32caecba43dee2a4bfe0ff9e0bee37ada08ab1d262fa7756d",
+      "lockfileVersion": 3
+    },
+    {
+      "path": "package.json",
+      "sha256": "0x07f84530c53f7d3fc03256dc1f679a2b706dd403c7fb3d873a3a4d4fb4939879"
+    },
+    {
+      "path": "foundry.toml",
+      "sha256": "0x7444c12b1c4f84f5530817942bac9a0db538df3c735a3a8d3abb1cf6d588872c"
+    },
+    {
+      "path": "contracts/hoodyoor/foundry.toml",
+      "sha256": "0x0eaaf3820424647fceaa340f2e8c6c68ca3157fe39171d9d8b958c8f5f7ca097"
+    },
+    {
+      "path": "hardhat.config.js",
+      "sha256": "0x38b67296a149f90c20a7c1d35a05714eb6f868bb49742dfe3f12bdf409a76c97"
+    },
+    {
+      "path": ".env.example",
+      "sha256": "0xda989e84de548e69afcbe7021c042b94cfaeffa1bb2dd044142f0219fe99eeb4"
+    }
+  ],
+  "environmentConfigurationNames": {
+    "documentedTemplate": ".env.example",
+    "runtimeContexts": [
+      "local/development",
+      "Netlify deploy-preview",
+      "Netlify branch-deploy",
+      "Netlify production"
+    ],
+    "privateEnvironmentFilesDiscoveredByNameOnly": [
+      ".env",
+      ".env.local"
+    ],
+    "privateEnvironmentFilesRead": false
+  },
+  "forcedRebuild": {
+    "command": "cd contracts/hoodyoor && forge build --force --offline",
+    "completed": true,
+    "compilerRunSeconds": 526.36,
+    "sourceHashesMatched": true,
+    "creationBytecodeHashesMatched": true,
+    "runtimeBytecodeHashesMatched": true,
+    "wholeArtifactHashesMatched": false,
+    "freezeStatus": "ARTIFACT_FREEZE_BROKEN",
+    "interpretation": "Deployable bytecode is unchanged, but six whole Foundry artifact JSON files no longer match the frozen SHA-256 values. The old approvals cannot be carried forward without independent review and a new clean-snapshot freeze."
+  },
+  "additionalVerificationArtifactDrift": [
+    {
+      "contract": "HoodYOORSeaDrop",
+      "deployedBytecodeChanged": false,
+      "wholeArtifactFileMatchedPriorVerification": false
+    },
+    {
+      "contract": "HoodYOORRerollControllerV2",
+      "deployedBytecodeChanged": false,
+      "wholeArtifactFileMatchedPriorVerification": false
+    }
+  ],
+  "artifactDrift": [
+    {
+      "contract": "DroidAccountV1",
+      "frozenArtifactSha256": "0x09328148e911aa9293953fbd25f5df66d704483e88991a7dc67c321a3804693e",
+      "rebuiltArtifactSha256": "0xee1a9394343a7935065f7cf4c2c107f15535d956aeae093f645cba200ef50890",
+      "creationBytecodeChanged": false,
+      "runtimeBytecodeChanged": false
+    },
+    {
+      "contract": "DroidAccountRegistry",
+      "frozenArtifactSha256": "0x50876db00cd5b7f9a7e10f6a3ad6a5c42bee4d74343ab80e7e15557258cc5e6e",
+      "rebuiltArtifactSha256": "0x9bf0de528f8b2b5e3df51d233188d604deb424b92411073552d8aa1d6c1b619b",
+      "creationBytecodeChanged": false,
+      "runtimeBytecodeChanged": false
+    },
+    {
+      "contract": "HoodYoorRewardsDistributor",
+      "frozenArtifactSha256": "0xa5b33717867f94b8d6d8694ffa74abdaf3cadef54f3c9f88df0f32da38d576bc",
+      "rebuiltArtifactSha256": "0xa2b95aa1bc6e12b9552983240a5740f5f4dac7f280c4a4e151a0493f6823ce56",
+      "creationBytecodeChanged": false,
+      "runtimeBytecodeChanged": false
+    },
+    {
+      "contract": "HoodYoorRevenueVault",
+      "frozenArtifactSha256": "0x9a947708ffe169aebf7c2767df69a86cba5ffb1c218cd69d4de731976cda21fa",
+      "rebuiltArtifactSha256": "0x082a80d93f607647cdfc780aff2043e6d2a07b455e5f1692b7209da3a33ecab7",
+      "creationBytecodeChanged": false,
+      "runtimeBytecodeChanged": false
+    },
+    {
+      "contract": "HoodYoorStrategyRegistry",
+      "frozenArtifactSha256": "0xac3ca48fd66c3b366818a4989e47645c5dfc18aa3a0424ac4479c4df645be4f0",
+      "rebuiltArtifactSha256": "0x32da66a777047b4cc8206970096d77e14b74690911f12222f24a0d4c6e81d45c",
+      "creationBytecodeChanged": false,
+      "runtimeBytecodeChanged": false
+    },
+    {
+      "contract": "HoodYoorAchievementRegistry",
+      "frozenArtifactSha256": "0x53f1ccb76367f3f85f8c29652e22bb1e484e6426772cd126f1a845e3dcb8cec2",
+      "rebuiltArtifactSha256": "0x0a2d2b760fc08949f823bfbc5637097c871dfff5488413b35472cdbf5e1cf805",
+      "creationBytecodeChanged": false,
+      "runtimeBytecodeChanged": false
+    }
+  ],
+  "artifactsWithoutWholeFileDrift": [
+    "HoodYoorDroidRegistry",
+    "HoodYoorAssetRegistry"
+  ],
+  "canonicalRegistryCandidate": {
+    "model": "exact reviewed ERC-6551 deterministic-factory payload",
+    "reviewedDeploymentDataHash": "0xe3d6a2f96a1664247da7003f047a21fb2dfccd984ac985fbf4d1cae6ed0ad41a",
+    "expectedRuntimeCodeHash": "0xda1d5b06e579f9e42e59b00fbc22939896ecb38dc8830d40de0a2508fecd6735",
+    "localInterfaceAbiSha256": "0x0d3965381e4046209b14441d0d544f9c6afd5c48b0d7b26f4a2b143ca77412ab",
+    "auditStatus": "NOT_STARTED"
+  },
+  "requiredRemediation": [
+    "Review and deliberately stage the complete production scope.",
+    "Create a clean release commit without discarding unrelated user work.",
+    "Rebuild twice from that clean commit using the pinned toolchain.",
+    "Explain or eliminate whole-artifact JSON drift and freeze a new manifest.",
+    "Submit the exact new hashes to independent review; do not reuse prior approvals."
+  ]
+}

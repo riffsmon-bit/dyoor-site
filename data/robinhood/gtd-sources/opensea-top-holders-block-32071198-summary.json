@@ -1,0 +1,108 @@
+{
+  "generatedAt": "2026-08-09T16:15:13.831Z",
+  "source": "https://robinhoodchain.blockscout.com/api/v2",
+  "network": "Robinhood Chain",
+  "chainId": 4663,
+  "snapshot": {
+    "chainId": 4663,
+    "blockNumber": 32071198,
+    "blockHash": "0xe60cd0633f7a9079ee7dbb4eb63bd2f0a739a6ecfd6d68c26a8a4b5f7669c394",
+    "blockTimestamp": "2026-08-09T16:14:24.000Z",
+    "rpcEndpoint": "https://rpc.arrowrpc.com/",
+    "verifiedBalances": 400
+  },
+  "settings": {
+    "walletLimit": 3,
+    "priceEth": "0",
+    "openSeaCsvColumns": [
+      "wallet",
+      "customLimit",
+      "customPrice"
+    ],
+    "headerIncluded": false
+  },
+  "candidateBalancesVerified": 400,
+  "sourceEntries": 200,
+  "baseUniqueWallets": 193,
+  "uniqueWallets": 200,
+  "targetUniqueWallets": 200,
+  "overflowWalletsSelected": 7,
+  "duplicateEntriesRemoved": 7,
+  "overlappingWallets": 6,
+  "collections": [
+    {
+      "address": "0xe3b34C4bb0f12C82143745EEe6A6Cf4E3154b1fa",
+      "name": "CASHCAT",
+      "symbol": "CASHCAT",
+      "standard": "ERC-721",
+      "totalSupply": "10000",
+      "currentHolderCount": "2722",
+      "baseSelected": 50,
+      "candidatesVerified": 100,
+      "overflowSelected": 2,
+      "rank50Balance": "27",
+      "rank51Balance": "26",
+      "tiedAtCutoff": false,
+      "rankingSource": "onchain-ownerOf-enumeration"
+    },
+    {
+      "address": "0x12449B9a29865621be166AAff04dC14A640b4119",
+      "name": "Gremlin Cartel",
+      "symbol": "Gremlin",
+      "standard": "ERC-721",
+      "totalSupply": "5000",
+      "currentHolderCount": "1466",
+      "baseSelected": 50,
+      "candidatesVerified": 100,
+      "overflowSelected": 2,
+      "rank50Balance": "15",
+      "rank51Balance": "14",
+      "tiedAtCutoff": false,
+      "rankingSource": "blockscout-holder-index"
+    },
+    {
+      "address": "0x9Ec6C5b9f572A9B02138E553BC5F5882Da735F45",
+      "name": "OnChainHoodies",
+      "symbol": "OCH",
+      "standard": "ERC-721",
+      "totalSupply": "6000",
+      "currentHolderCount": "2255",
+      "baseSelected": 50,
+      "candidatesVerified": 100,
+      "overflowSelected": 2,
+      "rank50Balance": "18",
+      "rank51Balance": "17",
+      "tiedAtCutoff": false,
+      "rankingSource": "onchain-ownerOf-enumeration"
+    },
+    {
+      "address": "0x539CdD042c2f3d93EbC5BE7DfFf0c79F3B4fAbF0",
+      "name": "StonkBrokers",
+      "symbol": "STONK",
+      "standard": "ERC-721",
+      "totalSupply": "4444",
+      "currentHolderCount": "612",
+      "baseSelected": 50,
+      "candidatesVerified": 100,
+      "overflowSelected": 1,
+      "rank50Balance": "9",
+      "rank51Balance": "9",
+      "tiedAtCutoff": true,
+      "rankingSource": "blockscout-holder-index"
+    }
+  ],
+  "files": {
+    "opensea-allowlist.csv": {
+      "sha256": "fc2532c4147c7d0093da5ca94f0fc4d8f2dc75b4e6c1f08ce357147e84e2071c"
+    },
+    "top-50-by-collection.csv": {
+      "sha256": "f9090276a232175a700d82a74477ed6647791f66f326994ba151f9e2165b6050"
+    },
+    "overflow-selections.csv": {
+      "sha256": "abcef3a8961fe4df8b1833f97fff1b4f9959490eb7b91795fae23c699851e444"
+    },
+    "overlaps.csv": {
+      "sha256": "96c9c847dfa8e9139a24ef0cd7992a0333d4031cf4a4c5a7384fd2c5cd00e78e"
+    }
+  }
+}

@@ -1,0 +1,936 @@
+{
+  "schema": "dyoor-hoodyoor-seadrop-v2-deployment-v1",
+  "chainId": 4663,
+  "deployer": "0xC7f55cE6A7dF9A79cc4A643a5081230F890c7AA6",
+  "ownerTreasury": "0xC7f55cE6A7dF9A79cc4A643a5081230F890c7AA6",
+  "sourceTree": "0x952e2712cc61c43368d318ea11139222793ed3ba7731799d7ed1b2d92ad4a6d1",
+  "seaDrop": "0x00005EA00Ac477B1030CE78506496e8C2dE24bf5",
+  "usdg": "0x5fc5360D0400a0Fd4f2af552ADD042D716F1d168",
+  "store": "0xaD7be6b27efDF619759375aF719A9D69e25818c1",
+  "renderer": "0xb9cB0563013D9741f76a802d2F658EbF3433eE12",
+  "energyBank": "0x9bA9aa6c6A1CB04bc0477E90f4D93214c6b1D7c3",
+  "rules": "0xd4E7F224539e628f58c4A6159A7a0eeE27991640",
+  "supersededCollection": "0x1Ece69C63F0b49C7a5B02eaf209059B4E2aF69a1",
+  "supersededController": "0x69Ec96b8EF47e1f241389260d190b0ce61D67C2B",
+  "resultSigner": "0xff9331640C0529Bcb72b7a3652A41aE3C574afeD",
+  "relayer": "0x438891BEF6052769934B6D667baFc021e6Da374D",
+  "provenanceHash": "0x2b3049a8235d705dba39542b53990e584e3815e4e6a32efae6ecb810b8f506a3",
+  "revealCommitment": "0xb2131dd75cab47d3b89a7c8de088af6825ffb9cb8b431daa0462aef67d57a27e",
+  "contractURIKeccak256": "0xfb2113337f8f90242fba314752d84390292481011b77c1653ab8d84bd3371ece",
+  "weiPerEnergy": "1000000000000",
+  "usdgUnitsPerEnergy": "1000",
+  "collection": "0x8277F8126722B11D7b44C5C453bcF62A78AAFa25",
+  "controller": "0x6cf24a0119b7286ad88855Baa9CB220DF628FD11",
+  "assignmentBatches": [
+    {
+      "label": "assignments-1-50",
+      "hash": "0x9bad1ed08dc75655498ab2b1220f376877ea806e3ed43c70ba88eec326247894",
+      "blockNumber": 32414549,
+      "count": 50
+    },
+    {
+      "label": "assignments-51-100",
+      "hash": "0xedccd04c433e3353c28bfa09914be6b33077b3a677d828cc24fe70b8e1e57e80",
+      "blockNumber": 32414600,
+      "count": 50
+    },
+    {
+      "label": "assignments-101-150",
+      "hash": "0x049c77e9e39dae6ab310669702717e44c828c6a6e4c2c5c26393d4cd2d1bcf1d",
+      "blockNumber": 32414649,
+      "count": 50
+    },
+    {
+      "label": "assignments-151-200",
+      "hash": "0x54ac8aff487a2d12450367d685e7133e65e726d1e3b8e206cf9a487cc5646439",
+      "blockNumber": 32414698,
+      "count": 50
+    },
+    {
+      "label": "assignments-201-250",
+      "hash": "0xa0fab7b07d43c583ce8d6846f9c313c2bf4886aeb603afb996c37353cc264e64",
+      "blockNumber": 32414747,
+      "count": 50
+    },
+    {
+      "label": "assignments-251-300",
+      "hash": "0x223af10179502fd46efa5d63232a5e5d5c28e56110369ffd76f72f2b661a178b",
+      "blockNumber": 32414796,
+      "count": 50
+    },
+    {
+      "label": "assignments-301-350",
+      "hash": "0xbe565b14ccc9675c89efd72e921ad40f1f5c0148788a0bf36fa9bc33a73c4c42",
+      "blockNumber": 32414845,
+      "count": 50
+    },
+    {
+      "label": "assignments-351-400",
+      "hash": "0xb3a19a6e0074ee88df0471ec7e589231533a0bab32c6759d134f4e3a38060282",
+      "blockNumber": 32414895,
+      "count": 50
+    },
+    {
+      "label": "assignments-401-450",
+      "hash": "0x5e733584aaf2d854c77011663d2be252f2a2ecb923970a9c70a7a69a21f2bf9e",
+      "blockNumber": 32414945,
+      "count": 50
+    },
+    {
+      "label": "assignments-451-500",
+      "hash": "0x0f7313fd7afcfa8b26d6c5ceb2da80e9345b9152e32269f4bd4a3bb93e059d22",
+      "blockNumber": 32414994,
+      "count": 50
+    },
+    {
+      "label": "assignments-501-550",
+      "hash": "0x9690801b7fa44d085232ef0c81cc68d64583b2a0f36fd192cef0f840773aa40e",
+      "blockNumber": 32415043,
+      "count": 50
+    },
+    {
+      "label": "assignments-551-600",
+      "hash": "0x676911f2c886756bb68e79e62aa21116ecf28a1941c75f38d3163fb9b77a6e40",
+      "blockNumber": 32415092,
+      "count": 50
+    },
+    {
+      "label": "assignments-601-650",
+      "hash": "0xa178a5564dbaa3c5d6d86aafae3a46949c70d1035df510e7f2ae52f6ee093cb4",
+      "blockNumber": 32415141,
+      "count": 50
+    },
+    {
+      "label": "assignments-651-700",
+      "hash": "0xffe577100a504cc52653bf0fb171c044f2cda455d4787fd71d6fe6aae92b457f",
+      "blockNumber": 32415191,
+      "count": 50
+    },
+    {
+      "label": "assignments-701-750",
+      "hash": "0x7b6141a92bbc7e71e60d0e593623ca5c6f1f9a60df4ad37ca6f284140ed2009f",
+      "blockNumber": 32415240,
+      "count": 50
+    },
+    {
+      "label": "assignments-751-800",
+      "hash": "0x077536192b051a1b2028968454d772765049be1ec335a00561df4158d4787544",
+      "blockNumber": 32415289,
+      "count": 50
+    },
+    {
+      "label": "assignments-801-850",
+      "hash": "0xe245b4293c0d002f30e249b50d110c2ca1755a2a2d40176d9b6817301fd2fd2f",
+      "blockNumber": 32415338,
+      "count": 50
+    },
+    {
+      "label": "assignments-851-900",
+      "hash": "0x31d139e2b95c62b5c3290bdbb631491311cb600522e00b9fbff967a001f21b87",
+      "blockNumber": 32415387,
+      "count": 50
+    },
+    {
+      "label": "assignments-901-950",
+      "hash": "0xa3d0ba74703b7b8202432e0bb3580c722f9045cd44a28ca7235fcb3cb889656b",
+      "blockNumber": 32415436,
+      "count": 50
+    },
+    {
+      "label": "assignments-951-1000",
+      "hash": "0xcd00d1ba6dfcc99b304bd995b03226edac9286980c5d25deceffe5d2775d53f0",
+      "blockNumber": 32415485,
+      "count": 50
+    },
+    {
+      "label": "assignments-1001-1050",
+      "hash": "0x819e0769f1f4e1738a6af9a772fdfdd817e035af3d6e7d27bbbaedd2b2f9b807",
+      "blockNumber": 32415534,
+      "count": 50
+    },
+    {
+      "label": "assignments-1051-1100",
+      "hash": "0xcafce520467be93ad151e613989f586c284d3ef1490d8c5fd22692de3ba8c30d",
+      "blockNumber": 32415583,
+      "count": 50
+    },
+    {
+      "label": "assignments-1101-1150",
+      "hash": "0xb8594c72542b1662c8db75172e973995f15f42f3b9ed8eff2611d28abe1cdf22",
+      "blockNumber": 32415631,
+      "count": 50
+    },
+    {
+      "label": "assignments-1151-1200",
+      "hash": "0xb54be3a78168e9302865aae66f91bf0656736b747c446ab98d5a02730c589215",
+      "blockNumber": 32415680,
+      "count": 50
+    },
+    {
+      "label": "assignments-1201-1250",
+      "hash": "0x2ca831511c466b40a13d481ff25398f52a2a28dc871634331c14d4bfe819c512",
+      "blockNumber": 32415729,
+      "count": 50
+    },
+    {
+      "label": "assignments-1251-1300",
+      "hash": "0x68d6ef301158ea4cf5b4d1ff65690b7770d68d8e38dd836287c145847a96cab4",
+      "blockNumber": 32415781,
+      "count": 50
+    },
+    {
+      "label": "assignments-1301-1350",
+      "hash": "0xa01a751b44b51c99de7f4156fe5b6d12b28bd989084ed2e9a18af0982968e958",
+      "blockNumber": 32415830,
+      "count": 50
+    },
+    {
+      "label": "assignments-1351-1400",
+      "hash": "0x954351f5c5babf64195ff901a417832c42c899384b81501f81fc557ec841a7d5",
+      "blockNumber": 32415879,
+      "count": 50
+    },
+    {
+      "label": "assignments-1401-1450",
+      "hash": "0x18ee3f6962ef070644cb1d9476ef08d1ea4c68707e67d211884b21120aec8c88",
+      "blockNumber": 32415928,
+      "count": 50
+    },
+    {
+      "label": "assignments-1451-1500",
+      "hash": "0xc50e50168a8a81d769068137296e652d2a9836504b91a1b64145a0cdab444e77",
+      "blockNumber": 32415977,
+      "count": 50
+    },
+    {
+      "label": "assignments-1501-1550",
+      "hash": "0xfae0f7f37051b9ec7b6b73685bda472c35ea211a02672c6a69bb7e6aabe546ef",
+      "blockNumber": 32416026,
+      "count": 50
+    },
+    {
+      "label": "assignments-1551-1600",
+      "hash": "0xe025551a5e0190ea09f16b5c68ab4e3c882600bba57396f0a5e873e103eaf247",
+      "blockNumber": 32416075,
+      "count": 50
+    },
+    {
+      "label": "assignments-1601-1650",
+      "hash": "0x69f09ab888e440cccd382671e987aee153b0dc091c9a7aa1530dd4a595b7a022",
+      "blockNumber": 32416124,
+      "count": 50
+    },
+    {
+      "label": "assignments-1651-1700",
+      "hash": "0xae1db329097e063fe39317ff2cc3df61a826fc1c0e14780401d11cf8d78fb766",
+      "blockNumber": 32416173,
+      "count": 50
+    },
+    {
+      "label": "assignments-1701-1750",
+      "hash": "0xc84e57c9e59bf5d4d50dd75594c7328a5cf3f9ac6615157ddd7664b2898b8d8b",
+      "blockNumber": 32416222,
+      "count": 50
+    },
+    {
+      "label": "assignments-1751-1800",
+      "hash": "0xa503ea0cd3887ef5dcce137fb52438d5e9f3185f09c960da1c7cea61da305fd9",
+      "blockNumber": 32416271,
+      "count": 50
+    },
+    {
+      "label": "assignments-1801-1850",
+      "hash": "0x3a0294718a9adab48780c223eba1e57e1b1b4799aed29c751451307f6163a78b",
+      "blockNumber": 32416321,
+      "count": 50
+    },
+    {
+      "label": "assignments-1851-1900",
+      "hash": "0x62612b63c74fca5ece16b0f00cb7f2919fd02df57794928c5a29fc11f8c3774e",
+      "blockNumber": 32416371,
+      "count": 50
+    },
+    {
+      "label": "assignments-1901-1950",
+      "hash": "0x25882c1cddd950c1551f55a3d6a1ec64b27f950e700e574229d10b7f7c897b2d",
+      "blockNumber": 32416421,
+      "count": 50
+    },
+    {
+      "label": "assignments-1951-2000",
+      "hash": "0x9977f56b4dd7c071f23476199a77795742ecbdd7a11217cdd49d46c8ceb9f13a",
+      "blockNumber": 32416470,
+      "count": 50
+    },
+    {
+      "label": "assignments-2001-2050",
+      "hash": "0x8b9b48c35ce0045febf810decc0e9c767bd7bcc178142e9d091c2340a7243adb",
+      "blockNumber": 32416519,
+      "count": 50
+    },
+    {
+      "label": "assignments-2051-2100",
+      "hash": "0xac3fccfddb1094ad5d3f3c573eec66fe87c29fbc4a698b87579165a5fe6bbc8b",
+      "blockNumber": 32416568,
+      "count": 50
+    },
+    {
+      "label": "assignments-2101-2150",
+      "hash": "0x6b2f00381762a6d2cbb5fd069e94e1ef2125369d68d8102f82155e6d9c7859ee",
+      "blockNumber": 32416617,
+      "count": 50
+    },
+    {
+      "label": "assignments-2151-2200",
+      "hash": "0xfb3cea971e19ae7fb8f0eb5f979bbd96fd9e31642996e46a82dbf539b0dda5e3",
+      "blockNumber": 32416666,
+      "count": 50
+    },
+    {
+      "label": "assignments-2201-2250",
+      "hash": "0x01833b8cdd050adaebde78887bfb9bc21d47c27b3e5c66f95409379dc0e229ed",
+      "blockNumber": 32416715,
+      "count": 50
+    },
+    {
+      "label": "assignments-2251-2300",
+      "hash": "0xfa3b83aacb4000aa2b9bfa9d8b429e1ceefe8fa1a9e7aa597ca7a6c527432309",
+      "blockNumber": 32416764,
+      "count": 50
+    },
+    {
+      "label": "assignments-2301-2350",
+      "hash": "0xd173a2fcbba79c795dffc6b6518cda5895dc2c2af34e9cad8ebb29d9c1a68d69",
+      "blockNumber": 32416813,
+      "count": 50
+    },
+    {
+      "label": "assignments-2351-2400",
+      "hash": "0x469039ea83290e5c069578015791a5b260f6ced0c68c0ca49e8c08820b8da2c5",
+      "blockNumber": 32416862,
+      "count": 50
+    },
+    {
+      "label": "assignments-2401-2450",
+      "hash": "0xd4dc181b0a869e5ad10181d1f1a64ccd0d48728012cbf7835ffc30e029a333fb",
+      "blockNumber": 32416911,
+      "count": 50
+    },
+    {
+      "label": "assignments-2451-2500",
+      "hash": "0xc98bb88956404934340db7da750a1eb36219f228e4af920aeedf4bdd65b8bbb9",
+      "blockNumber": 32416960,
+      "count": 50
+    },
+    {
+      "label": "assignments-2501-2550",
+      "hash": "0xe97f49b92165fe9922faaa9590b964d3b5e31574d75cb9c3ac921cb072e3f17e",
+      "blockNumber": 32417009,
+      "count": 50
+    },
+    {
+      "label": "assignments-2551-2600",
+      "hash": "0x39e6852d72c077d63b3c7d0c13068ccb66cce37edeab420ccbf0feb4b35527a3",
+      "blockNumber": 32417058,
+      "count": 50
+    },
+    {
+      "label": "assignments-2601-2650",
+      "hash": "0xe246c5a44720cc9f764421526580cc3cd93309cd756dddf142bb6c69b80f9e99",
+      "blockNumber": 32417108,
+      "count": 50
+    },
+    {
+      "label": "assignments-2651-2700",
+      "hash": "0x7a6a8480f0f25955d34dcbb21ac7da99f1ffb54d42f655d160bfc9e5ae91e086",
+      "blockNumber": 32417157,
+      "count": 50
+    },
+    {
+      "label": "assignments-2701-2750",
+      "hash": "0x1e1237862358b74f2c507894ec7e575f76aecc30c422d36ad45ba09283c18534",
+      "blockNumber": 32417206,
+      "count": 50
+    },
+    {
+      "label": "assignments-2751-2800",
+      "hash": "0x47e3a5cad3d3299f9be2ff62faf97fb36be5da5bcd741521bc0cfe23d7cd205c",
+      "blockNumber": 32417255,
+      "count": 50
+    },
+    {
+      "label": "assignments-2801-2850",
+      "hash": "0xe5df61233582e5a66c0b45a094a60c6af8b3fc8844dc6e55880e38c4e635108d",
+      "blockNumber": 32417305,
+      "count": 50
+    },
+    {
+      "label": "assignments-2851-2900",
+      "hash": "0xe665ff42efdd9c4714ea83431007afc12ceb865b1791db89c743984f888ad539",
+      "blockNumber": 32417355,
+      "count": 50
+    },
+    {
+      "label": "assignments-2901-2950",
+      "hash": "0x37d3a6ca66bcd2f52796614e19db0b401bc35ce3d5a2e4ac47876a8275a2e968",
+      "blockNumber": 32417404,
+      "count": 50
+    },
+    {
+      "label": "assignments-2951-3000",
+      "hash": "0x1b4a74c0b337f0dff8ebca26f721f0373f3e497893d230d3558ed29f5766ea24",
+      "blockNumber": 32417453,
+      "count": 50
+    },
+    {
+      "label": "assignments-3001-3050",
+      "hash": "0x72518af3bbba63e5834bbe79df9dc0a9e31df199aea1918cf592789689789968",
+      "blockNumber": 32417502,
+      "count": 50
+    },
+    {
+      "label": "assignments-3051-3100",
+      "hash": "0x29d7367d13a9d6cdb5c39273b5ee5dcc6dc802a25fdb2990a5fb2aea7be51802",
+      "blockNumber": 32417551,
+      "count": 50
+    },
+    {
+      "label": "assignments-3101-3150",
+      "hash": "0x0943357d259a13810a0d8dfc5a9efe3debd85b068ef2e2be460b24145f9d1e67",
+      "blockNumber": 32417600,
+      "count": 50
+    },
+    {
+      "label": "assignments-3151-3200",
+      "hash": "0x5b0828f561cec82167a3025924c8a20abc4e60562065d98d60a57c00b17cd67f",
+      "blockNumber": 32417649,
+      "count": 50
+    },
+    {
+      "label": "assignments-3201-3250",
+      "hash": "0x6322ae0f0388d8ebc2bc3510d70a096f548382c6046864a1ba8a120061db0f56",
+      "blockNumber": 32417699,
+      "count": 50
+    },
+    {
+      "label": "assignments-3251-3300",
+      "hash": "0xae0de974c6aa06a7b4af28c4b4d179d5f84e4c978c3db8b01c2ef3f9bd9e1e6f",
+      "blockNumber": 32417748,
+      "count": 50
+    },
+    {
+      "label": "assignments-3301-3333",
+      "hash": "0x1f83b55e62334fae8bc06e4544cfdacbc4574ac983007147da6b85286f53aae5",
+      "blockNumber": 32417796,
+      "count": 33
+    }
+  ],
+  "transactions": [
+    {
+      "label": "deploy-replacement-collection",
+      "hash": "0x43a472c5708375c7b5f7a471f6de2f6e7969dd9fa087fc23eaf686c76bb50179",
+      "blockNumber": 32414048
+    },
+    {
+      "label": "deploy-reroll-controller-v2",
+      "hash": "0x7420707b236cf5eb3896755777fb5fbda80c13ede971411255034fa72e0d464d",
+      "blockNumber": 32414116
+    },
+    {
+      "label": "set-exact-reroll-payment-rates",
+      "hash": "0xc5dcc20c4af4f4b0f52294a91897c6cd92b924cdd14c5efbf316ce321b3f8965",
+      "blockNumber": 32414169
+    },
+    {
+      "label": "freeze-reroll-payment-rates",
+      "hash": "0x6ea768e843979ddccdb6e6c76937e7c685a68a5cd3ebedba078e3e02f9acf2b9",
+      "blockNumber": 32414215
+    },
+    {
+      "label": "set-reroll-controller-v2",
+      "hash": "0x4916f74630710d0bbc907f483d43b65c5738890489055c8b9dde9ccbd48d816d",
+      "blockNumber": 32414263
+    },
+    {
+      "label": "freeze-reroll-controller-v2",
+      "hash": "0xc1be3bfab32995d54709f5837e5b2fd7dd50ae9346a55aa2a5b9a7d4eb05cddd",
+      "blockNumber": 32414310
+    },
+    {
+      "label": "grant-replacement-collection-credit-role",
+      "hash": "0xec3ca834ac648d6a0de7772c96247ef6336022458e93d0e0df0b363eedf13fe9",
+      "blockNumber": 32414358
+    },
+    {
+      "label": "grant-replacement-controller-spender-role",
+      "hash": "0xe03c941c961519c8d1428a6d7e7b59352e916108b4c0972d4c8394732a2d35cc",
+      "blockNumber": 32414405
+    },
+    {
+      "label": "set-paid-mint-energy-reward",
+      "hash": "0x987c0904c53f9de271e4ce32abd8bfc32c4d1b7d4756c156566ecdaea0f0f955",
+      "blockNumber": 32414452
+    },
+    {
+      "label": "freeze-paid-mint-energy-reward",
+      "hash": "0xab4b981cfcec8a68a81dc037fd575014119db2fdc1cee7c810592d1a4d4e36e6",
+      "blockNumber": 32414499
+    },
+    {
+      "label": "assignments-1-50",
+      "hash": "0x9bad1ed08dc75655498ab2b1220f376877ea806e3ed43c70ba88eec326247894",
+      "blockNumber": 32414549,
+      "count": 50
+    },
+    {
+      "label": "assignments-51-100",
+      "hash": "0xedccd04c433e3353c28bfa09914be6b33077b3a677d828cc24fe70b8e1e57e80",
+      "blockNumber": 32414600,
+      "count": 50
+    },
+    {
+      "label": "assignments-101-150",
+      "hash": "0x049c77e9e39dae6ab310669702717e44c828c6a6e4c2c5c26393d4cd2d1bcf1d",
+      "blockNumber": 32414649,
+      "count": 50
+    },
+    {
+      "label": "assignments-151-200",
+      "hash": "0x54ac8aff487a2d12450367d685e7133e65e726d1e3b8e206cf9a487cc5646439",
+      "blockNumber": 32414698,
+      "count": 50
+    },
+    {
+      "label": "assignments-201-250",
+      "hash": "0xa0fab7b07d43c583ce8d6846f9c313c2bf4886aeb603afb996c37353cc264e64",
+      "blockNumber": 32414747,
+      "count": 50
+    },
+    {
+      "label": "assignments-251-300",
+      "hash": "0x223af10179502fd46efa5d63232a5e5d5c28e56110369ffd76f72f2b661a178b",
+      "blockNumber": 32414796,
+      "count": 50
+    },
+    {
+      "label": "assignments-301-350",
+      "hash": "0xbe565b14ccc9675c89efd72e921ad40f1f5c0148788a0bf36fa9bc33a73c4c42",
+      "blockNumber": 32414845,
+      "count": 50
+    },
+    {
+      "label": "assignments-351-400",
+      "hash": "0xb3a19a6e0074ee88df0471ec7e589231533a0bab32c6759d134f4e3a38060282",
+      "blockNumber": 32414895,
+      "count": 50
+    },
+    {
+      "label": "assignments-401-450",
+      "hash": "0x5e733584aaf2d854c77011663d2be252f2a2ecb923970a9c70a7a69a21f2bf9e",
+      "blockNumber": 32414945,
+      "count": 50
+    },
+    {
+      "label": "assignments-451-500",
+      "hash": "0x0f7313fd7afcfa8b26d6c5ceb2da80e9345b9152e32269f4bd4a3bb93e059d22",
+      "blockNumber": 32414994,
+      "count": 50
+    },
+    {
+      "label": "assignments-501-550",
+      "hash": "0x9690801b7fa44d085232ef0c81cc68d64583b2a0f36fd192cef0f840773aa40e",
+      "blockNumber": 32415043,
+      "count": 50
+    },
+    {
+      "label": "assignments-551-600",
+      "hash": "0x676911f2c886756bb68e79e62aa21116ecf28a1941c75f38d3163fb9b77a6e40",
+      "blockNumber": 32415092,
+      "count": 50
+    },
+    {
+      "label": "assignments-601-650",
+      "hash": "0xa178a5564dbaa3c5d6d86aafae3a46949c70d1035df510e7f2ae52f6ee093cb4",
+      "blockNumber": 32415141,
+      "count": 50
+    },
+    {
+      "label": "assignments-651-700",
+      "hash": "0xffe577100a504cc52653bf0fb171c044f2cda455d4787fd71d6fe6aae92b457f",
+      "blockNumber": 32415191,
+      "count": 50
+    },
+    {
+      "label": "assignments-701-750",
+      "hash": "0x7b6141a92bbc7e71e60d0e593623ca5c6f1f9a60df4ad37ca6f284140ed2009f",
+      "blockNumber": 32415240,
+      "count": 50
+    },
+    {
+      "label": "assignments-751-800",
+      "hash": "0x077536192b051a1b2028968454d772765049be1ec335a00561df4158d4787544",
+      "blockNumber": 32415289,
+      "count": 50
+    },
+    {
+      "label": "assignments-801-850",
+      "hash": "0xe245b4293c0d002f30e249b50d110c2ca1755a2a2d40176d9b6817301fd2fd2f",
+      "blockNumber": 32415338,
+      "count": 50
+    },
+    {
+      "label": "assignments-851-900",
+      "hash": "0x31d139e2b95c62b5c3290bdbb631491311cb600522e00b9fbff967a001f21b87",
+      "blockNumber": 32415387,
+      "count": 50
+    },
+    {
+      "label": "assignments-901-950",
+      "hash": "0xa3d0ba74703b7b8202432e0bb3580c722f9045cd44a28ca7235fcb3cb889656b",
+      "blockNumber": 32415436,
+      "count": 50
+    },
+    {
+      "label": "assignments-951-1000",
+      "hash": "0xcd00d1ba6dfcc99b304bd995b03226edac9286980c5d25deceffe5d2775d53f0",
+      "blockNumber": 32415485,
+      "count": 50
+    },
+    {
+      "label": "assignments-1001-1050",
+      "hash": "0x819e0769f1f4e1738a6af9a772fdfdd817e035af3d6e7d27bbbaedd2b2f9b807",
+      "blockNumber": 32415534,
+      "count": 50
+    },
+    {
+      "label": "assignments-1051-1100",
+      "hash": "0xcafce520467be93ad151e613989f586c284d3ef1490d8c5fd22692de3ba8c30d",
+      "blockNumber": 32415583,
+      "count": 50
+    },
+    {
+      "label": "assignments-1101-1150",
+      "hash": "0xb8594c72542b1662c8db75172e973995f15f42f3b9ed8eff2611d28abe1cdf22",
+      "blockNumber": 32415631,
+      "count": 50
+    },
+    {
+      "label": "assignments-1151-1200",
+      "hash": "0xb54be3a78168e9302865aae66f91bf0656736b747c446ab98d5a02730c589215",
+      "blockNumber": 32415680,
+      "count": 50
+    },
+    {
+      "label": "assignments-1201-1250",
+      "hash": "0x2ca831511c466b40a13d481ff25398f52a2a28dc871634331c14d4bfe819c512",
+      "blockNumber": 32415729,
+      "count": 50
+    },
+    {
+      "label": "assignments-1251-1300",
+      "hash": "0x68d6ef301158ea4cf5b4d1ff65690b7770d68d8e38dd836287c145847a96cab4",
+      "blockNumber": 32415781,
+      "count": 50
+    },
+    {
+      "label": "assignments-1301-1350",
+      "hash": "0xa01a751b44b51c99de7f4156fe5b6d12b28bd989084ed2e9a18af0982968e958",
+      "blockNumber": 32415830,
+      "count": 50
+    },
+    {
+      "label": "assignments-1351-1400",
+      "hash": "0x954351f5c5babf64195ff901a417832c42c899384b81501f81fc557ec841a7d5",
+      "blockNumber": 32415879,
+      "count": 50
+    },
+    {
+      "label": "assignments-1401-1450",
+      "hash": "0x18ee3f6962ef070644cb1d9476ef08d1ea4c68707e67d211884b21120aec8c88",
+      "blockNumber": 32415928,
+      "count": 50
+    },
+    {
+      "label": "assignments-1451-1500",
+      "hash": "0xc50e50168a8a81d769068137296e652d2a9836504b91a1b64145a0cdab444e77",
+      "blockNumber": 32415977,
+      "count": 50
+    },
+    {
+      "label": "assignments-1501-1550",
+      "hash": "0xfae0f7f37051b9ec7b6b73685bda472c35ea211a02672c6a69bb7e6aabe546ef",
+      "blockNumber": 32416026,
+      "count": 50
+    },
+    {
+      "label": "assignments-1551-1600",
+      "hash": "0xe025551a5e0190ea09f16b5c68ab4e3c882600bba57396f0a5e873e103eaf247",
+      "blockNumber": 32416075,
+      "count": 50
+    },
+    {
+      "label": "assignments-1601-1650",
+      "hash": "0x69f09ab888e440cccd382671e987aee153b0dc091c9a7aa1530dd4a595b7a022",
+      "blockNumber": 32416124,
+      "count": 50
+    },
+    {
+      "label": "assignments-1651-1700",
+      "hash": "0xae1db329097e063fe39317ff2cc3df61a826fc1c0e14780401d11cf8d78fb766",
+      "blockNumber": 32416173,
+      "count": 50
+    },
+    {
+      "label": "assignments-1701-1750",
+      "hash": "0xc84e57c9e59bf5d4d50dd75594c7328a5cf3f9ac6615157ddd7664b2898b8d8b",
+      "blockNumber": 32416222,
+      "count": 50
+    },
+    {
+      "label": "assignments-1751-1800",
+      "hash": "0xa503ea0cd3887ef5dcce137fb52438d5e9f3185f09c960da1c7cea61da305fd9",
+      "blockNumber": 32416271,
+      "count": 50
+    },
+    {
+      "label": "assignments-1801-1850",
+      "hash": "0x3a0294718a9adab48780c223eba1e57e1b1b4799aed29c751451307f6163a78b",
+      "blockNumber": 32416321,
+      "count": 50
+    },
+    {
+      "label": "assignments-1851-1900",
+      "hash": "0x62612b63c74fca5ece16b0f00cb7f2919fd02df57794928c5a29fc11f8c3774e",
+      "blockNumber": 32416371,
+      "count": 50
+    },
+    {
+      "label": "assignments-1901-1950",
+      "hash": "0x25882c1cddd950c1551f55a3d6a1ec64b27f950e700e574229d10b7f7c897b2d",
+      "blockNumber": 32416421,
+      "count": 50
+    },
+    {
+      "label": "assignments-1951-2000",
+      "hash": "0x9977f56b4dd7c071f23476199a77795742ecbdd7a11217cdd49d46c8ceb9f13a",
+      "blockNumber": 32416470,
+      "count": 50
+    },
+    {
+      "label": "assignments-2001-2050",
+      "hash": "0x8b9b48c35ce0045febf810decc0e9c767bd7bcc178142e9d091c2340a7243adb",
+      "blockNumber": 32416519,
+      "count": 50
+    },
+    {
+      "label": "assignments-2051-2100",
+      "hash": "0xac3fccfddb1094ad5d3f3c573eec66fe87c29fbc4a698b87579165a5fe6bbc8b",
+      "blockNumber": 32416568,
+      "count": 50
+    },
+    {
+      "label": "assignments-2101-2150",
+      "hash": "0x6b2f00381762a6d2cbb5fd069e94e1ef2125369d68d8102f82155e6d9c7859ee",
+      "blockNumber": 32416617,
+      "count": 50
+    },
+    {
+      "label": "assignments-2151-2200",
+      "hash": "0xfb3cea971e19ae7fb8f0eb5f979bbd96fd9e31642996e46a82dbf539b0dda5e3",
+      "blockNumber": 32416666,
+      "count": 50
+    },
+    {
+      "label": "assignments-2201-2250",
+      "hash": "0x01833b8cdd050adaebde78887bfb9bc21d47c27b3e5c66f95409379dc0e229ed",
+      "blockNumber": 32416715,
+      "count": 50
+    },
+    {
+      "label": "assignments-2251-2300",
+      "hash": "0xfa3b83aacb4000aa2b9bfa9d8b429e1ceefe8fa1a9e7aa597ca7a6c527432309",
+      "blockNumber": 32416764,
+      "count": 50
+    },
+    {
+      "label": "assignments-2301-2350",
+      "hash": "0xd173a2fcbba79c795dffc6b6518cda5895dc2c2af34e9cad8ebb29d9c1a68d69",
+      "blockNumber": 32416813,
+      "count": 50
+    },
+    {
+      "label": "assignments-2351-2400",
+      "hash": "0x469039ea83290e5c069578015791a5b260f6ced0c68c0ca49e8c08820b8da2c5",
+      "blockNumber": 32416862,
+      "count": 50
+    },
+    {
+      "label": "assignments-2401-2450",
+      "hash": "0xd4dc181b0a869e5ad10181d1f1a64ccd0d48728012cbf7835ffc30e029a333fb",
+      "blockNumber": 32416911,
+      "count": 50
+    },
+    {
+      "label": "assignments-2451-2500",
+      "hash": "0xc98bb88956404934340db7da750a1eb36219f228e4af920aeedf4bdd65b8bbb9",
+      "blockNumber": 32416960,
+      "count": 50
+    },
+    {
+      "label": "assignments-2501-2550",
+      "hash": "0xe97f49b92165fe9922faaa9590b964d3b5e31574d75cb9c3ac921cb072e3f17e",
+      "blockNumber": 32417009,
+      "count": 50
+    },
+    {
+      "label": "assignments-2551-2600",
+      "hash": "0x39e6852d72c077d63b3c7d0c13068ccb66cce37edeab420ccbf0feb4b35527a3",
+      "blockNumber": 32417058,
+      "count": 50
+    },
+    {
+      "label": "assignments-2601-2650",
+      "hash": "0xe246c5a44720cc9f764421526580cc3cd93309cd756dddf142bb6c69b80f9e99",
+      "blockNumber": 32417108,
+      "count": 50
+    },
+    {
+      "label": "assignments-2651-2700",
+      "hash": "0x7a6a8480f0f25955d34dcbb21ac7da99f1ffb54d42f655d160bfc9e5ae91e086",
+      "blockNumber": 32417157,
+      "count": 50
+    },
+    {
+      "label": "assignments-2701-2750",
+      "hash": "0x1e1237862358b74f2c507894ec7e575f76aecc30c422d36ad45ba09283c18534",
+      "blockNumber": 32417206,
+      "count": 50
+    },
+    {
+      "label": "assignments-2751-2800",
+      "hash": "0x47e3a5cad3d3299f9be2ff62faf97fb36be5da5bcd741521bc0cfe23d7cd205c",
+      "blockNumber": 32417255,
+      "count": 50
+    },
+    {
+      "label": "assignments-2801-2850",
+      "hash": "0xe5df61233582e5a66c0b45a094a60c6af8b3fc8844dc6e55880e38c4e635108d",
+      "blockNumber": 32417305,
+      "count": 50
+    },
+    {
+      "label": "assignments-2851-2900",
+      "hash": "0xe665ff42efdd9c4714ea83431007afc12ceb865b1791db89c743984f888ad539",
+      "blockNumber": 32417355,
+      "count": 50
+    },
+    {
+      "label": "assignments-2901-2950",
+      "hash": "0x37d3a6ca66bcd2f52796614e19db0b401bc35ce3d5a2e4ac47876a8275a2e968",
+      "blockNumber": 32417404,
+      "count": 50
+    },
+    {
+      "label": "assignments-2951-3000",
+      "hash": "0x1b4a74c0b337f0dff8ebca26f721f0373f3e497893d230d3558ed29f5766ea24",
+      "blockNumber": 32417453,
+      "count": 50
+    },
+    {
+      "label": "assignments-3001-3050",
+      "hash": "0x72518af3bbba63e5834bbe79df9dc0a9e31df199aea1918cf592789689789968",
+      "blockNumber": 32417502,
+      "count": 50
+    },
+    {
+      "label": "assignments-3051-3100",
+      "hash": "0x29d7367d13a9d6cdb5c39273b5ee5dcc6dc802a25fdb2990a5fb2aea7be51802",
+      "blockNumber": 32417551,
+      "count": 50
+    },
+    {
+      "label": "assignments-3101-3150",
+      "hash": "0x0943357d259a13810a0d8dfc5a9efe3debd85b068ef2e2be460b24145f9d1e67",
+      "blockNumber": 32417600,
+      "count": 50
+    },
+    {
+      "label": "assignments-3151-3200",
+      "hash": "0x5b0828f561cec82167a3025924c8a20abc4e60562065d98d60a57c00b17cd67f",
+      "blockNumber": 32417649,
+      "count": 50
+    },
+    {
+      "label": "assignments-3201-3250",
+      "hash": "0x6322ae0f0388d8ebc2bc3510d70a096f548382c6046864a1ba8a120061db0f56",
+      "blockNumber": 32417699,
+      "count": 50
+    },
+    {
+      "label": "assignments-3251-3300",
+      "hash": "0xae0de974c6aa06a7b4af28c4b4d179d5f84e4c978c3db8b01c2ef3f9bd9e1e6f",
+      "blockNumber": 32417748,
+      "count": 50
+    },
+    {
+      "label": "assignments-3301-3333",
+      "hash": "0x1f83b55e62334fae8bc06e4544cfdacbc4574ac983007147da6b85286f53aae5",
+      "blockNumber": 32417796,
+      "count": 33
+    },
+    {
+      "label": "freeze-initial-traits-and-reveal-commitment",
+      "hash": "0x157db7b10af648f9546404c54907fc4508fe8a1235851f546814b46194042e5b",
+      "blockNumber": 32417843
+    },
+    {
+      "label": "freeze-renderer",
+      "hash": "0xc8beb762280dc402663d2e60b912b5881a7b3a9f5e04f6c3094b1a86d0197aa9",
+      "blockNumber": 32417890
+    },
+    {
+      "label": "set-fully-onchain-contract-metadata",
+      "hash": "0x907923f479cb3e4af949f7f409fe5bb0aa880bd9ea3c65df24e6d465de34dccf",
+      "blockNumber": 32417937
+    },
+    {
+      "label": "freeze-fully-onchain-contract-metadata",
+      "hash": "0x530b2346f05b6217df564d8d1b7bd85fe84cd7b1443d9b9c2e026ecffddee183",
+      "blockNumber": 32417997
+    },
+    {
+      "label": "freeze-canonical-seadrop",
+      "hash": "0xe95259241107b3162ec6909bd62d590311d416ee279726ba6717d8e4c8184757",
+      "blockNumber": 32418043
+    },
+    {
+      "label": "set-seadrop-creator-payout",
+      "hash": "0x3be4a9233df51caff779abfd169b30c13c8e0002dd0675c5d8867a500c0a51fa",
+      "blockNumber": 32418089
+    },
+    {
+      "label": "revoke-superseded-collection-credit-role",
+      "hash": "0x1673e3f0938fcbe68a5d0928695b64120f9234d19cbf97778d69e884a9f46264",
+      "blockNumber": 32418142
+    },
+    {
+      "label": "revoke-superseded-controller-spender-role",
+      "hash": "0xed40095d29e723c269d8eb9cd112c99b9489e61ead2b10d50474ee50057ad2f1",
+      "blockNumber": 32418187
+    }
+  ],
+  "status": "staged-sale-closed",
+  "completedAtBlock": 32418204,
+  "finalState": {
+    "totalSupply": 0,
+    "ownerReserveMinted": false,
+    "secondaryTradingEnabled": false,
+    "publicDropConfigured": false,
+    "allowListRoot": "0x0000000000000000000000000000000000000000000000000000000000000000",
+    "creatorPayout": "0xC7f55cE6A7dF9A79cc4A643a5081230F890c7AA6",
+    "replacementCollectionCreditRole": true,
+    "replacementControllerSpenderRole": true,
+    "supersededCollectionCreditRole": false,
+    "supersededControllerSpenderRole": false
+  }
+}

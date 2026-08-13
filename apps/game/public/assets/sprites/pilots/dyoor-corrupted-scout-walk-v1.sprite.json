@@ -1,0 +1,36 @@
+{
+  "specVersion": "dyoor-overworld-v1",
+  "frameWidth": 64,
+  "frameHeight": 64,
+  "frameCount": 16,
+  "directions": [
+    "down",
+    "left",
+    "right",
+    "up"
+  ],
+  "framesPerDirection": 4,
+  "footAnchor": {
+    "x": 32,
+    "y": 58
+  },
+  "placeholder": true,
+  "assetId": "corrupted-scout",
+  "assetStatus": "ai-assisted-pilot",
+  "productionReady": false,
+  "sourceDimensions": {
+    "width": 1254,
+    "height": 1254
+  },
+  "sourceGrid": {
+    "columns": 4,
+    "rows": 4
+  },
+  "sampledKeyColor": [
+    247,
+    7,
+    247
+  ],
+  "removedArtifactComponents": 23,
+  "removedArtifactPixels": 274
+}

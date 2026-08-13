@@ -1,0 +1,123 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-07-29T15:23:55.046Z",
+  "spec": "dyoor-overworld-v1",
+  "layerSheets": 0,
+  "generatedSheets": 5,
+  "pilotSheets": 6,
+  "valid": 11,
+  "invalid": 0,
+  "repositoryRoot": "DYOOR",
+  "results": [
+    {
+      "path": "apps/game/.cache/sprites/1100-cfb9c5b7b51be1fe.png",
+      "valid": true,
+      "errors": [],
+      "warnings": [],
+      "width": 256,
+      "height": 256,
+      "frameCount": 16,
+      "placeholder": true
+    },
+    {
+      "path": "apps/game/.cache/sprites/132-38d4290f08dd3d4d.png",
+      "valid": true,
+      "errors": [],
+      "warnings": [],
+      "width": 256,
+      "height": 256,
+      "frameCount": 16,
+      "placeholder": true
+    },
+    {
+      "path": "apps/game/.cache/sprites/16-ffa79c22620f5fab.png",
+      "valid": true,
+      "errors": [],
+      "warnings": [],
+      "width": 256,
+      "height": 256,
+      "frameCount": 16,
+      "placeholder": true
+    },
+    {
+      "path": "apps/game/.cache/sprites/17-240d4d83e213e221.png",
+      "valid": true,
+      "errors": [],
+      "warnings": [],
+      "width": 256,
+      "height": 256,
+      "frameCount": 16,
+      "placeholder": true
+    },
+    {
+      "path": "apps/game/.cache/sprites/3333-af0669746a09f18c.png",
+      "valid": true,
+      "errors": [],
+      "warnings": [],
+      "width": 256,
+      "height": 256,
+      "frameCount": 16,
+      "placeholder": true
+    },
+    {
+      "path": "apps/game/public/assets/sprites/pilots/dyoor-1100-walk-v1.png",
+      "valid": true,
+      "errors": [],
+      "warnings": [],
+      "width": 256,
+      "height": 256,
+      "frameCount": 16,
+      "placeholder": true
+    },
+    {
+      "path": "apps/game/public/assets/sprites/pilots/dyoor-132-walk-v1.png",
+      "valid": true,
+      "errors": [],
+      "warnings": [],
+      "width": 256,
+      "height": 256,
+      "frameCount": 16,
+      "placeholder": true
+    },
+    {
+      "path": "apps/game/public/assets/sprites/pilots/dyoor-16-walk-v1.png",
+      "valid": true,
+      "errors": [],
+      "warnings": [],
+      "width": 256,
+      "height": 256,
+      "frameCount": 16,
+      "placeholder": true
+    },
+    {
+      "path": "apps/game/public/assets/sprites/pilots/dyoor-17-walk-v1.png",
+      "valid": true,
+      "errors": [],
+      "warnings": [],
+      "width": 256,
+      "height": 256,
+      "frameCount": 16,
+      "placeholder": true
+    },
+    {
+      "path": "apps/game/public/assets/sprites/pilots/dyoor-corrupted-scout-walk-v1.png",
+      "valid": true,
+      "errors": [],
+      "warnings": [],
+      "width": 256,
+      "height": 256,
+      "frameCount": 16,
+      "placeholder": true
+    },
+    {
+      "path": "apps/game/public/assets/sprites/pilots/dyoor-training-unit-01-walk-v1.png",
+      "valid": true,
+      "errors": [],
+      "warnings": [],
+      "width": 256,
+      "height": 256,
+      "frameCount": 16,
+      "placeholder": true
+    }
+  ]
+}

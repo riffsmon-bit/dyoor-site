@@ -1,0 +1,430 @@
+{
+  "schema": "dyoor-hoodyoor-website-art-v1",
+  "source": "data/robinhood/onchain-128/hoodyoor-initial-assignments.bin",
+  "provenanceHash": "0x2b3049a8235d705dba39542b53990e584e3815e4e6a32efae6ecb810b8f506a3",
+  "renderSource": "lib/hoodyoor-reroll-catalog.js",
+  "note": "These are exact frozen assignment renders. Token-to-assignment mapping is finalized by reveal.",
+  "revealPendingImage": "/assets/robinhood/collection/hoodyoor-reveal-pending.png",
+  "records": [
+    {
+      "assignmentId": 1,
+      "image": "/assets/robinhood/collection/hoodyoor-assignment-0001.png",
+      "packedTraits": "36372516929007824691832985208702697594",
+      "traits": [
+        {
+          "layer": 0,
+          "slot": "Background",
+          "traitId": 122,
+          "name": "INDAHOOD",
+          "mutable": false
+        },
+        {
+          "layer": 1,
+          "slot": "Droid",
+          "traitId": 205,
+          "name": "Green",
+          "mutable": false
+        },
+        {
+          "layer": 2,
+          "slot": "Conditions",
+          "traitId": 1002,
+          "name": "S1 Skin",
+          "mutable": true
+        },
+        {
+          "layer": 3,
+          "slot": "Clothes",
+          "traitId": 3031,
+          "name": "King's Robe",
+          "mutable": true
+        },
+        {
+          "layer": 4,
+          "slot": "Mouth",
+          "traitId": 4027,
+          "name": "Toothless Drool",
+          "mutable": true
+        },
+        {
+          "layer": 5,
+          "slot": "Eyes",
+          "traitId": 5016,
+          "name": "Okay",
+          "mutable": true
+        },
+        {
+          "layer": 6,
+          "slot": "Hat",
+          "traitId": 6026,
+          "name": "Horns",
+          "mutable": true
+        },
+        {
+          "layer": 7,
+          "slot": "Accessories",
+          "traitId": 7005,
+          "name": "Choker Necklace",
+          "mutable": true
+        },
+        {
+          "layer": 8,
+          "slot": "Accessories 2",
+          "traitId": 0,
+          "name": "None",
+          "mutable": true
+        }
+      ]
+    },
+    {
+      "assignmentId": 420,
+      "image": "/assets/robinhood/collection/hoodyoor-assignment-0420.png",
+      "packedTraits": "2722599218211467488804024379146365222191226",
+      "traits": [
+        {
+          "layer": 0,
+          "slot": "Background",
+          "traitId": 122,
+          "name": "INDAHOOD",
+          "mutable": false
+        },
+        {
+          "layer": 1,
+          "slot": "Droid",
+          "traitId": 211,
+          "name": "Orange",
+          "mutable": false
+        },
+        {
+          "layer": 2,
+          "slot": "Conditions",
+          "traitId": 0,
+          "name": "None",
+          "mutable": true
+        },
+        {
+          "layer": 3,
+          "slot": "Clothes",
+          "traitId": 3013,
+          "name": "Dictator Jacket",
+          "mutable": true
+        },
+        {
+          "layer": 4,
+          "slot": "Mouth",
+          "traitId": 4012,
+          "name": "Drool",
+          "mutable": true
+        },
+        {
+          "layer": 5,
+          "slot": "Eyes",
+          "traitId": 5026,
+          "name": "Sunglasses",
+          "mutable": true
+        },
+        {
+          "layer": 6,
+          "slot": "Hat",
+          "traitId": 6021,
+          "name": "DYOOR White Cap",
+          "mutable": true
+        },
+        {
+          "layer": 7,
+          "slot": "Accessories",
+          "traitId": 0,
+          "name": "None",
+          "mutable": true
+        },
+        {
+          "layer": 8,
+          "slot": "Accessories 2",
+          "traitId": 8001,
+          "name": "Bandaid",
+          "mutable": true
+        }
+      ]
+    },
+    {
+      "assignmentId": 777,
+      "image": "/assets/robinhood/collection/hoodyoor-assignment-0777.png",
+      "packedTraits": "477276523494440168443847404683386",
+      "traits": [
+        {
+          "layer": 0,
+          "slot": "Background",
+          "traitId": 122,
+          "name": "INDAHOOD",
+          "mutable": false
+        },
+        {
+          "layer": 1,
+          "slot": "Droid",
+          "traitId": 200,
+          "name": "Black",
+          "mutable": false
+        },
+        {
+          "layer": 2,
+          "slot": "Conditions",
+          "traitId": 0,
+          "name": "None",
+          "mutable": true
+        },
+        {
+          "layer": 3,
+          "slot": "Clothes",
+          "traitId": 3044,
+          "name": "Orange Racer",
+          "mutable": true
+        },
+        {
+          "layer": 4,
+          "slot": "Mouth",
+          "traitId": 4018,
+          "name": "Joint Mouth",
+          "mutable": true
+        },
+        {
+          "layer": 5,
+          "slot": "Eyes",
+          "traitId": 5023,
+          "name": "Scared",
+          "mutable": true
+        },
+        {
+          "layer": 6,
+          "slot": "Hat",
+          "traitId": 6024,
+          "name": "Gotta Catchem Cap",
+          "mutable": true
+        },
+        {
+          "layer": 7,
+          "slot": "Accessories",
+          "traitId": 0,
+          "name": "None",
+          "mutable": true
+        },
+        {
+          "layer": 8,
+          "slot": "Accessories 2",
+          "traitId": 0,
+          "name": "None",
+          "mutable": true
+        }
+      ]
+    },
+    {
+      "assignmentId": 1337,
+      "image": "/assets/robinhood/collection/hoodyoor-assignment-1337.png",
+      "packedTraits": "2723279782468276585934178620920343976280186",
+      "traits": [
+        {
+          "layer": 0,
+          "slot": "Background",
+          "traitId": 122,
+          "name": "INDAHOOD",
+          "mutable": false
+        },
+        {
+          "layer": 1,
+          "slot": "Droid",
+          "traitId": 205,
+          "name": "Green",
+          "mutable": false
+        },
+        {
+          "layer": 2,
+          "slot": "Conditions",
+          "traitId": 0,
+          "name": "None",
+          "mutable": true
+        },
+        {
+          "layer": 3,
+          "slot": "Clothes",
+          "traitId": 3010,
+          "name": "BuildAnything Tee",
+          "mutable": true
+        },
+        {
+          "layer": 4,
+          "slot": "Mouth",
+          "traitId": 4001,
+          "name": "AHHH Tongue",
+          "mutable": true
+        },
+        {
+          "layer": 5,
+          "slot": "Eyes",
+          "traitId": 5015,
+          "name": "Neverland Specs",
+          "mutable": true
+        },
+        {
+          "layer": 6,
+          "slot": "Hat",
+          "traitId": 0,
+          "name": "None",
+          "mutable": true
+        },
+        {
+          "layer": 7,
+          "slot": "Accessories",
+          "traitId": 0,
+          "name": "None",
+          "mutable": true
+        },
+        {
+          "layer": 8,
+          "slot": "Accessories 2",
+          "traitId": 8003,
+          "name": "Bandana Pink",
+          "mutable": true
+        }
+      ]
+    },
+    {
+      "assignmentId": 2054,
+      "image": "/assets/robinhood/collection/hoodyoor-assignment-2054.png",
+      "packedTraits": "478702637673454751919192585076855",
+      "traits": [
+        {
+          "layer": 0,
+          "slot": "Background",
+          "traitId": 119,
+          "name": "The Way-Project M.A.D.",
+          "mutable": false
+        },
+        {
+          "layer": 1,
+          "slot": "Droid",
+          "traitId": 205,
+          "name": "Green",
+          "mutable": false
+        },
+        {
+          "layer": 2,
+          "slot": "Conditions",
+          "traitId": 0,
+          "name": "None",
+          "mutable": true
+        },
+        {
+          "layer": 3,
+          "slot": "Clothes",
+          "traitId": 3021,
+          "name": "DYOOR Red Gold Text Hoodie",
+          "mutable": true
+        },
+        {
+          "layer": 4,
+          "slot": "Mouth",
+          "traitId": 4029,
+          "name": "Waaaat",
+          "mutable": true
+        },
+        {
+          "layer": 5,
+          "slot": "Eyes",
+          "traitId": 5029,
+          "name": "Un Enthused",
+          "mutable": true
+        },
+        {
+          "layer": 6,
+          "slot": "Hat",
+          "traitId": 6042,
+          "name": "Robinhood Feather Cap",
+          "mutable": true
+        },
+        {
+          "layer": 7,
+          "slot": "Accessories",
+          "traitId": 0,
+          "name": "None",
+          "mutable": true
+        },
+        {
+          "layer": 8,
+          "slot": "Accessories 2",
+          "traitId": 0,
+          "name": "None",
+          "mutable": true
+        }
+      ]
+    },
+    {
+      "assignmentId": 3333,
+      "image": "/assets/robinhood/collection/hoodyoor-assignment-3333.png",
+      "packedTraits": "6064045771950251073384022138",
+      "traits": [
+        {
+          "layer": 0,
+          "slot": "Background",
+          "traitId": 122,
+          "name": "INDAHOOD",
+          "mutable": false
+        },
+        {
+          "layer": 1,
+          "slot": "Droid",
+          "traitId": 201,
+          "name": "Blue",
+          "mutable": false
+        },
+        {
+          "layer": 2,
+          "slot": "Conditions",
+          "traitId": 0,
+          "name": "None",
+          "mutable": true
+        },
+        {
+          "layer": 3,
+          "slot": "Clothes",
+          "traitId": 0,
+          "name": "None",
+          "mutable": true
+        },
+        {
+          "layer": 4,
+          "slot": "Mouth",
+          "traitId": 4004,
+          "name": "Ayeee",
+          "mutable": true
+        },
+        {
+          "layer": 5,
+          "slot": "Eyes",
+          "traitId": 5016,
+          "name": "Okay",
+          "mutable": true
+        },
+        {
+          "layer": 6,
+          "slot": "Hat",
+          "traitId": 0,
+          "name": "None",
+          "mutable": true
+        },
+        {
+          "layer": 7,
+          "slot": "Accessories",
+          "traitId": 0,
+          "name": "None",
+          "mutable": true
+        },
+        {
+          "layer": 8,
+          "slot": "Accessories 2",
+          "traitId": 0,
+          "name": "None",
+          "mutable": true
+        }
+      ]
+    }
+  ]
+}

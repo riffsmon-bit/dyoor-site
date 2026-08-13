@@ -1,0 +1,5594 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-07-29T02:36:10.735Z",
+  "scoringModel": {
+    "name": "collection-wide trait information score",
+    "formula": "sum(log2(total metadata records / trait value count))",
+    "purpose": "story-role candidate review only",
+    "marketValueClaim": false
+  },
+  "policy": [
+    "Rarity never assigns a boss role automatically.",
+    "Manual overrides always take priority.",
+    "Only unminted metadata records are considered for game-controlled roles.",
+    "Surviving minted tokens remain player characters and burned tokens remain Burned Echoes."
+  ],
+  "regionalBossCandidates": [
+    {
+      "tokenId": 2289,
+      "suggestedRole": "regional_boss",
+      "rarityScore": 51.173353,
+      "visualDistinctiveness": 6,
+      "specialTraitCount": 0,
+      "rareTraitCount": 3,
+      "conflicts": [],
+      "traits": [
+        {
+          "traitType": "Background",
+          "value": "Pank"
+        },
+        {
+          "traitType": "Droid",
+          "value": "Orange"
+        },
+        {
+          "traitType": "Conditions",
+          "value": "None"
+        },
+        {
+          "traitType": "Stickers/Body art",
+          "value": "DYOOR Chest Tat"
+        },
+        {
+          "traitType": "Clothes",
+          "value": "Black N White Tee 2"
+        },
+        {
+          "traitType": "Mouth",
+          "value": "Cigar Mouth"
+        },
+        {
+          "traitType": "Eyes",
+          "value": "Build Anything Glasses"
+        },
+        {
+          "traitType": "Hat",
+          "value": "Shramp Beanie"
+        },
+        {
+          "traitType": "Accessories",
+          "value": "10KSquad"
+        },
+        {
+          "traitType": "Accessories 2",
+          "value": "Choker Necklace"
+        },
+        {
+          "traitType": "Special",
+          "value": "None"
+        }
+      ],
+      "reason": "High collection-wide information score plus multiple visually distinctive traits; not automatically assigned.",
+      "requiresHumanReview": true,
+      "manualOverride": null
+    },
+    {
+      "tokenId": 1690,
+      "suggestedRole": "regional_boss",
+      "rarityScore": 46.951156,
+      "visualDistinctiveness": 4,
+      "specialTraitCount": 0,
+      "rareTraitCount": 2,
+      "conflicts": [],
+      "traits": [
+        {
+          "traitType": "Background",
+          "value": "Pank"
+        },
+        {
+          "traitType": "Droid",
+          "value": "Red"
+        },
+        {
+          "traitType": "Conditions",
+          "value": "Dirty Broken'er"
+        },
+        {
+          "traitType": "Stickers/Body art",
+          "value": "LeverUp sticker"
+        },
+        {
+          "traitType": "Clothes",
+          "value": "Overalls"
+        },
+        {
+          "traitType": "Mouth",
+          "value": "None"
+        },
+        {
+          "traitType": "Eyes",
+          "value": "Pit Viper"
+        },
+        {
+          "traitType": "Hat",
+          "value": "Construction"
+        },
+        {
+          "traitType": "Accessories",
+          "value": "None"
+        },
+        {
+          "traitType": "Accessories 2",
+          "value": "MESH Bandanna"
+        },
+        {
+          "traitType": "Special",
+          "value": "None"
+        }
+      ],
+      "reason": "High collection-wide information score plus multiple visually distinctive traits; not automatically assigned.",
+      "requiresHumanReview": true,
+      "manualOverride": null
+    },
+    {
+      "tokenId": 1948,
+      "suggestedRole": "regional_boss",
+      "rarityScore": 44.832751,
+      "visualDistinctiveness": 6,
+      "specialTraitCount": 0,
+      "rareTraitCount": 3,
+      "conflicts": [],
+      "traits": [
+        {
+          "traitType": "Background",
+          "value": "Kinda Blue"
+        },
+        {
+          "traitType": "Droid",
+          "value": "Black"
+        },
+        {
+          "traitType": "Conditions",
+          "value": "Dirty-Broken"
+        },
+        {
+          "traitType": "Stickers/Body art",
+          "value": "None"
+        },
+        {
+          "traitType": "Clothes",
+          "value": "Luffy"
+        },
+        {
+          "traitType": "Mouth",
+          "value": "Displeased toothpick"
+        },
+        {
+          "traitType": "Eyes",
+          "value": "Excited"
+        },
+        {
+          "traitType": "Hat",
+          "value": "Horns"
+        },
+        {
+          "traitType": "Accessories",
+          "value": "None"
+        },
+        {
+          "traitType": "Accessories 2",
+          "value": "Shramp"
+        },
+        {
+          "traitType": "Special",
+          "value": "None"
+        }
+      ],
+      "reason": "High collection-wide information score plus multiple visually distinctive traits; not automatically assigned.",
+      "requiresHumanReview": true,
+      "manualOverride": null
+    },
+    {
+      "tokenId": 1155,
+      "suggestedRole": "regional_boss",
+      "rarityScore": 44.231387,
+      "visualDistinctiveness": 6,
+      "specialTraitCount": 0,
+      "rareTraitCount": 3,
+      "conflicts": [],
+      "traits": [
+        {
+          "traitType": "Background",
+          "value": "Grey"
+        },
+        {
+          "traitType": "Droid",
+          "value": "Olive Chrome"
+        },
+        {
+          "traitType": "Conditions",
+          "value": "None"
+        },
+        {
+          "traitType": "Stickers/Body art",
+          "value": "None"
+        },
+        {
+          "traitType": "Clothes",
+          "value": "DYOOR Black Gold Text Hoodie"
+        },
+        {
+          "traitType": "Mouth",
+          "value": "None"
+        },
+        {
+          "traitType": "Eyes",
+          "value": "Ricky V"
+        },
+        {
+          "traitType": "Hat",
+          "value": "Shramp Beanie"
+        },
+        {
+          "traitType": "Accessories",
+          "value": "Bandaid"
+        },
+        {
+          "traitType": "Accessories 2",
+          "value": "Bandana Pink"
+        },
+        {
+          "traitType": "Special",
+          "value": "None"
+        }
+      ],
+      "reason": "High collection-wide information score plus multiple visually distinctive traits; not automatically assigned.",
+      "requiresHumanReview": true,
+      "manualOverride": null
+    },
+    {
+      "tokenId": 2559,
+      "suggestedRole": "regional_boss",
+      "rarityScore": 43.759745,
+      "visualDistinctiveness": 6,
+      "specialTraitCount": 0,
+      "rareTraitCount": 3,
+      "conflicts": [],
+      "traits": [
+        {
+          "traitType": "Background",
+          "value": "Grey"
+        },
+        {
+          "traitType": "Droid",
+          "value": "Pank"
+        },
+        {
+          "traitType": "Conditions",
+          "value": "None"
+        },
+        {
+          "traitType": "Stickers/Body art",
+          "value": "DYOOR Chest Tat"
+        },
+        {
+          "traitType": "Clothes",
+          "value": "DYOOR Blue Hoodie"
+        },
+        {
+          "traitType": "Mouth",
+          "value": "Deep Thought"
+        },
+        {
+          "traitType": "Eyes",
+          "value": "HMMMHM"
+        },
+        {
+          "traitType": "Hat",
+          "value": "Black Ball Cap"
+        },
+        {
+          "traitType": "Accessories",
+          "value": "Mouch"
+        },
+        {
+          "traitType": "Accessories 2",
+          "value": "None"
+        },
+        {
+          "traitType": "Special",
+          "value": "None"
+        }
+      ],
+      "reason": "High collection-wide information score plus multiple visually distinctive traits; not automatically assigned.",
+      "requiresHumanReview": true,
+      "manualOverride": null
+    },
+    {
+      "tokenId": 3073,
+      "suggestedRole": "regional_boss",
+      "rarityScore": 43.420621,
+      "visualDistinctiveness": 6,
+      "specialTraitCount": 0,
+      "rareTraitCount": 3,
+      "conflicts": [],
+      "traits": [
+        {
+          "traitType": "Background",
+          "value": "Sunset"
+        },
+        {
+          "traitType": "Droid",
+          "value": "Gold"
+        },
+        {
+          "traitType": "Conditions",
+          "value": "None"
+        },
+        {
+          "traitType": "Stickers/Body art",
+          "value": "None"
+        },
+        {
+          "traitType": "Clothes",
+          "value": "Emo Tee"
+        },
+        {
+          "traitType": "Mouth",
+          "value": "Toothless Drool"
+        },
+        {
+          "traitType": "Eyes",
+          "value": "Radiation Glow (Red)"
+        },
+        {
+          "traitType": "Hat",
+          "value": "DYOOR Black Cap"
+        },
+        {
+          "traitType": "Accessories",
+          "value": "None"
+        },
+        {
+          "traitType": "Accessories 2",
+          "value": "Shramp"
+        },
+        {
+          "traitType": "Special",
+          "value": "None"
+        }
+      ],
+      "reason": "High collection-wide information score plus multiple visually distinctive traits; not automatically assigned.",
+      "requiresHumanReview": true,
+      "manualOverride": null
+    },
+    {
+      "tokenId": 1232,
+      "suggestedRole": "regional_boss",
+      "rarityScore": 43.386927,
+      "visualDistinctiveness": 4,
+      "specialTraitCount": 0,
+      "rareTraitCount": 2,
+      "conflicts": [],
+      "traits": [
+        {
+          "traitType": "Background",
+          "value": "Pank"
+        },
+        {
+          "traitType": "Droid",
+          "value": "Black"
+        },
+        {
+          "traitType": "Conditions",
+          "value": "Dirty Broken'er"
+        },
+        {
+          "traitType": "Stickers/Body art",
+          "value": "143 Face Sticker"
+        },
+        {
+          "traitType": "Clothes",
+          "value": "Black Hoodie"
+        },
+        {
+          "traitType": "Mouth",
+          "value": "None"
+        },
+        {
+          "traitType": "Eyes",
+          "value": "Sly"
+        },
+        {
+          "traitType": "Hat",
+          "value": "McDYOORs"
+        },
+        {
+          "traitType": "Accessories",
+          "value": "None"
+        },
+        {
+          "traitType": "Accessories 2",
+          "value": "Bandana Pink"
+        },
+        {
+          "traitType": "Special",
+          "value": "None"
+        }
+      ],
+      "reason": "High collection-wide information score plus multiple visually distinctive traits; not automatically assigned.",
+      "requiresHumanReview": true,
+      "manualOverride": null
+    },
+    {
+      "tokenId": 2183,
+      "suggestedRole": "regional_boss",
+      "rarityScore": 43.232533,
+      "visualDistinctiveness": 4,
+      "specialTraitCount": 0,
+      "rareTraitCount": 2,
+      "conflicts": [],
+      "traits": [
+        {
+          "traitType": "Background",
+          "value": "Soul Catcher-Project M.A.D."
+        },
+        {
+          "traitType": "Droid",
+          "value": "White"
+        },
+        {
+          "traitType": "Conditions",
+          "value": "None"
+        },
+        {
+          "traitType": "Stickers/Body art",
+          "value": "None"
+        },
+        {
+          "traitType": "Clothes",
+          "value": "Fur Coat Pink"
+        },
+        {
+          "traitType": "Mouth",
+          "value": "Displeased"
+        },
+        {
+          "traitType": "Eyes",
+          "value": "Abyss"
+        },
+        {
+          "traitType": "Hat",
+          "value": "Durag"
+        },
+        {
+          "traitType": "Accessories",
+          "value": "Molandak"
+        },
+        {
+          "traitType": "Accessories 2",
+          "value": "None"
+        },
+        {
+          "traitType": "Special",
+          "value": "None"
+        }
+      ],
+      "reason": "High collection-wide information score plus multiple visually distinctive traits; not automatically assigned.",
+      "requiresHumanReview": true,
+      "manualOverride": null
+    },
+    {
+      "tokenId": 2287,
+      "suggestedRole": "regional_boss",
+      "rarityScore": 41.959375,
+      "visualDistinctiveness": 4,
+      "specialTraitCount": 0,
+      "rareTraitCount": 2,
+      "conflicts": [],
+      "traits": [
+        {
+          "traitType": "Background",
+          "value": "Kewl"
+        },
+        {
+          "traitType": "Droid",
+          "value": "Blue"
+        },
+        {
+          "traitType": "Conditions",
+          "value": "None"
+        },
+        {
+          "traitType": "Stickers/Body art",
+          "value": "None"
+        },
+        {
+          "traitType": "Clothes",
+          "value": "McDyoornalds"
+        },
+        {
+          "traitType": "Mouth",
+          "value": "None"
+        },
+        {
+          "traitType": "Eyes",
+          "value": "Radiation Glow (Red)"
+        },
+        {
+          "traitType": "Hat",
+          "value": "DYOOR Flipped Brim"
+        },
+        {
+          "traitType": "Accessories",
+          "value": "Bandana Black"
+        },
+        {
+          "traitType": "Accessories 2",
+          "value": "Mouch"
+        },
+        {
+          "traitType": "Special",
+          "value": "None"
+        }
+      ],
+      "reason": "High collection-wide information score plus multiple visually distinctive traits; not automatically assigned.",
+      "requiresHumanReview": true,
+      "manualOverride": null
+    },
+    {
+      "tokenId": 1097,
+      "suggestedRole": "regional_boss",
+      "rarityScore": 41.648998,
+      "visualDistinctiveness": 4,
+      "specialTraitCount": 0,
+      "rareTraitCount": 2,
+      "conflicts": [],
+      "traits": [
+        {
+          "traitType": "Background",
+          "value": "Grey"
+        },
+        {
+          "traitType": "Droid",
+          "value": "Green"
+        },
+        {
+          "traitType": "Conditions",
+          "value": "None"
+        },
+        {
+          "traitType": "Stickers/Body art",
+          "value": "None"
+        },
+        {
+          "traitType": "Clothes",
+          "value": "Black N White Tee"
+        },
+        {
+          "traitType": "Mouth",
+          "value": "Emo Whatever"
+        },
+        {
+          "traitType": "Eyes",
+          "value": "Excited"
+        },
+        {
+          "traitType": "Hat",
+          "value": "Tech bro"
+        },
+        {
+          "traitType": "Accessories",
+          "value": "Shramp"
+        },
+        {
+          "traitType": "Accessories 2",
+          "value": "Sealuminati chain"
+        },
+        {
+          "traitType": "Special",
+          "value": "None"
+        }
+      ],
+      "reason": "High collection-wide information score plus multiple visually distinctive traits; not automatically assigned.",
+      "requiresHumanReview": true,
+      "manualOverride": null
+    },
+    {
+      "tokenId": 1387,
+      "suggestedRole": "regional_boss",
+      "rarityScore": 41.276536,
+      "visualDistinctiveness": 4,
+      "specialTraitCount": 0,
+      "rareTraitCount": 2,
+      "conflicts": [],
+      "traits": [
+        {
+          "traitType": "Background",
+          "value": "Goldish"
+        },
+        {
+          "traitType": "Droid",
+          "value": "Black"
+        },
+        {
+          "traitType": "Conditions",
+          "value": "Dirty-Broken"
+        },
+        {
+          "traitType": "Stickers/Body art",
+          "value": "None"
+        },
+        {
+          "traitType": "Clothes",
+          "value": "Kuru White Tee"
+        },
+        {
+          "traitType": "Mouth",
+          "value": "Diamond Grill"
+        },
+        {
+          "traitType": "Eyes",
+          "value": "Excited"
+        },
+        {
+          "traitType": "Hat",
+          "value": "Black Ball Cap"
+        },
+        {
+          "traitType": "Accessories",
+          "value": "BOB-chain"
+        },
+        {
+          "traitType": "Accessories 2",
+          "value": "None"
+        },
+        {
+          "traitType": "Special",
+          "value": "None"
+        }
+      ],
+      "reason": "High collection-wide information score plus multiple visually distinctive traits; not automatically assigned.",
+      "requiresHumanReview": true,
+      "manualOverride": null
+    },
+    {
+      "tokenId": 3119,
+      "suggestedRole": "regional_boss",
+      "rarityScore": 41.150758,
+      "visualDistinctiveness": 4,
+      "specialTraitCount": 0,
+      "rareTraitCount": 2,
+      "conflicts": [],
+      "traits": [
+        {
+          "traitType": "Background",
+          "value": "Goldish"
+        },
+        {
+          "traitType": "Droid",
+          "value": "Lime Green"
+        },
+        {
+          "traitType": "Conditions",
+          "value": "None"
+        },
+        {
+          "traitType": "Stickers/Body art",
+          "value": "143 Face Sticker"
+        },
+        {
+          "traitType": "Clothes",
+          "value": "Overalls"
+        },
+        {
+          "traitType": "Mouth",
+          "value": "None"
+        },
+        {
+          "traitType": "Eyes",
+          "value": "Point Dexter Glasses Eyes"
+        },
+        {
+          "traitType": "Hat",
+          "value": "Burning Chog"
+        },
+        {
+          "traitType": "Accessories",
+          "value": "None"
+        },
+        {
+          "traitType": "Accessories 2",
+          "value": "Bandana Black"
+        },
+        {
+          "traitType": "Special",
+          "value": "None"
+        }
+      ],
+      "reason": "High collection-wide information score plus multiple visually distinctive traits; not automatically assigned.",
+      "requiresHumanReview": true,
+      "manualOverride": null
+    }
+  ],
+  "dungeonBossCandidates": [
+    {
+      "tokenId": 2397,
+      "suggestedRole": "dungeon_boss",
+      "rarityScore": 42.049457,
+      "visualDistinctiveness": 2,
+      "specialTraitCount": 0,
+      "rareTraitCount": 1,
+      "conflicts": [],
+      "traits": [
+        {
+          "traitType": "Background",
+          "value": "Grey"
+        },
+        {
+          "traitType": "Droid",
+          "value": "Green"
+        },
+        {
+          "traitType": "Conditions",
+          "value": "Dirty Broken'er"
+        },
+        {
+          "traitType": "Stickers/Body art",
+          "value": "DYOOR Chest Tat"
+        },
+        {
+          "traitType": "Clothes",
+          "value": "Orange Racer"
+        },
+        {
+          "traitType": "Mouth",
+          "value": "Ayeee"
+        },
+        {
+          "traitType": "Eyes",
+          "value": "Un Enthused"
+        },
+        {
+          "traitType": "Hat",
+          "value": "McDYOORs"
+        },
+        {
+          "traitType": "Accessories",
+          "value": "Bandaid"
+        },
+        {
+          "traitType": "Accessories 2",
+          "value": "None"
+        },
+        {
+          "traitType": "Special",
+          "value": "None"
+        }
+      ],
+      "reason": "Distinctive but reserved below the regional shortlist; story and sprite feasibility still require review.",
+      "requiresHumanReview": true,
+      "manualOverride": null
+    },
+    {
+      "tokenId": 1811,
+      "suggestedRole": "dungeon_boss",
+      "rarityScore": 41.709469,
+      "visualDistinctiveness": 2,
+      "specialTraitCount": 0,
+      "rareTraitCount": 1,
+      "conflicts": [],
+      "traits": [
+        {
+          "traitType": "Background",
+          "value": "Kinda Blue"
+        },
+        {
+          "traitType": "Droid",
+          "value": "Orange"
+        },
+        {
+          "traitType": "Conditions",
+          "value": "None"
+        },
+        {
+          "traitType": "Stickers/Body art",
+          "value": "None"
+        },
+        {
+          "traitType": "Clothes",
+          "value": "Orange Plaid"
+        },
+        {
+          "traitType": "Mouth",
+          "value": "Displeased"
+        },
+        {
+          "traitType": "Eyes",
+          "value": "Radiation Glow (Red)"
+        },
+        {
+          "traitType": "Hat",
+          "value": "Emonad"
+        },
+        {
+          "traitType": "Accessories",
+          "value": "Bandaid"
+        },
+        {
+          "traitType": "Accessories 2",
+          "value": "Choker Necklace"
+        },
+        {
+          "traitType": "Special",
+          "value": "None"
+        }
+      ],
+      "reason": "Distinctive but reserved below the regional shortlist; story and sprite feasibility still require review.",
+      "requiresHumanReview": true,
+      "manualOverride": null
+    },
+    {
+      "tokenId": 2975,
+      "suggestedRole": "dungeon_boss",
+      "rarityScore": 40.886083,
+      "visualDistinctiveness": 4,
+      "specialTraitCount": 0,
+      "rareTraitCount": 2,
+      "conflicts": [],
+      "traits": [
+        {
+          "traitType": "Background",
+          "value": "Yorange"
+        },
+        {
+          "traitType": "Droid",
+          "value": "Gold"
+        },
+        {
+          "traitType": "Conditions",
+          "value": "None"
+        },
+        {
+          "traitType": "Stickers/Body art",
+          "value": "None"
+        },
+        {
+          "traitType": "Clothes",
+          "value": "Dictator Jacket"
+        },
+        {
+          "traitType": "Mouth",
+          "value": "AHHH Scared"
+        },
+        {
+          "traitType": "Eyes",
+          "value": "Got em"
+        },
+        {
+          "traitType": "Hat",
+          "value": "PamPam"
+        },
+        {
+          "traitType": "Accessories",
+          "value": "Molandak"
+        },
+        {
+          "traitType": "Accessories 2",
+          "value": "None"
+        },
+        {
+          "traitType": "Special",
+          "value": "None"
+        }
+      ],
+      "reason": "Distinctive but reserved below the regional shortlist; story and sprite feasibility still require review.",
+      "requiresHumanReview": true,
+      "manualOverride": null
+    },
+    {
+      "tokenId": 2557,
+      "suggestedRole": "dungeon_boss",
+      "rarityScore": 40.816396,
+      "visualDistinctiveness": 4,
+      "specialTraitCount": 0,
+      "rareTraitCount": 2,
+      "conflicts": [],
+      "traits": [
+        {
+          "traitType": "Background",
+          "value": "Kinda Blue"
+        },
+        {
+          "traitType": "Droid",
+          "value": "Purple"
+        },
+        {
+          "traitType": "Conditions",
+          "value": "S1 Skin"
+        },
+        {
+          "traitType": "Stickers/Body art",
+          "value": "None"
+        },
+        {
+          "traitType": "Clothes",
+          "value": "DWO Black 2"
+        },
+        {
+          "traitType": "Mouth",
+          "value": "Displeased"
+        },
+        {
+          "traitType": "Eyes",
+          "value": "Neverland Specs"
+        },
+        {
+          "traitType": "Hat",
+          "value": "Sweatband"
+        },
+        {
+          "traitType": "Accessories",
+          "value": "None"
+        },
+        {
+          "traitType": "Accessories 2",
+          "value": "Sealuminati chain"
+        },
+        {
+          "traitType": "Special",
+          "value": "None"
+        }
+      ],
+      "reason": "Distinctive but reserved below the regional shortlist; story and sprite feasibility still require review.",
+      "requiresHumanReview": true,
+      "manualOverride": null
+    },
+    {
+      "tokenId": 2750,
+      "suggestedRole": "dungeon_boss",
+      "rarityScore": 40.815983,
+      "visualDistinctiveness": 2,
+      "specialTraitCount": 0,
+      "rareTraitCount": 1,
+      "conflicts": [],
+      "traits": [
+        {
+          "traitType": "Background",
+          "value": "Yorange"
+        },
+        {
+          "traitType": "Droid",
+          "value": "Yellow"
+        },
+        {
+          "traitType": "Conditions",
+          "value": "None"
+        },
+        {
+          "traitType": "Stickers/Body art",
+          "value": "143 Face Sticker"
+        },
+        {
+          "traitType": "Clothes",
+          "value": "Grey Tee"
+        },
+        {
+          "traitType": "Mouth",
+          "value": "Pepe Mouth"
+        },
+        {
+          "traitType": "Eyes",
+          "value": "Monad Specs Gold"
+        },
+        {
+          "traitType": "Hat",
+          "value": "Black Cap"
+        },
+        {
+          "traitType": "Accessories",
+          "value": "Bandaid"
+        },
+        {
+          "traitType": "Accessories 2",
+          "value": "None"
+        },
+        {
+          "traitType": "Special",
+          "value": "None"
+        }
+      ],
+      "reason": "Distinctive but reserved below the regional shortlist; story and sprite feasibility still require review.",
+      "requiresHumanReview": true,
+      "manualOverride": null
+    },
+    {
+      "tokenId": 2062,
+      "suggestedRole": "dungeon_boss",
+      "rarityScore": 40.542789,
+      "visualDistinctiveness": 6,
+      "specialTraitCount": 0,
+      "rareTraitCount": 3,
+      "conflicts": [],
+      "traits": [
+        {
+          "traitType": "Background",
+          "value": "Pernkple"
+        },
+        {
+          "traitType": "Droid",
+          "value": "Blue"
+        },
+        {
+          "traitType": "Conditions",
+          "value": "None"
+        },
+        {
+          "traitType": "Stickers/Body art",
+          "value": "143 Chest Sticker"
+        },
+        {
+          "traitType": "Clothes",
+          "value": "DWO Black 2"
+        },
+        {
+          "traitType": "Mouth",
+          "value": "Joint Mouth"
+        },
+        {
+          "traitType": "Eyes",
+          "value": "Zombie"
+        },
+        {
+          "traitType": "Hat",
+          "value": "Glowing Antenna"
+        },
+        {
+          "traitType": "Accessories",
+          "value": "None"
+        },
+        {
+          "traitType": "Accessories 2",
+          "value": "None"
+        },
+        {
+          "traitType": "Special",
+          "value": "None"
+        }
+      ],
+      "reason": "Distinctive but reserved below the regional shortlist; story and sprite feasibility still require review.",
+      "requiresHumanReview": true,
+      "manualOverride": null
+    },
+    {
+      "tokenId": 2657,
+      "suggestedRole": "dungeon_boss",
+      "rarityScore": 40.469005,
+      "visualDistinctiveness": 2,
+      "specialTraitCount": 0,
+      "rareTraitCount": 1,
+      "conflicts": [],
+      "traits": [
+        {
+          "traitType": "Background",
+          "value": "Yorange"
+        },
+        {
+          "traitType": "Droid",
+          "value": "Blue"
+        },
+        {
+          "traitType": "Conditions",
+          "value": "None"
+        },
+        {
+          "traitType": "Stickers/Body art",
+          "value": "None"
+        },
+        {
+          "traitType": "Clothes",
+          "value": "DWO Black 2"
+        },
+        {
+          "traitType": "Mouth",
+          "value": "Muah"
+        },
+        {
+          "traitType": "Eyes",
+          "value": "Radiation Glow (Red)"
+        },
+        {
+          "traitType": "Hat",
+          "value": "Halo"
+        },
+        {
+          "traitType": "Accessories",
+          "value": "BOB-chain"
+        },
+        {
+          "traitType": "Accessories 2",
+          "value": "Molandak"
+        },
+        {
+          "traitType": "Special",
+          "value": "None"
+        }
+      ],
+      "reason": "Distinctive but reserved below the regional shortlist; story and sprite feasibility still require review.",
+      "requiresHumanReview": true,
+      "manualOverride": null
+    },
+    {
+      "tokenId": 2358,
+      "suggestedRole": "dungeon_boss",
+      "rarityScore": 40.460993,
+      "visualDistinctiveness": 4,
+      "specialTraitCount": 0,
+      "rareTraitCount": 2,
+      "conflicts": [],
+      "traits": [
+        {
+          "traitType": "Background",
+          "value": "Sunset"
+        },
+        {
+          "traitType": "Droid",
+          "value": "Red"
+        },
+        {
+          "traitType": "Conditions",
+          "value": "None"
+        },
+        {
+          "traitType": "Stickers/Body art",
+          "value": "None"
+        },
+        {
+          "traitType": "Clothes",
+          "value": "White Shirt W:Tie"
+        },
+        {
+          "traitType": "Mouth",
+          "value": "Toothless Drool"
+        },
+        {
+          "traitType": "Eyes",
+          "value": "Got em"
+        },
+        {
+          "traitType": "Hat",
+          "value": "Burning Chog"
+        },
+        {
+          "traitType": "Accessories",
+          "value": "None"
+        },
+        {
+          "traitType": "Accessories 2",
+          "value": "Bandaid"
+        },
+        {
+          "traitType": "Special",
+          "value": "None"
+        }
+      ],
+      "reason": "Distinctive but reserved below the regional shortlist; story and sprite feasibility still require review.",
+      "requiresHumanReview": true,
+      "manualOverride": null
+    },
+    {
+      "tokenId": 1839,
+      "suggestedRole": "dungeon_boss",
+      "rarityScore": 40.456557,
+      "visualDistinctiveness": 6,
+      "specialTraitCount": 0,
+      "rareTraitCount": 3,
+      "conflicts": [],
+      "traits": [
+        {
+          "traitType": "Background",
+          "value": "Cynically Censored-Project M.A.D."
+        },
+        {
+          "traitType": "Droid",
+          "value": "Black"
+        },
+        {
+          "traitType": "Conditions",
+          "value": "None"
+        },
+        {
+          "traitType": "Stickers/Body art",
+          "value": "None"
+        },
+        {
+          "traitType": "Clothes",
+          "value": "DYOOR Red Gold Text Hoodie"
+        },
+        {
+          "traitType": "Mouth",
+          "value": "Displeased"
+        },
+        {
+          "traitType": "Eyes",
+          "value": "Build Anything Glasses"
+        },
+        {
+          "traitType": "Hat",
+          "value": "Wormhole"
+        },
+        {
+          "traitType": "Accessories",
+          "value": "None"
+        },
+        {
+          "traitType": "Accessories 2",
+          "value": "None"
+        },
+        {
+          "traitType": "Special",
+          "value": "None"
+        }
+      ],
+      "reason": "Distinctive but reserved below the regional shortlist; story and sprite feasibility still require review.",
+      "requiresHumanReview": true,
+      "manualOverride": null
+    },
+    {
+      "tokenId": 1376,
+      "suggestedRole": "dungeon_boss",
+      "rarityScore": 40.363209,
+      "visualDistinctiveness": 6,
+      "specialTraitCount": 0,
+      "rareTraitCount": 3,
+      "conflicts": [],
+      "traits": [
+        {
+          "traitType": "Background",
+          "value": "Grey"
+        },
+        {
+          "traitType": "Droid",
+          "value": "Dark Chrome"
+        },
+        {
+          "traitType": "Conditions",
+          "value": "None"
+        },
+        {
+          "traitType": "Stickers/Body art",
+          "value": "None"
+        },
+        {
+          "traitType": "Clothes",
+          "value": "R3tard Tee"
+        },
+        {
+          "traitType": "Mouth",
+          "value": "Meh Cigarette"
+        },
+        {
+          "traitType": "Eyes",
+          "value": "Cyclops"
+        },
+        {
+          "traitType": "Hat",
+          "value": "Black Ball Cap"
+        },
+        {
+          "traitType": "Accessories",
+          "value": "10KSquad"
+        },
+        {
+          "traitType": "Accessories 2",
+          "value": "None"
+        },
+        {
+          "traitType": "Special",
+          "value": "None"
+        }
+      ],
+      "reason": "Distinctive but reserved below the regional shortlist; story and sprite feasibility still require review.",
+      "requiresHumanReview": true,
+      "manualOverride": null
+    },
+    {
+      "tokenId": 2067,
+      "suggestedRole": "dungeon_boss",
+      "rarityScore": 40.256715,
+      "visualDistinctiveness": 2,
+      "specialTraitCount": 0,
+      "rareTraitCount": 1,
+      "conflicts": [],
+      "traits": [
+        {
+          "traitType": "Background",
+          "value": "Pank"
+        },
+        {
+          "traitType": "Droid",
+          "value": "Olive"
+        },
+        {
+          "traitType": "Conditions",
+          "value": "None"
+        },
+        {
+          "traitType": "Stickers/Body art",
+          "value": "DYOOR Chest Tat"
+        },
+        {
+          "traitType": "Clothes",
+          "value": "Torn Tee"
+        },
+        {
+          "traitType": "Mouth",
+          "value": "Errrh"
+        },
+        {
+          "traitType": "Eyes",
+          "value": "Sly"
+        },
+        {
+          "traitType": "Hat",
+          "value": "DYOOR White Cap"
+        },
+        {
+          "traitType": "Accessories",
+          "value": "None"
+        },
+        {
+          "traitType": "Accessories 2",
+          "value": "The Hive"
+        },
+        {
+          "traitType": "Special",
+          "value": "None"
+        }
+      ],
+      "reason": "Distinctive but reserved below the regional shortlist; story and sprite feasibility still require review.",
+      "requiresHumanReview": true,
+      "manualOverride": null
+    },
+    {
+      "tokenId": 2465,
+      "suggestedRole": "dungeon_boss",
+      "rarityScore": 40.124382,
+      "visualDistinctiveness": 2,
+      "specialTraitCount": 0,
+      "rareTraitCount": 1,
+      "conflicts": [],
+      "traits": [
+        {
+          "traitType": "Background",
+          "value": "Grey"
+        },
+        {
+          "traitType": "Droid",
+          "value": "Yellow"
+        },
+        {
+          "traitType": "Conditions",
+          "value": "None"
+        },
+        {
+          "traitType": "Stickers/Body art",
+          "value": "None"
+        },
+        {
+          "traitType": "Clothes",
+          "value": "Kuru White Tee"
+        },
+        {
+          "traitType": "Mouth",
+          "value": "Ayeyo"
+        },
+        {
+          "traitType": "Eyes",
+          "value": "Third Eye"
+        },
+        {
+          "traitType": "Hat",
+          "value": "Jailhouse Stripes Hat"
+        },
+        {
+          "traitType": "Accessories",
+          "value": "Molandak"
+        },
+        {
+          "traitType": "Accessories 2",
+          "value": "Bandaid"
+        },
+        {
+          "traitType": "Special",
+          "value": "None"
+        }
+      ],
+      "reason": "Distinctive but reserved below the regional shortlist; story and sprite feasibility still require review.",
+      "requiresHumanReview": true,
+      "manualOverride": null
+    },
+    {
+      "tokenId": 1704,
+      "suggestedRole": "dungeon_boss",
+      "rarityScore": 39.856066,
+      "visualDistinctiveness": 2,
+      "specialTraitCount": 0,
+      "rareTraitCount": 1,
+      "conflicts": [],
+      "traits": [
+        {
+          "traitType": "Background",
+          "value": "Yorange"
+        },
+        {
+          "traitType": "Droid",
+          "value": "Red"
+        },
+        {
+          "traitType": "Conditions",
+          "value": "None"
+        },
+        {
+          "traitType": "Stickers/Body art",
+          "value": "143 Chest Sticker"
+        },
+        {
+          "traitType": "Clothes",
+          "value": "Leather Jacket"
+        },
+        {
+          "traitType": "Mouth",
+          "value": "Displeased"
+        },
+        {
+          "traitType": "Eyes",
+          "value": "Intense"
+        },
+        {
+          "traitType": "Hat",
+          "value": "Crown"
+        },
+        {
+          "traitType": "Accessories",
+          "value": "The Hive"
+        },
+        {
+          "traitType": "Accessories 2",
+          "value": "None"
+        },
+        {
+          "traitType": "Special",
+          "value": "None"
+        }
+      ],
+      "reason": "Distinctive but reserved below the regional shortlist; story and sprite feasibility still require review.",
+      "requiresHumanReview": true,
+      "manualOverride": null
+    },
+    {
+      "tokenId": 3105,
+      "suggestedRole": "dungeon_boss",
+      "rarityScore": 39.838294,
+      "visualDistinctiveness": 2,
+      "specialTraitCount": 0,
+      "rareTraitCount": 1,
+      "conflicts": [],
+      "traits": [
+        {
+          "traitType": "Background",
+          "value": "Pernkple"
+        },
+        {
+          "traitType": "Droid",
+          "value": "Orange"
+        },
+        {
+          "traitType": "Conditions",
+          "value": "None"
+        },
+        {
+          "traitType": "Stickers/Body art",
+          "value": "None"
+        },
+        {
+          "traitType": "Clothes",
+          "value": "Orange Plaid"
+        },
+        {
+          "traitType": "Mouth",
+          "value": "Pipe"
+        },
+        {
+          "traitType": "Eyes",
+          "value": "Cyclops"
+        },
+        {
+          "traitType": "Hat",
+          "value": "Construction"
+        },
+        {
+          "traitType": "Accessories",
+          "value": "None"
+        },
+        {
+          "traitType": "Accessories 2",
+          "value": "Molandak"
+        },
+        {
+          "traitType": "Special",
+          "value": "None"
+        }
+      ],
+      "reason": "Distinctive but reserved below the regional shortlist; story and sprite feasibility still require review.",
+      "requiresHumanReview": true,
+      "manualOverride": null
+    },
+    {
+      "tokenId": 3080,
+      "suggestedRole": "dungeon_boss",
+      "rarityScore": 39.782215,
+      "visualDistinctiveness": 4,
+      "specialTraitCount": 0,
+      "rareTraitCount": 2,
+      "conflicts": [],
+      "traits": [
+        {
+          "traitType": "Background",
+          "value": "Pernkple"
+        },
+        {
+          "traitType": "Droid",
+          "value": "Yellow"
+        },
+        {
+          "traitType": "Conditions",
+          "value": "None"
+        },
+        {
+          "traitType": "Stickers/Body art",
+          "value": "None"
+        },
+        {
+          "traitType": "Clothes",
+          "value": "Black N White Tee"
+        },
+        {
+          "traitType": "Mouth",
+          "value": "Muah"
+        },
+        {
+          "traitType": "Eyes",
+          "value": "Radiation Glow (Red)"
+        },
+        {
+          "traitType": "Hat",
+          "value": "Cowboy"
+        },
+        {
+          "traitType": "Accessories",
+          "value": "Mouch"
+        },
+        {
+          "traitType": "Accessories 2",
+          "value": "None"
+        },
+        {
+          "traitType": "Special",
+          "value": "None"
+        }
+      ],
+      "reason": "Distinctive but reserved below the regional shortlist; story and sprite feasibility still require review.",
+      "requiresHumanReview": true,
+      "manualOverride": null
+    },
+    {
+      "tokenId": 2311,
+      "suggestedRole": "dungeon_boss",
+      "rarityScore": 39.429633,
+      "visualDistinctiveness": 2,
+      "specialTraitCount": 0,
+      "rareTraitCount": 1,
+      "conflicts": [],
+      "traits": [
+        {
+          "traitType": "Background",
+          "value": "Yorange"
+        },
+        {
+          "traitType": "Droid",
+          "value": "Blue"
+        },
+        {
+          "traitType": "Conditions",
+          "value": "None"
+        },
+        {
+          "traitType": "Stickers/Body art",
+          "value": "143 Chest Sticker"
+        },
+        {
+          "traitType": "Clothes",
+          "value": "Black N White Tee"
+        },
+        {
+          "traitType": "Mouth",
+          "value": "Toothless Drool"
+        },
+        {
+          "traitType": "Eyes",
+          "value": "Emo Eyeliner"
+        },
+        {
+          "traitType": "Hat",
+          "value": "Black Cap"
+        },
+        {
+          "traitType": "Accessories",
+          "value": "None"
+        },
+        {
+          "traitType": "Accessories 2",
+          "value": "Bandaid"
+        },
+        {
+          "traitType": "Special",
+          "value": "None"
+        }
+      ],
+      "reason": "Distinctive but reserved below the regional shortlist; story and sprite feasibility still require review.",
+      "requiresHumanReview": true,
+      "manualOverride": null
+    },
+    {
+      "tokenId": 2900,
+      "suggestedRole": "dungeon_boss",
+      "rarityScore": 39.391966,
+      "visualDistinctiveness": 2,
+      "specialTraitCount": 0,
+      "rareTraitCount": 1,
+      "conflicts": [],
+      "traits": [
+        {
+          "traitType": "Background",
+          "value": "Yorange"
+        },
+        {
+          "traitType": "Droid",
+          "value": "Orange"
+        },
+        {
+          "traitType": "Conditions",
+          "value": "None"
+        },
+        {
+          "traitType": "Stickers/Body art",
+          "value": "None"
+        },
+        {
+          "traitType": "Clothes",
+          "value": "GiftGoats Tee"
+        },
+        {
+          "traitType": "Mouth",
+          "value": "None"
+        },
+        {
+          "traitType": "Eyes",
+          "value": "Third Eye"
+        },
+        {
+          "traitType": "Hat",
+          "value": "Casino"
+        },
+        {
+          "traitType": "Accessories",
+          "value": "MESH Bandanna"
+        },
+        {
+          "traitType": "Accessories 2",
+          "value": "The Hive"
+        },
+        {
+          "traitType": "Special",
+          "value": "None"
+        }
+      ],
+      "reason": "Distinctive but reserved below the regional shortlist; story and sprite feasibility still require review.",
+      "requiresHumanReview": true,
+      "manualOverride": null
+    },
+    {
+      "tokenId": 1186,
+      "suggestedRole": "dungeon_boss",
+      "rarityScore": 39.348024,
+      "visualDistinctiveness": 2,
+      "specialTraitCount": 0,
+      "rareTraitCount": 1,
+      "conflicts": [],
+      "traits": [
+        {
+          "traitType": "Background",
+          "value": "Grey"
+        },
+        {
+          "traitType": "Droid",
+          "value": "Gold"
+        },
+        {
+          "traitType": "Conditions",
+          "value": "S1 Skin"
+        },
+        {
+          "traitType": "Stickers/Body art",
+          "value": "None"
+        },
+        {
+          "traitType": "Clothes",
+          "value": "Kuru Tee"
+        },
+        {
+          "traitType": "Mouth",
+          "value": "Pepe Mouth"
+        },
+        {
+          "traitType": "Eyes",
+          "value": "Got em"
+        },
+        {
+          "traitType": "Hat",
+          "value": "Cowboy"
+        },
+        {
+          "traitType": "Accessories",
+          "value": "None"
+        },
+        {
+          "traitType": "Accessories 2",
+          "value": "None"
+        },
+        {
+          "traitType": "Special",
+          "value": "None"
+        }
+      ],
+      "reason": "Distinctive but reserved below the regional shortlist; story and sprite feasibility still require review.",
+      "requiresHumanReview": true,
+      "manualOverride": null
+    },
+    {
+      "tokenId": 2579,
+      "suggestedRole": "dungeon_boss",
+      "rarityScore": 39.301463,
+      "visualDistinctiveness": 2,
+      "specialTraitCount": 0,
+      "rareTraitCount": 1,
+      "conflicts": [],
+      "traits": [
+        {
+          "traitType": "Background",
+          "value": "Goldish"
+        },
+        {
+          "traitType": "Droid",
+          "value": "Orange"
+        },
+        {
+          "traitType": "Conditions",
+          "value": "Dirty-Broken"
+        },
+        {
+          "traitType": "Stickers/Body art",
+          "value": "None"
+        },
+        {
+          "traitType": "Clothes",
+          "value": "Baby Blue Tee"
+        },
+        {
+          "traitType": "Mouth",
+          "value": "MMMMKay"
+        },
+        {
+          "traitType": "Eyes",
+          "value": "Point Dexter Glasses Eyes"
+        },
+        {
+          "traitType": "Hat",
+          "value": "Gotta Catchem Cap"
+        },
+        {
+          "traitType": "Accessories",
+          "value": "None"
+        },
+        {
+          "traitType": "Accessories 2",
+          "value": "The Hive"
+        },
+        {
+          "traitType": "Special",
+          "value": "None"
+        }
+      ],
+      "reason": "Distinctive but reserved below the regional shortlist; story and sprite feasibility still require review.",
+      "requiresHumanReview": true,
+      "manualOverride": null
+    },
+    {
+      "tokenId": 3183,
+      "suggestedRole": "dungeon_boss",
+      "rarityScore": 39.153123,
+      "visualDistinctiveness": 6,
+      "specialTraitCount": 0,
+      "rareTraitCount": 3,
+      "conflicts": [],
+      "traits": [
+        {
+          "traitType": "Background",
+          "value": "Abtrastic"
+        },
+        {
+          "traitType": "Droid",
+          "value": "Orange"
+        },
+        {
+          "traitType": "Conditions",
+          "value": "None"
+        },
+        {
+          "traitType": "Stickers/Body art",
+          "value": "Chog Sticker"
+        },
+        {
+          "traitType": "Clothes",
+          "value": "Black Racer"
+        },
+        {
+          "traitType": "Mouth",
+          "value": "Resting DYOOR mouth"
+        },
+        {
+          "traitType": "Eyes",
+          "value": "HMMMHM"
+        },
+        {
+          "traitType": "Hat",
+          "value": "Pirate Hat"
+        },
+        {
+          "traitType": "Accessories",
+          "value": "None"
+        },
+        {
+          "traitType": "Accessories 2",
+          "value": "None"
+        },
+        {
+          "traitType": "Special",
+          "value": "None"
+        }
+      ],
+      "reason": "Distinctive but reserved below the regional shortlist; story and sprite feasibility still require review.",
+      "requiresHumanReview": true,
+      "manualOverride": null
+    },
+    {
+      "tokenId": 1215,
+      "suggestedRole": "dungeon_boss",
+      "rarityScore": 39.017126,
+      "visualDistinctiveness": 4,
+      "specialTraitCount": 0,
+      "rareTraitCount": 2,
+      "conflicts": [],
+      "traits": [
+        {
+          "traitType": "Background",
+          "value": "Flash"
+        },
+        {
+          "traitType": "Droid",
+          "value": "Lime Green"
+        },
+        {
+          "traitType": "Conditions",
+          "value": "Dirty-Broken"
+        },
+        {
+          "traitType": "Stickers/Body art",
+          "value": "None"
+        },
+        {
+          "traitType": "Clothes",
+          "value": "BuildAnything Tee"
+        },
+        {
+          "traitType": "Mouth",
+          "value": "Ayeee"
+        },
+        {
+          "traitType": "Eyes",
+          "value": "Sly"
+        },
+        {
+          "traitType": "Hat",
+          "value": "Monad Cap Black"
+        },
+        {
+          "traitType": "Accessories",
+          "value": "None"
+        },
+        {
+          "traitType": "Accessories 2",
+          "value": "None"
+        },
+        {
+          "traitType": "Special",
+          "value": "None"
+        }
+      ],
+      "reason": "Distinctive but reserved below the regional shortlist; story and sprite feasibility still require review.",
+      "requiresHumanReview": true,
+      "manualOverride": null
+    },
+    {
+      "tokenId": 3117,
+      "suggestedRole": "dungeon_boss",
+      "rarityScore": 38.944099,
+      "visualDistinctiveness": 4,
+      "specialTraitCount": 0,
+      "rareTraitCount": 2,
+      "conflicts": [],
+      "traits": [
+        {
+          "traitType": "Background",
+          "value": "Goldish"
+        },
+        {
+          "traitType": "Droid",
+          "value": "Olive"
+        },
+        {
+          "traitType": "Conditions",
+          "value": "None"
+        },
+        {
+          "traitType": "Stickers/Body art",
+          "value": "LeverUp sticker"
+        },
+        {
+          "traitType": "Clothes",
+          "value": "King's Robe 2"
+        },
+        {
+          "traitType": "Mouth",
+          "value": "None"
+        },
+        {
+          "traitType": "Eyes",
+          "value": "Tri-Specs"
+        },
+        {
+          "traitType": "Hat",
+          "value": "Construction"
+        },
+        {
+          "traitType": "Accessories",
+          "value": "None"
+        },
+        {
+          "traitType": "Accessories 2",
+          "value": "Bandana Pink"
+        },
+        {
+          "traitType": "Special",
+          "value": "None"
+        }
+      ],
+      "reason": "Distinctive but reserved below the regional shortlist; story and sprite feasibility still require review.",
+      "requiresHumanReview": true,
+      "manualOverride": null
+    },
+    {
+      "tokenId": 1684,
+      "suggestedRole": "dungeon_boss",
+      "rarityScore": 38.936549,
+      "visualDistinctiveness": 8,
+      "specialTraitCount": 1,
+      "rareTraitCount": 2,
+      "conflicts": [],
+      "traits": [
+        {
+          "traitType": "Background",
+          "value": "Grey"
+        },
+        {
+          "traitType": "Droid",
+          "value": "Black"
+        },
+        {
+          "traitType": "Conditions",
+          "value": "None"
+        },
+        {
+          "traitType": "Stickers/Body art",
+          "value": "143 Face Sticker"
+        },
+        {
+          "traitType": "Clothes",
+          "value": "None"
+        },
+        {
+          "traitType": "Mouth",
+          "value": "Drool"
+        },
+        {
+          "traitType": "Eyes",
+          "value": "Emo Eyeliner"
+        },
+        {
+          "traitType": "Hat",
+          "value": "None"
+        },
+        {
+          "traitType": "Accessories",
+          "value": "None"
+        },
+        {
+          "traitType": "Accessories 2",
+          "value": "None"
+        },
+        {
+          "traitType": "Special",
+          "value": "Space Suit"
+        }
+      ],
+      "reason": "Distinctive but reserved below the regional shortlist; story and sprite feasibility still require review.",
+      "requiresHumanReview": true,
+      "manualOverride": null
+    },
+    {
+      "tokenId": 2233,
+      "suggestedRole": "dungeon_boss",
+      "rarityScore": 38.931163,
+      "visualDistinctiveness": 4,
+      "specialTraitCount": 0,
+      "rareTraitCount": 2,
+      "conflicts": [],
+      "traits": [
+        {
+          "traitType": "Background",
+          "value": "Kinda Blue"
+        },
+        {
+          "traitType": "Droid",
+          "value": "Olive"
+        },
+        {
+          "traitType": "Conditions",
+          "value": "Dirty-Broken"
+        },
+        {
+          "traitType": "Stickers/Body art",
+          "value": "None"
+        },
+        {
+          "traitType": "Clothes",
+          "value": "Hawaiian Shirt"
+        },
+        {
+          "traitType": "Mouth",
+          "value": "None"
+        },
+        {
+          "traitType": "Eyes",
+          "value": "Sly"
+        },
+        {
+          "traitType": "Hat",
+          "value": "Captain Hat"
+        },
+        {
+          "traitType": "Accessories",
+          "value": "None"
+        },
+        {
+          "traitType": "Accessories 2",
+          "value": "Bandana Pink"
+        },
+        {
+          "traitType": "Special",
+          "value": "None"
+        }
+      ],
+      "reason": "Distinctive but reserved below the regional shortlist; story and sprite feasibility still require review.",
+      "requiresHumanReview": true,
+      "manualOverride": null
+    }
+  ],
+  "companionCandidates": [
+    {
+      "tokenId": 1690,
+      "suggestedRole": "companion",
+      "rarityScore": 46.951156,
+      "visualDistinctiveness": 4,
+      "specialTraitCount": 0,
+      "rareTraitCount": 2,
+      "conflicts": [],
+      "traits": [
+        {
+          "traitType": "Background",
+          "value": "Pank"
+        },
+        {
+          "traitType": "Droid",
+          "value": "Red"
+        },
+        {
+          "traitType": "Conditions",
+          "value": "Dirty Broken'er"
+        },
+        {
+          "traitType": "Stickers/Body art",
+          "value": "LeverUp sticker"
+        },
+        {
+          "traitType": "Clothes",
+          "value": "Overalls"
+        },
+        {
+          "traitType": "Mouth",
+          "value": "None"
+        },
+        {
+          "traitType": "Eyes",
+          "value": "Pit Viper"
+        },
+        {
+          "traitType": "Hat",
+          "value": "Construction"
+        },
+        {
+          "traitType": "Accessories",
+          "value": "None"
+        },
+        {
+          "traitType": "Accessories 2",
+          "value": "MESH Bandanna"
+        },
+        {
+          "traitType": "Special",
+          "value": "None"
+        }
+      ],
+      "reason": "Readable trait combination without compatibility conflicts; rarity is not being treated as automatic boss status.",
+      "requiresHumanReview": true,
+      "manualOverride": null
+    },
+    {
+      "tokenId": 1366,
+      "suggestedRole": "companion",
+      "rarityScore": 44.339504,
+      "visualDistinctiveness": 0,
+      "specialTraitCount": 0,
+      "rareTraitCount": 0,
+      "conflicts": [],
+      "traits": [
+        {
+          "traitType": "Background",
+          "value": "Yorange"
+        },
+        {
+          "traitType": "Droid",
+          "value": "Gold"
+        },
+        {
+          "traitType": "Conditions",
+          "value": "None"
+        },
+        {
+          "traitType": "Stickers/Body art",
+          "value": "None"
+        },
+        {
+          "traitType": "Clothes",
+          "value": "Overalls"
+        },
+        {
+          "traitType": "Mouth",
+          "value": "Diamond Grill"
+        },
+        {
+          "traitType": "Eyes",
+          "value": "VR Headset"
+        },
+        {
+          "traitType": "Hat",
+          "value": "Black Ball Cap"
+        },
+        {
+          "traitType": "Accessories",
+          "value": "The Hive"
+        },
+        {
+          "traitType": "Accessories 2",
+          "value": "Choker Necklace"
+        },
+        {
+          "traitType": "Special",
+          "value": "None"
+        }
+      ],
+      "reason": "Readable trait combination without compatibility conflicts; rarity is not being treated as automatic boss status.",
+      "requiresHumanReview": true,
+      "manualOverride": null
+    },
+    {
+      "tokenId": 1232,
+      "suggestedRole": "companion",
+      "rarityScore": 43.386927,
+      "visualDistinctiveness": 4,
+      "specialTraitCount": 0,
+      "rareTraitCount": 2,
+      "conflicts": [],
+      "traits": [
+        {
+          "traitType": "Background",
+          "value": "Pank"
+        },
+        {
+          "traitType": "Droid",
+          "value": "Black"
+        },
+        {
+          "traitType": "Conditions",
+          "value": "Dirty Broken'er"
+        },
+        {
+          "traitType": "Stickers/Body art",
+          "value": "143 Face Sticker"
+        },
+        {
+          "traitType": "Clothes",
+          "value": "Black Hoodie"
+        },
+        {
+          "traitType": "Mouth",
+          "value": "None"
+        },
+        {
+          "traitType": "Eyes",
+          "value": "Sly"
+        },
+        {
+          "traitType": "Hat",
+          "value": "McDYOORs"
+        },
+        {
+          "traitType": "Accessories",
+          "value": "None"
+        },
+        {
+          "traitType": "Accessories 2",
+          "value": "Bandana Pink"
+        },
+        {
+          "traitType": "Special",
+          "value": "None"
+        }
+      ],
+      "reason": "Readable trait combination without compatibility conflicts; rarity is not being treated as automatic boss status.",
+      "requiresHumanReview": true,
+      "manualOverride": null
+    },
+    {
+      "tokenId": 2183,
+      "suggestedRole": "companion",
+      "rarityScore": 43.232533,
+      "visualDistinctiveness": 4,
+      "specialTraitCount": 0,
+      "rareTraitCount": 2,
+      "conflicts": [],
+      "traits": [
+        {
+          "traitType": "Background",
+          "value": "Soul Catcher-Project M.A.D."
+        },
+        {
+          "traitType": "Droid",
+          "value": "White"
+        },
+        {
+          "traitType": "Conditions",
+          "value": "None"
+        },
+        {
+          "traitType": "Stickers/Body art",
+          "value": "None"
+        },
+        {
+          "traitType": "Clothes",
+          "value": "Fur Coat Pink"
+        },
+        {
+          "traitType": "Mouth",
+          "value": "Displeased"
+        },
+        {
+          "traitType": "Eyes",
+          "value": "Abyss"
+        },
+        {
+          "traitType": "Hat",
+          "value": "Durag"
+        },
+        {
+          "traitType": "Accessories",
+          "value": "Molandak"
+        },
+        {
+          "traitType": "Accessories 2",
+          "value": "None"
+        },
+        {
+          "traitType": "Special",
+          "value": "None"
+        }
+      ],
+      "reason": "Readable trait combination without compatibility conflicts; rarity is not being treated as automatic boss status.",
+      "requiresHumanReview": true,
+      "manualOverride": null
+    },
+    {
+      "tokenId": 2397,
+      "suggestedRole": "companion",
+      "rarityScore": 42.049457,
+      "visualDistinctiveness": 2,
+      "specialTraitCount": 0,
+      "rareTraitCount": 1,
+      "conflicts": [],
+      "traits": [
+        {
+          "traitType": "Background",
+          "value": "Grey"
+        },
+        {
+          "traitType": "Droid",
+          "value": "Green"
+        },
+        {
+          "traitType": "Conditions",
+          "value": "Dirty Broken'er"
+        },
+        {
+          "traitType": "Stickers/Body art",
+          "value": "DYOOR Chest Tat"
+        },
+        {
+          "traitType": "Clothes",
+          "value": "Orange Racer"
+        },
+        {
+          "traitType": "Mouth",
+          "value": "Ayeee"
+        },
+        {
+          "traitType": "Eyes",
+          "value": "Un Enthused"
+        },
+        {
+          "traitType": "Hat",
+          "value": "McDYOORs"
+        },
+        {
+          "traitType": "Accessories",
+          "value": "Bandaid"
+        },
+        {
+          "traitType": "Accessories 2",
+          "value": "None"
+        },
+        {
+          "traitType": "Special",
+          "value": "None"
+        }
+      ],
+      "reason": "Readable trait combination without compatibility conflicts; rarity is not being treated as automatic boss status.",
+      "requiresHumanReview": true,
+      "manualOverride": null
+    },
+    {
+      "tokenId": 2287,
+      "suggestedRole": "companion",
+      "rarityScore": 41.959375,
+      "visualDistinctiveness": 4,
+      "specialTraitCount": 0,
+      "rareTraitCount": 2,
+      "conflicts": [],
+      "traits": [
+        {
+          "traitType": "Background",
+          "value": "Kewl"
+        },
+        {
+          "traitType": "Droid",
+          "value": "Blue"
+        },
+        {
+          "traitType": "Conditions",
+          "value": "None"
+        },
+        {
+          "traitType": "Stickers/Body art",
+          "value": "None"
+        },
+        {
+          "traitType": "Clothes",
+          "value": "McDyoornalds"
+        },
+        {
+          "traitType": "Mouth",
+          "value": "None"
+        },
+        {
+          "traitType": "Eyes",
+          "value": "Radiation Glow (Red)"
+        },
+        {
+          "traitType": "Hat",
+          "value": "DYOOR Flipped Brim"
+        },
+        {
+          "traitType": "Accessories",
+          "value": "Bandana Black"
+        },
+        {
+          "traitType": "Accessories 2",
+          "value": "Mouch"
+        },
+        {
+          "traitType": "Special",
+          "value": "None"
+        }
+      ],
+      "reason": "Readable trait combination without compatibility conflicts; rarity is not being treated as automatic boss status.",
+      "requiresHumanReview": true,
+      "manualOverride": null
+    },
+    {
+      "tokenId": 1811,
+      "suggestedRole": "companion",
+      "rarityScore": 41.709469,
+      "visualDistinctiveness": 2,
+      "specialTraitCount": 0,
+      "rareTraitCount": 1,
+      "conflicts": [],
+      "traits": [
+        {
+          "traitType": "Background",
+          "value": "Kinda Blue"
+        },
+        {
+          "traitType": "Droid",
+          "value": "Orange"
+        },
+        {
+          "traitType": "Conditions",
+          "value": "None"
+        },
+        {
+          "traitType": "Stickers/Body art",
+          "value": "None"
+        },
+        {
+          "traitType": "Clothes",
+          "value": "Orange Plaid"
+        },
+        {
+          "traitType": "Mouth",
+          "value": "Displeased"
+        },
+        {
+          "traitType": "Eyes",
+          "value": "Radiation Glow (Red)"
+        },
+        {
+          "traitType": "Hat",
+          "value": "Emonad"
+        },
+        {
+          "traitType": "Accessories",
+          "value": "Bandaid"
+        },
+        {
+          "traitType": "Accessories 2",
+          "value": "Choker Necklace"
+        },
+        {
+          "traitType": "Special",
+          "value": "None"
+        }
+      ],
+      "reason": "Readable trait combination without compatibility conflicts; rarity is not being treated as automatic boss status.",
+      "requiresHumanReview": true,
+      "manualOverride": null
+    },
+    {
+      "tokenId": 1097,
+      "suggestedRole": "companion",
+      "rarityScore": 41.648998,
+      "visualDistinctiveness": 4,
+      "specialTraitCount": 0,
+      "rareTraitCount": 2,
+      "conflicts": [],
+      "traits": [
+        {
+          "traitType": "Background",
+          "value": "Grey"
+        },
+        {
+          "traitType": "Droid",
+          "value": "Green"
+        },
+        {
+          "traitType": "Conditions",
+          "value": "None"
+        },
+        {
+          "traitType": "Stickers/Body art",
+          "value": "None"
+        },
+        {
+          "traitType": "Clothes",
+          "value": "Black N White Tee"
+        },
+        {
+          "traitType": "Mouth",
+          "value": "Emo Whatever"
+        },
+        {
+          "traitType": "Eyes",
+          "value": "Excited"
+        },
+        {
+          "traitType": "Hat",
+          "value": "Tech bro"
+        },
+        {
+          "traitType": "Accessories",
+          "value": "Shramp"
+        },
+        {
+          "traitType": "Accessories 2",
+          "value": "Sealuminati chain"
+        },
+        {
+          "traitType": "Special",
+          "value": "None"
+        }
+      ],
+      "reason": "Readable trait combination without compatibility conflicts; rarity is not being treated as automatic boss status.",
+      "requiresHumanReview": true,
+      "manualOverride": null
+    },
+    {
+      "tokenId": 1387,
+      "suggestedRole": "companion",
+      "rarityScore": 41.276536,
+      "visualDistinctiveness": 4,
+      "specialTraitCount": 0,
+      "rareTraitCount": 2,
+      "conflicts": [],
+      "traits": [
+        {
+          "traitType": "Background",
+          "value": "Goldish"
+        },
+        {
+          "traitType": "Droid",
+          "value": "Black"
+        },
+        {
+          "traitType": "Conditions",
+          "value": "Dirty-Broken"
+        },
+        {
+          "traitType": "Stickers/Body art",
+          "value": "None"
+        },
+        {
+          "traitType": "Clothes",
+          "value": "Kuru White Tee"
+        },
+        {
+          "traitType": "Mouth",
+          "value": "Diamond Grill"
+        },
+        {
+          "traitType": "Eyes",
+          "value": "Excited"
+        },
+        {
+          "traitType": "Hat",
+          "value": "Black Ball Cap"
+        },
+        {
+          "traitType": "Accessories",
+          "value": "BOB-chain"
+        },
+        {
+          "traitType": "Accessories 2",
+          "value": "None"
+        },
+        {
+          "traitType": "Special",
+          "value": "None"
+        }
+      ],
+      "reason": "Readable trait combination without compatibility conflicts; rarity is not being treated as automatic boss status.",
+      "requiresHumanReview": true,
+      "manualOverride": null
+    },
+    {
+      "tokenId": 3119,
+      "suggestedRole": "companion",
+      "rarityScore": 41.150758,
+      "visualDistinctiveness": 4,
+      "specialTraitCount": 0,
+      "rareTraitCount": 2,
+      "conflicts": [],
+      "traits": [
+        {
+          "traitType": "Background",
+          "value": "Goldish"
+        },
+        {
+          "traitType": "Droid",
+          "value": "Lime Green"
+        },
+        {
+          "traitType": "Conditions",
+          "value": "None"
+        },
+        {
+          "traitType": "Stickers/Body art",
+          "value": "143 Face Sticker"
+        },
+        {
+          "traitType": "Clothes",
+          "value": "Overalls"
+        },
+        {
+          "traitType": "Mouth",
+          "value": "None"
+        },
+        {
+          "traitType": "Eyes",
+          "value": "Point Dexter Glasses Eyes"
+        },
+        {
+          "traitType": "Hat",
+          "value": "Burning Chog"
+        },
+        {
+          "traitType": "Accessories",
+          "value": "None"
+        },
+        {
+          "traitType": "Accessories 2",
+          "value": "Bandana Black"
+        },
+        {
+          "traitType": "Special",
+          "value": "None"
+        }
+      ],
+      "reason": "Readable trait combination without compatibility conflicts; rarity is not being treated as automatic boss status.",
+      "requiresHumanReview": true,
+      "manualOverride": null
+    },
+    {
+      "tokenId": 2975,
+      "suggestedRole": "companion",
+      "rarityScore": 40.886083,
+      "visualDistinctiveness": 4,
+      "specialTraitCount": 0,
+      "rareTraitCount": 2,
+      "conflicts": [],
+      "traits": [
+        {
+          "traitType": "Background",
+          "value": "Yorange"
+        },
+        {
+          "traitType": "Droid",
+          "value": "Gold"
+        },
+        {
+          "traitType": "Conditions",
+          "value": "None"
+        },
+        {
+          "traitType": "Stickers/Body art",
+          "value": "None"
+        },
+        {
+          "traitType": "Clothes",
+          "value": "Dictator Jacket"
+        },
+        {
+          "traitType": "Mouth",
+          "value": "AHHH Scared"
+        },
+        {
+          "traitType": "Eyes",
+          "value": "Got em"
+        },
+        {
+          "traitType": "Hat",
+          "value": "PamPam"
+        },
+        {
+          "traitType": "Accessories",
+          "value": "Molandak"
+        },
+        {
+          "traitType": "Accessories 2",
+          "value": "None"
+        },
+        {
+          "traitType": "Special",
+          "value": "None"
+        }
+      ],
+      "reason": "Readable trait combination without compatibility conflicts; rarity is not being treated as automatic boss status.",
+      "requiresHumanReview": true,
+      "manualOverride": null
+    },
+    {
+      "tokenId": 2557,
+      "suggestedRole": "companion",
+      "rarityScore": 40.816396,
+      "visualDistinctiveness": 4,
+      "specialTraitCount": 0,
+      "rareTraitCount": 2,
+      "conflicts": [],
+      "traits": [
+        {
+          "traitType": "Background",
+          "value": "Kinda Blue"
+        },
+        {
+          "traitType": "Droid",
+          "value": "Purple"
+        },
+        {
+          "traitType": "Conditions",
+          "value": "S1 Skin"
+        },
+        {
+          "traitType": "Stickers/Body art",
+          "value": "None"
+        },
+        {
+          "traitType": "Clothes",
+          "value": "DWO Black 2"
+        },
+        {
+          "traitType": "Mouth",
+          "value": "Displeased"
+        },
+        {
+          "traitType": "Eyes",
+          "value": "Neverland Specs"
+        },
+        {
+          "traitType": "Hat",
+          "value": "Sweatband"
+        },
+        {
+          "traitType": "Accessories",
+          "value": "None"
+        },
+        {
+          "traitType": "Accessories 2",
+          "value": "Sealuminati chain"
+        },
+        {
+          "traitType": "Special",
+          "value": "None"
+        }
+      ],
+      "reason": "Readable trait combination without compatibility conflicts; rarity is not being treated as automatic boss status.",
+      "requiresHumanReview": true,
+      "manualOverride": null
+    },
+    {
+      "tokenId": 2750,
+      "suggestedRole": "companion",
+      "rarityScore": 40.815983,
+      "visualDistinctiveness": 2,
+      "specialTraitCount": 0,
+      "rareTraitCount": 1,
+      "conflicts": [],
+      "traits": [
+        {
+          "traitType": "Background",
+          "value": "Yorange"
+        },
+        {
+          "traitType": "Droid",
+          "value": "Yellow"
+        },
+        {
+          "traitType": "Conditions",
+          "value": "None"
+        },
+        {
+          "traitType": "Stickers/Body art",
+          "value": "143 Face Sticker"
+        },
+        {
+          "traitType": "Clothes",
+          "value": "Grey Tee"
+        },
+        {
+          "traitType": "Mouth",
+          "value": "Pepe Mouth"
+        },
+        {
+          "traitType": "Eyes",
+          "value": "Monad Specs Gold"
+        },
+        {
+          "traitType": "Hat",
+          "value": "Black Cap"
+        },
+        {
+          "traitType": "Accessories",
+          "value": "Bandaid"
+        },
+        {
+          "traitType": "Accessories 2",
+          "value": "None"
+        },
+        {
+          "traitType": "Special",
+          "value": "None"
+        }
+      ],
+      "reason": "Readable trait combination without compatibility conflicts; rarity is not being treated as automatic boss status.",
+      "requiresHumanReview": true,
+      "manualOverride": null
+    },
+    {
+      "tokenId": 2657,
+      "suggestedRole": "companion",
+      "rarityScore": 40.469005,
+      "visualDistinctiveness": 2,
+      "specialTraitCount": 0,
+      "rareTraitCount": 1,
+      "conflicts": [],
+      "traits": [
+        {
+          "traitType": "Background",
+          "value": "Yorange"
+        },
+        {
+          "traitType": "Droid",
+          "value": "Blue"
+        },
+        {
+          "traitType": "Conditions",
+          "value": "None"
+        },
+        {
+          "traitType": "Stickers/Body art",
+          "value": "None"
+        },
+        {
+          "traitType": "Clothes",
+          "value": "DWO Black 2"
+        },
+        {
+          "traitType": "Mouth",
+          "value": "Muah"
+        },
+        {
+          "traitType": "Eyes",
+          "value": "Radiation Glow (Red)"
+        },
+        {
+          "traitType": "Hat",
+          "value": "Halo"
+        },
+        {
+          "traitType": "Accessories",
+          "value": "BOB-chain"
+        },
+        {
+          "traitType": "Accessories 2",
+          "value": "Molandak"
+        },
+        {
+          "traitType": "Special",
+          "value": "None"
+        }
+      ],
+      "reason": "Readable trait combination without compatibility conflicts; rarity is not being treated as automatic boss status.",
+      "requiresHumanReview": true,
+      "manualOverride": null
+    },
+    {
+      "tokenId": 2358,
+      "suggestedRole": "companion",
+      "rarityScore": 40.460993,
+      "visualDistinctiveness": 4,
+      "specialTraitCount": 0,
+      "rareTraitCount": 2,
+      "conflicts": [],
+      "traits": [
+        {
+          "traitType": "Background",
+          "value": "Sunset"
+        },
+        {
+          "traitType": "Droid",
+          "value": "Red"
+        },
+        {
+          "traitType": "Conditions",
+          "value": "None"
+        },
+        {
+          "traitType": "Stickers/Body art",
+          "value": "None"
+        },
+        {
+          "traitType": "Clothes",
+          "value": "White Shirt W:Tie"
+        },
+        {
+          "traitType": "Mouth",
+          "value": "Toothless Drool"
+        },
+        {
+          "traitType": "Eyes",
+          "value": "Got em"
+        },
+        {
+          "traitType": "Hat",
+          "value": "Burning Chog"
+        },
+        {
+          "traitType": "Accessories",
+          "value": "None"
+        },
+        {
+          "traitType": "Accessories 2",
+          "value": "Bandaid"
+        },
+        {
+          "traitType": "Special",
+          "value": "None"
+        }
+      ],
+      "reason": "Readable trait combination without compatibility conflicts; rarity is not being treated as automatic boss status.",
+      "requiresHumanReview": true,
+      "manualOverride": null
+    },
+    {
+      "tokenId": 2067,
+      "suggestedRole": "companion",
+      "rarityScore": 40.256715,
+      "visualDistinctiveness": 2,
+      "specialTraitCount": 0,
+      "rareTraitCount": 1,
+      "conflicts": [],
+      "traits": [
+        {
+          "traitType": "Background",
+          "value": "Pank"
+        },
+        {
+          "traitType": "Droid",
+          "value": "Olive"
+        },
+        {
+          "traitType": "Conditions",
+          "value": "None"
+        },
+        {
+          "traitType": "Stickers/Body art",
+          "value": "DYOOR Chest Tat"
+        },
+        {
+          "traitType": "Clothes",
+          "value": "Torn Tee"
+        },
+        {
+          "traitType": "Mouth",
+          "value": "Errrh"
+        },
+        {
+          "traitType": "Eyes",
+          "value": "Sly"
+        },
+        {
+          "traitType": "Hat",
+          "value": "DYOOR White Cap"
+        },
+        {
+          "traitType": "Accessories",
+          "value": "None"
+        },
+        {
+          "traitType": "Accessories 2",
+          "value": "The Hive"
+        },
+        {
+          "traitType": "Special",
+          "value": "None"
+        }
+      ],
+      "reason": "Readable trait combination without compatibility conflicts; rarity is not being treated as automatic boss status.",
+      "requiresHumanReview": true,
+      "manualOverride": null
+    },
+    {
+      "tokenId": 2465,
+      "suggestedRole": "companion",
+      "rarityScore": 40.124382,
+      "visualDistinctiveness": 2,
+      "specialTraitCount": 0,
+      "rareTraitCount": 1,
+      "conflicts": [],
+      "traits": [
+        {
+          "traitType": "Background",
+          "value": "Grey"
+        },
+        {
+          "traitType": "Droid",
+          "value": "Yellow"
+        },
+        {
+          "traitType": "Conditions",
+          "value": "None"
+        },
+        {
+          "traitType": "Stickers/Body art",
+          "value": "None"
+        },
+        {
+          "traitType": "Clothes",
+          "value": "Kuru White Tee"
+        },
+        {
+          "traitType": "Mouth",
+          "value": "Ayeyo"
+        },
+        {
+          "traitType": "Eyes",
+          "value": "Third Eye"
+        },
+        {
+          "traitType": "Hat",
+          "value": "Jailhouse Stripes Hat"
+        },
+        {
+          "traitType": "Accessories",
+          "value": "Molandak"
+        },
+        {
+          "traitType": "Accessories 2",
+          "value": "Bandaid"
+        },
+        {
+          "traitType": "Special",
+          "value": "None"
+        }
+      ],
+      "reason": "Readable trait combination without compatibility conflicts; rarity is not being treated as automatic boss status.",
+      "requiresHumanReview": true,
+      "manualOverride": null
+    },
+    {
+      "tokenId": 1704,
+      "suggestedRole": "companion",
+      "rarityScore": 39.856066,
+      "visualDistinctiveness": 2,
+      "specialTraitCount": 0,
+      "rareTraitCount": 1,
+      "conflicts": [],
+      "traits": [
+        {
+          "traitType": "Background",
+          "value": "Yorange"
+        },
+        {
+          "traitType": "Droid",
+          "value": "Red"
+        },
+        {
+          "traitType": "Conditions",
+          "value": "None"
+        },
+        {
+          "traitType": "Stickers/Body art",
+          "value": "143 Chest Sticker"
+        },
+        {
+          "traitType": "Clothes",
+          "value": "Leather Jacket"
+        },
+        {
+          "traitType": "Mouth",
+          "value": "Displeased"
+        },
+        {
+          "traitType": "Eyes",
+          "value": "Intense"
+        },
+        {
+          "traitType": "Hat",
+          "value": "Crown"
+        },
+        {
+          "traitType": "Accessories",
+          "value": "The Hive"
+        },
+        {
+          "traitType": "Accessories 2",
+          "value": "None"
+        },
+        {
+          "traitType": "Special",
+          "value": "None"
+        }
+      ],
+      "reason": "Readable trait combination without compatibility conflicts; rarity is not being treated as automatic boss status.",
+      "requiresHumanReview": true,
+      "manualOverride": null
+    },
+    {
+      "tokenId": 3105,
+      "suggestedRole": "companion",
+      "rarityScore": 39.838294,
+      "visualDistinctiveness": 2,
+      "specialTraitCount": 0,
+      "rareTraitCount": 1,
+      "conflicts": [],
+      "traits": [
+        {
+          "traitType": "Background",
+          "value": "Pernkple"
+        },
+        {
+          "traitType": "Droid",
+          "value": "Orange"
+        },
+        {
+          "traitType": "Conditions",
+          "value": "None"
+        },
+        {
+          "traitType": "Stickers/Body art",
+          "value": "None"
+        },
+        {
+          "traitType": "Clothes",
+          "value": "Orange Plaid"
+        },
+        {
+          "traitType": "Mouth",
+          "value": "Pipe"
+        },
+        {
+          "traitType": "Eyes",
+          "value": "Cyclops"
+        },
+        {
+          "traitType": "Hat",
+          "value": "Construction"
+        },
+        {
+          "traitType": "Accessories",
+          "value": "None"
+        },
+        {
+          "traitType": "Accessories 2",
+          "value": "Molandak"
+        },
+        {
+          "traitType": "Special",
+          "value": "None"
+        }
+      ],
+      "reason": "Readable trait combination without compatibility conflicts; rarity is not being treated as automatic boss status.",
+      "requiresHumanReview": true,
+      "manualOverride": null
+    },
+    {
+      "tokenId": 3080,
+      "suggestedRole": "companion",
+      "rarityScore": 39.782215,
+      "visualDistinctiveness": 4,
+      "specialTraitCount": 0,
+      "rareTraitCount": 2,
+      "conflicts": [],
+      "traits": [
+        {
+          "traitType": "Background",
+          "value": "Pernkple"
+        },
+        {
+          "traitType": "Droid",
+          "value": "Yellow"
+        },
+        {
+          "traitType": "Conditions",
+          "value": "None"
+        },
+        {
+          "traitType": "Stickers/Body art",
+          "value": "None"
+        },
+        {
+          "traitType": "Clothes",
+          "value": "Black N White Tee"
+        },
+        {
+          "traitType": "Mouth",
+          "value": "Muah"
+        },
+        {
+          "traitType": "Eyes",
+          "value": "Radiation Glow (Red)"
+        },
+        {
+          "traitType": "Hat",
+          "value": "Cowboy"
+        },
+        {
+          "traitType": "Accessories",
+          "value": "Mouch"
+        },
+        {
+          "traitType": "Accessories 2",
+          "value": "None"
+        },
+        {
+          "traitType": "Special",
+          "value": "None"
+        }
+      ],
+      "reason": "Readable trait combination without compatibility conflicts; rarity is not being treated as automatic boss status.",
+      "requiresHumanReview": true,
+      "manualOverride": null
+    },
+    {
+      "tokenId": 2311,
+      "suggestedRole": "companion",
+      "rarityScore": 39.429633,
+      "visualDistinctiveness": 2,
+      "specialTraitCount": 0,
+      "rareTraitCount": 1,
+      "conflicts": [],
+      "traits": [
+        {
+          "traitType": "Background",
+          "value": "Yorange"
+        },
+        {
+          "traitType": "Droid",
+          "value": "Blue"
+        },
+        {
+          "traitType": "Conditions",
+          "value": "None"
+        },
+        {
+          "traitType": "Stickers/Body art",
+          "value": "143 Chest Sticker"
+        },
+        {
+          "traitType": "Clothes",
+          "value": "Black N White Tee"
+        },
+        {
+          "traitType": "Mouth",
+          "value": "Toothless Drool"
+        },
+        {
+          "traitType": "Eyes",
+          "value": "Emo Eyeliner"
+        },
+        {
+          "traitType": "Hat",
+          "value": "Black Cap"
+        },
+        {
+          "traitType": "Accessories",
+          "value": "None"
+        },
+        {
+          "traitType": "Accessories 2",
+          "value": "Bandaid"
+        },
+        {
+          "traitType": "Special",
+          "value": "None"
+        }
+      ],
+      "reason": "Readable trait combination without compatibility conflicts; rarity is not being treated as automatic boss status.",
+      "requiresHumanReview": true,
+      "manualOverride": null
+    },
+    {
+      "tokenId": 2900,
+      "suggestedRole": "companion",
+      "rarityScore": 39.391966,
+      "visualDistinctiveness": 2,
+      "specialTraitCount": 0,
+      "rareTraitCount": 1,
+      "conflicts": [],
+      "traits": [
+        {
+          "traitType": "Background",
+          "value": "Yorange"
+        },
+        {
+          "traitType": "Droid",
+          "value": "Orange"
+        },
+        {
+          "traitType": "Conditions",
+          "value": "None"
+        },
+        {
+          "traitType": "Stickers/Body art",
+          "value": "None"
+        },
+        {
+          "traitType": "Clothes",
+          "value": "GiftGoats Tee"
+        },
+        {
+          "traitType": "Mouth",
+          "value": "None"
+        },
+        {
+          "traitType": "Eyes",
+          "value": "Third Eye"
+        },
+        {
+          "traitType": "Hat",
+          "value": "Casino"
+        },
+        {
+          "traitType": "Accessories",
+          "value": "MESH Bandanna"
+        },
+        {
+          "traitType": "Accessories 2",
+          "value": "The Hive"
+        },
+        {
+          "traitType": "Special",
+          "value": "None"
+        }
+      ],
+      "reason": "Readable trait combination without compatibility conflicts; rarity is not being treated as automatic boss status.",
+      "requiresHumanReview": true,
+      "manualOverride": null
+    },
+    {
+      "tokenId": 1186,
+      "suggestedRole": "companion",
+      "rarityScore": 39.348024,
+      "visualDistinctiveness": 2,
+      "specialTraitCount": 0,
+      "rareTraitCount": 1,
+      "conflicts": [],
+      "traits": [
+        {
+          "traitType": "Background",
+          "value": "Grey"
+        },
+        {
+          "traitType": "Droid",
+          "value": "Gold"
+        },
+        {
+          "traitType": "Conditions",
+          "value": "S1 Skin"
+        },
+        {
+          "traitType": "Stickers/Body art",
+          "value": "None"
+        },
+        {
+          "traitType": "Clothes",
+          "value": "Kuru Tee"
+        },
+        {
+          "traitType": "Mouth",
+          "value": "Pepe Mouth"
+        },
+        {
+          "traitType": "Eyes",
+          "value": "Got em"
+        },
+        {
+          "traitType": "Hat",
+          "value": "Cowboy"
+        },
+        {
+          "traitType": "Accessories",
+          "value": "None"
+        },
+        {
+          "traitType": "Accessories 2",
+          "value": "None"
+        },
+        {
+          "traitType": "Special",
+          "value": "None"
+        }
+      ],
+      "reason": "Readable trait combination without compatibility conflicts; rarity is not being treated as automatic boss status.",
+      "requiresHumanReview": true,
+      "manualOverride": null
+    },
+    {
+      "tokenId": 2579,
+      "suggestedRole": "companion",
+      "rarityScore": 39.301463,
+      "visualDistinctiveness": 2,
+      "specialTraitCount": 0,
+      "rareTraitCount": 1,
+      "conflicts": [],
+      "traits": [
+        {
+          "traitType": "Background",
+          "value": "Goldish"
+        },
+        {
+          "traitType": "Droid",
+          "value": "Orange"
+        },
+        {
+          "traitType": "Conditions",
+          "value": "Dirty-Broken"
+        },
+        {
+          "traitType": "Stickers/Body art",
+          "value": "None"
+        },
+        {
+          "traitType": "Clothes",
+          "value": "Baby Blue Tee"
+        },
+        {
+          "traitType": "Mouth",
+          "value": "MMMMKay"
+        },
+        {
+          "traitType": "Eyes",
+          "value": "Point Dexter Glasses Eyes"
+        },
+        {
+          "traitType": "Hat",
+          "value": "Gotta Catchem Cap"
+        },
+        {
+          "traitType": "Accessories",
+          "value": "None"
+        },
+        {
+          "traitType": "Accessories 2",
+          "value": "The Hive"
+        },
+        {
+          "traitType": "Special",
+          "value": "None"
+        }
+      ],
+      "reason": "Readable trait combination without compatibility conflicts; rarity is not being treated as automatic boss status.",
+      "requiresHumanReview": true,
+      "manualOverride": null
+    },
+    {
+      "tokenId": 1215,
+      "suggestedRole": "companion",
+      "rarityScore": 39.017126,
+      "visualDistinctiveness": 4,
+      "specialTraitCount": 0,
+      "rareTraitCount": 2,
+      "conflicts": [],
+      "traits": [
+        {
+          "traitType": "Background",
+          "value": "Flash"
+        },
+        {
+          "traitType": "Droid",
+          "value": "Lime Green"
+        },
+        {
+          "traitType": "Conditions",
+          "value": "Dirty-Broken"
+        },
+        {
+          "traitType": "Stickers/Body art",
+          "value": "None"
+        },
+        {
+          "traitType": "Clothes",
+          "value": "BuildAnything Tee"
+        },
+        {
+          "traitType": "Mouth",
+          "value": "Ayeee"
+        },
+        {
+          "traitType": "Eyes",
+          "value": "Sly"
+        },
+        {
+          "traitType": "Hat",
+          "value": "Monad Cap Black"
+        },
+        {
+          "traitType": "Accessories",
+          "value": "None"
+        },
+        {
+          "traitType": "Accessories 2",
+          "value": "None"
+        },
+        {
+          "traitType": "Special",
+          "value": "None"
+        }
+      ],
+      "reason": "Readable trait combination without compatibility conflicts; rarity is not being treated as automatic boss status.",
+      "requiresHumanReview": true,
+      "manualOverride": null
+    },
+    {
+      "tokenId": 3117,
+      "suggestedRole": "companion",
+      "rarityScore": 38.944099,
+      "visualDistinctiveness": 4,
+      "specialTraitCount": 0,
+      "rareTraitCount": 2,
+      "conflicts": [],
+      "traits": [
+        {
+          "traitType": "Background",
+          "value": "Goldish"
+        },
+        {
+          "traitType": "Droid",
+          "value": "Olive"
+        },
+        {
+          "traitType": "Conditions",
+          "value": "None"
+        },
+        {
+          "traitType": "Stickers/Body art",
+          "value": "LeverUp sticker"
+        },
+        {
+          "traitType": "Clothes",
+          "value": "King's Robe 2"
+        },
+        {
+          "traitType": "Mouth",
+          "value": "None"
+        },
+        {
+          "traitType": "Eyes",
+          "value": "Tri-Specs"
+        },
+        {
+          "traitType": "Hat",
+          "value": "Construction"
+        },
+        {
+          "traitType": "Accessories",
+          "value": "None"
+        },
+        {
+          "traitType": "Accessories 2",
+          "value": "Bandana Pink"
+        },
+        {
+          "traitType": "Special",
+          "value": "None"
+        }
+      ],
+      "reason": "Readable trait combination without compatibility conflicts; rarity is not being treated as automatic boss status.",
+      "requiresHumanReview": true,
+      "manualOverride": null
+    },
+    {
+      "tokenId": 2233,
+      "suggestedRole": "companion",
+      "rarityScore": 38.931163,
+      "visualDistinctiveness": 4,
+      "specialTraitCount": 0,
+      "rareTraitCount": 2,
+      "conflicts": [],
+      "traits": [
+        {
+          "traitType": "Background",
+          "value": "Kinda Blue"
+        },
+        {
+          "traitType": "Droid",
+          "value": "Olive"
+        },
+        {
+          "traitType": "Conditions",
+          "value": "Dirty-Broken"
+        },
+        {
+          "traitType": "Stickers/Body art",
+          "value": "None"
+        },
+        {
+          "traitType": "Clothes",
+          "value": "Hawaiian Shirt"
+        },
+        {
+          "traitType": "Mouth",
+          "value": "None"
+        },
+        {
+          "traitType": "Eyes",
+          "value": "Sly"
+        },
+        {
+          "traitType": "Hat",
+          "value": "Captain Hat"
+        },
+        {
+          "traitType": "Accessories",
+          "value": "None"
+        },
+        {
+          "traitType": "Accessories 2",
+          "value": "Bandana Pink"
+        },
+        {
+          "traitType": "Special",
+          "value": "None"
+        }
+      ],
+      "reason": "Readable trait combination without compatibility conflicts; rarity is not being treated as automatic boss status.",
+      "requiresHumanReview": true,
+      "manualOverride": null
+    },
+    {
+      "tokenId": 2410,
+      "suggestedRole": "companion",
+      "rarityScore": 38.881331,
+      "visualDistinctiveness": 4,
+      "specialTraitCount": 0,
+      "rareTraitCount": 2,
+      "conflicts": [],
+      "traits": [
+        {
+          "traitType": "Background",
+          "value": "Green Grade"
+        },
+        {
+          "traitType": "Droid",
+          "value": "Purple"
+        },
+        {
+          "traitType": "Conditions",
+          "value": "None"
+        },
+        {
+          "traitType": "Stickers/Body art",
+          "value": "LeverUp sticker"
+        },
+        {
+          "traitType": "Clothes",
+          "value": "Blue Hoodie"
+        },
+        {
+          "traitType": "Mouth",
+          "value": "Meh"
+        },
+        {
+          "traitType": "Eyes",
+          "value": "I Know What You Did"
+        },
+        {
+          "traitType": "Hat",
+          "value": "Black Ball Cap"
+        },
+        {
+          "traitType": "Accessories",
+          "value": "None"
+        },
+        {
+          "traitType": "Accessories 2",
+          "value": "None"
+        },
+        {
+          "traitType": "Special",
+          "value": "None"
+        }
+      ],
+      "reason": "Readable trait combination without compatibility conflicts; rarity is not being treated as automatic boss status.",
+      "requiresHumanReview": true,
+      "manualOverride": null
+    },
+    {
+      "tokenId": 1175,
+      "suggestedRole": "companion",
+      "rarityScore": 38.858821,
+      "visualDistinctiveness": 4,
+      "specialTraitCount": 0,
+      "rareTraitCount": 2,
+      "conflicts": [],
+      "traits": [
+        {
+          "traitType": "Background",
+          "value": "Grey"
+        },
+        {
+          "traitType": "Droid",
+          "value": "Green Chrome"
+        },
+        {
+          "traitType": "Conditions",
+          "value": "None"
+        },
+        {
+          "traitType": "Stickers/Body art",
+          "value": "None"
+        },
+        {
+          "traitType": "Clothes",
+          "value": "Leather Jacket"
+        },
+        {
+          "traitType": "Mouth",
+          "value": "Braces"
+        },
+        {
+          "traitType": "Eyes",
+          "value": "Excited"
+        },
+        {
+          "traitType": "Hat",
+          "value": "Burning Chog"
+        },
+        {
+          "traitType": "Accessories",
+          "value": "Molandak"
+        },
+        {
+          "traitType": "Accessories 2",
+          "value": "None"
+        },
+        {
+          "traitType": "Special",
+          "value": "None"
+        }
+      ],
+      "reason": "Readable trait combination without compatibility conflicts; rarity is not being treated as automatic boss status.",
+      "requiresHumanReview": true,
+      "manualOverride": null
+    },
+    {
+      "tokenId": 2752,
+      "suggestedRole": "companion",
+      "rarityScore": 38.840382,
+      "visualDistinctiveness": 2,
+      "specialTraitCount": 0,
+      "rareTraitCount": 1,
+      "conflicts": [],
+      "traits": [
+        {
+          "traitType": "Background",
+          "value": "Grey"
+        },
+        {
+          "traitType": "Droid",
+          "value": "Green"
+        },
+        {
+          "traitType": "Conditions",
+          "value": "None"
+        },
+        {
+          "traitType": "Stickers/Body art",
+          "value": "None"
+        },
+        {
+          "traitType": "Clothes",
+          "value": "Kuru Tee"
+        },
+        {
+          "traitType": "Mouth",
+          "value": "Toothless Drool"
+        },
+        {
+          "traitType": "Eyes",
+          "value": "Okay"
+        },
+        {
+          "traitType": "Hat",
+          "value": "DYOOR Black Cap"
+        },
+        {
+          "traitType": "Accessories",
+          "value": "Choker Necklace"
+        },
+        {
+          "traitType": "Accessories 2",
+          "value": "Shramp"
+        },
+        {
+          "traitType": "Special",
+          "value": "None"
+        }
+      ],
+      "reason": "Readable trait combination without compatibility conflicts; rarity is not being treated as automatic boss status.",
+      "requiresHumanReview": true,
+      "manualOverride": null
+    }
+  ],
+  "visuallyDistinctiveCommonCharacters": [
+    {
+      "tokenId": 2620,
+      "suggestedRole": "quest_npc",
+      "rarityScore": 28.43073,
+      "visualDistinctiveness": 4,
+      "specialTraitCount": 0,
+      "rareTraitCount": 2,
+      "conflicts": [],
+      "traits": [
+        {
+          "traitType": "Background",
+          "value": "Kinda Blue"
+        },
+        {
+          "traitType": "Droid",
+          "value": "Green"
+        },
+        {
+          "traitType": "Conditions",
+          "value": "None"
+        },
+        {
+          "traitType": "Stickers/Body art",
+          "value": "None"
+        },
+        {
+          "traitType": "Clothes",
+          "value": "Torn Tee"
+        },
+        {
+          "traitType": "Mouth",
+          "value": "Displeased"
+        },
+        {
+          "traitType": "Eyes",
+          "value": "Excited"
+        },
+        {
+          "traitType": "Hat",
+          "value": "Black N White Cap"
+        },
+        {
+          "traitType": "Accessories",
+          "value": "None"
+        },
+        {
+          "traitType": "Accessories 2",
+          "value": "None"
+        },
+        {
+          "traitType": "Special",
+          "value": "None"
+        }
+      ],
+      "reason": "Lower aggregate rarity with one or more visually legible hooks suitable for recurring world characters.",
+      "requiresHumanReview": true,
+      "manualOverride": null
+    },
+    {
+      "tokenId": 3217,
+      "suggestedRole": "quest_npc",
+      "rarityScore": 28.416828,
+      "visualDistinctiveness": 4,
+      "specialTraitCount": 0,
+      "rareTraitCount": 2,
+      "conflicts": [],
+      "traits": [
+        {
+          "traitType": "Background",
+          "value": "Yorange"
+        },
+        {
+          "traitType": "Droid",
+          "value": "Pank"
+        },
+        {
+          "traitType": "Conditions",
+          "value": "None"
+        },
+        {
+          "traitType": "Stickers/Body art",
+          "value": "None"
+        },
+        {
+          "traitType": "Clothes",
+          "value": "Blue Racer"
+        },
+        {
+          "traitType": "Mouth",
+          "value": "Deep Thought"
+        },
+        {
+          "traitType": "Eyes",
+          "value": "Scared"
+        },
+        {
+          "traitType": "Hat",
+          "value": "None"
+        },
+        {
+          "traitType": "Accessories",
+          "value": "None"
+        },
+        {
+          "traitType": "Accessories 2",
+          "value": "None"
+        },
+        {
+          "traitType": "Special",
+          "value": "None"
+        }
+      ],
+      "reason": "Lower aggregate rarity with one or more visually legible hooks suitable for recurring world characters.",
+      "requiresHumanReview": true,
+      "manualOverride": null
+    },
+    {
+      "tokenId": 3310,
+      "suggestedRole": "quest_npc",
+      "rarityScore": 28.024753,
+      "visualDistinctiveness": 4,
+      "specialTraitCount": 0,
+      "rareTraitCount": 2,
+      "conflicts": [],
+      "traits": [
+        {
+          "traitType": "Background",
+          "value": "Goldish"
+        },
+        {
+          "traitType": "Droid",
+          "value": "Blue"
+        },
+        {
+          "traitType": "Conditions",
+          "value": "None"
+        },
+        {
+          "traitType": "Stickers/Body art",
+          "value": "None"
+        },
+        {
+          "traitType": "Clothes",
+          "value": "DYOOR Black Hoodie"
+        },
+        {
+          "traitType": "Mouth",
+          "value": "MMMMKay"
+        },
+        {
+          "traitType": "Eyes",
+          "value": "Sunglasses"
+        },
+        {
+          "traitType": "Hat",
+          "value": "Party Hat"
+        },
+        {
+          "traitType": "Accessories",
+          "value": "None"
+        },
+        {
+          "traitType": "Accessories 2",
+          "value": "None"
+        },
+        {
+          "traitType": "Special",
+          "value": "None"
+        }
+      ],
+      "reason": "Lower aggregate rarity with one or more visually legible hooks suitable for recurring world characters.",
+      "requiresHumanReview": true,
+      "manualOverride": null
+    },
+    {
+      "tokenId": 1101,
+      "suggestedRole": "quest_npc",
+      "rarityScore": 27.688609,
+      "visualDistinctiveness": 2,
+      "specialTraitCount": 0,
+      "rareTraitCount": 1,
+      "conflicts": [],
+      "traits": [
+        {
+          "traitType": "Background",
+          "value": "Kinda Blue"
+        },
+        {
+          "traitType": "Droid",
+          "value": "Blue"
+        },
+        {
+          "traitType": "Conditions",
+          "value": "None"
+        },
+        {
+          "traitType": "Stickers/Body art",
+          "value": "None"
+        },
+        {
+          "traitType": "Clothes",
+          "value": "Jailhouse Stripes Shirt"
+        },
+        {
+          "traitType": "Mouth",
+          "value": "Toothless Drool"
+        },
+        {
+          "traitType": "Eyes",
+          "value": "Point Dexter Glasses Eyes"
+        },
+        {
+          "traitType": "Hat",
+          "value": "Monad Cap"
+        },
+        {
+          "traitType": "Accessories",
+          "value": "None"
+        },
+        {
+          "traitType": "Accessories 2",
+          "value": "None"
+        },
+        {
+          "traitType": "Special",
+          "value": "None"
+        }
+      ],
+      "reason": "Lower aggregate rarity with one or more visually legible hooks suitable for recurring world characters.",
+      "requiresHumanReview": true,
+      "manualOverride": null
+    },
+    {
+      "tokenId": 1102,
+      "suggestedRole": "quest_npc",
+      "rarityScore": 27.839811,
+      "visualDistinctiveness": 2,
+      "specialTraitCount": 0,
+      "rareTraitCount": 1,
+      "conflicts": [],
+      "traits": [
+        {
+          "traitType": "Background",
+          "value": "Goldish"
+        },
+        {
+          "traitType": "Droid",
+          "value": "Green"
+        },
+        {
+          "traitType": "Conditions",
+          "value": "None"
+        },
+        {
+          "traitType": "Stickers/Body art",
+          "value": "None"
+        },
+        {
+          "traitType": "Clothes",
+          "value": "Orange Racer"
+        },
+        {
+          "traitType": "Mouth",
+          "value": "Displeased toothpick"
+        },
+        {
+          "traitType": "Eyes",
+          "value": "Okay"
+        },
+        {
+          "traitType": "Hat",
+          "value": "Casino"
+        },
+        {
+          "traitType": "Accessories",
+          "value": "None"
+        },
+        {
+          "traitType": "Accessories 2",
+          "value": "None"
+        },
+        {
+          "traitType": "Special",
+          "value": "None"
+        }
+      ],
+      "reason": "Lower aggregate rarity with one or more visually legible hooks suitable for recurring world characters.",
+      "requiresHumanReview": true,
+      "manualOverride": null
+    },
+    {
+      "tokenId": 1127,
+      "suggestedRole": "quest_npc",
+      "rarityScore": 27.21319,
+      "visualDistinctiveness": 2,
+      "specialTraitCount": 0,
+      "rareTraitCount": 1,
+      "conflicts": [],
+      "traits": [
+        {
+          "traitType": "Background",
+          "value": "Kinda Blue"
+        },
+        {
+          "traitType": "Droid",
+          "value": "Olive Chrome"
+        },
+        {
+          "traitType": "Conditions",
+          "value": "None"
+        },
+        {
+          "traitType": "Stickers/Body art",
+          "value": "None"
+        },
+        {
+          "traitType": "Clothes",
+          "value": "Leather Jacket White Shirt W:Tie"
+        },
+        {
+          "traitType": "Mouth",
+          "value": "Drool"
+        },
+        {
+          "traitType": "Eyes",
+          "value": "Neverland Specs"
+        },
+        {
+          "traitType": "Hat",
+          "value": "None"
+        },
+        {
+          "traitType": "Accessories",
+          "value": "None"
+        },
+        {
+          "traitType": "Accessories 2",
+          "value": "None"
+        },
+        {
+          "traitType": "Special",
+          "value": "None"
+        }
+      ],
+      "reason": "Lower aggregate rarity with one or more visually legible hooks suitable for recurring world characters.",
+      "requiresHumanReview": true,
+      "manualOverride": null
+    },
+    {
+      "tokenId": 1134,
+      "suggestedRole": "quest_npc",
+      "rarityScore": 27.501317,
+      "visualDistinctiveness": 2,
+      "specialTraitCount": 0,
+      "rareTraitCount": 1,
+      "conflicts": [],
+      "traits": [
+        {
+          "traitType": "Background",
+          "value": "Grey"
+        },
+        {
+          "traitType": "Droid",
+          "value": "White"
+        },
+        {
+          "traitType": "Conditions",
+          "value": "None"
+        },
+        {
+          "traitType": "Stickers/Body art",
+          "value": "None"
+        },
+        {
+          "traitType": "Clothes",
+          "value": "McDyoornalds"
+        },
+        {
+          "traitType": "Mouth",
+          "value": "Ayeee"
+        },
+        {
+          "traitType": "Eyes",
+          "value": "Excited"
+        },
+        {
+          "traitType": "Hat",
+          "value": "PamPam"
+        },
+        {
+          "traitType": "Accessories",
+          "value": "None"
+        },
+        {
+          "traitType": "Accessories 2",
+          "value": "None"
+        },
+        {
+          "traitType": "Special",
+          "value": "None"
+        }
+      ],
+      "reason": "Lower aggregate rarity with one or more visually legible hooks suitable for recurring world characters.",
+      "requiresHumanReview": true,
+      "manualOverride": null
+    },
+    {
+      "tokenId": 1136,
+      "suggestedRole": "quest_npc",
+      "rarityScore": 24.266918,
+      "visualDistinctiveness": 2,
+      "specialTraitCount": 0,
+      "rareTraitCount": 1,
+      "conflicts": [],
+      "traits": [
+        {
+          "traitType": "Background",
+          "value": "Yorange"
+        },
+        {
+          "traitType": "Droid",
+          "value": "White"
+        },
+        {
+          "traitType": "Conditions",
+          "value": "None"
+        },
+        {
+          "traitType": "Stickers/Body art",
+          "value": "None"
+        },
+        {
+          "traitType": "Clothes",
+          "value": "Black N White Tee 2"
+        },
+        {
+          "traitType": "Mouth",
+          "value": "Errrh"
+        },
+        {
+          "traitType": "Eyes",
+          "value": "Neverland Specs"
+        },
+        {
+          "traitType": "Hat",
+          "value": "None"
+        },
+        {
+          "traitType": "Accessories",
+          "value": "None"
+        },
+        {
+          "traitType": "Accessories 2",
+          "value": "None"
+        },
+        {
+          "traitType": "Special",
+          "value": "None"
+        }
+      ],
+      "reason": "Lower aggregate rarity with one or more visually legible hooks suitable for recurring world characters.",
+      "requiresHumanReview": true,
+      "manualOverride": null
+    },
+    {
+      "tokenId": 1137,
+      "suggestedRole": "quest_npc",
+      "rarityScore": 26.125444,
+      "visualDistinctiveness": 2,
+      "specialTraitCount": 0,
+      "rareTraitCount": 1,
+      "conflicts": [],
+      "traits": [
+        {
+          "traitType": "Background",
+          "value": "Sunset"
+        },
+        {
+          "traitType": "Droid",
+          "value": "Red"
+        },
+        {
+          "traitType": "Conditions",
+          "value": "None"
+        },
+        {
+          "traitType": "Stickers/Body art",
+          "value": "None"
+        },
+        {
+          "traitType": "Clothes",
+          "value": "Grey Tee"
+        },
+        {
+          "traitType": "Mouth",
+          "value": "Toothless Drool"
+        },
+        {
+          "traitType": "Eyes",
+          "value": "Ricky V"
+        },
+        {
+          "traitType": "Hat",
+          "value": "None"
+        },
+        {
+          "traitType": "Accessories",
+          "value": "None"
+        },
+        {
+          "traitType": "Accessories 2",
+          "value": "None"
+        },
+        {
+          "traitType": "Special",
+          "value": "None"
+        }
+      ],
+      "reason": "Lower aggregate rarity with one or more visually legible hooks suitable for recurring world characters.",
+      "requiresHumanReview": true,
+      "manualOverride": null
+    },
+    {
+      "tokenId": 1150,
+      "suggestedRole": "quest_npc",
+      "rarityScore": 26.959808,
+      "visualDistinctiveness": 2,
+      "specialTraitCount": 0,
+      "rareTraitCount": 1,
+      "conflicts": [],
+      "traits": [
+        {
+          "traitType": "Background",
+          "value": "Goldish"
+        },
+        {
+          "traitType": "Droid",
+          "value": "Yellow"
+        },
+        {
+          "traitType": "Conditions",
+          "value": "None"
+        },
+        {
+          "traitType": "Stickers/Body art",
+          "value": "None"
+        },
+        {
+          "traitType": "Clothes",
+          "value": "Dictator Jacket"
+        },
+        {
+          "traitType": "Mouth",
+          "value": "Toothless Drool"
+        },
+        {
+          "traitType": "Eyes",
+          "value": "Third Eye"
+        },
+        {
+          "traitType": "Hat",
+          "value": "McDYOORs"
+        },
+        {
+          "traitType": "Accessories",
+          "value": "None"
+        },
+        {
+          "traitType": "Accessories 2",
+          "value": "None"
+        },
+        {
+          "traitType": "Special",
+          "value": "None"
+        }
+      ],
+      "reason": "Lower aggregate rarity with one or more visually legible hooks suitable for recurring world characters.",
+      "requiresHumanReview": true,
+      "manualOverride": null
+    },
+    {
+      "tokenId": 1166,
+      "suggestedRole": "quest_npc",
+      "rarityScore": 27.166701,
+      "visualDistinctiveness": 2,
+      "specialTraitCount": 0,
+      "rareTraitCount": 1,
+      "conflicts": [],
+      "traits": [
+        {
+          "traitType": "Background",
+          "value": "Flash"
+        },
+        {
+          "traitType": "Droid",
+          "value": "Lime Green"
+        },
+        {
+          "traitType": "Conditions",
+          "value": "None"
+        },
+        {
+          "traitType": "Stickers/Body art",
+          "value": "None"
+        },
+        {
+          "traitType": "Clothes",
+          "value": "Red Plaid"
+        },
+        {
+          "traitType": "Mouth",
+          "value": "Waaaat"
+        },
+        {
+          "traitType": "Eyes",
+          "value": "Un Enthused"
+        },
+        {
+          "traitType": "Hat",
+          "value": "None"
+        },
+        {
+          "traitType": "Accessories",
+          "value": "None"
+        },
+        {
+          "traitType": "Accessories 2",
+          "value": "None"
+        },
+        {
+          "traitType": "Special",
+          "value": "None"
+        }
+      ],
+      "reason": "Lower aggregate rarity with one or more visually legible hooks suitable for recurring world characters.",
+      "requiresHumanReview": true,
+      "manualOverride": null
+    },
+    {
+      "tokenId": 1168,
+      "suggestedRole": "quest_npc",
+      "rarityScore": 24.047781,
+      "visualDistinctiveness": 2,
+      "specialTraitCount": 0,
+      "rareTraitCount": 1,
+      "conflicts": [],
+      "traits": [
+        {
+          "traitType": "Background",
+          "value": "Pank"
+        },
+        {
+          "traitType": "Droid",
+          "value": "Green"
+        },
+        {
+          "traitType": "Conditions",
+          "value": "None"
+        },
+        {
+          "traitType": "Stickers/Body art",
+          "value": "None"
+        },
+        {
+          "traitType": "Clothes",
+          "value": "DYOOR Red Gold Text Hoodie"
+        },
+        {
+          "traitType": "Mouth",
+          "value": "Ayeyo"
+        },
+        {
+          "traitType": "Eyes",
+          "value": "Sly"
+        },
+        {
+          "traitType": "Hat",
+          "value": "None"
+        },
+        {
+          "traitType": "Accessories",
+          "value": "None"
+        },
+        {
+          "traitType": "Accessories 2",
+          "value": "None"
+        },
+        {
+          "traitType": "Special",
+          "value": "None"
+        }
+      ],
+      "reason": "Lower aggregate rarity with one or more visually legible hooks suitable for recurring world characters.",
+      "requiresHumanReview": true,
+      "manualOverride": null
+    },
+    {
+      "tokenId": 1173,
+      "suggestedRole": "quest_npc",
+      "rarityScore": 23.606222,
+      "visualDistinctiveness": 2,
+      "specialTraitCount": 0,
+      "rareTraitCount": 1,
+      "conflicts": [],
+      "traits": [
+        {
+          "traitType": "Background",
+          "value": "Goldish"
+        },
+        {
+          "traitType": "Droid",
+          "value": "Blue"
+        },
+        {
+          "traitType": "Conditions",
+          "value": "None"
+        },
+        {
+          "traitType": "Stickers/Body art",
+          "value": "None"
+        },
+        {
+          "traitType": "Clothes",
+          "value": "King's Robe 2"
+        },
+        {
+          "traitType": "Mouth",
+          "value": "Drool"
+        },
+        {
+          "traitType": "Eyes",
+          "value": "Intense"
+        },
+        {
+          "traitType": "Hat",
+          "value": "None"
+        },
+        {
+          "traitType": "Accessories",
+          "value": "None"
+        },
+        {
+          "traitType": "Accessories 2",
+          "value": "None"
+        },
+        {
+          "traitType": "Special",
+          "value": "None"
+        }
+      ],
+      "reason": "Lower aggregate rarity with one or more visually legible hooks suitable for recurring world characters.",
+      "requiresHumanReview": true,
+      "manualOverride": null
+    },
+    {
+      "tokenId": 1177,
+      "suggestedRole": "quest_npc",
+      "rarityScore": 26.553971,
+      "visualDistinctiveness": 2,
+      "specialTraitCount": 0,
+      "rareTraitCount": 1,
+      "conflicts": [],
+      "traits": [
+        {
+          "traitType": "Background",
+          "value": "Goldish"
+        },
+        {
+          "traitType": "Droid",
+          "value": "Orange"
+        },
+        {
+          "traitType": "Conditions",
+          "value": "None"
+        },
+        {
+          "traitType": "Stickers/Body art",
+          "value": "None"
+        },
+        {
+          "traitType": "Clothes",
+          "value": "Caveman Leotard"
+        },
+        {
+          "traitType": "Mouth",
+          "value": "Toothless Drool"
+        },
+        {
+          "traitType": "Eyes",
+          "value": "Excited"
+        },
+        {
+          "traitType": "Hat",
+          "value": "Antenna"
+        },
+        {
+          "traitType": "Accessories",
+          "value": "None"
+        },
+        {
+          "traitType": "Accessories 2",
+          "value": "None"
+        },
+        {
+          "traitType": "Special",
+          "value": "None"
+        }
+      ],
+      "reason": "Lower aggregate rarity with one or more visually legible hooks suitable for recurring world characters.",
+      "requiresHumanReview": true,
+      "manualOverride": null
+    },
+    {
+      "tokenId": 1188,
+      "suggestedRole": "quest_npc",
+      "rarityScore": 22.890097,
+      "visualDistinctiveness": 2,
+      "specialTraitCount": 0,
+      "rareTraitCount": 1,
+      "conflicts": [],
+      "traits": [
+        {
+          "traitType": "Background",
+          "value": "Grey"
+        },
+        {
+          "traitType": "Droid",
+          "value": "Yellow"
+        },
+        {
+          "traitType": "Conditions",
+          "value": "None"
+        },
+        {
+          "traitType": "Stickers/Body art",
+          "value": "None"
+        },
+        {
+          "traitType": "Clothes",
+          "value": "Fur Coat Purple"
+        },
+        {
+          "traitType": "Mouth",
+          "value": "Meh Cigarette"
+        },
+        {
+          "traitType": "Eyes",
+          "value": "Ricky V"
+        },
+        {
+          "traitType": "Hat",
+          "value": "None"
+        },
+        {
+          "traitType": "Accessories",
+          "value": "None"
+        },
+        {
+          "traitType": "Accessories 2",
+          "value": "None"
+        },
+        {
+          "traitType": "Special",
+          "value": "None"
+        }
+      ],
+      "reason": "Lower aggregate rarity with one or more visually legible hooks suitable for recurring world characters.",
+      "requiresHumanReview": true,
+      "manualOverride": null
+    },
+    {
+      "tokenId": 1191,
+      "suggestedRole": "quest_npc",
+      "rarityScore": 24.48213,
+      "visualDistinctiveness": 2,
+      "specialTraitCount": 0,
+      "rareTraitCount": 1,
+      "conflicts": [],
+      "traits": [
+        {
+          "traitType": "Background",
+          "value": "Goldish"
+        },
+        {
+          "traitType": "Droid",
+          "value": "Orange"
+        },
+        {
+          "traitType": "Conditions",
+          "value": "None"
+        },
+        {
+          "traitType": "Stickers/Body art",
+          "value": "None"
+        },
+        {
+          "traitType": "Clothes",
+          "value": "Jailhouse Stripes Shirt"
+        },
+        {
+          "traitType": "Mouth",
+          "value": "MMMMKay"
+        },
+        {
+          "traitType": "Eyes",
+          "value": "Got em"
+        },
+        {
+          "traitType": "Hat",
+          "value": "None"
+        },
+        {
+          "traitType": "Accessories",
+          "value": "None"
+        },
+        {
+          "traitType": "Accessories 2",
+          "value": "None"
+        },
+        {
+          "traitType": "Special",
+          "value": "None"
+        }
+      ],
+      "reason": "Lower aggregate rarity with one or more visually legible hooks suitable for recurring world characters.",
+      "requiresHumanReview": true,
+      "manualOverride": null
+    },
+    {
+      "tokenId": 1192,
+      "suggestedRole": "quest_npc",
+      "rarityScore": 27.407547,
+      "visualDistinctiveness": 2,
+      "specialTraitCount": 0,
+      "rareTraitCount": 1,
+      "conflicts": [],
+      "traits": [
+        {
+          "traitType": "Background",
+          "value": "Pank"
+        },
+        {
+          "traitType": "Droid",
+          "value": "White"
+        },
+        {
+          "traitType": "Conditions",
+          "value": "None"
+        },
+        {
+          "traitType": "Stickers/Body art",
+          "value": "None"
+        },
+        {
+          "traitType": "Clothes",
+          "value": "Lab Coat"
+        },
+        {
+          "traitType": "Mouth",
+          "value": "Drool"
+        },
+        {
+          "traitType": "Eyes",
+          "value": "Sly"
+        },
+        {
+          "traitType": "Hat",
+          "value": "DWO Black Cap"
+        },
+        {
+          "traitType": "Accessories",
+          "value": "None"
+        },
+        {
+          "traitType": "Accessories 2",
+          "value": "None"
+        },
+        {
+          "traitType": "Special",
+          "value": "None"
+        }
+      ],
+      "reason": "Lower aggregate rarity with one or more visually legible hooks suitable for recurring world characters.",
+      "requiresHumanReview": true,
+      "manualOverride": null
+    },
+    {
+      "tokenId": 1194,
+      "suggestedRole": "quest_npc",
+      "rarityScore": 28.064563,
+      "visualDistinctiveness": 2,
+      "specialTraitCount": 0,
+      "rareTraitCount": 1,
+      "conflicts": [],
+      "traits": [
+        {
+          "traitType": "Background",
+          "value": "Grey"
+        },
+        {
+          "traitType": "Droid",
+          "value": "Black"
+        },
+        {
+          "traitType": "Conditions",
+          "value": "None"
+        },
+        {
+          "traitType": "Stickers/Body art",
+          "value": "None"
+        },
+        {
+          "traitType": "Clothes",
+          "value": "Convict Shirt"
+        },
+        {
+          "traitType": "Mouth",
+          "value": "Meh Cigarette"
+        },
+        {
+          "traitType": "Eyes",
+          "value": "Intense"
+        },
+        {
+          "traitType": "Hat",
+          "value": "DYOOR Black Cap"
+        },
+        {
+          "traitType": "Accessories",
+          "value": "None"
+        },
+        {
+          "traitType": "Accessories 2",
+          "value": "None"
+        },
+        {
+          "traitType": "Special",
+          "value": "None"
+        }
+      ],
+      "reason": "Lower aggregate rarity with one or more visually legible hooks suitable for recurring world characters.",
+      "requiresHumanReview": true,
+      "manualOverride": null
+    },
+    {
+      "tokenId": 1205,
+      "suggestedRole": "quest_npc",
+      "rarityScore": 24.243605,
+      "visualDistinctiveness": 2,
+      "specialTraitCount": 0,
+      "rareTraitCount": 1,
+      "conflicts": [],
+      "traits": [
+        {
+          "traitType": "Background",
+          "value": "Kinda Blue"
+        },
+        {
+          "traitType": "Droid",
+          "value": "Orange"
+        },
+        {
+          "traitType": "Conditions",
+          "value": "None"
+        },
+        {
+          "traitType": "Stickers/Body art",
+          "value": "None"
+        },
+        {
+          "traitType": "Clothes",
+          "value": "King's Robe 2"
+        },
+        {
+          "traitType": "Mouth",
+          "value": "Waaaat"
+        },
+        {
+          "traitType": "Eyes",
+          "value": "Point Dexter Glasses Eyes"
+        },
+        {
+          "traitType": "Hat",
+          "value": "None"
+        },
+        {
+          "traitType": "Accessories",
+          "value": "None"
+        },
+        {
+          "traitType": "Accessories 2",
+          "value": "None"
+        },
+        {
+          "traitType": "Special",
+          "value": "None"
+        }
+      ],
+      "reason": "Lower aggregate rarity with one or more visually legible hooks suitable for recurring world characters.",
+      "requiresHumanReview": true,
+      "manualOverride": null
+    },
+    {
+      "tokenId": 1217,
+      "suggestedRole": "quest_npc",
+      "rarityScore": 27.633743,
+      "visualDistinctiveness": 2,
+      "specialTraitCount": 0,
+      "rareTraitCount": 1,
+      "conflicts": [],
+      "traits": [
+        {
+          "traitType": "Background",
+          "value": "Yorange"
+        },
+        {
+          "traitType": "Droid",
+          "value": "Yellow"
+        },
+        {
+          "traitType": "Conditions",
+          "value": "None"
+        },
+        {
+          "traitType": "Stickers/Body art",
+          "value": "None"
+        },
+        {
+          "traitType": "Clothes",
+          "value": "Black Tee"
+        },
+        {
+          "traitType": "Mouth",
+          "value": "MMMMKay"
+        },
+        {
+          "traitType": "Eyes",
+          "value": "HMMMHM"
+        },
+        {
+          "traitType": "Hat",
+          "value": "Bartman"
+        },
+        {
+          "traitType": "Accessories",
+          "value": "None"
+        },
+        {
+          "traitType": "Accessories 2",
+          "value": "None"
+        },
+        {
+          "traitType": "Special",
+          "value": "None"
+        }
+      ],
+      "reason": "Lower aggregate rarity with one or more visually legible hooks suitable for recurring world characters.",
+      "requiresHumanReview": true,
+      "manualOverride": null
+    },
+    {
+      "tokenId": 1225,
+      "suggestedRole": "quest_npc",
+      "rarityScore": 26.744929,
+      "visualDistinctiveness": 2,
+      "specialTraitCount": 0,
+      "rareTraitCount": 1,
+      "conflicts": [],
+      "traits": [
+        {
+          "traitType": "Background",
+          "value": "Yorange"
+        },
+        {
+          "traitType": "Droid",
+          "value": "Blue"
+        },
+        {
+          "traitType": "Conditions",
+          "value": "None"
+        },
+        {
+          "traitType": "Stickers/Body art",
+          "value": "None"
+        },
+        {
+          "traitType": "Clothes",
+          "value": "Fur Coat Gold"
+        },
+        {
+          "traitType": "Mouth",
+          "value": "Toothless Drool"
+        },
+        {
+          "traitType": "Eyes",
+          "value": "Sly"
+        },
+        {
+          "traitType": "Hat",
+          "value": "Monad Cap"
+        },
+        {
+          "traitType": "Accessories",
+          "value": "None"
+        },
+        {
+          "traitType": "Accessories 2",
+          "value": "None"
+        },
+        {
+          "traitType": "Special",
+          "value": "None"
+        }
+      ],
+      "reason": "Lower aggregate rarity with one or more visually legible hooks suitable for recurring world characters.",
+      "requiresHumanReview": true,
+      "manualOverride": null
+    },
+    {
+      "tokenId": 1226,
+      "suggestedRole": "quest_npc",
+      "rarityScore": 27.245561,
+      "visualDistinctiveness": 2,
+      "specialTraitCount": 0,
+      "rareTraitCount": 1,
+      "conflicts": [],
+      "traits": [
+        {
+          "traitType": "Background",
+          "value": "Kinda Blue"
+        },
+        {
+          "traitType": "Droid",
+          "value": "Orange"
+        },
+        {
+          "traitType": "Conditions",
+          "value": "None"
+        },
+        {
+          "traitType": "Stickers/Body art",
+          "value": "None"
+        },
+        {
+          "traitType": "Clothes",
+          "value": "Dictator Jacket"
+        },
+        {
+          "traitType": "Mouth",
+          "value": "None"
+        },
+        {
+          "traitType": "Eyes",
+          "value": "Point Dexter Glasses Eyes"
+        },
+        {
+          "traitType": "Hat",
+          "value": "None"
+        },
+        {
+          "traitType": "Accessories",
+          "value": "Bandana Pink"
+        },
+        {
+          "traitType": "Accessories 2",
+          "value": "None"
+        },
+        {
+          "traitType": "Special",
+          "value": "None"
+        }
+      ],
+      "reason": "Lower aggregate rarity with one or more visually legible hooks suitable for recurring world characters.",
+      "requiresHumanReview": true,
+      "manualOverride": null
+    },
+    {
+      "tokenId": 1231,
+      "suggestedRole": "quest_npc",
+      "rarityScore": 26.165633,
+      "visualDistinctiveness": 2,
+      "specialTraitCount": 0,
+      "rareTraitCount": 1,
+      "conflicts": [],
+      "traits": [
+        {
+          "traitType": "Background",
+          "value": "Kinda Blue"
+        },
+        {
+          "traitType": "Droid",
+          "value": "Yellow"
+        },
+        {
+          "traitType": "Conditions",
+          "value": "None"
+        },
+        {
+          "traitType": "Stickers/Body art",
+          "value": "None"
+        },
+        {
+          "traitType": "Clothes",
+          "value": "R3tard Tee"
+        },
+        {
+          "traitType": "Mouth",
+          "value": "MMMMKay"
+        },
+        {
+          "traitType": "Eyes",
+          "value": "Okay"
+        },
+        {
+          "traitType": "Hat",
+          "value": "Monad Cap"
+        },
+        {
+          "traitType": "Accessories",
+          "value": "None"
+        },
+        {
+          "traitType": "Accessories 2",
+          "value": "None"
+        },
+        {
+          "traitType": "Special",
+          "value": "None"
+        }
+      ],
+      "reason": "Lower aggregate rarity with one or more visually legible hooks suitable for recurring world characters.",
+      "requiresHumanReview": true,
+      "manualOverride": null
+    },
+    {
+      "tokenId": 1251,
+      "suggestedRole": "quest_npc",
+      "rarityScore": 23.66646,
+      "visualDistinctiveness": 2,
+      "specialTraitCount": 0,
+      "rareTraitCount": 1,
+      "conflicts": [],
+      "traits": [
+        {
+          "traitType": "Background",
+          "value": "Goldish"
+        },
+        {
+          "traitType": "Droid",
+          "value": "Yellow"
+        },
+        {
+          "traitType": "Conditions",
+          "value": "None"
+        },
+        {
+          "traitType": "Stickers/Body art",
+          "value": "None"
+        },
+        {
+          "traitType": "Clothes",
+          "value": "Fur Coat Gold"
+        },
+        {
+          "traitType": "Mouth",
+          "value": "MMMMKay"
+        },
+        {
+          "traitType": "Eyes",
+          "value": "Tri-Specs"
+        },
+        {
+          "traitType": "Hat",
+          "value": "None"
+        },
+        {
+          "traitType": "Accessories",
+          "value": "None"
+        },
+        {
+          "traitType": "Accessories 2",
+          "value": "None"
+        },
+        {
+          "traitType": "Special",
+          "value": "None"
+        }
+      ],
+      "reason": "Lower aggregate rarity with one or more visually legible hooks suitable for recurring world characters.",
+      "requiresHumanReview": true,
+      "manualOverride": null
+    },
+    {
+      "tokenId": 1254,
+      "suggestedRole": "quest_npc",
+      "rarityScore": 27.767261,
+      "visualDistinctiveness": 2,
+      "specialTraitCount": 0,
+      "rareTraitCount": 1,
+      "conflicts": [],
+      "traits": [
+        {
+          "traitType": "Background",
+          "value": "Grey"
+        },
+        {
+          "traitType": "Droid",
+          "value": "Red"
+        },
+        {
+          "traitType": "Conditions",
+          "value": "None"
+        },
+        {
+          "traitType": "Stickers/Body art",
+          "value": "None"
+        },
+        {
+          "traitType": "Clothes",
+          "value": "Fur Coat Purple"
+        },
+        {
+          "traitType": "Mouth",
+          "value": "Ayeee"
+        },
+        {
+          "traitType": "Eyes",
+          "value": "Radiation Glow (Red)"
+        },
+        {
+          "traitType": "Hat",
+          "value": "Black Cap"
+        },
+        {
+          "traitType": "Accessories",
+          "value": "None"
+        },
+        {
+          "traitType": "Accessories 2",
+          "value": "None"
+        },
+        {
+          "traitType": "Special",
+          "value": "None"
+        }
+      ],
+      "reason": "Lower aggregate rarity with one or more visually legible hooks suitable for recurring world characters.",
+      "requiresHumanReview": true,
+      "manualOverride": null
+    },
+    {
+      "tokenId": 1268,
+      "suggestedRole": "quest_npc",
+      "rarityScore": 27.717499,
+      "visualDistinctiveness": 2,
+      "specialTraitCount": 0,
+      "rareTraitCount": 1,
+      "conflicts": [],
+      "traits": [
+        {
+          "traitType": "Background",
+          "value": "Grey"
+        },
+        {
+          "traitType": "Droid",
+          "value": "Purple"
+        },
+        {
+          "traitType": "Conditions",
+          "value": "None"
+        },
+        {
+          "traitType": "Stickers/Body art",
+          "value": "None"
+        },
+        {
+          "traitType": "Clothes",
+          "value": "Torn Tee"
+        },
+        {
+          "traitType": "Mouth",
+          "value": "Meh Cigarette"
+        },
+        {
+          "traitType": "Eyes",
+          "value": "Excited"
+        },
+        {
+          "traitType": "Hat",
+          "value": "Tech bro"
+        },
+        {
+          "traitType": "Accessories",
+          "value": "None"
+        },
+        {
+          "traitType": "Accessories 2",
+          "value": "None"
+        },
+        {
+          "traitType": "Special",
+          "value": "None"
+        }
+      ],
+      "reason": "Lower aggregate rarity with one or more visually legible hooks suitable for recurring world characters.",
+      "requiresHumanReview": true,
+      "manualOverride": null
+    },
+    {
+      "tokenId": 1269,
+      "suggestedRole": "quest_npc",
+      "rarityScore": 22.616946,
+      "visualDistinctiveness": 2,
+      "specialTraitCount": 0,
+      "rareTraitCount": 1,
+      "conflicts": [],
+      "traits": [
+        {
+          "traitType": "Background",
+          "value": "Yorange"
+        },
+        {
+          "traitType": "Droid",
+          "value": "Yellow"
+        },
+        {
+          "traitType": "Conditions",
+          "value": "None"
+        },
+        {
+          "traitType": "Stickers/Body art",
+          "value": "None"
+        },
+        {
+          "traitType": "Clothes",
+          "value": "Blue Racer"
+        },
+        {
+          "traitType": "Mouth",
+          "value": "Displeased"
+        },
+        {
+          "traitType": "Eyes",
+          "value": "Abyss"
+        },
+        {
+          "traitType": "Hat",
+          "value": "None"
+        },
+        {
+          "traitType": "Accessories",
+          "value": "None"
+        },
+        {
+          "traitType": "Accessories 2",
+          "value": "None"
+        },
+        {
+          "traitType": "Special",
+          "value": "None"
+        }
+      ],
+      "reason": "Lower aggregate rarity with one or more visually legible hooks suitable for recurring world characters.",
+      "requiresHumanReview": true,
+      "manualOverride": null
+    },
+    {
+      "tokenId": 1272,
+      "suggestedRole": "quest_npc",
+      "rarityScore": 27.900648,
+      "visualDistinctiveness": 2,
+      "specialTraitCount": 0,
+      "rareTraitCount": 1,
+      "conflicts": [],
+      "traits": [
+        {
+          "traitType": "Background",
+          "value": "Goldish"
+        },
+        {
+          "traitType": "Droid",
+          "value": "Purple"
+        },
+        {
+          "traitType": "Conditions",
+          "value": "None"
+        },
+        {
+          "traitType": "Stickers/Body art",
+          "value": "None"
+        },
+        {
+          "traitType": "Clothes",
+          "value": "DWO Black"
+        },
+        {
+          "traitType": "Mouth",
+          "value": "Displeased"
+        },
+        {
+          "traitType": "Eyes",
+          "value": "Intense"
+        },
+        {
+          "traitType": "Hat",
+          "value": "Bartman"
+        },
+        {
+          "traitType": "Accessories",
+          "value": "None"
+        },
+        {
+          "traitType": "Accessories 2",
+          "value": "None"
+        },
+        {
+          "traitType": "Special",
+          "value": "None"
+        }
+      ],
+      "reason": "Lower aggregate rarity with one or more visually legible hooks suitable for recurring world characters.",
+      "requiresHumanReview": true,
+      "manualOverride": null
+    },
+    {
+      "tokenId": 1284,
+      "suggestedRole": "quest_npc",
+      "rarityScore": 22.618508,
+      "visualDistinctiveness": 2,
+      "specialTraitCount": 0,
+      "rareTraitCount": 1,
+      "conflicts": [],
+      "traits": [
+        {
+          "traitType": "Background",
+          "value": "Kinda Blue"
+        },
+        {
+          "traitType": "Droid",
+          "value": "Black"
+        },
+        {
+          "traitType": "Conditions",
+          "value": "None"
+        },
+        {
+          "traitType": "Stickers/Body art",
+          "value": "None"
+        },
+        {
+          "traitType": "Clothes",
+          "value": "Fur Coat Gold"
+        },
+        {
+          "traitType": "Mouth",
+          "value": "MMMMKay"
+        },
+        {
+          "traitType": "Eyes",
+          "value": "Radiation Glow"
+        },
+        {
+          "traitType": "Hat",
+          "value": "None"
+        },
+        {
+          "traitType": "Accessories",
+          "value": "None"
+        },
+        {
+          "traitType": "Accessories 2",
+          "value": "None"
+        },
+        {
+          "traitType": "Special",
+          "value": "None"
+        }
+      ],
+      "reason": "Lower aggregate rarity with one or more visually legible hooks suitable for recurring world characters.",
+      "requiresHumanReview": true,
+      "manualOverride": null
+    },
+    {
+      "tokenId": 1291,
+      "suggestedRole": "quest_npc",
+      "rarityScore": 26.69051,
+      "visualDistinctiveness": 2,
+      "specialTraitCount": 0,
+      "rareTraitCount": 1,
+      "conflicts": [],
+      "traits": [
+        {
+          "traitType": "Background",
+          "value": "Pank"
+        },
+        {
+          "traitType": "Droid",
+          "value": "Black"
+        },
+        {
+          "traitType": "Conditions",
+          "value": "None"
+        },
+        {
+          "traitType": "Stickers/Body art",
+          "value": "None"
+        },
+        {
+          "traitType": "Clothes",
+          "value": "Caveman Leotard"
+        },
+        {
+          "traitType": "Mouth",
+          "value": "Ayeyo"
+        },
+        {
+          "traitType": "Eyes",
+          "value": "Excited"
+        },
+        {
+          "traitType": "Hat",
+          "value": "DYOOR White Cap"
+        },
+        {
+          "traitType": "Accessories",
+          "value": "None"
+        },
+        {
+          "traitType": "Accessories 2",
+          "value": "None"
+        },
+        {
+          "traitType": "Special",
+          "value": "None"
+        }
+      ],
+      "reason": "Lower aggregate rarity with one or more visually legible hooks suitable for recurring world characters.",
+      "requiresHumanReview": true,
+      "manualOverride": null
+    }
+  ],
+  "specialTraitConflicts": [],
+  "missingMetadataOrImages": []
+}

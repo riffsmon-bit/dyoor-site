@@ -1,0 +1,1712 @@
+{
+  "Conditions::Dirty Broken'er": {
+    "slot": "Conditions",
+    "name": "Dirty Broken'er",
+    "rarity": "Mythic",
+    "initialSupply": 26,
+    "maxActiveSupply": 33,
+    "burnOnEquip": "Yes",
+    "image": "ipfs://bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu/dirty-brokener.png",
+    "localImage": "data/robinhood/layers/Conditions/Dirty Broken'er.png"
+  },
+  "Conditions::Dirty-Broken": {
+    "slot": "Conditions",
+    "name": "Dirty-Broken",
+    "rarity": "Mythic",
+    "initialSupply": 18,
+    "maxActiveSupply": 33,
+    "burnOnEquip": "Yes",
+    "image": "ipfs://bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu/dirty-broken.png",
+    "localImage": "data/robinhood/layers/Conditions/Dirty-Broken.png"
+  },
+  "Conditions::S1 Skin": {
+    "slot": "Conditions",
+    "name": "S1 Skin",
+    "rarity": "Mythic",
+    "initialSupply": 20,
+    "maxActiveSupply": 33,
+    "burnOnEquip": "Yes",
+    "image": "ipfs://bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu/s1-skin.png",
+    "localImage": "data/robinhood/layers/Conditions/S1 Skin.png"
+  },
+  "Clothes::Baby Blue Tee": {
+    "slot": "Clothes",
+    "name": "Baby Blue Tee",
+    "rarity": "Uncommon",
+    "initialSupply": 83,
+    "maxActiveSupply": 1500,
+    "burnOnEquip": "Yes",
+    "image": "ipfs://bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu/baby-blue-tee.png",
+    "localImage": "data/robinhood/layers/Clothes/Baby Blue Tee.png"
+  },
+  "Clothes::Bartman Shirt n Cape": {
+    "slot": "Clothes",
+    "name": "Bartman Shirt n Cape",
+    "rarity": "Mythic",
+    "initialSupply": 20,
+    "maxActiveSupply": 33,
+    "burnOnEquip": "Yes",
+    "image": "ipfs://bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu/bartman-shirt-n-cape.png",
+    "localImage": "data/robinhood/layers/Clothes/Bartman Shirt n Cape.png"
+  },
+  "Clothes::Beige Hoodie": {
+    "slot": "Clothes",
+    "name": "Beige Hoodie",
+    "rarity": "Legendary",
+    "initialSupply": 28,
+    "maxActiveSupply": 100,
+    "burnOnEquip": "Yes",
+    "image": "ipfs://bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu/beige-hoodie.png",
+    "localImage": "data/robinhood/layers/Clothes/Beige Hoodie.png"
+  },
+  "Clothes::Black Hoodie": {
+    "slot": "Clothes",
+    "name": "Black Hoodie",
+    "rarity": "Uncommon",
+    "initialSupply": 76,
+    "maxActiveSupply": 1500,
+    "burnOnEquip": "Yes",
+    "image": "ipfs://bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu/black-hoodie.png",
+    "localImage": "data/robinhood/layers/Clothes/Black Hoodie.png"
+  },
+  "Clothes::Black N White Tee": {
+    "slot": "Clothes",
+    "name": "Black N White Tee",
+    "rarity": "Rare",
+    "initialSupply": 46,
+    "maxActiveSupply": 750,
+    "burnOnEquip": "Yes",
+    "image": "ipfs://bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu/black-n-white-tee.png",
+    "localImage": "data/robinhood/layers/Clothes/Black N White Tee.png"
+  },
+  "Clothes::Black N White Tee 2": {
+    "slot": "Clothes",
+    "name": "Black N White Tee 2",
+    "rarity": "Legendary",
+    "initialSupply": 16,
+    "maxActiveSupply": 100,
+    "burnOnEquip": "Yes",
+    "image": "ipfs://bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu/black-n-white-tee-2.png",
+    "localImage": "data/robinhood/layers/Clothes/Black N White Tee 2.png"
+  },
+  "Clothes::Black Racer": {
+    "slot": "Clothes",
+    "name": "Black Racer",
+    "rarity": "Uncommon",
+    "initialSupply": 81,
+    "maxActiveSupply": 1500,
+    "burnOnEquip": "Yes",
+    "image": "ipfs://bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu/black-racer.png",
+    "localImage": "data/robinhood/layers/Clothes/Black Racer.png"
+  },
+  "Clothes::Black Tee": {
+    "slot": "Clothes",
+    "name": "Black Tee",
+    "rarity": "Rare",
+    "initialSupply": 53,
+    "maxActiveSupply": 750,
+    "burnOnEquip": "Yes",
+    "image": "ipfs://bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu/black-tee.png",
+    "localImage": "data/robinhood/layers/Clothes/Black Tee.png"
+  },
+  "Clothes::Blue Hoodie": {
+    "slot": "Clothes",
+    "name": "Blue Hoodie",
+    "rarity": "Uncommon",
+    "initialSupply": 72,
+    "maxActiveSupply": 1500,
+    "burnOnEquip": "Yes",
+    "image": "ipfs://bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu/blue-hoodie.png",
+    "localImage": "data/robinhood/layers/Clothes/Blue Hoodie.png"
+  },
+  "Clothes::Blue Racer": {
+    "slot": "Clothes",
+    "name": "Blue Racer",
+    "rarity": "Legendary",
+    "initialSupply": 23,
+    "maxActiveSupply": 100,
+    "burnOnEquip": "Yes",
+    "image": "ipfs://bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu/blue-racer.png",
+    "localImage": "data/robinhood/layers/Clothes/Blue Racer.png"
+  },
+  "Clothes::BuildAnything Tee": {
+    "slot": "Clothes",
+    "name": "BuildAnything Tee",
+    "rarity": "Rare",
+    "initialSupply": 51,
+    "maxActiveSupply": 750,
+    "burnOnEquip": "Yes",
+    "image": "ipfs://bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu/buildanything-tee.png",
+    "localImage": "data/robinhood/layers/Clothes/BuildAnything Tee.png"
+  },
+  "Clothes::Caveman Leotard": {
+    "slot": "Clothes",
+    "name": "Caveman Leotard",
+    "rarity": "Legendary",
+    "initialSupply": 11,
+    "maxActiveSupply": 100,
+    "burnOnEquip": "Yes",
+    "image": "ipfs://bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu/caveman-leotard.png",
+    "localImage": "data/robinhood/layers/Clothes/Caveman Leotard.png"
+  },
+  "Clothes::Convict Shirt": {
+    "slot": "Clothes",
+    "name": "Convict Shirt",
+    "rarity": "Legendary",
+    "initialSupply": 25,
+    "maxActiveSupply": 100,
+    "burnOnEquip": "Yes",
+    "image": "ipfs://bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu/convict-shirt.png",
+    "localImage": "data/robinhood/layers/Clothes/Convict Shirt.png"
+  },
+  "Clothes::Dictator Jacket": {
+    "slot": "Clothes",
+    "name": "Dictator Jacket",
+    "rarity": "Super Rare",
+    "initialSupply": 32,
+    "maxActiveSupply": 300,
+    "burnOnEquip": "Yes",
+    "image": "ipfs://bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu/dictator-jacket.png",
+    "localImage": "data/robinhood/layers/Clothes/Dictator Jacket.png"
+  },
+  "Clothes::Durag Stays On Tank": {
+    "slot": "Clothes",
+    "name": "Durag Stays On Tank",
+    "rarity": "Super Rare",
+    "initialSupply": 44,
+    "maxActiveSupply": 300,
+    "burnOnEquip": "Yes",
+    "image": "ipfs://bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu/durag-stays-on-tank.png",
+    "localImage": "data/robinhood/layers/Clothes/Durag Stays On Tank.png"
+  },
+  "Clothes::DWO Black": {
+    "slot": "Clothes",
+    "name": "DWO Black",
+    "rarity": "Common",
+    "initialSupply": 132,
+    "maxActiveSupply": 3000,
+    "burnOnEquip": "Yes",
+    "image": "ipfs://bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu/dwo-black.png",
+    "localImage": "data/robinhood/layers/Clothes/DWO Black.png"
+  },
+  "Clothes::DWO Black 2": {
+    "slot": "Clothes",
+    "name": "DWO Black 2",
+    "rarity": "Common",
+    "initialSupply": 114,
+    "maxActiveSupply": 3000,
+    "burnOnEquip": "Yes",
+    "image": "ipfs://bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu/dwo-black-2.png",
+    "localImage": "data/robinhood/layers/Clothes/DWO Black 2.png"
+  },
+  "Clothes::DWO White": {
+    "slot": "Clothes",
+    "name": "DWO White",
+    "rarity": "Rare",
+    "initialSupply": 45,
+    "maxActiveSupply": 750,
+    "burnOnEquip": "Yes",
+    "image": "ipfs://bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu/dwo-white.png",
+    "localImage": "data/robinhood/layers/Clothes/DWO White.png"
+  },
+  "Clothes::DYOOR Black Gold Text Hoodie": {
+    "slot": "Clothes",
+    "name": "DYOOR Black Gold Text Hoodie",
+    "rarity": "Mythic",
+    "initialSupply": 11,
+    "maxActiveSupply": 33,
+    "burnOnEquip": "Yes",
+    "image": "ipfs://bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu/dyoor-black-gold-text-hoodie.png",
+    "localImage": "data/robinhood/layers/Clothes/DYOOR Black Gold Text Hoodie.png"
+  },
+  "Clothes::DYOOR Black Hoodie": {
+    "slot": "Clothes",
+    "name": "DYOOR Black Hoodie",
+    "rarity": "Super Rare",
+    "initialSupply": 27,
+    "maxActiveSupply": 300,
+    "burnOnEquip": "Yes",
+    "image": "ipfs://bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu/dyoor-black-hoodie.png",
+    "localImage": "data/robinhood/layers/Clothes/DYOOR Black Hoodie.png"
+  },
+  "Clothes::DYOOR Blue Hoodie": {
+    "slot": "Clothes",
+    "name": "DYOOR Blue Hoodie",
+    "rarity": "Mythic",
+    "initialSupply": 9,
+    "maxActiveSupply": 33,
+    "burnOnEquip": "Yes",
+    "image": "ipfs://bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu/dyoor-blue-hoodie.png",
+    "localImage": "data/robinhood/layers/Clothes/DYOOR Blue Hoodie.png"
+  },
+  "Clothes::DYOOR Red Gold Text Hoodie": {
+    "slot": "Clothes",
+    "name": "DYOOR Red Gold Text Hoodie",
+    "rarity": "Mythic",
+    "initialSupply": 6,
+    "maxActiveSupply": 33,
+    "burnOnEquip": "Yes",
+    "image": "ipfs://bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu/dyoor-red-gold-text-hoodie.png",
+    "localImage": "data/robinhood/layers/Clothes/DYOOR Red Gold Text Hoodie.png"
+  },
+  "Clothes::Emo Tank": {
+    "slot": "Clothes",
+    "name": "Emo Tank",
+    "rarity": "Super Rare",
+    "initialSupply": 27,
+    "maxActiveSupply": 300,
+    "burnOnEquip": "Yes",
+    "image": "ipfs://bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu/emo-tank.png",
+    "localImage": "data/robinhood/layers/Clothes/Emo Tank.png"
+  },
+  "Clothes::Emo Tee": {
+    "slot": "Clothes",
+    "name": "Emo Tee",
+    "rarity": "Super Rare",
+    "initialSupply": 28,
+    "maxActiveSupply": 300,
+    "burnOnEquip": "Yes",
+    "image": "ipfs://bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu/emo-tee.png",
+    "localImage": "data/robinhood/layers/Clothes/Emo Tee.png"
+  },
+  "Clothes::Fur Coat Gold": {
+    "slot": "Clothes",
+    "name": "Fur Coat Gold",
+    "rarity": "Super Rare",
+    "initialSupply": 29,
+    "maxActiveSupply": 300,
+    "burnOnEquip": "Yes",
+    "image": "ipfs://bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu/fur-coat-gold.png",
+    "localImage": "data/robinhood/layers/Clothes/Fur Coat Gold.png"
+  },
+  "Clothes::Fur Coat Pink": {
+    "slot": "Clothes",
+    "name": "Fur Coat Pink",
+    "rarity": "Super Rare",
+    "initialSupply": 29,
+    "maxActiveSupply": 300,
+    "burnOnEquip": "Yes",
+    "image": "ipfs://bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu/fur-coat-pink.png",
+    "localImage": "data/robinhood/layers/Clothes/Fur Coat Pink.png"
+  },
+  "Clothes::Fur Coat Purple": {
+    "slot": "Clothes",
+    "name": "Fur Coat Purple",
+    "rarity": "Super Rare",
+    "initialSupply": 35,
+    "maxActiveSupply": 300,
+    "burnOnEquip": "Yes",
+    "image": "ipfs://bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu/fur-coat-purple.png",
+    "localImage": "data/robinhood/layers/Clothes/Fur Coat Purple.png"
+  },
+  "Clothes::GiftGoats Tee": {
+    "slot": "Clothes",
+    "name": "GiftGoats Tee",
+    "rarity": "Rare",
+    "initialSupply": 42,
+    "maxActiveSupply": 750,
+    "burnOnEquip": "Yes",
+    "image": "ipfs://bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu/giftgoats-tee.png",
+    "localImage": "data/robinhood/layers/Clothes/GiftGoats Tee.png"
+  },
+  "Clothes::Grey Tee": {
+    "slot": "Clothes",
+    "name": "Grey Tee",
+    "rarity": "Uncommon",
+    "initialSupply": 91,
+    "maxActiveSupply": 1500,
+    "burnOnEquip": "Yes",
+    "image": "ipfs://bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu/grey-tee.png",
+    "localImage": "data/robinhood/layers/Clothes/Grey Tee.png"
+  },
+  "Clothes::Hawaiian Shirt": {
+    "slot": "Clothes",
+    "name": "Hawaiian Shirt",
+    "rarity": "Mythic",
+    "initialSupply": 13,
+    "maxActiveSupply": 33,
+    "burnOnEquip": "Yes",
+    "image": "ipfs://bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu/hawaiian-shirt.png",
+    "localImage": "data/robinhood/layers/Clothes/Hawaiian Shirt.png"
+  },
+  "Clothes::Jailhouse Stripes Shirt": {
+    "slot": "Clothes",
+    "name": "Jailhouse Stripes Shirt",
+    "rarity": "Legendary",
+    "initialSupply": 25,
+    "maxActiveSupply": 100,
+    "burnOnEquip": "Yes",
+    "image": "ipfs://bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu/jailhouse-stripes-shirt.png",
+    "localImage": "data/robinhood/layers/Clothes/Jailhouse Stripes Shirt.png"
+  },
+  "Clothes::King's Robe": {
+    "slot": "Clothes",
+    "name": "King's Robe",
+    "rarity": "Super Rare",
+    "initialSupply": 33,
+    "maxActiveSupply": 300,
+    "burnOnEquip": "Yes",
+    "image": "ipfs://bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu/kings-robe.png",
+    "localImage": "data/robinhood/layers/Clothes/King's Robe.png"
+  },
+  "Clothes::King's Robe 2": {
+    "slot": "Clothes",
+    "name": "King's Robe 2",
+    "rarity": "Super Rare",
+    "initialSupply": 28,
+    "maxActiveSupply": 300,
+    "burnOnEquip": "Yes",
+    "image": "ipfs://bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu/kings-robe-2.png",
+    "localImage": "data/robinhood/layers/Clothes/King's Robe 2.png"
+  },
+  "Clothes::Kuru Tee": {
+    "slot": "Clothes",
+    "name": "Kuru Tee",
+    "rarity": "Common",
+    "initialSupply": 123,
+    "maxActiveSupply": 3000,
+    "burnOnEquip": "Yes",
+    "image": "ipfs://bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu/kuru-tee.png",
+    "localImage": "data/robinhood/layers/Clothes/Kuru Tee.png"
+  },
+  "Clothes::Kuru White Tee": {
+    "slot": "Clothes",
+    "name": "Kuru White Tee",
+    "rarity": "Rare",
+    "initialSupply": 46,
+    "maxActiveSupply": 750,
+    "burnOnEquip": "Yes",
+    "image": "ipfs://bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu/kuru-white-tee.png",
+    "localImage": "data/robinhood/layers/Clothes/Kuru White Tee.png"
+  },
+  "Clothes::Lab Coat": {
+    "slot": "Clothes",
+    "name": "Lab Coat",
+    "rarity": "Uncommon",
+    "initialSupply": 74,
+    "maxActiveSupply": 1500,
+    "burnOnEquip": "Yes",
+    "image": "ipfs://bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu/lab-coat.png",
+    "localImage": "data/robinhood/layers/Clothes/Lab Coat.png"
+  },
+  "Clothes::Leather Jacket": {
+    "slot": "Clothes",
+    "name": "Leather Jacket",
+    "rarity": "Uncommon",
+    "initialSupply": 109,
+    "maxActiveSupply": 1500,
+    "burnOnEquip": "Yes",
+    "image": "ipfs://bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu/leather-jacket.png",
+    "localImage": "data/robinhood/layers/Clothes/Leather Jacket.png"
+  },
+  "Clothes::Leather Jacket Torn Tee": {
+    "slot": "Clothes",
+    "name": "Leather Jacket Torn Tee",
+    "rarity": "Legendary",
+    "initialSupply": 28,
+    "maxActiveSupply": 100,
+    "burnOnEquip": "Yes",
+    "image": "ipfs://bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu/leather-jacket-torn-tee.png",
+    "localImage": "data/robinhood/layers/Clothes/Leather Jacket Torn Tee.png"
+  },
+  "Clothes::Leather Jacket White Shirt W:Tie": {
+    "slot": "Clothes",
+    "name": "Leather Jacket White Shirt W:Tie",
+    "rarity": "Rare",
+    "initialSupply": 59,
+    "maxActiveSupply": 750,
+    "burnOnEquip": "Yes",
+    "image": "ipfs://bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu/leather-jacket-white-shirt-w-tie.png",
+    "localImage": "data/robinhood/layers/Clothes/Leather Jacket White Shirt W:Tie.png"
+  },
+  "Clothes::Luffy": {
+    "slot": "Clothes",
+    "name": "Luffy",
+    "rarity": "Mythic",
+    "initialSupply": 20,
+    "maxActiveSupply": 33,
+    "burnOnEquip": "Yes",
+    "image": "ipfs://bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu/luffy.png",
+    "localImage": "data/robinhood/layers/Clothes/Luffy.png"
+  },
+  "Clothes::McDyoornalds": {
+    "slot": "Clothes",
+    "name": "McDyoornalds",
+    "rarity": "Uncommon",
+    "initialSupply": 105,
+    "maxActiveSupply": 1500,
+    "burnOnEquip": "Yes",
+    "image": "ipfs://bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu/mcdyoornalds.png",
+    "localImage": "data/robinhood/layers/Clothes/McDyoornalds.png"
+  },
+  "Clothes::MESH Tee": {
+    "slot": "Clothes",
+    "name": "MESH Tee",
+    "rarity": "Super Rare",
+    "initialSupply": 37,
+    "maxActiveSupply": 300,
+    "burnOnEquip": "Yes",
+    "image": "ipfs://bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu/mesh-tee.png",
+    "localImage": "data/robinhood/layers/Clothes/MESH Tee.png"
+  },
+  "Clothes::Neverland Tee": {
+    "slot": "Clothes",
+    "name": "Neverland Tee",
+    "rarity": "Rare",
+    "initialSupply": 59,
+    "maxActiveSupply": 750,
+    "burnOnEquip": "Yes",
+    "image": "ipfs://bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu/neverland-tee.png",
+    "localImage": "data/robinhood/layers/Clothes/Neverland Tee.png"
+  },
+  "Clothes::Orange Plaid": {
+    "slot": "Clothes",
+    "name": "Orange Plaid",
+    "rarity": "Rare",
+    "initialSupply": 42,
+    "maxActiveSupply": 750,
+    "burnOnEquip": "Yes",
+    "image": "ipfs://bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu/orange-plaid.png",
+    "localImage": "data/robinhood/layers/Clothes/Orange Plaid.png"
+  },
+  "Clothes::Orange Racer": {
+    "slot": "Clothes",
+    "name": "Orange Racer",
+    "rarity": "Uncommon",
+    "initialSupply": 107,
+    "maxActiveSupply": 1500,
+    "burnOnEquip": "Yes",
+    "image": "ipfs://bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu/orange-racer.png",
+    "localImage": "data/robinhood/layers/Clothes/Orange Racer.png"
+  },
+  "Clothes::Overalls": {
+    "slot": "Clothes",
+    "name": "Overalls",
+    "rarity": "Super Rare",
+    "initialSupply": 34,
+    "maxActiveSupply": 300,
+    "burnOnEquip": "Yes",
+    "image": "ipfs://bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu/overalls.png",
+    "localImage": "data/robinhood/layers/Clothes/Overalls.png"
+  },
+  "Clothes::PAMPAM Tee": {
+    "slot": "Clothes",
+    "name": "PAMPAM Tee",
+    "rarity": "Rare",
+    "initialSupply": 49,
+    "maxActiveSupply": 750,
+    "burnOnEquip": "Yes",
+    "image": "ipfs://bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu/pampam-tee.png",
+    "localImage": "data/robinhood/layers/Clothes/PAMPAM Tee.png"
+  },
+  "Clothes::Pink Plaid": {
+    "slot": "Clothes",
+    "name": "Pink Plaid",
+    "rarity": "Uncommon",
+    "initialSupply": 63,
+    "maxActiveSupply": 1500,
+    "burnOnEquip": "Yes",
+    "image": "ipfs://bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu/pink-plaid.png",
+    "localImage": "data/robinhood/layers/Clothes/Pink Plaid.png"
+  },
+  "Clothes::R3tard Tee": {
+    "slot": "Clothes",
+    "name": "R3tard Tee",
+    "rarity": "Mythic",
+    "initialSupply": 12,
+    "maxActiveSupply": 33,
+    "burnOnEquip": "Yes",
+    "image": "ipfs://bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu/r3tard-tee.png",
+    "localImage": "data/robinhood/layers/Clothes/R3tard Tee.png"
+  },
+  "Clothes::Red Hoodie": {
+    "slot": "Clothes",
+    "name": "Red Hoodie",
+    "rarity": "Uncommon",
+    "initialSupply": 78,
+    "maxActiveSupply": 1500,
+    "burnOnEquip": "Yes",
+    "image": "ipfs://bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu/red-hoodie.png",
+    "localImage": "data/robinhood/layers/Clothes/Red Hoodie.png"
+  },
+  "Clothes::Red Plaid": {
+    "slot": "Clothes",
+    "name": "Red Plaid",
+    "rarity": "Uncommon",
+    "initialSupply": 83,
+    "maxActiveSupply": 1500,
+    "burnOnEquip": "Yes",
+    "image": "ipfs://bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu/red-plaid.png",
+    "localImage": "data/robinhood/layers/Clothes/Red Plaid.png"
+  },
+  "Clothes::Tech Bro": {
+    "slot": "Clothes",
+    "name": "Tech Bro",
+    "rarity": "Uncommon",
+    "initialSupply": 104,
+    "maxActiveSupply": 1500,
+    "burnOnEquip": "Yes",
+    "image": "ipfs://bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu/tech-bro.png",
+    "localImage": "data/robinhood/layers/Clothes/Tech Bro.png"
+  },
+  "Clothes::Torn Black Tee": {
+    "slot": "Clothes",
+    "name": "Torn Black Tee",
+    "rarity": "Legendary",
+    "initialSupply": 26,
+    "maxActiveSupply": 100,
+    "burnOnEquip": "Yes",
+    "image": "ipfs://bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu/torn-black-tee.png",
+    "localImage": "data/robinhood/layers/Clothes/Torn Black Tee.png"
+  },
+  "Clothes::Torn Tee": {
+    "slot": "Clothes",
+    "name": "Torn Tee",
+    "rarity": "Legendary",
+    "initialSupply": 24,
+    "maxActiveSupply": 100,
+    "burnOnEquip": "Yes",
+    "image": "ipfs://bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu/torn-tee.png",
+    "localImage": "data/robinhood/layers/Clothes/Torn Tee.png"
+  },
+  "Clothes::Tuxedo": {
+    "slot": "Clothes",
+    "name": "Tuxedo",
+    "rarity": "Legendary",
+    "initialSupply": 22,
+    "maxActiveSupply": 100,
+    "burnOnEquip": "Yes",
+    "image": "ipfs://bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu/tuxedo.png",
+    "localImage": "data/robinhood/layers/Clothes/Tuxedo.png"
+  },
+  "Clothes::White Shirt W:Tie": {
+    "slot": "Clothes",
+    "name": "White Shirt W:Tie",
+    "rarity": "Rare",
+    "initialSupply": 49,
+    "maxActiveSupply": 750,
+    "burnOnEquip": "Yes",
+    "image": "ipfs://bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu/white-shirt-w-tie.png",
+    "localImage": "data/robinhood/layers/Clothes/White Shirt W:Tie.png"
+  },
+  "Clothes::White Tee": {
+    "slot": "Clothes",
+    "name": "White Tee",
+    "rarity": "Rare",
+    "initialSupply": 77,
+    "maxActiveSupply": 750,
+    "burnOnEquip": "Yes",
+    "image": "ipfs://bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu/white-tee.png",
+    "localImage": "data/robinhood/layers/Clothes/White Tee.png"
+  },
+  "Mouth::AHHH Scared": {
+    "slot": "Mouth",
+    "name": "AHHH Scared",
+    "rarity": "Rare",
+    "initialSupply": 65,
+    "maxActiveSupply": 750,
+    "burnOnEquip": "Yes",
+    "image": "ipfs://bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu/ahhh-scared.png",
+    "localImage": "data/robinhood/layers/Mouth/AHHH Scared.png"
+  },
+  "Mouth::AHHH Tongue": {
+    "slot": "Mouth",
+    "name": "AHHH Tongue",
+    "rarity": "Rare",
+    "initialSupply": 70,
+    "maxActiveSupply": 750,
+    "burnOnEquip": "Yes",
+    "image": "ipfs://bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu/ahhh-tongue.png",
+    "localImage": "data/robinhood/layers/Mouth/AHHH Tongue.png"
+  },
+  "Mouth::AHHHH": {
+    "slot": "Mouth",
+    "name": "AHHHH",
+    "rarity": "Super Rare",
+    "initialSupply": 46,
+    "maxActiveSupply": 300,
+    "burnOnEquip": "Yes",
+    "image": "ipfs://bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu/ahhhh.png",
+    "localImage": "data/robinhood/layers/Mouth/AHHHH.png"
+  },
+  "Mouth::AHHHH Flames": {
+    "slot": "Mouth",
+    "name": "AHHHH Flames",
+    "rarity": "Rare",
+    "initialSupply": 59,
+    "maxActiveSupply": 750,
+    "burnOnEquip": "Yes",
+    "image": "ipfs://bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu/ahhhh-flames.png",
+    "localImage": "data/robinhood/layers/Mouth/AHHHH Flames.png"
+  },
+  "Mouth::Ayeee": {
+    "slot": "Mouth",
+    "name": "Ayeee",
+    "rarity": "Common",
+    "initialSupply": 214,
+    "maxActiveSupply": 3000,
+    "burnOnEquip": "Yes",
+    "image": "ipfs://bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu/ayeee.png",
+    "localImage": "data/robinhood/layers/Mouth/Ayeee.png"
+  },
+  "Mouth::Ayeyo": {
+    "slot": "Mouth",
+    "name": "Ayeyo",
+    "rarity": "Common",
+    "initialSupply": 217,
+    "maxActiveSupply": 3000,
+    "burnOnEquip": "Yes",
+    "image": "ipfs://bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu/ayeyo.png",
+    "localImage": "data/robinhood/layers/Mouth/Ayeyo.png"
+  },
+  "Mouth::Braces": {
+    "slot": "Mouth",
+    "name": "Braces",
+    "rarity": "Super Rare",
+    "initialSupply": 46,
+    "maxActiveSupply": 300,
+    "burnOnEquip": "Yes",
+    "image": "ipfs://bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu/braces.png",
+    "localImage": "data/robinhood/layers/Mouth/Braces.png"
+  },
+  "Mouth::Cigar Mouth": {
+    "slot": "Mouth",
+    "name": "Cigar Mouth",
+    "rarity": "Rare",
+    "initialSupply": 54,
+    "maxActiveSupply": 750,
+    "burnOnEquip": "Yes",
+    "image": "ipfs://bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu/cigar-mouth.png",
+    "localImage": "data/robinhood/layers/Mouth/Cigar Mouth.png"
+  },
+  "Mouth::Deep Thought": {
+    "slot": "Mouth",
+    "name": "Deep Thought",
+    "rarity": "Super Rare",
+    "initialSupply": 56,
+    "maxActiveSupply": 300,
+    "burnOnEquip": "Yes",
+    "image": "ipfs://bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu/deep-thought.png",
+    "localImage": "data/robinhood/layers/Mouth/Deep Thought.png"
+  },
+  "Mouth::Diamond Grill": {
+    "slot": "Mouth",
+    "name": "Diamond Grill",
+    "rarity": "Mythic",
+    "initialSupply": 36,
+    "maxActiveSupply": 33,
+    "burnOnEquip": "Yes",
+    "image": "ipfs://bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu/diamond-grill.png",
+    "localImage": "data/robinhood/layers/Mouth/Diamond Grill.png"
+  },
+  "Mouth::Displeased": {
+    "slot": "Mouth",
+    "name": "Displeased",
+    "rarity": "Common",
+    "initialSupply": 200,
+    "maxActiveSupply": 3000,
+    "burnOnEquip": "Yes",
+    "image": "ipfs://bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu/displeased.png",
+    "localImage": "data/robinhood/layers/Mouth/Displeased.png"
+  },
+  "Mouth::Displeased toothpick": {
+    "slot": "Mouth",
+    "name": "Displeased toothpick",
+    "rarity": "Rare",
+    "initialSupply": 63,
+    "maxActiveSupply": 750,
+    "burnOnEquip": "Yes",
+    "image": "ipfs://bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu/displeased-toothpick.png",
+    "localImage": "data/robinhood/layers/Mouth/Displeased toothpick.png"
+  },
+  "Mouth::Drool": {
+    "slot": "Mouth",
+    "name": "Drool",
+    "rarity": "Common",
+    "initialSupply": 159,
+    "maxActiveSupply": 3000,
+    "burnOnEquip": "Yes",
+    "image": "ipfs://bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu/drool.png",
+    "localImage": "data/robinhood/layers/Mouth/Drool.png"
+  },
+  "Mouth::Emo Sheesh": {
+    "slot": "Mouth",
+    "name": "Emo Sheesh",
+    "rarity": "Rare",
+    "initialSupply": 59,
+    "maxActiveSupply": 750,
+    "burnOnEquip": "Yes",
+    "image": "ipfs://bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu/emo-sheesh.png",
+    "localImage": "data/robinhood/layers/Mouth/Emo Sheesh.png"
+  },
+  "Mouth::Emo Whatever": {
+    "slot": "Mouth",
+    "name": "Emo Whatever",
+    "rarity": "Rare",
+    "initialSupply": 73,
+    "maxActiveSupply": 750,
+    "burnOnEquip": "Yes",
+    "image": "ipfs://bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu/emo-whatever.png",
+    "localImage": "data/robinhood/layers/Mouth/Emo Whatever.png"
+  },
+  "Mouth::Errrh": {
+    "slot": "Mouth",
+    "name": "Errrh",
+    "rarity": "Rare",
+    "initialSupply": 53,
+    "maxActiveSupply": 750,
+    "burnOnEquip": "Yes",
+    "image": "ipfs://bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu/errrh.png",
+    "localImage": "data/robinhood/layers/Mouth/Errrh.png"
+  },
+  "Mouth::Gold Bar": {
+    "slot": "Mouth",
+    "name": "Gold Bar",
+    "rarity": "Rare",
+    "initialSupply": 69,
+    "maxActiveSupply": 750,
+    "burnOnEquip": "Yes",
+    "image": "ipfs://bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu/gold-bar.png",
+    "localImage": "data/robinhood/layers/Mouth/Gold Bar.png"
+  },
+  "Mouth::Gold Grill": {
+    "slot": "Mouth",
+    "name": "Gold Grill",
+    "rarity": "Rare",
+    "initialSupply": 58,
+    "maxActiveSupply": 750,
+    "burnOnEquip": "Yes",
+    "image": "ipfs://bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu/gold-grill.png",
+    "localImage": "data/robinhood/layers/Mouth/Gold Grill.png"
+  },
+  "Mouth::Joint Mouth": {
+    "slot": "Mouth",
+    "name": "Joint Mouth",
+    "rarity": "Rare",
+    "initialSupply": 48,
+    "maxActiveSupply": 750,
+    "burnOnEquip": "Yes",
+    "image": "ipfs://bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu/joint-mouth.png",
+    "localImage": "data/robinhood/layers/Mouth/Joint Mouth.png"
+  },
+  "Mouth::Meh": {
+    "slot": "Mouth",
+    "name": "Meh",
+    "rarity": "Super Rare",
+    "initialSupply": 71,
+    "maxActiveSupply": 300,
+    "burnOnEquip": "Yes",
+    "image": "ipfs://bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu/meh.png",
+    "localImage": "data/robinhood/layers/Mouth/Meh.png"
+  },
+  "Mouth::Meh Cigarette": {
+    "slot": "Mouth",
+    "name": "Meh Cigarette",
+    "rarity": "Uncommon",
+    "initialSupply": 143,
+    "maxActiveSupply": 1500,
+    "burnOnEquip": "Yes",
+    "image": "ipfs://bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu/meh-cigarette.png",
+    "localImage": "data/robinhood/layers/Mouth/Meh Cigarette.png"
+  },
+  "Mouth::MMMMKay": {
+    "slot": "Mouth",
+    "name": "MMMMKay",
+    "rarity": "Common",
+    "initialSupply": 261,
+    "maxActiveSupply": 3000,
+    "burnOnEquip": "Yes",
+    "image": "ipfs://bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu/mmmmkay.png",
+    "localImage": "data/robinhood/layers/Mouth/MMMMKay.png"
+  },
+  "Mouth::Muah": {
+    "slot": "Mouth",
+    "name": "Muah",
+    "rarity": "Rare",
+    "initialSupply": 124,
+    "maxActiveSupply": 750,
+    "burnOnEquip": "Yes",
+    "image": "ipfs://bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu/muah.png",
+    "localImage": "data/robinhood/layers/Mouth/Muah.png"
+  },
+  "Mouth::Party Horn Mouth": {
+    "slot": "Mouth",
+    "name": "Party Horn Mouth",
+    "rarity": "Super Rare",
+    "initialSupply": 38,
+    "maxActiveSupply": 300,
+    "burnOnEquip": "Yes",
+    "image": "ipfs://bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu/party-horn-mouth.png",
+    "localImage": "data/robinhood/layers/Mouth/Party Horn Mouth.png"
+  },
+  "Mouth::Pepe Mouth": {
+    "slot": "Mouth",
+    "name": "Pepe Mouth",
+    "rarity": "Super Rare",
+    "initialSupply": 55,
+    "maxActiveSupply": 300,
+    "burnOnEquip": "Yes",
+    "image": "ipfs://bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu/pepe-mouth.png",
+    "localImage": "data/robinhood/layers/Mouth/Pepe Mouth.png"
+  },
+  "Mouth::Pipe": {
+    "slot": "Mouth",
+    "name": "Pipe",
+    "rarity": "Super Rare",
+    "initialSupply": 43,
+    "maxActiveSupply": 300,
+    "burnOnEquip": "Yes",
+    "image": "ipfs://bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu/pipe.png",
+    "localImage": "data/robinhood/layers/Mouth/Pipe.png"
+  },
+  "Mouth::Resting DYOOR mouth": {
+    "slot": "Mouth",
+    "name": "Resting DYOOR mouth",
+    "rarity": "Common",
+    "initialSupply": 193,
+    "maxActiveSupply": 3000,
+    "burnOnEquip": "Yes",
+    "image": "ipfs://bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu/resting-dyoor-mouth.png",
+    "localImage": "data/robinhood/layers/Mouth/Resting DYOOR mouth.png"
+  },
+  "Mouth::Toothless Drool": {
+    "slot": "Mouth",
+    "name": "Toothless Drool",
+    "rarity": "Common",
+    "initialSupply": 158,
+    "maxActiveSupply": 3000,
+    "burnOnEquip": "Yes",
+    "image": "ipfs://bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu/toothless-drool.png",
+    "localImage": "data/robinhood/layers/Mouth/Toothless Drool.png"
+  },
+  "Mouth::Vamp Fangs": {
+    "slot": "Mouth",
+    "name": "Vamp Fangs",
+    "rarity": "Super Rare",
+    "initialSupply": 42,
+    "maxActiveSupply": 300,
+    "burnOnEquip": "Yes",
+    "image": "ipfs://bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu/vamp-fangs.png",
+    "localImage": "data/robinhood/layers/Mouth/Vamp Fangs.png"
+  },
+  "Mouth::Waaaat": {
+    "slot": "Mouth",
+    "name": "Waaaat",
+    "rarity": "Rare",
+    "initialSupply": 112,
+    "maxActiveSupply": 750,
+    "burnOnEquip": "Yes",
+    "image": "ipfs://bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu/waaaat.png",
+    "localImage": "data/robinhood/layers/Mouth/Waaaat.png"
+  },
+  "Eyes::Abyss": {
+    "slot": "Eyes",
+    "name": "Abyss",
+    "rarity": "Common",
+    "initialSupply": 225,
+    "maxActiveSupply": 3000,
+    "burnOnEquip": "Yes",
+    "image": "ipfs://bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu/abyss.png",
+    "localImage": "data/robinhood/layers/Eyes/Abyss.png"
+  },
+  "Eyes::Abyss Laser": {
+    "slot": "Eyes",
+    "name": "Abyss Laser",
+    "rarity": "Mythic",
+    "initialSupply": 10,
+    "maxActiveSupply": 33,
+    "burnOnEquip": "Yes",
+    "image": "ipfs://bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu/abyss-laser.png",
+    "localImage": "data/robinhood/layers/Eyes/Abyss Laser.png"
+  },
+  "Eyes::Build Anything Glasses": {
+    "slot": "Eyes",
+    "name": "Build Anything Glasses",
+    "rarity": "Super Rare",
+    "initialSupply": 49,
+    "maxActiveSupply": 300,
+    "burnOnEquip": "Yes",
+    "image": "ipfs://bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu/build-anything-glasses.png",
+    "localImage": "data/robinhood/layers/Eyes/Build Anything Glasses.png"
+  },
+  "Eyes::Cyclops": {
+    "slot": "Eyes",
+    "name": "Cyclops",
+    "rarity": "Super Rare",
+    "initialSupply": 53,
+    "maxActiveSupply": 300,
+    "burnOnEquip": "Yes",
+    "image": "ipfs://bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu/cyclops.png",
+    "localImage": "data/robinhood/layers/Eyes/Cyclops.png"
+  },
+  "Eyes::Emo Eyeliner": {
+    "slot": "Eyes",
+    "name": "Emo Eyeliner",
+    "rarity": "Rare",
+    "initialSupply": 79,
+    "maxActiveSupply": 750,
+    "burnOnEquip": "Yes",
+    "image": "ipfs://bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu/emo-eyeliner.png",
+    "localImage": "data/robinhood/layers/Eyes/Emo Eyeliner.png"
+  },
+  "Eyes::Excited": {
+    "slot": "Eyes",
+    "name": "Excited",
+    "rarity": "Common",
+    "initialSupply": 288,
+    "maxActiveSupply": 3000,
+    "burnOnEquip": "Yes",
+    "image": "ipfs://bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu/excited.png",
+    "localImage": "data/robinhood/layers/Eyes/Excited.png"
+  },
+  "Eyes::Eye Patch": {
+    "slot": "Eyes",
+    "name": "Eye Patch",
+    "rarity": "Super Rare",
+    "initialSupply": 57,
+    "maxActiveSupply": 300,
+    "burnOnEquip": "Yes",
+    "image": "ipfs://bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu/eye-patch.png",
+    "localImage": "data/robinhood/layers/Eyes/Eye Patch.png"
+  },
+  "Eyes::Googley Eyes": {
+    "slot": "Eyes",
+    "name": "Googley Eyes",
+    "rarity": "Super Rare",
+    "initialSupply": 53,
+    "maxActiveSupply": 300,
+    "burnOnEquip": "Yes",
+    "image": "ipfs://bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu/googley-eyes.png",
+    "localImage": "data/robinhood/layers/Eyes/Googley Eyes.png"
+  },
+  "Eyes::Got em": {
+    "slot": "Eyes",
+    "name": "Got em",
+    "rarity": "Super Rare",
+    "initialSupply": 64,
+    "maxActiveSupply": 300,
+    "burnOnEquip": "Yes",
+    "image": "ipfs://bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu/got-em.png",
+    "localImage": "data/robinhood/layers/Eyes/Got em.png"
+  },
+  "Eyes::HMMMHM": {
+    "slot": "Eyes",
+    "name": "HMMMHM",
+    "rarity": "Rare",
+    "initialSupply": 134,
+    "maxActiveSupply": 750,
+    "burnOnEquip": "Yes",
+    "image": "ipfs://bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu/hmmmhm.png",
+    "localImage": "data/robinhood/layers/Eyes/HMMMHM.png"
+  },
+  "Eyes::I Know What You Did": {
+    "slot": "Eyes",
+    "name": "I Know What You Did",
+    "rarity": "Super Rare",
+    "initialSupply": 54,
+    "maxActiveSupply": 300,
+    "burnOnEquip": "Yes",
+    "image": "ipfs://bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu/i-know-what-you-did.png",
+    "localImage": "data/robinhood/layers/Eyes/I Know What You Did.png"
+  },
+  "Eyes::Intense": {
+    "slot": "Eyes",
+    "name": "Intense",
+    "rarity": "Rare",
+    "initialSupply": 93,
+    "maxActiveSupply": 750,
+    "burnOnEquip": "Yes",
+    "image": "ipfs://bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu/intense.png",
+    "localImage": "data/robinhood/layers/Eyes/Intense.png"
+  },
+  "Eyes::Lazy Laser": {
+    "slot": "Eyes",
+    "name": "Lazy Laser",
+    "rarity": "Mythic",
+    "initialSupply": 10,
+    "maxActiveSupply": 33,
+    "burnOnEquip": "Yes",
+    "image": "ipfs://bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu/lazy-laser.png",
+    "localImage": "data/robinhood/layers/Eyes/Lazy Laser.png"
+  },
+  "Eyes::Neverland Specs": {
+    "slot": "Eyes",
+    "name": "Neverland Specs",
+    "rarity": "Uncommon",
+    "initialSupply": 127,
+    "maxActiveSupply": 1500,
+    "burnOnEquip": "Yes",
+    "image": "ipfs://bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu/neverland-specs.png",
+    "localImage": "data/robinhood/layers/Eyes/Neverland Specs.png"
+  },
+  "Eyes::Okay": {
+    "slot": "Eyes",
+    "name": "Okay",
+    "rarity": "Common",
+    "initialSupply": 309,
+    "maxActiveSupply": 3000,
+    "burnOnEquip": "Yes",
+    "image": "ipfs://bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu/okay.png",
+    "localImage": "data/robinhood/layers/Eyes/Okay.png"
+  },
+  "Eyes::Pit Viper": {
+    "slot": "Eyes",
+    "name": "Pit Viper",
+    "rarity": "Mythic",
+    "initialSupply": 36,
+    "maxActiveSupply": 33,
+    "burnOnEquip": "Yes",
+    "image": "ipfs://bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu/pit-viper.png",
+    "localImage": "data/robinhood/layers/Eyes/Pit Viper.png"
+  },
+  "Eyes::Point Dexter Glasses Eyes": {
+    "slot": "Eyes",
+    "name": "Point Dexter Glasses Eyes",
+    "rarity": "Rare",
+    "initialSupply": 65,
+    "maxActiveSupply": 750,
+    "burnOnEquip": "Yes",
+    "image": "ipfs://bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu/point-dexter-glasses-eyes.png",
+    "localImage": "data/robinhood/layers/Eyes/Point Dexter Glasses Eyes.png"
+  },
+  "Eyes::Radiation Glow": {
+    "slot": "Eyes",
+    "name": "Radiation Glow",
+    "rarity": "Common",
+    "initialSupply": 214,
+    "maxActiveSupply": 3000,
+    "burnOnEquip": "Yes",
+    "image": "ipfs://bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu/radiation-glow.png",
+    "localImage": "data/robinhood/layers/Eyes/Radiation Glow.png"
+  },
+  "Eyes::Radiation Glow (Red)": {
+    "slot": "Eyes",
+    "name": "Radiation Glow (Red)",
+    "rarity": "Super Rare",
+    "initialSupply": 57,
+    "maxActiveSupply": 300,
+    "burnOnEquip": "Yes",
+    "image": "ipfs://bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu/radiation-glow-red.png",
+    "localImage": "data/robinhood/layers/Eyes/Radiation Glow (Red).png"
+  },
+  "Eyes::Radiation Glow (Red)Laser": {
+    "slot": "Eyes",
+    "name": "Radiation Glow (Red)Laser",
+    "rarity": "Mythic",
+    "initialSupply": 10,
+    "maxActiveSupply": 33,
+    "burnOnEquip": "Yes",
+    "image": "ipfs://bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu/radiation-glow-red-laser.png",
+    "localImage": "data/robinhood/layers/Eyes/Radiation Glow (Red)Laser.png"
+  },
+  "Eyes::Ricky V": {
+    "slot": "Eyes",
+    "name": "Ricky V",
+    "rarity": "Common",
+    "initialSupply": 210,
+    "maxActiveSupply": 3000,
+    "burnOnEquip": "Yes",
+    "image": "ipfs://bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu/ricky-v.png",
+    "localImage": "data/robinhood/layers/Eyes/Ricky V.png"
+  },
+  "Eyes::Scared": {
+    "slot": "Eyes",
+    "name": "Scared",
+    "rarity": "Rare",
+    "initialSupply": 98,
+    "maxActiveSupply": 750,
+    "burnOnEquip": "Yes",
+    "image": "ipfs://bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu/scared.png",
+    "localImage": "data/robinhood/layers/Eyes/Scared.png"
+  },
+  "Eyes::Sly": {
+    "slot": "Eyes",
+    "name": "Sly",
+    "rarity": "Rare",
+    "initialSupply": 136,
+    "maxActiveSupply": 750,
+    "burnOnEquip": "Yes",
+    "image": "ipfs://bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu/sly.png",
+    "localImage": "data/robinhood/layers/Eyes/Sly.png"
+  },
+  "Eyes::Snake Eyes": {
+    "slot": "Eyes",
+    "name": "Snake Eyes",
+    "rarity": "Super Rare",
+    "initialSupply": 55,
+    "maxActiveSupply": 300,
+    "burnOnEquip": "Yes",
+    "image": "ipfs://bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu/snake-eyes.png",
+    "localImage": "data/robinhood/layers/Eyes/Snake Eyes.png"
+  },
+  "Eyes::Sunglasses": {
+    "slot": "Eyes",
+    "name": "Sunglasses",
+    "rarity": "Common",
+    "initialSupply": 195,
+    "maxActiveSupply": 3000,
+    "burnOnEquip": "Yes",
+    "image": "ipfs://bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu/sunglasses.png",
+    "localImage": "data/robinhood/layers/Eyes/Sunglasses.png"
+  },
+  "Eyes::Third Eye": {
+    "slot": "Eyes",
+    "name": "Third Eye",
+    "rarity": "Rare",
+    "initialSupply": 84,
+    "maxActiveSupply": 750,
+    "burnOnEquip": "Yes",
+    "image": "ipfs://bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu/third-eye.png",
+    "localImage": "data/robinhood/layers/Eyes/Third Eye.png"
+  },
+  "Eyes::Tri-Specs": {
+    "slot": "Eyes",
+    "name": "Tri-Specs",
+    "rarity": "Rare",
+    "initialSupply": 69,
+    "maxActiveSupply": 750,
+    "burnOnEquip": "Yes",
+    "image": "ipfs://bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu/tri-specs.png",
+    "localImage": "data/robinhood/layers/Eyes/Tri-Specs.png"
+  },
+  "Eyes::Un Enthused": {
+    "slot": "Eyes",
+    "name": "Un Enthused",
+    "rarity": "Common",
+    "initialSupply": 286,
+    "maxActiveSupply": 3000,
+    "burnOnEquip": "Yes",
+    "image": "ipfs://bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu/un-enthused.png",
+    "localImage": "data/robinhood/layers/Eyes/Un Enthused.png"
+  },
+  "Eyes::VR Headset": {
+    "slot": "Eyes",
+    "name": "VR Headset",
+    "rarity": "Super Rare",
+    "initialSupply": 48,
+    "maxActiveSupply": 300,
+    "burnOnEquip": "Yes",
+    "image": "ipfs://bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu/vr-headset.png",
+    "localImage": "data/robinhood/layers/Eyes/VR Headset.png"
+  },
+  "Eyes::Zombie": {
+    "slot": "Eyes",
+    "name": "Zombie",
+    "rarity": "Super Rare",
+    "initialSupply": 61,
+    "maxActiveSupply": 300,
+    "burnOnEquip": "Yes",
+    "image": "ipfs://bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu/zombie.png",
+    "localImage": "data/robinhood/layers/Eyes/Zombie.png"
+  },
+  "Hat::Alternative": {
+    "slot": "Hat",
+    "name": "Alternative",
+    "rarity": "Super Rare",
+    "initialSupply": 30,
+    "maxActiveSupply": 300,
+    "burnOnEquip": "Yes",
+    "image": "ipfs://bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu/alternative.png",
+    "localImage": "data/robinhood/layers/Hat/Alternative.png"
+  },
+  "Hat::Antenna": {
+    "slot": "Hat",
+    "name": "Antenna",
+    "rarity": "Common",
+    "initialSupply": 121,
+    "maxActiveSupply": 3000,
+    "burnOnEquip": "Yes",
+    "image": "ipfs://bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu/antenna.png",
+    "localImage": "data/robinhood/layers/Hat/Antenna.png"
+  },
+  "Hat::Bartman": {
+    "slot": "Hat",
+    "name": "Bartman",
+    "rarity": "Mythic",
+    "initialSupply": 20,
+    "maxActiveSupply": 33,
+    "burnOnEquip": "Yes",
+    "image": "ipfs://bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu/bartman.png",
+    "localImage": "data/robinhood/layers/Hat/Bartman.png"
+  },
+  "Hat::Beanie Red": {
+    "slot": "Hat",
+    "name": "Beanie Red",
+    "rarity": "Super Rare",
+    "initialSupply": 17,
+    "maxActiveSupply": 300,
+    "burnOnEquip": "Yes",
+    "image": "ipfs://bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu/beanie-red.png",
+    "localImage": "data/robinhood/layers/Hat/Beanie Red.png"
+  },
+  "Hat::Black Ball Cap": {
+    "slot": "Hat",
+    "name": "Black Ball Cap",
+    "rarity": "Common",
+    "initialSupply": 137,
+    "maxActiveSupply": 3000,
+    "burnOnEquip": "Yes",
+    "image": "ipfs://bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu/black-ball-cap.png",
+    "localImage": "data/robinhood/layers/Hat/Black Ball Cap.png"
+  },
+  "Hat::Black Beanie": {
+    "slot": "Hat",
+    "name": "Black Beanie",
+    "rarity": "Uncommon",
+    "initialSupply": 72,
+    "maxActiveSupply": 1500,
+    "burnOnEquip": "Yes",
+    "image": "ipfs://bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu/black-beanie.png",
+    "localImage": "data/robinhood/layers/Hat/Black Beanie.png"
+  },
+  "Hat::Black Cap": {
+    "slot": "Hat",
+    "name": "Black Cap",
+    "rarity": "Uncommon",
+    "initialSupply": 80,
+    "maxActiveSupply": 1500,
+    "burnOnEquip": "Yes",
+    "image": "ipfs://bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu/black-cap.png",
+    "localImage": "data/robinhood/layers/Hat/Black Cap.png"
+  },
+  "Hat::Black N White Cap": {
+    "slot": "Hat",
+    "name": "Black N White Cap",
+    "rarity": "Super Rare",
+    "initialSupply": 28,
+    "maxActiveSupply": 300,
+    "burnOnEquip": "Yes",
+    "image": "ipfs://bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu/black-n-white-cap.png",
+    "localImage": "data/robinhood/layers/Hat/Black N White Cap.png"
+  },
+  "Hat::Black Shystie": {
+    "slot": "Hat",
+    "name": "Black Shystie",
+    "rarity": "Rare",
+    "initialSupply": 9,
+    "maxActiveSupply": 750,
+    "burnOnEquip": "Yes",
+    "image": "ipfs://bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu/black-shystie.png",
+    "localImage": "data/robinhood/layers/Hat/Black Shystie.png"
+  },
+  "Hat::Burning Chog": {
+    "slot": "Hat",
+    "name": "Burning Chog",
+    "rarity": "Super Rare",
+    "initialSupply": 20,
+    "maxActiveSupply": 300,
+    "burnOnEquip": "Yes",
+    "image": "ipfs://bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu/burning-chog.png",
+    "localImage": "data/robinhood/layers/Hat/Burning Chog.png"
+  },
+  "Hat::Captain Hat": {
+    "slot": "Hat",
+    "name": "Captain Hat",
+    "rarity": "Uncommon",
+    "initialSupply": 110,
+    "maxActiveSupply": 1500,
+    "burnOnEquip": "Yes",
+    "image": "ipfs://bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu/captain-hat.png",
+    "localImage": "data/robinhood/layers/Hat/Captain Hat.png"
+  },
+  "Hat::Casino": {
+    "slot": "Hat",
+    "name": "Casino",
+    "rarity": "Super Rare",
+    "initialSupply": 20,
+    "maxActiveSupply": 300,
+    "burnOnEquip": "Yes",
+    "image": "ipfs://bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu/casino.png",
+    "localImage": "data/robinhood/layers/Hat/Casino.png"
+  },
+  "Hat::Construction": {
+    "slot": "Hat",
+    "name": "Construction",
+    "rarity": "Uncommon",
+    "initialSupply": 88,
+    "maxActiveSupply": 1500,
+    "burnOnEquip": "Yes",
+    "image": "ipfs://bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu/construction.png",
+    "localImage": "data/robinhood/layers/Hat/Construction.png"
+  },
+  "Hat::Cowboy": {
+    "slot": "Hat",
+    "name": "Cowboy",
+    "rarity": "Uncommon",
+    "initialSupply": 52,
+    "maxActiveSupply": 1500,
+    "burnOnEquip": "Yes",
+    "image": "ipfs://bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu/cowboy.png",
+    "localImage": "data/robinhood/layers/Hat/Cowboy.png"
+  },
+  "Hat::Crown": {
+    "slot": "Hat",
+    "name": "Crown",
+    "rarity": "Super Rare",
+    "initialSupply": 30,
+    "maxActiveSupply": 300,
+    "burnOnEquip": "Yes",
+    "image": "ipfs://bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu/crown.png",
+    "localImage": "data/robinhood/layers/Hat/Crown.png"
+  },
+  "Hat::Dunce Hat": {
+    "slot": "Hat",
+    "name": "Dunce Hat",
+    "rarity": "Super Rare",
+    "initialSupply": 19,
+    "maxActiveSupply": 300,
+    "burnOnEquip": "Yes",
+    "image": "ipfs://bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu/dunce-hat.png",
+    "localImage": "data/robinhood/layers/Hat/Dunce Hat.png"
+  },
+  "Hat::Durag": {
+    "slot": "Hat",
+    "name": "Durag",
+    "rarity": "Super Rare",
+    "initialSupply": 19,
+    "maxActiveSupply": 300,
+    "burnOnEquip": "Yes",
+    "image": "ipfs://bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu/durag.png",
+    "localImage": "data/robinhood/layers/Hat/Durag.png"
+  },
+  "Hat::DWO Black Cap": {
+    "slot": "Hat",
+    "name": "DWO Black Cap",
+    "rarity": "Super Rare",
+    "initialSupply": 22,
+    "maxActiveSupply": 300,
+    "burnOnEquip": "Yes",
+    "image": "ipfs://bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu/dwo-black-cap.png",
+    "localImage": "data/robinhood/layers/Hat/DWO Black Cap.png"
+  },
+  "Hat::DYOOR Black Cap": {
+    "slot": "Hat",
+    "name": "DYOOR Black Cap",
+    "rarity": "Common",
+    "initialSupply": 118,
+    "maxActiveSupply": 3000,
+    "burnOnEquip": "Yes",
+    "image": "ipfs://bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu/dyoor-black-cap.png",
+    "localImage": "data/robinhood/layers/Hat/DYOOR Black Cap.png"
+  },
+  "Hat::DYOOR Flipped Brim": {
+    "slot": "Hat",
+    "name": "DYOOR Flipped Brim",
+    "rarity": "Uncommon",
+    "initialSupply": 84,
+    "maxActiveSupply": 1500,
+    "burnOnEquip": "Yes",
+    "image": "ipfs://bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu/dyoor-flipped-brim.png",
+    "localImage": "data/robinhood/layers/Hat/DYOOR Flipped Brim.png"
+  },
+  "Hat::DYOOR White Cap": {
+    "slot": "Hat",
+    "name": "DYOOR White Cap",
+    "rarity": "Common",
+    "initialSupply": 117,
+    "maxActiveSupply": 3000,
+    "burnOnEquip": "Yes",
+    "image": "ipfs://bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu/dyoor-white-cap.png",
+    "localImage": "data/robinhood/layers/Hat/DYOOR White Cap.png"
+  },
+  "Hat::Glowing Antenna": {
+    "slot": "Hat",
+    "name": "Glowing Antenna",
+    "rarity": "Super Rare",
+    "initialSupply": 26,
+    "maxActiveSupply": 300,
+    "burnOnEquip": "Yes",
+    "image": "ipfs://bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu/glowing-antenna.png",
+    "localImage": "data/robinhood/layers/Hat/Glowing Antenna.png"
+  },
+  "Hat::Gotta Catchem Cap": {
+    "slot": "Hat",
+    "name": "Gotta Catchem Cap",
+    "rarity": "Common",
+    "initialSupply": 98,
+    "maxActiveSupply": 3000,
+    "burnOnEquip": "Yes",
+    "image": "ipfs://bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu/gotta-catchem-cap.png",
+    "localImage": "data/robinhood/layers/Hat/Gotta Catchem Cap.png"
+  },
+  "Hat::Halo": {
+    "slot": "Hat",
+    "name": "Halo",
+    "rarity": "Super Rare",
+    "initialSupply": 33,
+    "maxActiveSupply": 300,
+    "burnOnEquip": "Yes",
+    "image": "ipfs://bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu/halo.png",
+    "localImage": "data/robinhood/layers/Hat/Halo.png"
+  },
+  "Hat::Horns": {
+    "slot": "Hat",
+    "name": "Horns",
+    "rarity": "Super Rare",
+    "initialSupply": 27,
+    "maxActiveSupply": 300,
+    "burnOnEquip": "Yes",
+    "image": "ipfs://bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu/horns.png",
+    "localImage": "data/robinhood/layers/Hat/Horns.png"
+  },
+  "Hat::Jailhouse Stripes Hat": {
+    "slot": "Hat",
+    "name": "Jailhouse Stripes Hat",
+    "rarity": "Super Rare",
+    "initialSupply": 29,
+    "maxActiveSupply": 300,
+    "burnOnEquip": "Yes",
+    "image": "ipfs://bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu/jailhouse-stripes-hat.png",
+    "localImage": "data/robinhood/layers/Hat/Jailhouse Stripes Hat.png"
+  },
+  "Hat::Luffy": {
+    "slot": "Hat",
+    "name": "Luffy",
+    "rarity": "Mythic",
+    "initialSupply": 20,
+    "maxActiveSupply": 33,
+    "burnOnEquip": "Yes",
+    "image": "ipfs://bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu/luffy.png",
+    "localImage": "data/robinhood/layers/Hat/Luffy.png"
+  },
+  "Hat::McDYOORs": {
+    "slot": "Hat",
+    "name": "McDYOORs",
+    "rarity": "Common",
+    "initialSupply": 112,
+    "maxActiveSupply": 3000,
+    "burnOnEquip": "Yes",
+    "image": "ipfs://bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu/mcdyoors.png",
+    "localImage": "data/robinhood/layers/Hat/McDYOORs.png"
+  },
+  "Hat::PamPam": {
+    "slot": "Hat",
+    "name": "PamPam",
+    "rarity": "Mythic",
+    "initialSupply": 10,
+    "maxActiveSupply": 33,
+    "burnOnEquip": "Yes",
+    "image": "ipfs://bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu/pampam.png",
+    "localImage": "data/robinhood/layers/Hat/PamPam.png"
+  },
+  "Hat::Party Hat": {
+    "slot": "Hat",
+    "name": "Party Hat",
+    "rarity": "Super Rare",
+    "initialSupply": 24,
+    "maxActiveSupply": 300,
+    "burnOnEquip": "Yes",
+    "image": "ipfs://bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu/party-hat.png",
+    "localImage": "data/robinhood/layers/Hat/Party Hat.png"
+  },
+  "Hat::Pink Shystie": {
+    "slot": "Hat",
+    "name": "Pink Shystie",
+    "rarity": "Rare",
+    "initialSupply": 8,
+    "maxActiveSupply": 750,
+    "burnOnEquip": "Yes",
+    "image": "ipfs://bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu/pink-shystie.png",
+    "localImage": "data/robinhood/layers/Hat/Pink Shystie.png"
+  },
+  "Hat::Pirate Hat": {
+    "slot": "Hat",
+    "name": "Pirate Hat",
+    "rarity": "Super Rare",
+    "initialSupply": 22,
+    "maxActiveSupply": 300,
+    "burnOnEquip": "Yes",
+    "image": "ipfs://bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu/pirate-hat.png",
+    "localImage": "data/robinhood/layers/Hat/Pirate Hat.png"
+  },
+  "Hat::Sealuminati Mask": {
+    "slot": "Hat",
+    "name": "Sealuminati Mask",
+    "rarity": "Mythic",
+    "initialSupply": 4,
+    "maxActiveSupply": 33,
+    "burnOnEquip": "Yes",
+    "image": "ipfs://bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu/sealuminati-mask.png",
+    "localImage": "data/robinhood/layers/Hat/Sealuminati Mask.png"
+  },
+  "Hat::Sweatband": {
+    "slot": "Hat",
+    "name": "Sweatband",
+    "rarity": "Uncommon",
+    "initialSupply": 76,
+    "maxActiveSupply": 1500,
+    "burnOnEquip": "Yes",
+    "image": "ipfs://bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu/sweatband.png",
+    "localImage": "data/robinhood/layers/Hat/Sweatband.png"
+  },
+  "Hat::Tech bro": {
+    "slot": "Hat",
+    "name": "Tech bro",
+    "rarity": "Uncommon",
+    "initialSupply": 102,
+    "maxActiveSupply": 1500,
+    "burnOnEquip": "Yes",
+    "image": "ipfs://bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu/tech-bro.png",
+    "localImage": "data/robinhood/layers/Hat/Tech bro.png"
+  },
+  "Hat::Wormhole": {
+    "slot": "Hat",
+    "name": "Wormhole",
+    "rarity": "Super Rare",
+    "initialSupply": 26,
+    "maxActiveSupply": 300,
+    "burnOnEquip": "Yes",
+    "image": "ipfs://bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu/wormhole.png",
+    "localImage": "data/robinhood/layers/Hat/Wormhole.png"
+  },
+  "Accessories::Bandaid": {
+    "slot": "Accessories",
+    "name": "Bandaid",
+    "rarity": "Common",
+    "initialSupply": 58,
+    "maxActiveSupply": 3000,
+    "burnOnEquip": "Yes",
+    "image": "ipfs://bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu/bandaid.png",
+    "localImage": "data/robinhood/layers/Accessories/Bandaid.png"
+  },
+  "Accessories::Bandana Black": {
+    "slot": "Accessories",
+    "name": "Bandana Black",
+    "rarity": "Common",
+    "initialSupply": 88,
+    "maxActiveSupply": 3000,
+    "burnOnEquip": "Yes",
+    "image": "ipfs://bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu/bandana-black.png",
+    "localImage": "data/robinhood/layers/Accessories/Bandana Black.png"
+  },
+  "Accessories::Bandana Pink": {
+    "slot": "Accessories",
+    "name": "Bandana Pink",
+    "rarity": "Common",
+    "initialSupply": 106,
+    "maxActiveSupply": 3000,
+    "burnOnEquip": "Yes",
+    "image": "ipfs://bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu/bandana-pink.png",
+    "localImage": "data/robinhood/layers/Accessories/Bandana Pink.png"
+  },
+  "Accessories::Choker Necklace": {
+    "slot": "Accessories",
+    "name": "Choker Necklace",
+    "rarity": "Uncommon",
+    "initialSupply": 47,
+    "maxActiveSupply": 1500,
+    "burnOnEquip": "Yes",
+    "image": "ipfs://bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu/choker-necklace.png",
+    "localImage": "data/robinhood/layers/Accessories/Choker Necklace.png"
+  },
+  "Accessories::MESH Bandanna": {
+    "slot": "Accessories",
+    "name": "MESH Bandanna",
+    "rarity": "Uncommon",
+    "initialSupply": 44,
+    "maxActiveSupply": 1500,
+    "burnOnEquip": "Yes",
+    "image": "ipfs://bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu/mesh-bandanna.png",
+    "localImage": "data/robinhood/layers/Accessories/MESH Bandanna.png"
+  },
+  "Accessories::Sealuminati chain": {
+    "slot": "Accessories",
+    "name": "Sealuminati chain",
+    "rarity": "Mythic",
+    "initialSupply": 18,
+    "maxActiveSupply": 33,
+    "burnOnEquip": "Yes",
+    "image": "ipfs://bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu/sealuminati-chain.png",
+    "localImage": "data/robinhood/layers/Accessories/Sealuminati chain.png"
+  },
+  "Accessories 2::Bandaid": {
+    "slot": "Accessories 2",
+    "name": "Bandaid",
+    "rarity": "Common",
+    "initialSupply": 52,
+    "maxActiveSupply": 3000,
+    "burnOnEquip": "Yes",
+    "image": "ipfs://bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu/bandaid.png",
+    "localImage": "data/robinhood/layers/Accessories 2/Bandaid.png"
+  },
+  "Accessories 2::Bandana Black": {
+    "slot": "Accessories 2",
+    "name": "Bandana Black",
+    "rarity": "Common",
+    "initialSupply": 82,
+    "maxActiveSupply": 3000,
+    "burnOnEquip": "Yes",
+    "image": "ipfs://bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu/bandana-black.png",
+    "localImage": "data/robinhood/layers/Accessories 2/Bandana Black.png"
+  },
+  "Accessories 2::Bandana Pink": {
+    "slot": "Accessories 2",
+    "name": "Bandana Pink",
+    "rarity": "Common",
+    "initialSupply": 77,
+    "maxActiveSupply": 3000,
+    "burnOnEquip": "Yes",
+    "image": "ipfs://bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu/bandana-pink.png",
+    "localImage": "data/robinhood/layers/Accessories 2/Bandana Pink.png"
+  },
+  "Accessories 2::Choker Necklace": {
+    "slot": "Accessories 2",
+    "name": "Choker Necklace",
+    "rarity": "Uncommon",
+    "initialSupply": 36,
+    "maxActiveSupply": 1500,
+    "burnOnEquip": "Yes",
+    "image": "ipfs://bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu/choker-necklace.png",
+    "localImage": "data/robinhood/layers/Accessories 2/Choker Necklace.png"
+  },
+  "Accessories 2::MESH Bandanna": {
+    "slot": "Accessories 2",
+    "name": "MESH Bandanna",
+    "rarity": "Uncommon",
+    "initialSupply": 38,
+    "maxActiveSupply": 1500,
+    "burnOnEquip": "Yes",
+    "image": "ipfs://bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu/mesh-bandanna.png",
+    "localImage": "data/robinhood/layers/Accessories 2/MESH Bandanna.png"
+  },
+  "Accessories 2::Sealuminati chain": {
+    "slot": "Accessories 2",
+    "name": "Sealuminati chain",
+    "rarity": "Mythic",
+    "initialSupply": 18,
+    "maxActiveSupply": 33,
+    "burnOnEquip": "Yes",
+    "image": "ipfs://bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu/sealuminati-chain.png",
+    "localImage": "data/robinhood/layers/Accessories 2/Sealuminati chain.png"
+  },
+  "Clothes::Robinhood Green Tee": {
+    "slot": "Clothes",
+    "name": "Robinhood Green Tee",
+    "rarity": "Super Rare",
+    "initialSupply": 0,
+    "maxActiveSupply": 300,
+    "burnOnEquip": "Yes",
+    "image": "",
+    "localImage": "data/robinhood/layers/Clothes/Robinhood Green Tee.png"
+  },
+  "Eyes::Robinhood Green Shades": {
+    "slot": "Eyes",
+    "name": "Robinhood Green Shades",
+    "rarity": "Super Rare",
+    "initialSupply": 0,
+    "maxActiveSupply": 300,
+    "burnOnEquip": "Yes",
+    "image": "",
+    "localImage": "data/robinhood/layers/Eyes/Robinhood Green Shades.png"
+  },
+  "Hat::Robinhood Feather Cap": {
+    "slot": "Hat",
+    "name": "Robinhood Feather Cap",
+    "rarity": "Super Rare",
+    "initialSupply": 0,
+    "maxActiveSupply": 300,
+    "burnOnEquip": "Yes",
+    "image": "",
+    "localImage": "data/robinhood/layers/Hat/Robinhood Feather Cap.png"
+  }
+}

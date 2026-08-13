@@ -1,0 +1,57 @@
+{
+  "schema": "dyoor-hoodyoor-energy-migration-deployment-v1",
+  "chainId": 4663,
+  "deployer": "0xC7f55cE6A7dF9A79cc4A643a5081230F890c7AA6",
+  "energyBank": "0x9bA9aa6c6A1CB04bc0477E90f4D93214c6b1D7c3",
+  "sourceChainId": 143,
+  "sourceEnergyBank": "0x291a8cC0FCa08EBd64a0e4d67B4455d24e9E6767",
+  "sourceSnapshotBlock": 94583241,
+  "ledgerHash": "0x9b334fcd14b1bd4de1f9d2787124f9d30775e977dfca5e8e6c887ef592a5bf4f",
+  "wallets": 126,
+  "destinationEnergy": "2023191",
+  "batches": [
+    {
+      "index": 0,
+      "campaignId": "0x5dcc56f28def4dfba6c1661dce73df8cfc931460f9380f6d9f540174f4ce5d34",
+      "count": 50,
+      "totalEnergy": "778844",
+      "hash": "0xe29318a98163ea887df66bcc875f616a0c0d8b181e6b87f661bd00552e2cc281",
+      "blockNumber": 32282137
+    },
+    {
+      "index": 1,
+      "campaignId": "0x6023d560b28c4e4f5794bb94928af1b2befb1e9fb2e97fb98f6fafd11e9a7f70",
+      "count": 50,
+      "totalEnergy": "792498",
+      "hash": "0x4c326e6bc1d59a348c1d5dd51f1ab9ec4219cca9731fc075d36951c911f90dc1",
+      "blockNumber": 32282186
+    },
+    {
+      "index": 2,
+      "campaignId": "0x07e80f8ddacd7fb3e60d46ab644cf0da41426838d31757d138e2d1b8e3732d63",
+      "count": 26,
+      "totalEnergy": "451849",
+      "hash": "0x0415180866b3f15b770ff3d55e1ad5908ec59e1d7a634f489dad9e8de692391a",
+      "blockNumber": 32282234
+    }
+  ],
+  "transactions": [
+    {
+      "label": "energy-migration-1",
+      "hash": "0xe29318a98163ea887df66bcc875f616a0c0d8b181e6b87f661bd00552e2cc281",
+      "blockNumber": 32282137
+    },
+    {
+      "label": "energy-migration-2",
+      "hash": "0x4c326e6bc1d59a348c1d5dd51f1ab9ec4219cca9731fc075d36951c911f90dc1",
+      "blockNumber": 32282186
+    },
+    {
+      "label": "energy-migration-3",
+      "hash": "0x0415180866b3f15b770ff3d55e1ad5908ec59e1d7a634f489dad9e8de692391a",
+      "blockNumber": 32282234
+    }
+  ],
+  "status": "complete",
+  "completedAtBlock": 32282285
+}

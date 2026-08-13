@@ -1,0 +1,102 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-07-29T15:23:52.928Z",
+  "specVersion": "dyoor-metadata-overworld-v3-halogen-silhouette",
+  "recordCount": 3333,
+  "validRecords": 3333,
+  "invalidRecords": 0,
+  "uniqueVisualSignatures": 3333,
+  "runtimeStrategy": "compose-selected-token-on-demand-from-normalized-metadata",
+  "status": "engineering-placeholder-until-directional-trait-layers-are-artist-approved",
+  "categoryTreatment": {
+    "Background": "selection-card/environment accent only; intentionally excluded from the overworld body silhouette",
+    "Droid": "body palette, shadow, highlight, and chrome treatment",
+    "Conditions": "damage, dirt, or S1-skin overlay",
+    "Stickers/Body art": "face or torso emblem",
+    "Clothes": "clothing silhouette, palette, trim, and torso details",
+    "Mouth": "mouth shape and held-item/drool details",
+    "Eyes": "eye shape, eyewear, glow, and laser details",
+    "Hat": "direction-aware headwear silhouette",
+    "Accessories": "neckwear, shoulder companion, bandana, or emblem",
+    "Accessories 2": "second independently composited accessory",
+    "Special": "highest-priority suit or mask overlay"
+  },
+  "distributions": {
+    "clothing": {
+      "hoodie": 398,
+      "tee": 1522,
+      "suit": 254,
+      "racer": 215,
+      "robe": 129,
+      "coat": 241,
+      "striped": 287,
+      "fur": 97,
+      "overalls": 40,
+      "none": 150
+    },
+    "eyes": {
+      "scared": 111,
+      "glow": 541,
+      "glasses": 865,
+      "default": 609,
+      "vr": 54,
+      "intense": 520,
+      "laser": 30,
+      "excited": 344,
+      "third-eye": 123,
+      "patch": 59,
+      "cyclops": 77
+    },
+    "mouth": {
+      "frown": 512,
+      "open": 768,
+      "default": 839,
+      "smoke": 400,
+      "grill": 103,
+      "drool": 304,
+      "kiss": 151,
+      "gold": 57,
+      "fangs": 47,
+      "braces": 62,
+      "tongue": 90
+    },
+    "hat": {
+      "cap": 1096,
+      "none": 1278,
+      "pirate": 136,
+      "helmet": 95,
+      "headband": 134,
+      "halo": 35,
+      "antenna": 203,
+      "horns": 35,
+      "crown": 58,
+      "mask": 82,
+      "party": 55,
+      "cowboy": 38,
+      "beanie": 88
+    },
+    "condition": {
+      "none": 3277,
+      "s1": 15,
+      "broken": 41
+    },
+    "special": {
+      "none": 3304,
+      "anime-mask": 8,
+      "gimp": 6,
+      "ski-mask": 11,
+      "space-suit": 3,
+      "deep-sea": 1
+    },
+    "accessory": {
+      "companion": 284,
+      "hive": 82,
+      "none": 2441,
+      "bandana": 331,
+      "chain": 142,
+      "bandaid": 106
+    }
+  },
+  "ownershipBoundary": "runtime composition does not grant selection; wallet mode still requires server-verified surviving ownership",
+  "invalidTokens": []
+}

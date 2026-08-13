@@ -1,0 +1,63 @@
+{
+  "schemaVersion": 1,
+  "scannedAt": "2026-07-28T15:17:15.762Z",
+  "expectedRecords": 3333,
+  "validRecords": 3333,
+  "invalidOrUnavailableRecords": 0,
+  "tokenRange": {
+    "minimum": 1,
+    "maximum": 3333
+  },
+  "cacheHits": 0,
+  "remoteReads": 3333,
+  "localReads": 0,
+  "metadataBaseUrl": "https://jade-efficient-beaver-697.mypinata.cloud/ipfs/bafybeidz7htb3digthznwvl4ytdpckq2q3d2ytgxtsie5bcp7a4lgtb2sq",
+  "canonicalDigest": "61a4102f2c3cdfd4d76ef1fc7bee9a63453f840be165fbbf14ed0ed98ec10232",
+  "categories": [
+    {
+      "traitType": "Background",
+      "uniqueValues": 22
+    },
+    {
+      "traitType": "Droid",
+      "uniqueValues": 19
+    },
+    {
+      "traitType": "Conditions",
+      "uniqueValues": 4
+    },
+    {
+      "traitType": "Stickers/Body art",
+      "uniqueValues": 6
+    },
+    {
+      "traitType": "Clothes",
+      "uniqueValues": 58
+    },
+    {
+      "traitType": "Mouth",
+      "uniqueValues": 31
+    },
+    {
+      "traitType": "Eyes",
+      "uniqueValues": 33
+    },
+    {
+      "traitType": "Hat",
+      "uniqueValues": 43
+    },
+    {
+      "traitType": "Accessories",
+      "uniqueValues": 13
+    },
+    {
+      "traitType": "Accessories 2",
+      "uniqueValues": 13
+    },
+    {
+      "traitType": "Special",
+      "uniqueValues": 7
+    }
+  ],
+  "failures": []
+}

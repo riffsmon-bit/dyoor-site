@@ -1,0 +1,118 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-08-12T13:52:45.375Z",
+  "mode": "read-only-mainnet-preflight",
+  "broadcastCapability": false,
+  "broadcastAttempted": false,
+  "privateKeyRead": false,
+  "chainId": 143,
+  "latestBlock": 95362095,
+  "collection": {
+    "address": "0x349D8eb480c92cF75371fbA5C6344A4d11b9103A",
+    "runtimeCodeHash": "0x2baa62e8fad053a2b59e10eb8dbfc9bbb8ef98c93a55a1114ff7776226ae15fd",
+    "proxy": false,
+    "name": "D.Y.O.O.R",
+    "symbol": "DYOOR",
+    "owner": "0xC7f55cE6A7dF9A79cc4A643a5081230F890c7AA6",
+    "treasury": "0x4D540f7D0Eb841c839334655C9f88313D750c6d5",
+    "totalSupply": 1038,
+    "totalMinted": 1096,
+    "burned": 58,
+    "maxSupply": 3333,
+    "metadataFrozen": false,
+    "sampleToken": {
+      "tokenId": 1,
+      "owner": "0x48477b50818b75f4b4A5C86D5fcbB35d3c0fb14D",
+      "tokenUri": "https://dyoor.netlify.app/api/metadata/1"
+    },
+    "holderCallSimulations": [
+      "approve",
+      "transferFrom",
+      "safeTransferFrom",
+      "burn"
+    ]
+  },
+  "controllerResolution": {
+    "policy": "DIRECT_ERC721_OWNER",
+    "season2BalanceAtAscension": 0,
+    "season1BalanceAtAscension": 503,
+    "conclusion": "Ascension custody is Season 1 only; do not apply its tokenId records to Season 2."
+  },
+  "energy": {
+    "address": "0x291a8cC0FCa08EBd64a0e4d67B4455d24e9E6767",
+    "ownerSampleRawBalance": "37649050729166666666656",
+    "decimals": 18,
+    "treatment": "non-transferable progression utility; no price assigned"
+  },
+  "approvedAssetCandidates": [
+    {
+      "address": "0x3bd359C1119dA7Da1D913D1C4D2B7c461115433A",
+      "name": "Wrapped MON",
+      "symbol": "WMON",
+      "decimals": 18
+    },
+    {
+      "address": "0x754704Bc059F8C67012fEd69BC8A327a5aafb603",
+      "name": "USDC",
+      "symbol": "USDC",
+      "decimals": 6
+    }
+  ],
+  "canonicalRegistry": {
+    "address": "0x000000006551c19487814612e58FE06813775758",
+    "present": false,
+    "runtimeCodeHash": null,
+    "deploymentFactory": "0x4e59b44847b379578588920cA78FbF26c0B4956C",
+    "reviewedDeploymentDataHash": "0xe3d6a2f96a1664247da7003f047a21fb2dfccd984ac985fbf4d1cae6ed0ad41a",
+    "expectedRuntimeCodeHash": "0xda1d5b06e579f9e42e59b00fbc22939896ecb38dc8830d40de0a2508fecd6735"
+  },
+  "artifacts": {
+    "implementation": {
+      "creationHash": "0x2a34579dfc6df3b5d6b2e305974c8c6eddecf2e4a93d643ff575ed2de3941ae1",
+      "runtimeHash": "0xb94e6bca188572015060c77b916cb21b28906ad88b62eeac8cddeb55ec6199b0",
+      "creationBytes": 5323,
+      "runtimeBytes": 5214,
+      "creationExecutableHash": "0x4c38f02a77dd8118223132168113d668fe237d8e49c7637e5d39d8aec6687740",
+      "runtimeTemplateHash": "0x8a2bfc57a2bbb21d855650c13e70bfdb3e14cc2fb528f8578a070ae5d8b669fe",
+      "verifiedRobinhoodV1LogicMatch": true
+    },
+    "facade": {
+      "creationHash": "0x925073987b0491bf8f3a2adbba10776fcfac2fafb783bc29139b6913df8b0215",
+      "runtimeHash": "0x80c3d64099222fe1d1975a1b7f606949d55268fdbd287a608f2a02f9665c6070",
+      "creationBytes": 2663,
+      "runtimeBytes": 2133
+    }
+  },
+  "gas": {
+    "canonicalRegistry": "179650",
+    "implementation": "1188142",
+    "facade": "542514",
+    "facadeEstimateSource": "Monad eth_estimateGas with reviewed runtime state overrides",
+    "total": "1910306",
+    "gasPriceWei": "202000000000",
+    "estimatedDeploymentMon": "0.385881812",
+    "recommendedThreeTimesBufferMon": "1.157645436"
+  },
+  "deploymentSequence": [
+    "Deploy exact canonical ERC-6551 registry transaction through Nick's Factory",
+    "Verify canonical registry runtime hash",
+    "Deploy immutable DroidAccountV1",
+    "Deploy immutable DroidAccountRegistry(ERC6551Registry, D.Y.O.O.R, implementation, 143, zero salt)",
+    "Verify both contracts and immutable wiring",
+    "Run token #1 counterfactual/read simulations",
+    "Configure addresses while Monad feature flags remain false",
+    "Run website smoke tests and an owner activation canary",
+    "Enable both Monad Droid feature gates only after explicit approval"
+  ],
+  "existingContractsUntouched": [
+    "0x349D8eb480c92cF75371fbA5C6344A4d11b9103A",
+    "0x291a8cC0FCa08EBd64a0e4d67B4455d24e9E6767",
+    "0x2C79c9E233fEa4b4DcFE6561D9209dc292cD932f",
+    "0xf9611226c1CcCcCa37951938d6f358D3d5106549"
+  ],
+  "blockersBeforeDeployment": [
+    "canonical ERC-6551 registry is not deployed",
+    "independent security review remains outstanding",
+    "production deployment approval has not been given"
+  ]
+}

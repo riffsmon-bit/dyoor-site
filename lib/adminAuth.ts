@@ -103,6 +103,7 @@ export async function verifyAdmin(
     payload?: unknown;
     route: string;
     windowMs?: number;
+    chainId?: number;
   },
 ) {
   const owner = adminOwnerWallet();
@@ -128,7 +129,8 @@ export async function verifyAdmin(
   if (!nonce || nonce.length < 8 || !signature) {
     throw Object.assign(new Error("Missing admin signature."), { status: 400 });
   }
-  if (authVersion !== ADMIN_AUTH_VERSION || chainId !== ADMIN_AUTH_CHAIN_ID) {
+  const expectedChainId = options.chainId ?? ADMIN_AUTH_CHAIN_ID;
+  if (authVersion !== ADMIN_AUTH_VERSION || chainId !== expectedChainId) {
     throw Object.assign(new Error("Unsupported admin authorization domain or chain."), { status: 401 });
   }
   if (!options.route.startsWith("/api/admin/") || signedRoute !== options.route) {
@@ -148,7 +150,8 @@ export async function verifyAdmin(
       nonce,
       action,
       route: options.route,
-      payloadHash: expectedPayloadHash,
+    payloadHash: expectedPayloadHash,
+    chainId: expectedChainId,
     }), signature));
   } catch {
     recovered = "";

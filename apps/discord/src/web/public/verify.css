@@ -1,0 +1,155 @@
+:root {
+  color-scheme: dark;
+  --night: #071526;
+  --deep-blue: #0b2f59;
+  --star-blue: #14558d;
+  --gold: #e0ad3e;
+  --pale-gold: #f1d27a;
+  --ink: #02070d;
+  --cream: #f4ead2;
+  font-family:
+    Inter,
+    ui-sans-serif,
+    system-ui,
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  min-height: 100vh;
+  margin: 0;
+  color: var(--cream);
+  background:
+    radial-gradient(circle at 18% 16%, rgba(224, 173, 62, 0.2) 0 2%, transparent 3%),
+    radial-gradient(circle at 82% 24%, rgba(20, 85, 141, 0.55), transparent 32%),
+    repeating-radial-gradient(
+      ellipse at 20% 15%,
+      transparent 0 22px,
+      rgba(224, 173, 62, 0.07) 24px 27px
+    ),
+    linear-gradient(145deg, var(--night), var(--ink));
+}
+
+.frame {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: 28px 16px;
+}
+
+.gallery-card {
+  width: min(620px, 100%);
+  padding: clamp(28px, 6vw, 58px);
+  border: 1px solid rgba(224, 173, 62, 0.52);
+  background: linear-gradient(155deg, rgba(11, 47, 89, 0.92), rgba(2, 7, 13, 0.97));
+  box-shadow:
+    0 28px 90px rgba(0, 0, 0, 0.58),
+    inset 0 0 0 7px rgba(7, 21, 38, 0.7);
+}
+
+.eyebrow,
+.network {
+  color: var(--pale-gold);
+  font-size: 0.72rem;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+}
+
+h1 {
+  margin: 12px 0 0;
+  color: var(--pale-gold);
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: clamp(2.7rem, 10vw, 5.3rem);
+  font-weight: 500;
+  line-height: 0.92;
+}
+
+.subtitle {
+  margin: 12px 0 0;
+  font-size: 1.15rem;
+  letter-spacing: 0.08em;
+}
+.rule {
+  width: 78px;
+  height: 3px;
+  margin: 28px 0;
+  background: var(--gold);
+}
+p {
+  line-height: 1.65;
+}
+.gas-note {
+  color: var(--pale-gold);
+  font-weight: 700;
+}
+
+.status,
+.wallet {
+  margin-top: 18px;
+  padding: 13px 15px;
+  border-left: 3px solid var(--star-blue);
+  background: rgba(0, 0, 0, 0.24);
+  overflow-wrap: anywhere;
+}
+
+.wallet {
+  color: var(--pale-gold);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+.actions {
+  display: grid;
+  gap: 10px;
+  margin-top: 24px;
+}
+
+button {
+  min-height: 48px;
+  border: 1px solid var(--gold);
+  color: var(--ink);
+  background: var(--gold);
+  font: inherit;
+  font-weight: 800;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+button:hover:not(:disabled) {
+  background: var(--pale-gold);
+}
+button:focus-visible {
+  outline: 3px solid white;
+  outline-offset: 3px;
+}
+button:disabled {
+  cursor: not-allowed;
+  opacity: 0.42;
+}
+button.quiet {
+  color: var(--cream);
+  background: transparent;
+  border-color: rgba(244, 234, 210, 0.35);
+}
+
+.warning {
+  margin-top: 28px;
+  padding: 16px;
+  border: 1px solid rgba(224, 173, 62, 0.32);
+  color: #ddd2bb;
+  font-size: 0.9rem;
+  line-height: 1.55;
+}
+.warning strong {
+  display: block;
+  color: var(--pale-gold);
+}
+.network {
+  margin-top: 22px;
+  text-align: center;
+}

@@ -1,0 +1,158 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-08-12T14:32:32.440Z",
+  "mode": "read-only-preflight",
+  "chainId": 4663,
+  "latestBlock": 34602847,
+  "feeData": {
+    "gasPriceWei": "51052000",
+    "maxFeePerGasWei": "101264000",
+    "maxPriorityFeePerGasWei": "0"
+  },
+  "existingContractsUntouched": {
+    "collection": {
+      "address": "0x8277F8126722B11D7b44C5C453bcF62A78AAFa25",
+      "hasCode": true,
+      "runtimeCodeHash": "0xb0fdec098263081f9f48307f5af421919d5393822e7e7581a01044aadf8e405e"
+    },
+    "energyBank": {
+      "address": "0x9bA9aa6c6A1CB04bc0477E90f4D93214c6b1D7c3",
+      "hasCode": true,
+      "runtimeCodeHash": "0xe898f1bacf9446b20eee643a6255a30743db063069d155846003614fd27fea68"
+    },
+    "rerollV2": {
+      "address": "0x6cf24a0119b7286ad88855Baa9CB220DF628FD11",
+      "hasCode": true,
+      "runtimeCodeHash": "0x00c92063cf39bb69101486b9b70df39c738f3d9e77f6e00547ea58613c580665"
+    },
+    "droidImplementationV1": {
+      "address": "0x0FFDc6ACb41D39ee7b535026202AA8fe0054F52A",
+      "hasCode": true,
+      "runtimeCodeHash": "0x79960eb6eafdb9d59a629dc2f221199ef05e432ef6a39894840fbaf841a134a5"
+    },
+    "droidResolverV1": {
+      "address": "0x190602Aa70199ec3623ad3bc97a10B534b26fE48",
+      "hasCode": true,
+      "runtimeCodeHash": "0x92c3ea93ff1fdaa33e8e04912eb96b5e89471d6fd7e35cdc4565b050f64f19da"
+    },
+    "canonicalErc6551Registry": {
+      "address": "0x000000006551c19487814612e58FE06813775758",
+      "hasCode": true,
+      "runtimeCodeHash": "0xda1d5b06e579f9e42e59b00fbc22939896ecb38dc8830d40de0a2508fecd6735"
+    }
+  },
+  "collectionState": {
+    "address": "0x8277F8126722B11D7b44C5C453bcF62A78AAFa25",
+    "totalSupply": 0,
+    "ownerReserveMinted": false,
+    "revealed": false,
+    "secondaryTradingEnabled": false,
+    "lifecycle": "deployed-pre-mint"
+  },
+  "droidAccountWiring": {
+    "canonicalRegistry": "0x000000006551c19487814612e58FE06813775758",
+    "implementation": "0x0FFDc6ACb41D39ee7b535026202AA8fe0054F52A",
+    "tokenContract": "0x8277F8126722B11D7b44C5C453bcF62A78AAFa25",
+    "tokenChainId": 4663,
+    "accountSalt": "0x0000000000000000000000000000000000000000000000000000000000000000"
+  },
+  "compiledContracts": [
+    {
+      "contractName": "HoodYoorDroidRegistry",
+      "sourceName": "src/economic/HoodYoorDroidRegistry.sol",
+      "compilerVersion": "0.8.24+commit.e11b9ed9",
+      "creationBytes": 9145,
+      "runtimeBytes": 8572,
+      "runtimeCodeHash": "0x0fbaaa973cc4f6f78e226beccc71bf11406376a25e9efe32eb7877f5de97e9e6",
+      "eip170WithinLimit": true
+    },
+    {
+      "contractName": "HoodYoorAssetRegistry",
+      "sourceName": "src/economic/HoodYoorAssetRegistry.sol",
+      "compilerVersion": "0.8.24+commit.e11b9ed9",
+      "creationBytes": 8254,
+      "runtimeBytes": 7512,
+      "runtimeCodeHash": "0x0ca3ab50658dbc135259107c7bd5ff4bbd2eee92ab13b6c539cec3ca9de9596e",
+      "eip170WithinLimit": true
+    },
+    {
+      "contractName": "HoodYoorRewardsDistributor",
+      "sourceName": "src/economic/HoodYoorRewardsDistributor.sol",
+      "compilerVersion": "0.8.24+commit.e11b9ed9",
+      "creationBytes": 11225,
+      "runtimeBytes": 10232,
+      "runtimeCodeHash": "0x04af2b8595073237e605ac440033bb72a9db54c81851501ad99a024a5a637f8d",
+      "eip170WithinLimit": true
+    },
+    {
+      "contractName": "HoodYoorRevenueVault",
+      "sourceName": "src/economic/HoodYoorRevenueVault.sol",
+      "compilerVersion": "0.8.24+commit.e11b9ed9",
+      "creationBytes": 12077,
+      "runtimeBytes": 10140,
+      "runtimeCodeHash": "0x5142e1488d8e3ac797183d345ef541c6bcf48520fd2e159342b50bce24156c8f",
+      "eip170WithinLimit": true
+    },
+    {
+      "contractName": "HoodYoorStrategyRegistry",
+      "sourceName": "src/economic/HoodYoorStrategyRegistry.sol",
+      "compilerVersion": "0.8.24+commit.e11b9ed9",
+      "creationBytes": 10124,
+      "runtimeBytes": 9174,
+      "runtimeCodeHash": "0x393a7bf6ada8a62392bc1b7f6f9e31d9b991486b15f331917086fc891ad9b261",
+      "eip170WithinLimit": true
+    },
+    {
+      "contractName": "HoodYoorAchievementRegistry",
+      "sourceName": "src/economic/HoodYoorAchievementRegistry.sol",
+      "compilerVersion": "0.8.24+commit.e11b9ed9",
+      "creationBytes": 7877,
+      "runtimeBytes": 6855,
+      "runtimeCodeHash": "0xa1ffcf88e66297ac2067eeb87400a4a6b802bfbfdfbbc3d2bc27b70239265036",
+      "eip170WithinLimit": true
+    }
+  ],
+  "configuredNewAddresses": {
+    "droidRegistry": {
+      "variable": "HOODYOOR_ECONOMY_DROID_REGISTRY_ADDRESS",
+      "address": "",
+      "status": "not-deployed"
+    },
+    "assetRegistry": {
+      "variable": "HOODYOOR_ASSET_REGISTRY_ADDRESS",
+      "address": "",
+      "status": "not-deployed"
+    },
+    "rewardsDistributor": {
+      "variable": "HOODYOOR_REWARDS_DISTRIBUTOR_ADDRESS",
+      "address": "",
+      "status": "not-deployed"
+    },
+    "revenueVault": {
+      "variable": "HOODYOOR_REVENUE_VAULT_ADDRESS",
+      "address": "",
+      "status": "not-deployed"
+    },
+    "strategyRegistry": {
+      "variable": "HOODYOOR_STRATEGY_REGISTRY_ADDRESS",
+      "address": "",
+      "status": "not-deployed"
+    },
+    "achievementRegistry": {
+      "variable": "HOODYOOR_ACHIEVEMENT_REGISTRY_ADDRESS",
+      "address": "",
+      "status": "not-deployed"
+    }
+  },
+  "hardDisabled": {
+    "rewards": true,
+    "strategies": true,
+    "sharedTreasury": true,
+    "crossChainBridge": true,
+    "droidAgent": true
+  },
+  "broadcastCapability": false,
+  "broadcastAttempted": false,
+  "privateKeyRead": false,
+  "result": "pass"
+}

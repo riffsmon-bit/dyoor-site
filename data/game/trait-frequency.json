@@ -1,0 +1,1273 @@
+{
+  "schemaVersion": 1,
+  "recordCount": 3333,
+  "categories": {
+    "Background": {
+      "Cynically Censored-Project M.A.D.": {
+        "count": 1,
+        "frequency": 0.00030003,
+        "rarityWeight": 3333
+      },
+      "Don't Look At The Lighthouse-Project M.A.D.": {
+        "count": 1,
+        "frequency": 0.00030003,
+        "rarityWeight": 3333
+      },
+      "Eye Sea U-Project M.A.D.": {
+        "count": 1,
+        "frequency": 0.00030003,
+        "rarityWeight": 3333
+      },
+      "Fxxk Crabs-Project M.A.D.": {
+        "count": 1,
+        "frequency": 0.00030003,
+        "rarityWeight": 3333
+      },
+      "Painfully Here-Project M.A.D.": {
+        "count": 1,
+        "frequency": 0.00030003,
+        "rarityWeight": 3333
+      },
+      "Sad Cook-Project M.A.D.": {
+        "count": 1,
+        "frequency": 0.00030003,
+        "rarityWeight": 3333
+      },
+      "Simovision-Project M.A.D.": {
+        "count": 1,
+        "frequency": 0.00030003,
+        "rarityWeight": 3333
+      },
+      "Soul Catcher-Project M.A.D.": {
+        "count": 1,
+        "frequency": 0.00030003,
+        "rarityWeight": 3333
+      },
+      "The Way-Project M.A.D.": {
+        "count": 1,
+        "frequency": 0.00030003,
+        "rarityWeight": 3333
+      },
+      "Tisumusem-Project M.A.D.": {
+        "count": 1,
+        "frequency": 0.00030003,
+        "rarityWeight": 3333
+      },
+      "Abtrastic": {
+        "count": 20,
+        "frequency": 0.0060006001,
+        "rarityWeight": 166.65
+      },
+      "Flash": {
+        "count": 20,
+        "frequency": 0.0060006001,
+        "rarityWeight": 166.65
+      },
+      "Green Grade": {
+        "count": 20,
+        "frequency": 0.0060006001,
+        "rarityWeight": 166.65
+      },
+      "Hawhyte": {
+        "count": 20,
+        "frequency": 0.0060006001,
+        "rarityWeight": 166.65
+      },
+      "Kewl": {
+        "count": 20,
+        "frequency": 0.0060006001,
+        "rarityWeight": 166.65
+      },
+      "Pernkple": {
+        "count": 20,
+        "frequency": 0.0060006001,
+        "rarityWeight": 166.65
+      },
+      "Sunset": {
+        "count": 20,
+        "frequency": 0.0060006001,
+        "rarityWeight": 166.65
+      },
+      "Pank": {
+        "count": 609,
+        "frequency": 0.1827182718,
+        "rarityWeight": 5.472906
+      },
+      "Goldish": {
+        "count": 624,
+        "frequency": 0.1872187219,
+        "rarityWeight": 5.341346
+      },
+      "Yorange": {
+        "count": 625,
+        "frequency": 0.1875187519,
+        "rarityWeight": 5.3328
+      },
+      "Grey": {
+        "count": 649,
+        "frequency": 0.1947194719,
+        "rarityWeight": 5.135593
+      },
+      "Kinda Blue": {
+        "count": 676,
+        "frequency": 0.202820282,
+        "rarityWeight": 4.930473
+      }
+    },
+    "Droid": {
+      "Dark Chrome": {
+        "count": 10,
+        "frequency": 0.0030003,
+        "rarityWeight": 333.3
+      },
+      "Gold Chrome": {
+        "count": 10,
+        "frequency": 0.0030003,
+        "rarityWeight": 333.3
+      },
+      "Green Chrome": {
+        "count": 10,
+        "frequency": 0.0030003,
+        "rarityWeight": 333.3
+      },
+      "Olive Chrome": {
+        "count": 10,
+        "frequency": 0.0030003,
+        "rarityWeight": 333.3
+      },
+      "Optimus (T3SLA Bot)": {
+        "count": 10,
+        "frequency": 0.0030003,
+        "rarityWeight": 333.3
+      },
+      "Rose Chrome": {
+        "count": 10,
+        "frequency": 0.0030003,
+        "rarityWeight": 333.3
+      },
+      "Whyte Chrome": {
+        "count": 10,
+        "frequency": 0.0030003,
+        "rarityWeight": 333.3
+      },
+      "Pank": {
+        "count": 31,
+        "frequency": 0.0093009301,
+        "rarityWeight": 107.516129
+      },
+      "Gold": {
+        "count": 63,
+        "frequency": 0.0189018902,
+        "rarityWeight": 52.904762
+      },
+      "Lime Green": {
+        "count": 175,
+        "frequency": 0.0525052505,
+        "rarityWeight": 19.045714
+      },
+      "Olive": {
+        "count": 207,
+        "frequency": 0.0621062106,
+        "rarityWeight": 16.101449
+      },
+      "Purple": {
+        "count": 251,
+        "frequency": 0.0753075308,
+        "rarityWeight": 13.278884
+      },
+      "Black": {
+        "count": 319,
+        "frequency": 0.095709571,
+        "rarityWeight": 10.448276
+      },
+      "Green": {
+        "count": 340,
+        "frequency": 0.102010201,
+        "rarityWeight": 9.802941
+      },
+      "Orange": {
+        "count": 346,
+        "frequency": 0.103810381,
+        "rarityWeight": 9.632948
+      },
+      "Red": {
+        "count": 360,
+        "frequency": 0.1080108011,
+        "rarityWeight": 9.258333
+      },
+      "Blue": {
+        "count": 383,
+        "frequency": 0.1149114911,
+        "rarityWeight": 8.70235
+      },
+      "Yellow": {
+        "count": 390,
+        "frequency": 0.1170117012,
+        "rarityWeight": 8.546154
+      },
+      "White": {
+        "count": 398,
+        "frequency": 0.1194119412,
+        "rarityWeight": 8.374372
+      }
+    },
+    "Conditions": {
+      "S1 Skin": {
+        "count": 15,
+        "frequency": 0.00450045,
+        "rarityWeight": 222.2
+      },
+      "Dirty Broken'er": {
+        "count": 19,
+        "frequency": 0.0057005701,
+        "rarityWeight": 175.421053
+      },
+      "Dirty-Broken": {
+        "count": 22,
+        "frequency": 0.0066006601,
+        "rarityWeight": 151.5
+      },
+      "None": {
+        "count": 3277,
+        "frequency": 0.9831983198,
+        "rarityWeight": 1.017089
+      }
+    },
+    "Stickers/Body art": {
+      "143 Face Sticker": {
+        "count": 25,
+        "frequency": 0.0075007501,
+        "rarityWeight": 133.32
+      },
+      "Chog Sticker": {
+        "count": 28,
+        "frequency": 0.0084008401,
+        "rarityWeight": 119.035714
+      },
+      "143 Chest Sticker": {
+        "count": 29,
+        "frequency": 0.0087008701,
+        "rarityWeight": 114.931034
+      },
+      "LeverUp sticker": {
+        "count": 32,
+        "frequency": 0.0096009601,
+        "rarityWeight": 104.15625
+      },
+      "DYOOR Chest Tat": {
+        "count": 110,
+        "frequency": 0.0330033003,
+        "rarityWeight": 30.3
+      },
+      "None": {
+        "count": 3109,
+        "frequency": 0.9327932793,
+        "rarityWeight": 1.072049
+      }
+    },
+    "Clothes": {
+      "DYOOR Red Gold Text Hoodie": {
+        "count": 16,
+        "frequency": 0.00480048,
+        "rarityWeight": 208.3125
+      },
+      "DYOOR Blue Hoodie": {
+        "count": 17,
+        "frequency": 0.0051005101,
+        "rarityWeight": 196.058824
+      },
+      "Tuxedo": {
+        "count": 17,
+        "frequency": 0.0051005101,
+        "rarityWeight": 196.058824
+      },
+      "DYOOR Black Gold Text Hoodie": {
+        "count": 19,
+        "frequency": 0.0057005701,
+        "rarityWeight": 175.421053
+      },
+      "Hawaiian Shirt": {
+        "count": 19,
+        "frequency": 0.0057005701,
+        "rarityWeight": 175.421053
+      },
+      "Torn Tee": {
+        "count": 19,
+        "frequency": 0.0057005701,
+        "rarityWeight": 175.421053
+      },
+      "Bartman Shirt n Cape": {
+        "count": 20,
+        "frequency": 0.0060006001,
+        "rarityWeight": 166.65
+      },
+      "Luffy": {
+        "count": 20,
+        "frequency": 0.0060006001,
+        "rarityWeight": 166.65
+      },
+      "Caveman Leotard": {
+        "count": 22,
+        "frequency": 0.0066006601,
+        "rarityWeight": 151.5
+      },
+      "Convict Shirt": {
+        "count": 23,
+        "frequency": 0.0069006901,
+        "rarityWeight": 144.913043
+      },
+      "R3tard Tee": {
+        "count": 23,
+        "frequency": 0.0069006901,
+        "rarityWeight": 144.913043
+      },
+      "Jailhouse Stripes Shirt": {
+        "count": 26,
+        "frequency": 0.0078007801,
+        "rarityWeight": 128.192308
+      },
+      "Beige Hoodie": {
+        "count": 28,
+        "frequency": 0.0084008401,
+        "rarityWeight": 119.035714
+      },
+      "Fur Coat Gold": {
+        "count": 29,
+        "frequency": 0.0087008701,
+        "rarityWeight": 114.931034
+      },
+      "Leather Jacket Torn Tee": {
+        "count": 29,
+        "frequency": 0.0087008701,
+        "rarityWeight": 114.931034
+      },
+      "DYOOR Black Hoodie": {
+        "count": 30,
+        "frequency": 0.0090009001,
+        "rarityWeight": 111.1
+      },
+      "Black N White Tee 2": {
+        "count": 31,
+        "frequency": 0.0093009301,
+        "rarityWeight": 107.516129
+      },
+      "Dictator Jacket": {
+        "count": 31,
+        "frequency": 0.0093009301,
+        "rarityWeight": 107.516129
+      },
+      "Emo Tee": {
+        "count": 31,
+        "frequency": 0.0093009301,
+        "rarityWeight": 107.516129
+      },
+      "Fur Coat Purple": {
+        "count": 31,
+        "frequency": 0.0093009301,
+        "rarityWeight": 107.516129
+      },
+      "King's Robe 2": {
+        "count": 31,
+        "frequency": 0.0093009301,
+        "rarityWeight": 107.516129
+      },
+      "Blue Racer": {
+        "count": 33,
+        "frequency": 0.0099009901,
+        "rarityWeight": 101
+      },
+      "King's Robe": {
+        "count": 36,
+        "frequency": 0.0108010801,
+        "rarityWeight": 92.583333
+      },
+      "Fur Coat Pink": {
+        "count": 37,
+        "frequency": 0.0111011101,
+        "rarityWeight": 90.081081
+      },
+      "Torn Black Tee": {
+        "count": 39,
+        "frequency": 0.0117011701,
+        "rarityWeight": 85.461538
+      },
+      "Overalls": {
+        "count": 40,
+        "frequency": 0.0120012001,
+        "rarityWeight": 83.325
+      },
+      "Orange Plaid": {
+        "count": 41,
+        "frequency": 0.0123012301,
+        "rarityWeight": 81.292683
+      },
+      "Emo Tank": {
+        "count": 43,
+        "frequency": 0.0129012901,
+        "rarityWeight": 77.511628
+      },
+      "Durag Stays On Tank": {
+        "count": 47,
+        "frequency": 0.0141014101,
+        "rarityWeight": 70.914894
+      },
+      "MESH Tee": {
+        "count": 47,
+        "frequency": 0.0141014101,
+        "rarityWeight": 70.914894
+      },
+      "GiftGoats Tee": {
+        "count": 49,
+        "frequency": 0.0147014701,
+        "rarityWeight": 68.020408
+      },
+      "DWO White": {
+        "count": 51,
+        "frequency": 0.0153015302,
+        "rarityWeight": 65.352941
+      },
+      "White Shirt W:Tie": {
+        "count": 52,
+        "frequency": 0.0156015602,
+        "rarityWeight": 64.096154
+      },
+      "PAMPAM Tee": {
+        "count": 54,
+        "frequency": 0.0162016202,
+        "rarityWeight": 61.722222
+      },
+      "BuildAnything Tee": {
+        "count": 61,
+        "frequency": 0.0183018302,
+        "rarityWeight": 54.639344
+      },
+      "Neverland Tee": {
+        "count": 66,
+        "frequency": 0.0198019802,
+        "rarityWeight": 50.5
+      },
+      "Black Tee": {
+        "count": 69,
+        "frequency": 0.0207020702,
+        "rarityWeight": 48.304348
+      },
+      "Black N White Tee": {
+        "count": 71,
+        "frequency": 0.0213021302,
+        "rarityWeight": 46.943662
+      },
+      "Kuru White Tee": {
+        "count": 71,
+        "frequency": 0.0213021302,
+        "rarityWeight": 46.943662
+      },
+      "White Tee": {
+        "count": 71,
+        "frequency": 0.0213021302,
+        "rarityWeight": 46.943662
+      },
+      "Leather Jacket White Shirt W:Tie": {
+        "count": 74,
+        "frequency": 0.0222022202,
+        "rarityWeight": 45.040541
+      },
+      "Black Racer": {
+        "count": 81,
+        "frequency": 0.0243024302,
+        "rarityWeight": 41.148148
+      },
+      "Baby Blue Tee": {
+        "count": 84,
+        "frequency": 0.0252025203,
+        "rarityWeight": 39.678571
+      },
+      "Blue Hoodie": {
+        "count": 85,
+        "frequency": 0.0255025503,
+        "rarityWeight": 39.211765
+      },
+      "Pink Plaid": {
+        "count": 86,
+        "frequency": 0.0258025803,
+        "rarityWeight": 38.755814
+      },
+      "Lab Coat": {
+        "count": 89,
+        "frequency": 0.0267026703,
+        "rarityWeight": 37.449438
+      },
+      "Leather Jacket": {
+        "count": 92,
+        "frequency": 0.0276027603,
+        "rarityWeight": 36.228261
+      },
+      "Black Hoodie": {
+        "count": 94,
+        "frequency": 0.0282028203,
+        "rarityWeight": 35.457447
+      },
+      "McDyoornalds": {
+        "count": 101,
+        "frequency": 0.0303030303,
+        "rarityWeight": 33
+      },
+      "Orange Racer": {
+        "count": 101,
+        "frequency": 0.0303030303,
+        "rarityWeight": 33
+      },
+      "Grey Tee": {
+        "count": 104,
+        "frequency": 0.0312031203,
+        "rarityWeight": 32.048077
+      },
+      "Red Hoodie": {
+        "count": 109,
+        "frequency": 0.0327032703,
+        "rarityWeight": 30.577982
+      },
+      "Red Plaid": {
+        "count": 111,
+        "frequency": 0.0333033303,
+        "rarityWeight": 30.027027
+      },
+      "Tech Bro": {
+        "count": 111,
+        "frequency": 0.0333033303,
+        "rarityWeight": 30.027027
+      },
+      "DWO Black 2": {
+        "count": 114,
+        "frequency": 0.0342034203,
+        "rarityWeight": 29.236842
+      },
+      "Kuru Tee": {
+        "count": 127,
+        "frequency": 0.0381038104,
+        "rarityWeight": 26.244094
+      },
+      "DWO Black": {
+        "count": 130,
+        "frequency": 0.0390039004,
+        "rarityWeight": 25.638462
+      },
+      "None": {
+        "count": 150,
+        "frequency": 0.0450045005,
+        "rarityWeight": 22.22
+      }
+    },
+    "Mouth": {
+      "Diamond Grill": {
+        "count": 38,
+        "frequency": 0.0114011401,
+        "rarityWeight": 87.710526
+      },
+      "Vamp Fangs": {
+        "count": 47,
+        "frequency": 0.0141014101,
+        "rarityWeight": 70.914894
+      },
+      "Party Horn Mouth": {
+        "count": 48,
+        "frequency": 0.0144014401,
+        "rarityWeight": 69.4375
+      },
+      "AHHHH": {
+        "count": 49,
+        "frequency": 0.0147014701,
+        "rarityWeight": 68.020408
+      },
+      "Pepe Mouth": {
+        "count": 54,
+        "frequency": 0.0162016202,
+        "rarityWeight": 61.722222
+      },
+      "Cigar Mouth": {
+        "count": 55,
+        "frequency": 0.0165016502,
+        "rarityWeight": 60.6
+      },
+      "Pipe": {
+        "count": 55,
+        "frequency": 0.0165016502,
+        "rarityWeight": 60.6
+      },
+      "Gold Bar": {
+        "count": 57,
+        "frequency": 0.0171017102,
+        "rarityWeight": 58.473684
+      },
+      "Braces": {
+        "count": 62,
+        "frequency": 0.0186018602,
+        "rarityWeight": 53.758065
+      },
+      "Deep Thought": {
+        "count": 63,
+        "frequency": 0.0189018902,
+        "rarityWeight": 52.904762
+      },
+      "Emo Sheesh": {
+        "count": 63,
+        "frequency": 0.0189018902,
+        "rarityWeight": 52.904762
+      },
+      "Gold Grill": {
+        "count": 65,
+        "frequency": 0.0195019502,
+        "rarityWeight": 51.276923
+      },
+      "AHHHH Flames": {
+        "count": 66,
+        "frequency": 0.0198019802,
+        "rarityWeight": 50.5
+      },
+      "Emo Whatever": {
+        "count": 68,
+        "frequency": 0.0204020402,
+        "rarityWeight": 49.014706
+      },
+      "Meh": {
+        "count": 72,
+        "frequency": 0.0216021602,
+        "rarityWeight": 46.291667
+      },
+      "Errrh": {
+        "count": 73,
+        "frequency": 0.0219021902,
+        "rarityWeight": 45.657534
+      },
+      "Joint Mouth": {
+        "count": 73,
+        "frequency": 0.0219021902,
+        "rarityWeight": 45.657534
+      },
+      "Displeased toothpick": {
+        "count": 75,
+        "frequency": 0.0225022502,
+        "rarityWeight": 44.44
+      },
+      "AHHH Scared": {
+        "count": 76,
+        "frequency": 0.0228022802,
+        "rarityWeight": 43.855263
+      },
+      "AHHH Tongue": {
+        "count": 90,
+        "frequency": 0.0270027003,
+        "rarityWeight": 37.033333
+      },
+      "Waaaat": {
+        "count": 125,
+        "frequency": 0.0375037504,
+        "rarityWeight": 26.664
+      },
+      "Meh Cigarette": {
+        "count": 142,
+        "frequency": 0.0426042604,
+        "rarityWeight": 23.471831
+      },
+      "Drool": {
+        "count": 146,
+        "frequency": 0.0438043804,
+        "rarityWeight": 22.828767
+      },
+      "Muah": {
+        "count": 151,
+        "frequency": 0.0453045305,
+        "rarityWeight": 22.072848
+      },
+      "Toothless Drool": {
+        "count": 158,
+        "frequency": 0.0474047405,
+        "rarityWeight": 21.094937
+      },
+      "Ayeyo": {
+        "count": 168,
+        "frequency": 0.0504050405,
+        "rarityWeight": 19.839286
+      },
+      "Displeased": {
+        "count": 173,
+        "frequency": 0.0519051905,
+        "rarityWeight": 19.265896
+      },
+      "Ayeee": {
+        "count": 182,
+        "frequency": 0.0546054605,
+        "rarityWeight": 18.313187
+      },
+      "Resting DYOOR mouth": {
+        "count": 192,
+        "frequency": 0.0576057606,
+        "rarityWeight": 17.359375
+      },
+      "MMMMKay": {
+        "count": 203,
+        "frequency": 0.0609060906,
+        "rarityWeight": 16.418719
+      },
+      "None": {
+        "count": 444,
+        "frequency": 0.1332133213,
+        "rarityWeight": 7.506757
+      }
+    },
+    "Eyes": {
+      "Abyss Laser": {
+        "count": 10,
+        "frequency": 0.0030003,
+        "rarityWeight": 333.3
+      },
+      "Lazy Laser": {
+        "count": 10,
+        "frequency": 0.0030003,
+        "rarityWeight": 333.3
+      },
+      "Radiation Glow (Red)Laser": {
+        "count": 10,
+        "frequency": 0.0030003,
+        "rarityWeight": 333.3
+      },
+      "None": {
+        "count": 25,
+        "frequency": 0.0075007501,
+        "rarityWeight": 133.32
+      },
+      "Pit Viper": {
+        "count": 45,
+        "frequency": 0.0135013501,
+        "rarityWeight": 74.066667
+      },
+      "Monad Specs Gold": {
+        "count": 49,
+        "frequency": 0.0147014701,
+        "rarityWeight": 68.020408
+      },
+      "Build Anything Glasses": {
+        "count": 53,
+        "frequency": 0.0159015902,
+        "rarityWeight": 62.886792
+      },
+      "VR Headset": {
+        "count": 54,
+        "frequency": 0.0162016202,
+        "rarityWeight": 61.722222
+      },
+      "Googley Eyes": {
+        "count": 57,
+        "frequency": 0.0171017102,
+        "rarityWeight": 58.473684
+      },
+      "Monad Specs Black": {
+        "count": 58,
+        "frequency": 0.0174017402,
+        "rarityWeight": 57.465517
+      },
+      "Eye Patch": {
+        "count": 59,
+        "frequency": 0.0177017702,
+        "rarityWeight": 56.491525
+      },
+      "Snake Eyes": {
+        "count": 59,
+        "frequency": 0.0177017702,
+        "rarityWeight": 56.491525
+      },
+      "Got em": {
+        "count": 60,
+        "frequency": 0.0180018002,
+        "rarityWeight": 55.55
+      },
+      "Cyclops": {
+        "count": 77,
+        "frequency": 0.0231023102,
+        "rarityWeight": 43.285714
+      },
+      "Radiation Glow (Red)": {
+        "count": 80,
+        "frequency": 0.0240024002,
+        "rarityWeight": 41.6625
+      },
+      "Tri-Specs": {
+        "count": 84,
+        "frequency": 0.0252025203,
+        "rarityWeight": 39.678571
+      },
+      "Zombie": {
+        "count": 86,
+        "frequency": 0.0258025803,
+        "rarityWeight": 38.755814
+      },
+      "I Know What You Did": {
+        "count": 87,
+        "frequency": 0.0261026103,
+        "rarityWeight": 38.310345
+      },
+      "Point Dexter Glasses Eyes": {
+        "count": 89,
+        "frequency": 0.0267026703,
+        "rarityWeight": 37.449438
+      },
+      "Emo Eyeliner": {
+        "count": 92,
+        "frequency": 0.0276027603,
+        "rarityWeight": 36.228261
+      },
+      "Scared": {
+        "count": 111,
+        "frequency": 0.0333033303,
+        "rarityWeight": 30.027027
+      },
+      "Intense": {
+        "count": 116,
+        "frequency": 0.0348034803,
+        "rarityWeight": 28.732759
+      },
+      "Third Eye": {
+        "count": 123,
+        "frequency": 0.0369036904,
+        "rarityWeight": 27.097561
+      },
+      "Neverland Specs": {
+        "count": 141,
+        "frequency": 0.0423042304,
+        "rarityWeight": 23.638298
+      },
+      "HMMMHM": {
+        "count": 144,
+        "frequency": 0.0432043204,
+        "rarityWeight": 23.145833
+      },
+      "Sunglasses": {
+        "count": 161,
+        "frequency": 0.0483048305,
+        "rarityWeight": 20.701863
+      },
+      "Sly": {
+        "count": 166,
+        "frequency": 0.0498049805,
+        "rarityWeight": 20.078313
+      },
+      "Abyss": {
+        "count": 179,
+        "frequency": 0.0537053705,
+        "rarityWeight": 18.620112
+      },
+      "Ricky V": {
+        "count": 185,
+        "frequency": 0.0555055506,
+        "rarityWeight": 18.016216
+      },
+      "Radiation Glow": {
+        "count": 196,
+        "frequency": 0.0588058806,
+        "rarityWeight": 17.005102
+      },
+      "Un Enthused": {
+        "count": 219,
+        "frequency": 0.0657065707,
+        "rarityWeight": 15.219178
+      },
+      "Okay": {
+        "count": 221,
+        "frequency": 0.0663066307,
+        "rarityWeight": 15.081448
+      },
+      "Excited": {
+        "count": 227,
+        "frequency": 0.0681068107,
+        "rarityWeight": 14.682819
+      }
+    },
+    "Hat": {
+      "BOB Mask": {
+        "count": 4,
+        "frequency": 0.00120012,
+        "rarityWeight": 833.25
+      },
+      "Sealuminati Mask": {
+        "count": 4,
+        "frequency": 0.00120012,
+        "rarityWeight": 833.25
+      },
+      "Salmonad Mask": {
+        "count": 5,
+        "frequency": 0.00150015,
+        "rarityWeight": 666.6
+      },
+      "PamPam": {
+        "count": 10,
+        "frequency": 0.0030003,
+        "rarityWeight": 333.3
+      },
+      "Pink Shystie": {
+        "count": 11,
+        "frequency": 0.00330033,
+        "rarityWeight": 303
+      },
+      "Black Shystie": {
+        "count": 13,
+        "frequency": 0.00390039,
+        "rarityWeight": 256.384615
+      },
+      "Emonad": {
+        "count": 15,
+        "frequency": 0.00450045,
+        "rarityWeight": 222.2
+      },
+      "Shramp Beanie": {
+        "count": 16,
+        "frequency": 0.00480048,
+        "rarityWeight": 208.3125
+      },
+      "Jailhouse Stripes Hat": {
+        "count": 18,
+        "frequency": 0.0054005401,
+        "rarityWeight": 185.166667
+      },
+      "Bartman": {
+        "count": 20,
+        "frequency": 0.0060006001,
+        "rarityWeight": 166.65
+      },
+      "Luffy": {
+        "count": 20,
+        "frequency": 0.0060006001,
+        "rarityWeight": 166.65
+      },
+      "Beanie Red": {
+        "count": 21,
+        "frequency": 0.0063006301,
+        "rarityWeight": 158.714286
+      },
+      "DWO Black Cap": {
+        "count": 22,
+        "frequency": 0.0066006601,
+        "rarityWeight": 151.5
+      },
+      "Dunce Hat": {
+        "count": 23,
+        "frequency": 0.0069006901,
+        "rarityWeight": 144.913043
+      },
+      "Casino": {
+        "count": 24,
+        "frequency": 0.0072007201,
+        "rarityWeight": 138.875
+      },
+      "Durag": {
+        "count": 24,
+        "frequency": 0.0072007201,
+        "rarityWeight": 138.875
+      },
+      "Pirate Hat": {
+        "count": 24,
+        "frequency": 0.0072007201,
+        "rarityWeight": 138.875
+      },
+      "Glowing Antenna": {
+        "count": 25,
+        "frequency": 0.0075007501,
+        "rarityWeight": 133.32
+      },
+      "Burning Chog": {
+        "count": 27,
+        "frequency": 0.0081008101,
+        "rarityWeight": 123.444444
+      },
+      "Wormhole": {
+        "count": 29,
+        "frequency": 0.0087008701,
+        "rarityWeight": 114.931034
+      },
+      "Alternative": {
+        "count": 31,
+        "frequency": 0.0093009301,
+        "rarityWeight": 107.516129
+      },
+      "Party Hat": {
+        "count": 32,
+        "frequency": 0.0096009601,
+        "rarityWeight": 104.15625
+      },
+      "Black N White Cap": {
+        "count": 33,
+        "frequency": 0.0099009901,
+        "rarityWeight": 101
+      },
+      "Crown": {
+        "count": 34,
+        "frequency": 0.0102010201,
+        "rarityWeight": 98.029412
+      },
+      "Halo": {
+        "count": 35,
+        "frequency": 0.0105010501,
+        "rarityWeight": 95.228571
+      },
+      "Horns": {
+        "count": 35,
+        "frequency": 0.0105010501,
+        "rarityWeight": 95.228571
+      },
+      "Cowboy": {
+        "count": 38,
+        "frequency": 0.0114011401,
+        "rarityWeight": 87.710526
+      },
+      "Black Beanie": {
+        "count": 51,
+        "frequency": 0.0153015302,
+        "rarityWeight": 65.352941
+      },
+      "DYOOR Flipped Brim": {
+        "count": 72,
+        "frequency": 0.0216021602,
+        "rarityWeight": 46.291667
+      },
+      "Sweatband": {
+        "count": 79,
+        "frequency": 0.0237023702,
+        "rarityWeight": 42.189873
+      },
+      "Black Cap": {
+        "count": 85,
+        "frequency": 0.0255025503,
+        "rarityWeight": 39.211765
+      },
+      "Monad Cap Black": {
+        "count": 85,
+        "frequency": 0.0255025503,
+        "rarityWeight": 39.211765
+      },
+      "DYOOR Black Cap": {
+        "count": 93,
+        "frequency": 0.0279027903,
+        "rarityWeight": 35.83871
+      },
+      "Tech bro": {
+        "count": 93,
+        "frequency": 0.0279027903,
+        "rarityWeight": 35.83871
+      },
+      "Construction": {
+        "count": 95,
+        "frequency": 0.0285028503,
+        "rarityWeight": 35.084211
+      },
+      "Monad Cap": {
+        "count": 100,
+        "frequency": 0.0300030003,
+        "rarityWeight": 33.33
+      },
+      "Gotta Catchem Cap": {
+        "count": 105,
+        "frequency": 0.0315031503,
+        "rarityWeight": 31.742857
+      },
+      "McDYOORs": {
+        "count": 107,
+        "frequency": 0.0321032103,
+        "rarityWeight": 31.149533
+      },
+      "Captain Hat": {
+        "count": 112,
+        "frequency": 0.0336033603,
+        "rarityWeight": 29.758929
+      },
+      "DYOOR White Cap": {
+        "count": 116,
+        "frequency": 0.0348034803,
+        "rarityWeight": 28.732759
+      },
+      "Antenna": {
+        "count": 122,
+        "frequency": 0.0366036604,
+        "rarityWeight": 27.319672
+      },
+      "Black Ball Cap": {
+        "count": 147,
+        "frequency": 0.0441044104,
+        "rarityWeight": 22.673469
+      },
+      "None": {
+        "count": 1278,
+        "frequency": 0.3834383438,
+        "rarityWeight": 2.607981
+      }
+    },
+    "Accessories": {
+      "Shramp": {
+        "count": 12,
+        "frequency": 0.00360036,
+        "rarityWeight": 277.75
+      },
+      "10KSquad": {
+        "count": 17,
+        "frequency": 0.0051005101,
+        "rarityWeight": 196.058824
+      },
+      "BOB-chain": {
+        "count": 18,
+        "frequency": 0.0054005401,
+        "rarityWeight": 185.166667
+      },
+      "Sealuminati chain": {
+        "count": 18,
+        "frequency": 0.0054005401,
+        "rarityWeight": 185.166667
+      },
+      "Mouch": {
+        "count": 24,
+        "frequency": 0.0072007201,
+        "rarityWeight": 138.875
+      },
+      "Choker Necklace": {
+        "count": 34,
+        "frequency": 0.0102010201,
+        "rarityWeight": 98.029412
+      },
+      "MESH Bandanna": {
+        "count": 44,
+        "frequency": 0.0132013201,
+        "rarityWeight": 75.75
+      },
+      "The Hive": {
+        "count": 44,
+        "frequency": 0.0132013201,
+        "rarityWeight": 75.75
+      },
+      "Molandak": {
+        "count": 51,
+        "frequency": 0.0153015302,
+        "rarityWeight": 65.352941
+      },
+      "Bandaid": {
+        "count": 65,
+        "frequency": 0.0195019502,
+        "rarityWeight": 51.276923
+      },
+      "Bandana Black": {
+        "count": 90,
+        "frequency": 0.0270027003,
+        "rarityWeight": 37.033333
+      },
+      "Bandana Pink": {
+        "count": 99,
+        "frequency": 0.0297029703,
+        "rarityWeight": 33.666667
+      },
+      "None": {
+        "count": 2817,
+        "frequency": 0.8451845185,
+        "rarityWeight": 1.183174
+      }
+    },
+    "Accessories 2": {
+      "10KSquad": {
+        "count": 6,
+        "frequency": 0.00180018,
+        "rarityWeight": 555.5
+      },
+      "Shramp": {
+        "count": 11,
+        "frequency": 0.00330033,
+        "rarityWeight": 303
+      },
+      "BOB-chain": {
+        "count": 18,
+        "frequency": 0.0054005401,
+        "rarityWeight": 185.166667
+      },
+      "Sealuminati chain": {
+        "count": 18,
+        "frequency": 0.0054005401,
+        "rarityWeight": 185.166667
+      },
+      "Mouch": {
+        "count": 22,
+        "frequency": 0.0066006601,
+        "rarityWeight": 151.5
+      },
+      "Choker Necklace": {
+        "count": 36,
+        "frequency": 0.0108010801,
+        "rarityWeight": 92.583333
+      },
+      "The Hive": {
+        "count": 38,
+        "frequency": 0.0114011401,
+        "rarityWeight": 87.710526
+      },
+      "Bandaid": {
+        "count": 41,
+        "frequency": 0.0123012301,
+        "rarityWeight": 81.292683
+      },
+      "MESH Bandanna": {
+        "count": 44,
+        "frequency": 0.0132013201,
+        "rarityWeight": 75.75
+      },
+      "Molandak": {
+        "count": 53,
+        "frequency": 0.0159015902,
+        "rarityWeight": 62.886792
+      },
+      "Bandana Black": {
+        "count": 65,
+        "frequency": 0.0195019502,
+        "rarityWeight": 51.276923
+      },
+      "Bandana Pink": {
+        "count": 77,
+        "frequency": 0.0231023102,
+        "rarityWeight": 43.285714
+      },
+      "None": {
+        "count": 2904,
+        "frequency": 0.8712871287,
+        "rarityWeight": 1.147727
+      }
+    },
+    "Special": {
+      "DeepSea Bruh": {
+        "count": 1,
+        "frequency": 0.00030003,
+        "rarityWeight": 3333
+      },
+      "Space Suit": {
+        "count": 3,
+        "frequency": 0.00090009,
+        "rarityWeight": 1111
+      },
+      "Green Ski Mask Laser": {
+        "count": 4,
+        "frequency": 0.00120012,
+        "rarityWeight": 833.25
+      },
+      "Gimp": {
+        "count": 6,
+        "frequency": 0.00180018,
+        "rarityWeight": 555.5
+      },
+      "Pink Ski Mask Laser": {
+        "count": 7,
+        "frequency": 0.00210021,
+        "rarityWeight": 476.142857
+      },
+      "Anime Mask": {
+        "count": 8,
+        "frequency": 0.00240024,
+        "rarityWeight": 416.625
+      },
+      "None": {
+        "count": 3304,
+        "frequency": 0.9912991299,
+        "rarityWeight": 1.008777
+      }
+    }
+  }
+}

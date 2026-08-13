@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ReactNode, useState } from "react";
 import dyoorLogo from "@/assets/dyoor-logo.png";
 import { monadMainnet } from "@/lib/monad";
+import { robinhoodMainnet, robinhoodTestnet } from "@/lib/robinhood-chain";
 import { WalletServiceProvider } from "@/providers/WalletServiceProvider";
 
 const PRIVY_WALLET_LIST: WalletListEntry[] = [
@@ -48,7 +49,7 @@ export function AppProviders({ children }: { children: ReactNode }) {
           disableAllExternalWallets: false,
         },
         loginMethods: ["wallet"],
-        supportedChains: [monadMainnet],
+        supportedChains: [monadMainnet, robinhoodMainnet, robinhoodTestnet],
       }}
     >
       {app}

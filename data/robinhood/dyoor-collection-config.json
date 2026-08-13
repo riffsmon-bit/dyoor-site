@@ -1,0 +1,127 @@
+{
+  "schema": "dyoor-robinhood-collection-v1",
+  "name": "HoodYØØR",
+  "targetChain": {
+    "name": "Robinhood Chain",
+    "chainId": 4663
+  },
+  "maxSupply": 3333,
+  "owner": "0xC7f55cE6A7dF9A79cc4A643a5081230F890c7AA6",
+  "treasury": "0xC7f55cE6A7dF9A79cc4A643a5081230F890c7AA6",
+  "royalty": {
+    "receiver": "0xC7f55cE6A7dF9A79cc4A643a5081230F890c7AA6",
+    "basisPoints": 300,
+    "percentage": 3
+  },
+  "ownerReserve": {
+    "allocation": 150,
+    "recipientPolicy": "current-collection-owner",
+    "mintTiming": "first-gtd-activation",
+    "paid": false,
+    "countsTowardSecondaryTradingThreshold": true
+  },
+  "metadata": {
+    "storage": "fully-on-chain",
+    "renderer": "on-chain-layer-composition",
+    "reveal": "commit-future-block-permutation"
+  },
+  "reroll": {
+    "status": "implemented-local-rehearsal",
+    "contractHookRequiredAtLaunch": true,
+    "energyBank": "contracts/hoodyoor/src/HoodYOOREnergyBank.sol",
+    "mintEnergy": {
+      "rewardPerPaidToken": 1000,
+      "ownerReserveEligible": false,
+      "configurationFrozenBeforeSale": true
+    },
+    "rulesHash": "0x14a33149be765254e70441c4ba2674c662f5b3f746fb3ac8a717a4f49b47ab0f"
+  },
+  "gtd": {
+    "mintType": "paid",
+    "mintPriceWei": "2500000000000000",
+    "mergePolicy": "highest-source-allowance",
+    "monadHolders": {
+      "sourceChain": {
+        "name": "Monad",
+        "chainId": 143
+      },
+      "sourceContract": "0x349D8eb480c92cF75371fbA5C6344A4d11b9103A",
+      "snapshotBlock": 93374159,
+      "snapshotManifest": "data/robinhood/snapshots/hoodyoor-s2-holders-block-93374159.json",
+      "snapshotCsv": "data/robinhood/snapshots/hoodyoor-s2-holders-block-93374159.csv",
+      "maxMintPerHolder": 1,
+      "basis": "positive-balance-at-snapshot"
+    },
+    "robinhoodTopHolders": {
+      "sourceAllowlist": "data/robinhood/gtd-sources/opensea-top-holders-block-32071198.csv",
+      "sourceSummary": "data/robinhood/gtd-sources/opensea-top-holders-block-32071198-summary.json",
+      "maxMintPerWallet": 3
+    },
+    "allowlistManifest": "data/robinhood/onchain-128/hoodyoor-gtd-allowlist.json",
+    "treeDump": "data/robinhood/onchain-128/hoodyoor-gtd-tree.json",
+    "merkleRoot": "0x915e9b6ddcfe13a197ade8f6b776d37beb8ce2f766001e6579bd0601ffc5dd31"
+  },
+  "assignments": {
+    "manifest": "data/robinhood/onchain-128/hoodyoor-initial-assignments.json",
+    "provenanceHash": "0x2b3049a8235d705dba39542b53990e584e3815e4e6a32efae6ecb810b8f506a3"
+  },
+  "secondaryTrading": {
+    "initiallyLocked": true,
+    "autoUnlockMintedSupply": 1667,
+    "threshold": "50%-rounded-up",
+    "ownerCanUnlockEarly": true,
+    "unlockIsPermanent": true,
+    "newApprovalsBlockedWhileLocked": true,
+    "ownerReserveCountsTowardThreshold": true
+  },
+  "backgrounds": {
+    "default": "INDAHOOD",
+    "defaultCount": 3323,
+    "oneOfOnes": [
+      {
+        "name": "Cynically Censored-Project M.A.D.",
+        "count": 1
+      },
+      {
+        "name": "Don't Look At The Lighthouse-Project M.A.D.",
+        "count": 1
+      },
+      {
+        "name": "Eye Sea U-Project M.A.D.",
+        "count": 1
+      },
+      {
+        "name": "Fxxk Crabs-Project M.A.D.",
+        "count": 1
+      },
+      {
+        "name": "Painfully Here-Project M.A.D.",
+        "count": 1
+      },
+      {
+        "name": "Sad Cook-Project M.A.D.",
+        "count": 1
+      },
+      {
+        "name": "Simovision-Project M.A.D.",
+        "count": 1
+      },
+      {
+        "name": "Soul Catcher-Project M.A.D.",
+        "count": 1
+      },
+      {
+        "name": "The Way-Project M.A.D.",
+        "count": 1
+      },
+      {
+        "name": "Tisumusem-Project M.A.D.",
+        "count": 1
+      }
+    ]
+  },
+  "branding": {
+    "profileImage": "data/robinhood/branding/robinhood-collection-pfp-pixel-v2.png",
+    "banner": "data/robinhood/branding/robinhood-collection-banner-pixel-v2.png"
+  }
+}

@@ -1,0 +1,1842 @@
+{
+  "schema": "dyoor-robinhood-trait-assets-v1",
+  "collection": "HoodYØØR",
+  "targetChain": {
+    "name": "Robinhood Chain",
+    "chainId": 4663
+  },
+  "maxSupply": 3333,
+  "sourceCatalog": "data/dyoor-s2-trait-catalog.json",
+  "sourceItemMetadata": "data/dyoor-s2-trait-item-metadata.json",
+  "exclusionTerms": [
+    "monad",
+    "10k",
+    "bob",
+    "hive",
+    "molandak",
+    "mouch",
+    "salmonad",
+    "shramp"
+  ],
+  "summary": {
+    "catalogEntries": 208,
+    "nonNoneTraitEntries": 201,
+    "excludedTraitEntries": 20,
+    "availability": {
+      "local": 33,
+      "local-and-remote": 168
+    },
+    "missing": []
+  },
+  "traits": [
+    {
+      "slot": "Background",
+      "traitId": 101,
+      "name": "Cynically Censored-Project M.A.D.",
+      "weight": 1,
+      "localPath": "data/robinhood/layers/Background/Cynically Censored-Project M.A.D..webp",
+      "remoteUri": "",
+      "availability": "local"
+    },
+    {
+      "slot": "Background",
+      "traitId": 102,
+      "name": "Don't Look At The Lighthouse-Project M.A.D.",
+      "weight": 1,
+      "localPath": "data/robinhood/layers/Background/Don't Look At The Lighthouse-Project M.A.D..webp",
+      "remoteUri": "",
+      "availability": "local"
+    },
+    {
+      "slot": "Background",
+      "traitId": 103,
+      "name": "Eye Sea U-Project M.A.D.",
+      "weight": 1,
+      "localPath": "data/robinhood/layers/Background/Eye Sea U-Project M.A.D..webp",
+      "remoteUri": "",
+      "availability": "local"
+    },
+    {
+      "slot": "Background",
+      "traitId": 105,
+      "name": "Fxxk Crabs-Project M.A.D.",
+      "weight": 1,
+      "localPath": "data/robinhood/layers/Background/Fxxk Crabs-Project M.A.D..webp",
+      "remoteUri": "",
+      "availability": "local"
+    },
+    {
+      "slot": "Background",
+      "traitId": 112,
+      "name": "Painfully Here-Project M.A.D.",
+      "weight": 1,
+      "localPath": "data/robinhood/layers/Background/Painfully Here-Project M.A.D..webp",
+      "remoteUri": "",
+      "availability": "local"
+    },
+    {
+      "slot": "Background",
+      "traitId": 115,
+      "name": "Sad Cook-Project M.A.D.",
+      "weight": 1,
+      "localPath": "data/robinhood/layers/Background/Sad Cook-Project M.A.D..webp",
+      "remoteUri": "",
+      "availability": "local"
+    },
+    {
+      "slot": "Background",
+      "traitId": 116,
+      "name": "Simovision-Project M.A.D.",
+      "weight": 1,
+      "localPath": "data/robinhood/layers/Background/Simovision-Project M.A.D..webp",
+      "remoteUri": "",
+      "availability": "local"
+    },
+    {
+      "slot": "Background",
+      "traitId": 117,
+      "name": "Soul Catcher-Project M.A.D.",
+      "weight": 1,
+      "localPath": "data/robinhood/layers/Background/Soul Catcher-Project M.A.D..webp",
+      "remoteUri": "",
+      "availability": "local"
+    },
+    {
+      "slot": "Background",
+      "traitId": 119,
+      "name": "The Way-Project M.A.D.",
+      "weight": 1,
+      "localPath": "data/robinhood/layers/Background/The Way-Project M.A.D..webp",
+      "remoteUri": "",
+      "availability": "local"
+    },
+    {
+      "slot": "Background",
+      "traitId": 120,
+      "name": "Tisumusem-Project M.A.D.",
+      "weight": 1,
+      "localPath": "data/robinhood/layers/Background/Tisumusem-Project M.A.D..webp",
+      "remoteUri": "",
+      "availability": "local"
+    },
+    {
+      "slot": "Background",
+      "traitId": 122,
+      "name": "INDAHOOD",
+      "weight": 3323,
+      "localPath": "data/robinhood/layers/Background/INDAHOOD.png",
+      "remoteUri": "",
+      "availability": "local"
+    },
+    {
+      "slot": "Droid",
+      "traitId": 200,
+      "name": "Black",
+      "weight": 10,
+      "localPath": "data/robinhood/layers/Droid/Black.webp",
+      "remoteUri": "",
+      "availability": "local"
+    },
+    {
+      "slot": "Droid",
+      "traitId": 201,
+      "name": "Blue",
+      "weight": 12,
+      "localPath": "data/robinhood/layers/Droid/Blue.webp",
+      "remoteUri": "",
+      "availability": "local"
+    },
+    {
+      "slot": "Droid",
+      "traitId": 202,
+      "name": "Dark Chrome",
+      "weight": 1,
+      "localPath": "data/robinhood/layers/Droid/Dark Chrome.webp",
+      "remoteUri": "",
+      "availability": "local"
+    },
+    {
+      "slot": "Droid",
+      "traitId": 204,
+      "name": "Gold Chrome",
+      "weight": 1,
+      "localPath": "data/robinhood/layers/Droid/Gold Chrome.webp",
+      "remoteUri": "",
+      "availability": "local"
+    },
+    {
+      "slot": "Droid",
+      "traitId": 203,
+      "name": "Gold",
+      "weight": 2,
+      "localPath": "data/robinhood/layers/Droid/Gold.webp",
+      "remoteUri": "",
+      "availability": "local"
+    },
+    {
+      "slot": "Droid",
+      "traitId": 206,
+      "name": "Green Chrome",
+      "weight": 1,
+      "localPath": "data/robinhood/layers/Droid/Green Chrome.webp",
+      "remoteUri": "",
+      "availability": "local"
+    },
+    {
+      "slot": "Droid",
+      "traitId": 205,
+      "name": "Green",
+      "weight": 10,
+      "localPath": "data/robinhood/layers/Droid/Green.webp",
+      "remoteUri": "",
+      "availability": "local"
+    },
+    {
+      "slot": "Droid",
+      "traitId": 207,
+      "name": "Lime Green",
+      "weight": 5,
+      "localPath": "data/robinhood/layers/Droid/Lime Green.webp",
+      "remoteUri": "",
+      "availability": "local"
+    },
+    {
+      "slot": "Droid",
+      "traitId": 209,
+      "name": "Olive Chrome",
+      "weight": 1,
+      "localPath": "data/robinhood/layers/Droid/Olive Chrome.webp",
+      "remoteUri": "",
+      "availability": "local"
+    },
+    {
+      "slot": "Droid",
+      "traitId": 208,
+      "name": "Olive",
+      "weight": 6,
+      "localPath": "data/robinhood/layers/Droid/Olive.webp",
+      "remoteUri": "",
+      "availability": "local"
+    },
+    {
+      "slot": "Droid",
+      "traitId": 210,
+      "name": "Optimus (T3SLA Bot)",
+      "weight": 1,
+      "localPath": "data/robinhood/layers/Droid/Optimus (T3SLA Bot).webp",
+      "remoteUri": "",
+      "availability": "local"
+    },
+    {
+      "slot": "Droid",
+      "traitId": 211,
+      "name": "Orange",
+      "weight": 10,
+      "localPath": "data/robinhood/layers/Droid/Orange.webp",
+      "remoteUri": "",
+      "availability": "local"
+    },
+    {
+      "slot": "Droid",
+      "traitId": 212,
+      "name": "Pank",
+      "weight": 1,
+      "localPath": "data/robinhood/layers/Droid/Pank.webp",
+      "remoteUri": "",
+      "availability": "local"
+    },
+    {
+      "slot": "Droid",
+      "traitId": 213,
+      "name": "Purple",
+      "weight": 8,
+      "localPath": "data/robinhood/layers/Droid/Purple.webp",
+      "remoteUri": "",
+      "availability": "local"
+    },
+    {
+      "slot": "Droid",
+      "traitId": 214,
+      "name": "Red",
+      "weight": 12,
+      "localPath": "data/robinhood/layers/Droid/Red.webp",
+      "remoteUri": "",
+      "availability": "local"
+    },
+    {
+      "slot": "Droid",
+      "traitId": 215,
+      "name": "Rose Chrome",
+      "weight": 1,
+      "localPath": "data/robinhood/layers/Droid/Rose Chrome.webp",
+      "remoteUri": "",
+      "availability": "local"
+    },
+    {
+      "slot": "Droid",
+      "traitId": 216,
+      "name": "White",
+      "weight": 12,
+      "localPath": "data/robinhood/layers/Droid/White.webp",
+      "remoteUri": "",
+      "availability": "local"
+    },
+    {
+      "slot": "Droid",
+      "traitId": 217,
+      "name": "Whyte Chrome",
+      "weight": 1,
+      "localPath": "data/robinhood/layers/Droid/Whyte Chrome.webp",
+      "remoteUri": "",
+      "availability": "local"
+    },
+    {
+      "slot": "Droid",
+      "traitId": 218,
+      "name": "Yellow",
+      "weight": 12,
+      "localPath": "data/robinhood/layers/Droid/Yellow.webp",
+      "remoteUri": "",
+      "availability": "local"
+    },
+    {
+      "slot": "Conditions",
+      "traitId": 1000,
+      "name": "Dirty Broken'er",
+      "weight": 1,
+      "localPath": "data/robinhood/layers/Conditions/Dirty Broken'er.png",
+      "remoteUri": "ipfs://bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu/dirty-brokener.png",
+      "availability": "local-and-remote"
+    },
+    {
+      "slot": "Conditions",
+      "traitId": 1001,
+      "name": "Dirty-Broken",
+      "weight": 1,
+      "localPath": "data/robinhood/layers/Conditions/Dirty-Broken.png",
+      "remoteUri": "ipfs://bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu/dirty-broken.png",
+      "availability": "local-and-remote"
+    },
+    {
+      "slot": "Conditions",
+      "traitId": 1002,
+      "name": "S1 Skin",
+      "weight": 1,
+      "localPath": "data/robinhood/layers/Conditions/S1 Skin.png",
+      "remoteUri": "ipfs://bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu/s1-skin.png",
+      "availability": "local-and-remote"
+    },
+    {
+      "slot": "Clothes",
+      "traitId": 3000,
+      "name": "Baby Blue Tee",
+      "weight": 6,
+      "localPath": "data/robinhood/layers/Clothes/Baby Blue Tee.png",
+      "remoteUri": "ipfs://bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu/baby-blue-tee.png",
+      "availability": "local-and-remote"
+    },
+    {
+      "slot": "Clothes",
+      "traitId": 3001,
+      "name": "Bartman Shirt n Cape",
+      "weight": 1,
+      "localPath": "data/robinhood/layers/Clothes/Bartman Shirt n Cape.png",
+      "remoteUri": "ipfs://bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu/bartman-shirt-n-cape.png",
+      "availability": "local-and-remote"
+    },
+    {
+      "slot": "Clothes",
+      "traitId": 3002,
+      "name": "Beige Hoodie",
+      "weight": 2,
+      "localPath": "data/robinhood/layers/Clothes/Beige Hoodie.png",
+      "remoteUri": "ipfs://bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu/beige-hoodie.png",
+      "availability": "local-and-remote"
+    },
+    {
+      "slot": "Clothes",
+      "traitId": 3003,
+      "name": "Black Hoodie",
+      "weight": 7,
+      "localPath": "data/robinhood/layers/Clothes/Black Hoodie.png",
+      "remoteUri": "ipfs://bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu/black-hoodie.png",
+      "availability": "local-and-remote"
+    },
+    {
+      "slot": "Clothes",
+      "traitId": 3005,
+      "name": "Black N White Tee 2",
+      "weight": 2,
+      "localPath": "data/robinhood/layers/Clothes/Black N White Tee 2.png",
+      "remoteUri": "ipfs://bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu/black-n-white-tee-2.png",
+      "availability": "local-and-remote"
+    },
+    {
+      "slot": "Clothes",
+      "traitId": 3004,
+      "name": "Black N White Tee",
+      "weight": 4,
+      "localPath": "data/robinhood/layers/Clothes/Black N White Tee.png",
+      "remoteUri": "ipfs://bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu/black-n-white-tee.png",
+      "availability": "local-and-remote"
+    },
+    {
+      "slot": "Clothes",
+      "traitId": 3006,
+      "name": "Black Racer",
+      "weight": 6,
+      "localPath": "data/robinhood/layers/Clothes/Black Racer.png",
+      "remoteUri": "ipfs://bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu/black-racer.png",
+      "availability": "local-and-remote"
+    },
+    {
+      "slot": "Clothes",
+      "traitId": 3007,
+      "name": "Black Tee",
+      "weight": 5,
+      "localPath": "data/robinhood/layers/Clothes/Black Tee.png",
+      "remoteUri": "ipfs://bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu/black-tee.png",
+      "availability": "local-and-remote"
+    },
+    {
+      "slot": "Clothes",
+      "traitId": 3008,
+      "name": "Blue Hoodie",
+      "weight": 7,
+      "localPath": "data/robinhood/layers/Clothes/Blue Hoodie.png",
+      "remoteUri": "ipfs://bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu/blue-hoodie.png",
+      "availability": "local-and-remote"
+    },
+    {
+      "slot": "Clothes",
+      "traitId": 3009,
+      "name": "Blue Racer",
+      "weight": 2,
+      "localPath": "data/robinhood/layers/Clothes/Blue Racer.png",
+      "remoteUri": "ipfs://bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu/blue-racer.png",
+      "availability": "local-and-remote"
+    },
+    {
+      "slot": "Clothes",
+      "traitId": 3010,
+      "name": "BuildAnything Tee",
+      "weight": 5,
+      "localPath": "data/robinhood/layers/Clothes/BuildAnything Tee.png",
+      "remoteUri": "ipfs://bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu/buildanything-tee.png",
+      "availability": "local-and-remote"
+    },
+    {
+      "slot": "Clothes",
+      "traitId": 3011,
+      "name": "Caveman Leotard",
+      "weight": 2,
+      "localPath": "data/robinhood/layers/Clothes/Caveman Leotard.png",
+      "remoteUri": "ipfs://bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu/caveman-leotard.png",
+      "availability": "local-and-remote"
+    },
+    {
+      "slot": "Clothes",
+      "traitId": 3012,
+      "name": "Convict Shirt",
+      "weight": 2,
+      "localPath": "data/robinhood/layers/Clothes/Convict Shirt.png",
+      "remoteUri": "ipfs://bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu/convict-shirt.png",
+      "availability": "local-and-remote"
+    },
+    {
+      "slot": "Clothes",
+      "traitId": 3016,
+      "name": "DWO Black 2",
+      "weight": 9,
+      "localPath": "data/robinhood/layers/Clothes/DWO Black 2.png",
+      "remoteUri": "ipfs://bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu/dwo-black-2.png",
+      "availability": "local-and-remote"
+    },
+    {
+      "slot": "Clothes",
+      "traitId": 3015,
+      "name": "DWO Black",
+      "weight": 10,
+      "localPath": "data/robinhood/layers/Clothes/DWO Black.png",
+      "remoteUri": "ipfs://bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu/dwo-black.png",
+      "availability": "local-and-remote"
+    },
+    {
+      "slot": "Clothes",
+      "traitId": 3017,
+      "name": "DWO White",
+      "weight": 4,
+      "localPath": "data/robinhood/layers/Clothes/DWO White.png",
+      "remoteUri": "ipfs://bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu/dwo-white.png",
+      "availability": "local-and-remote"
+    },
+    {
+      "slot": "Clothes",
+      "traitId": 3018,
+      "name": "DYOOR Black Gold Text Hoodie",
+      "weight": 1,
+      "localPath": "data/robinhood/layers/Clothes/DYOOR Black Gold Text Hoodie.png",
+      "remoteUri": "ipfs://bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu/dyoor-black-gold-text-hoodie.png",
+      "availability": "local-and-remote"
+    },
+    {
+      "slot": "Clothes",
+      "traitId": 3019,
+      "name": "DYOOR Black Hoodie",
+      "weight": 3,
+      "localPath": "data/robinhood/layers/Clothes/DYOOR Black Hoodie.png",
+      "remoteUri": "ipfs://bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu/dyoor-black-hoodie.png",
+      "availability": "local-and-remote"
+    },
+    {
+      "slot": "Clothes",
+      "traitId": 3020,
+      "name": "DYOOR Blue Hoodie",
+      "weight": 1,
+      "localPath": "data/robinhood/layers/Clothes/DYOOR Blue Hoodie.png",
+      "remoteUri": "ipfs://bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu/dyoor-blue-hoodie.png",
+      "availability": "local-and-remote"
+    },
+    {
+      "slot": "Clothes",
+      "traitId": 3021,
+      "name": "DYOOR Red Gold Text Hoodie",
+      "weight": 1,
+      "localPath": "data/robinhood/layers/Clothes/DYOOR Red Gold Text Hoodie.png",
+      "remoteUri": "ipfs://bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu/dyoor-red-gold-text-hoodie.png",
+      "availability": "local-and-remote"
+    },
+    {
+      "slot": "Clothes",
+      "traitId": 3013,
+      "name": "Dictator Jacket",
+      "weight": 3,
+      "localPath": "data/robinhood/layers/Clothes/Dictator Jacket.png",
+      "remoteUri": "ipfs://bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu/dictator-jacket.png",
+      "availability": "local-and-remote"
+    },
+    {
+      "slot": "Clothes",
+      "traitId": 3014,
+      "name": "Durag Stays On Tank",
+      "weight": 3,
+      "localPath": "data/robinhood/layers/Clothes/Durag Stays On Tank.png",
+      "remoteUri": "ipfs://bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu/durag-stays-on-tank.png",
+      "availability": "local-and-remote"
+    },
+    {
+      "slot": "Clothes",
+      "traitId": 3022,
+      "name": "Emo Tank",
+      "weight": 3,
+      "localPath": "data/robinhood/layers/Clothes/Emo Tank.png",
+      "remoteUri": "ipfs://bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu/emo-tank.png",
+      "availability": "local-and-remote"
+    },
+    {
+      "slot": "Clothes",
+      "traitId": 3023,
+      "name": "Emo Tee",
+      "weight": 3,
+      "localPath": "data/robinhood/layers/Clothes/Emo Tee.png",
+      "remoteUri": "ipfs://bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu/emo-tee.png",
+      "availability": "local-and-remote"
+    },
+    {
+      "slot": "Clothes",
+      "traitId": 3024,
+      "name": "Fur Coat Gold",
+      "weight": 3,
+      "localPath": "data/robinhood/layers/Clothes/Fur Coat Gold.png",
+      "remoteUri": "ipfs://bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu/fur-coat-gold.png",
+      "availability": "local-and-remote"
+    },
+    {
+      "slot": "Clothes",
+      "traitId": 3025,
+      "name": "Fur Coat Pink",
+      "weight": 3,
+      "localPath": "data/robinhood/layers/Clothes/Fur Coat Pink.png",
+      "remoteUri": "ipfs://bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu/fur-coat-pink.png",
+      "availability": "local-and-remote"
+    },
+    {
+      "slot": "Clothes",
+      "traitId": 3026,
+      "name": "Fur Coat Purple",
+      "weight": 3,
+      "localPath": "data/robinhood/layers/Clothes/Fur Coat Purple.png",
+      "remoteUri": "ipfs://bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu/fur-coat-purple.png",
+      "availability": "local-and-remote"
+    },
+    {
+      "slot": "Clothes",
+      "traitId": 3027,
+      "name": "GiftGoats Tee",
+      "weight": 4,
+      "localPath": "data/robinhood/layers/Clothes/GiftGoats Tee.png",
+      "remoteUri": "ipfs://bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu/giftgoats-tee.png",
+      "availability": "local-and-remote"
+    },
+    {
+      "slot": "Clothes",
+      "traitId": 3028,
+      "name": "Grey Tee",
+      "weight": 7,
+      "localPath": "data/robinhood/layers/Clothes/Grey Tee.png",
+      "remoteUri": "ipfs://bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu/grey-tee.png",
+      "availability": "local-and-remote"
+    },
+    {
+      "slot": "Clothes",
+      "traitId": 3029,
+      "name": "Hawaiian Shirt",
+      "weight": 1,
+      "localPath": "data/robinhood/layers/Clothes/Hawaiian Shirt.png",
+      "remoteUri": "ipfs://bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu/hawaiian-shirt.png",
+      "availability": "local-and-remote"
+    },
+    {
+      "slot": "Clothes",
+      "traitId": 3030,
+      "name": "Jailhouse Stripes Shirt",
+      "weight": 2,
+      "localPath": "data/robinhood/layers/Clothes/Jailhouse Stripes Shirt.png",
+      "remoteUri": "ipfs://bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu/jailhouse-stripes-shirt.png",
+      "availability": "local-and-remote"
+    },
+    {
+      "slot": "Clothes",
+      "traitId": 3032,
+      "name": "King's Robe 2",
+      "weight": 3,
+      "localPath": "data/robinhood/layers/Clothes/King's Robe 2.png",
+      "remoteUri": "ipfs://bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu/kings-robe-2.png",
+      "availability": "local-and-remote"
+    },
+    {
+      "slot": "Clothes",
+      "traitId": 3031,
+      "name": "King's Robe",
+      "weight": 3,
+      "localPath": "data/robinhood/layers/Clothes/King's Robe.png",
+      "remoteUri": "ipfs://bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu/kings-robe.png",
+      "availability": "local-and-remote"
+    },
+    {
+      "slot": "Clothes",
+      "traitId": 3033,
+      "name": "Kuru Tee",
+      "weight": 9,
+      "localPath": "data/robinhood/layers/Clothes/Kuru Tee.png",
+      "remoteUri": "ipfs://bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu/kuru-tee.png",
+      "availability": "local-and-remote"
+    },
+    {
+      "slot": "Clothes",
+      "traitId": 3034,
+      "name": "Kuru White Tee",
+      "weight": 5,
+      "localPath": "data/robinhood/layers/Clothes/Kuru White Tee.png",
+      "remoteUri": "ipfs://bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu/kuru-white-tee.png",
+      "availability": "local-and-remote"
+    },
+    {
+      "slot": "Clothes",
+      "traitId": 3035,
+      "name": "Lab Coat",
+      "weight": 6,
+      "localPath": "data/robinhood/layers/Clothes/Lab Coat.png",
+      "remoteUri": "ipfs://bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu/lab-coat.png",
+      "availability": "local-and-remote"
+    },
+    {
+      "slot": "Clothes",
+      "traitId": 3037,
+      "name": "Leather Jacket Torn Tee",
+      "weight": 2,
+      "localPath": "data/robinhood/layers/Clothes/Leather Jacket Torn Tee.png",
+      "remoteUri": "ipfs://bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu/leather-jacket-torn-tee.png",
+      "availability": "local-and-remote"
+    },
+    {
+      "slot": "Clothes",
+      "traitId": 3038,
+      "name": "Leather Jacket White Shirt W:Tie",
+      "weight": 5,
+      "localPath": "data/robinhood/layers/Clothes/Leather Jacket White Shirt W:Tie.png",
+      "remoteUri": "ipfs://bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu/leather-jacket-white-shirt-w-tie.png",
+      "availability": "local-and-remote"
+    },
+    {
+      "slot": "Clothes",
+      "traitId": 3036,
+      "name": "Leather Jacket",
+      "weight": 8,
+      "localPath": "data/robinhood/layers/Clothes/Leather Jacket.png",
+      "remoteUri": "ipfs://bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu/leather-jacket.png",
+      "availability": "local-and-remote"
+    },
+    {
+      "slot": "Clothes",
+      "traitId": 3039,
+      "name": "Luffy",
+      "weight": 1,
+      "localPath": "data/robinhood/layers/Clothes/Luffy.png",
+      "remoteUri": "ipfs://bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu/luffy.png",
+      "availability": "local-and-remote"
+    },
+    {
+      "slot": "Clothes",
+      "traitId": 3041,
+      "name": "MESH Tee",
+      "weight": 3,
+      "localPath": "data/robinhood/layers/Clothes/MESH Tee.png",
+      "remoteUri": "ipfs://bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu/mesh-tee.png",
+      "availability": "local-and-remote"
+    },
+    {
+      "slot": "Clothes",
+      "traitId": 3040,
+      "name": "McDyoornalds",
+      "weight": 8,
+      "localPath": "data/robinhood/layers/Clothes/McDyoornalds.png",
+      "remoteUri": "ipfs://bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu/mcdyoornalds.png",
+      "availability": "local-and-remote"
+    },
+    {
+      "slot": "Clothes",
+      "traitId": 3042,
+      "name": "Neverland Tee",
+      "weight": 5,
+      "localPath": "data/robinhood/layers/Clothes/Neverland Tee.png",
+      "remoteUri": "ipfs://bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu/neverland-tee.png",
+      "availability": "local-and-remote"
+    },
+    {
+      "slot": "Clothes",
+      "traitId": 3043,
+      "name": "Orange Plaid",
+      "weight": 4,
+      "localPath": "data/robinhood/layers/Clothes/Orange Plaid.png",
+      "remoteUri": "ipfs://bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu/orange-plaid.png",
+      "availability": "local-and-remote"
+    },
+    {
+      "slot": "Clothes",
+      "traitId": 3044,
+      "name": "Orange Racer",
+      "weight": 8,
+      "localPath": "data/robinhood/layers/Clothes/Orange Racer.png",
+      "remoteUri": "ipfs://bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu/orange-racer.png",
+      "availability": "local-and-remote"
+    },
+    {
+      "slot": "Clothes",
+      "traitId": 3045,
+      "name": "Overalls",
+      "weight": 3,
+      "localPath": "data/robinhood/layers/Clothes/Overalls.png",
+      "remoteUri": "ipfs://bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu/overalls.png",
+      "availability": "local-and-remote"
+    },
+    {
+      "slot": "Clothes",
+      "traitId": 3046,
+      "name": "PAMPAM Tee",
+      "weight": 4,
+      "localPath": "data/robinhood/layers/Clothes/PAMPAM Tee.png",
+      "remoteUri": "ipfs://bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu/pampam-tee.png",
+      "availability": "local-and-remote"
+    },
+    {
+      "slot": "Clothes",
+      "traitId": 3047,
+      "name": "Pink Plaid",
+      "weight": 6,
+      "localPath": "data/robinhood/layers/Clothes/Pink Plaid.png",
+      "remoteUri": "ipfs://bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu/pink-plaid.png",
+      "availability": "local-and-remote"
+    },
+    {
+      "slot": "Clothes",
+      "traitId": 3048,
+      "name": "R3tard Tee",
+      "weight": 1,
+      "localPath": "data/robinhood/layers/Clothes/R3tard Tee.png",
+      "remoteUri": "ipfs://bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu/r3tard-tee.png",
+      "availability": "local-and-remote"
+    },
+    {
+      "slot": "Clothes",
+      "traitId": 3049,
+      "name": "Red Hoodie",
+      "weight": 8,
+      "localPath": "data/robinhood/layers/Clothes/Red Hoodie.png",
+      "remoteUri": "ipfs://bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu/red-hoodie.png",
+      "availability": "local-and-remote"
+    },
+    {
+      "slot": "Clothes",
+      "traitId": 3050,
+      "name": "Red Plaid",
+      "weight": 8,
+      "localPath": "data/robinhood/layers/Clothes/Red Plaid.png",
+      "remoteUri": "ipfs://bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu/red-plaid.png",
+      "availability": "local-and-remote"
+    },
+    {
+      "slot": "Clothes",
+      "traitId": 3051,
+      "name": "Tech Bro",
+      "weight": 8,
+      "localPath": "data/robinhood/layers/Clothes/Tech Bro.png",
+      "remoteUri": "ipfs://bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu/tech-bro.png",
+      "availability": "local-and-remote"
+    },
+    {
+      "slot": "Clothes",
+      "traitId": 3052,
+      "name": "Torn Black Tee",
+      "weight": 2,
+      "localPath": "data/robinhood/layers/Clothes/Torn Black Tee.png",
+      "remoteUri": "ipfs://bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu/torn-black-tee.png",
+      "availability": "local-and-remote"
+    },
+    {
+      "slot": "Clothes",
+      "traitId": 3053,
+      "name": "Torn Tee",
+      "weight": 2,
+      "localPath": "data/robinhood/layers/Clothes/Torn Tee.png",
+      "remoteUri": "ipfs://bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu/torn-tee.png",
+      "availability": "local-and-remote"
+    },
+    {
+      "slot": "Clothes",
+      "traitId": 3054,
+      "name": "Tuxedo",
+      "weight": 2,
+      "localPath": "data/robinhood/layers/Clothes/Tuxedo.png",
+      "remoteUri": "ipfs://bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu/tuxedo.png",
+      "availability": "local-and-remote"
+    },
+    {
+      "slot": "Clothes",
+      "traitId": 3055,
+      "name": "White Shirt W:Tie",
+      "weight": 4,
+      "localPath": "data/robinhood/layers/Clothes/White Shirt W:Tie.png",
+      "remoteUri": "ipfs://bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu/white-shirt-w-tie.png",
+      "availability": "local-and-remote"
+    },
+    {
+      "slot": "Clothes",
+      "traitId": 3056,
+      "name": "White Tee",
+      "weight": 5,
+      "localPath": "data/robinhood/layers/Clothes/White Tee.png",
+      "remoteUri": "ipfs://bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu/white-tee.png",
+      "availability": "local-and-remote"
+    },
+    {
+      "slot": "Clothes",
+      "traitId": 3057,
+      "name": "Robinhood Green Tee",
+      "weight": 3,
+      "localPath": "data/robinhood/layers/Clothes/Robinhood Green Tee.png",
+      "remoteUri": "",
+      "availability": "local"
+    },
+    {
+      "slot": "Mouth",
+      "traitId": 4000,
+      "name": "AHHH Scared",
+      "weight": 3,
+      "localPath": "data/robinhood/layers/Mouth/AHHH Scared.png",
+      "remoteUri": "ipfs://bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu/ahhh-scared.png",
+      "availability": "local-and-remote"
+    },
+    {
+      "slot": "Mouth",
+      "traitId": 4001,
+      "name": "AHHH Tongue",
+      "weight": 3,
+      "localPath": "data/robinhood/layers/Mouth/AHHH Tongue.png",
+      "remoteUri": "ipfs://bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu/ahhh-tongue.png",
+      "availability": "local-and-remote"
+    },
+    {
+      "slot": "Mouth",
+      "traitId": 4003,
+      "name": "AHHHH Flames",
+      "weight": 3,
+      "localPath": "data/robinhood/layers/Mouth/AHHHH Flames.png",
+      "remoteUri": "ipfs://bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu/ahhhh-flames.png",
+      "availability": "local-and-remote"
+    },
+    {
+      "slot": "Mouth",
+      "traitId": 4002,
+      "name": "AHHHH",
+      "weight": 2,
+      "localPath": "data/robinhood/layers/Mouth/AHHHH.png",
+      "remoteUri": "ipfs://bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu/ahhhh.png",
+      "availability": "local-and-remote"
+    },
+    {
+      "slot": "Mouth",
+      "traitId": 4004,
+      "name": "Ayeee",
+      "weight": 9,
+      "localPath": "data/robinhood/layers/Mouth/Ayeee.png",
+      "remoteUri": "ipfs://bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu/ayeee.png",
+      "availability": "local-and-remote"
+    },
+    {
+      "slot": "Mouth",
+      "traitId": 4005,
+      "name": "Ayeyo",
+      "weight": 9,
+      "localPath": "data/robinhood/layers/Mouth/Ayeyo.png",
+      "remoteUri": "ipfs://bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu/ayeyo.png",
+      "availability": "local-and-remote"
+    },
+    {
+      "slot": "Mouth",
+      "traitId": 4006,
+      "name": "Braces",
+      "weight": 2,
+      "localPath": "data/robinhood/layers/Mouth/Braces.png",
+      "remoteUri": "ipfs://bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu/braces.png",
+      "availability": "local-and-remote"
+    },
+    {
+      "slot": "Mouth",
+      "traitId": 4007,
+      "name": "Cigar Mouth",
+      "weight": 3,
+      "localPath": "data/robinhood/layers/Mouth/Cigar Mouth.png",
+      "remoteUri": "ipfs://bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu/cigar-mouth.png",
+      "availability": "local-and-remote"
+    },
+    {
+      "slot": "Mouth",
+      "traitId": 4008,
+      "name": "Deep Thought",
+      "weight": 2,
+      "localPath": "data/robinhood/layers/Mouth/Deep Thought.png",
+      "remoteUri": "ipfs://bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu/deep-thought.png",
+      "availability": "local-and-remote"
+    },
+    {
+      "slot": "Mouth",
+      "traitId": 4009,
+      "name": "Diamond Grill",
+      "weight": 1,
+      "localPath": "data/robinhood/layers/Mouth/Diamond Grill.png",
+      "remoteUri": "ipfs://bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu/diamond-grill.png",
+      "availability": "local-and-remote"
+    },
+    {
+      "slot": "Mouth",
+      "traitId": 4011,
+      "name": "Displeased toothpick",
+      "weight": 3,
+      "localPath": "data/robinhood/layers/Mouth/Displeased toothpick.png",
+      "remoteUri": "ipfs://bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu/displeased-toothpick.png",
+      "availability": "local-and-remote"
+    },
+    {
+      "slot": "Mouth",
+      "traitId": 4010,
+      "name": "Displeased",
+      "weight": 7,
+      "localPath": "data/robinhood/layers/Mouth/Displeased.png",
+      "remoteUri": "ipfs://bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu/displeased.png",
+      "availability": "local-and-remote"
+    },
+    {
+      "slot": "Mouth",
+      "traitId": 4012,
+      "name": "Drool",
+      "weight": 7,
+      "localPath": "data/robinhood/layers/Mouth/Drool.png",
+      "remoteUri": "ipfs://bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu/drool.png",
+      "availability": "local-and-remote"
+    },
+    {
+      "slot": "Mouth",
+      "traitId": 4013,
+      "name": "Emo Sheesh",
+      "weight": 3,
+      "localPath": "data/robinhood/layers/Mouth/Emo Sheesh.png",
+      "remoteUri": "ipfs://bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu/emo-sheesh.png",
+      "availability": "local-and-remote"
+    },
+    {
+      "slot": "Mouth",
+      "traitId": 4014,
+      "name": "Emo Whatever",
+      "weight": 3,
+      "localPath": "data/robinhood/layers/Mouth/Emo Whatever.png",
+      "remoteUri": "ipfs://bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu/emo-whatever.png",
+      "availability": "local-and-remote"
+    },
+    {
+      "slot": "Mouth",
+      "traitId": 4015,
+      "name": "Errrh",
+      "weight": 3,
+      "localPath": "data/robinhood/layers/Mouth/Errrh.png",
+      "remoteUri": "ipfs://bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu/errrh.png",
+      "availability": "local-and-remote"
+    },
+    {
+      "slot": "Mouth",
+      "traitId": 4016,
+      "name": "Gold Bar",
+      "weight": 3,
+      "localPath": "data/robinhood/layers/Mouth/Gold Bar.png",
+      "remoteUri": "ipfs://bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu/gold-bar.png",
+      "availability": "local-and-remote"
+    },
+    {
+      "slot": "Mouth",
+      "traitId": 4017,
+      "name": "Gold Grill",
+      "weight": 3,
+      "localPath": "data/robinhood/layers/Mouth/Gold Grill.png",
+      "remoteUri": "ipfs://bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu/gold-grill.png",
+      "availability": "local-and-remote"
+    },
+    {
+      "slot": "Mouth",
+      "traitId": 4018,
+      "name": "Joint Mouth",
+      "weight": 3,
+      "localPath": "data/robinhood/layers/Mouth/Joint Mouth.png",
+      "remoteUri": "ipfs://bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu/joint-mouth.png",
+      "availability": "local-and-remote"
+    },
+    {
+      "slot": "Mouth",
+      "traitId": 4021,
+      "name": "MMMMKay",
+      "weight": 10,
+      "localPath": "data/robinhood/layers/Mouth/MMMMKay.png",
+      "remoteUri": "ipfs://bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu/mmmmkay.png",
+      "availability": "local-and-remote"
+    },
+    {
+      "slot": "Mouth",
+      "traitId": 4020,
+      "name": "Meh Cigarette",
+      "weight": 6,
+      "localPath": "data/robinhood/layers/Mouth/Meh Cigarette.png",
+      "remoteUri": "ipfs://bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu/meh-cigarette.png",
+      "availability": "local-and-remote"
+    },
+    {
+      "slot": "Mouth",
+      "traitId": 4019,
+      "name": "Meh",
+      "weight": 2,
+      "localPath": "data/robinhood/layers/Mouth/Meh.png",
+      "remoteUri": "ipfs://bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu/meh.png",
+      "availability": "local-and-remote"
+    },
+    {
+      "slot": "Mouth",
+      "traitId": 4022,
+      "name": "Muah",
+      "weight": 4,
+      "localPath": "data/robinhood/layers/Mouth/Muah.png",
+      "remoteUri": "ipfs://bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu/muah.png",
+      "availability": "local-and-remote"
+    },
+    {
+      "slot": "Mouth",
+      "traitId": 4023,
+      "name": "Party Horn Mouth",
+      "weight": 2,
+      "localPath": "data/robinhood/layers/Mouth/Party Horn Mouth.png",
+      "remoteUri": "ipfs://bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu/party-horn-mouth.png",
+      "availability": "local-and-remote"
+    },
+    {
+      "slot": "Mouth",
+      "traitId": 4024,
+      "name": "Pepe Mouth",
+      "weight": 2,
+      "localPath": "data/robinhood/layers/Mouth/Pepe Mouth.png",
+      "remoteUri": "ipfs://bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu/pepe-mouth.png",
+      "availability": "local-and-remote"
+    },
+    {
+      "slot": "Mouth",
+      "traitId": 4025,
+      "name": "Pipe",
+      "weight": 2,
+      "localPath": "data/robinhood/layers/Mouth/Pipe.png",
+      "remoteUri": "ipfs://bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu/pipe.png",
+      "availability": "local-and-remote"
+    },
+    {
+      "slot": "Mouth",
+      "traitId": 4026,
+      "name": "Resting DYOOR mouth",
+      "weight": 7,
+      "localPath": "data/robinhood/layers/Mouth/Resting DYOOR mouth.png",
+      "remoteUri": "ipfs://bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu/resting-dyoor-mouth.png",
+      "availability": "local-and-remote"
+    },
+    {
+      "slot": "Mouth",
+      "traitId": 4027,
+      "name": "Toothless Drool",
+      "weight": 7,
+      "localPath": "data/robinhood/layers/Mouth/Toothless Drool.png",
+      "remoteUri": "ipfs://bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu/toothless-drool.png",
+      "availability": "local-and-remote"
+    },
+    {
+      "slot": "Mouth",
+      "traitId": 4028,
+      "name": "Vamp Fangs",
+      "weight": 2,
+      "localPath": "data/robinhood/layers/Mouth/Vamp Fangs.png",
+      "remoteUri": "ipfs://bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu/vamp-fangs.png",
+      "availability": "local-and-remote"
+    },
+    {
+      "slot": "Mouth",
+      "traitId": 4029,
+      "name": "Waaaat",
+      "weight": 4,
+      "localPath": "data/robinhood/layers/Mouth/Waaaat.png",
+      "remoteUri": "ipfs://bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu/waaaat.png",
+      "availability": "local-and-remote"
+    },
+    {
+      "slot": "Eyes",
+      "traitId": 5001,
+      "name": "Abyss Laser",
+      "weight": 1,
+      "localPath": "data/robinhood/layers/Eyes/Abyss Laser.png",
+      "remoteUri": "ipfs://bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu/abyss-laser.png",
+      "availability": "local-and-remote"
+    },
+    {
+      "slot": "Eyes",
+      "traitId": 5000,
+      "name": "Abyss",
+      "weight": 7,
+      "localPath": "data/robinhood/layers/Eyes/Abyss.png",
+      "remoteUri": "ipfs://bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu/abyss.png",
+      "availability": "local-and-remote"
+    },
+    {
+      "slot": "Eyes",
+      "traitId": 5002,
+      "name": "Build Anything Glasses",
+      "weight": 2,
+      "localPath": "data/robinhood/layers/Eyes/Build Anything Glasses.png",
+      "remoteUri": "ipfs://bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu/build-anything-glasses.png",
+      "availability": "local-and-remote"
+    },
+    {
+      "slot": "Eyes",
+      "traitId": 5003,
+      "name": "Cyclops",
+      "weight": 2,
+      "localPath": "data/robinhood/layers/Eyes/Cyclops.png",
+      "remoteUri": "ipfs://bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu/cyclops.png",
+      "availability": "local-and-remote"
+    },
+    {
+      "slot": "Eyes",
+      "traitId": 5004,
+      "name": "Emo Eyeliner",
+      "weight": 3,
+      "localPath": "data/robinhood/layers/Eyes/Emo Eyeliner.png",
+      "remoteUri": "ipfs://bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu/emo-eyeliner.png",
+      "availability": "local-and-remote"
+    },
+    {
+      "slot": "Eyes",
+      "traitId": 5005,
+      "name": "Excited",
+      "weight": 10,
+      "localPath": "data/robinhood/layers/Eyes/Excited.png",
+      "remoteUri": "ipfs://bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu/excited.png",
+      "availability": "local-and-remote"
+    },
+    {
+      "slot": "Eyes",
+      "traitId": 5006,
+      "name": "Eye Patch",
+      "weight": 2,
+      "localPath": "data/robinhood/layers/Eyes/Eye Patch.png",
+      "remoteUri": "ipfs://bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu/eye-patch.png",
+      "availability": "local-and-remote"
+    },
+    {
+      "slot": "Eyes",
+      "traitId": 5007,
+      "name": "Googley Eyes",
+      "weight": 2,
+      "localPath": "data/robinhood/layers/Eyes/Googley Eyes.png",
+      "remoteUri": "ipfs://bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu/googley-eyes.png",
+      "availability": "local-and-remote"
+    },
+    {
+      "slot": "Eyes",
+      "traitId": 5008,
+      "name": "Got em",
+      "weight": 2,
+      "localPath": "data/robinhood/layers/Eyes/Got em.png",
+      "remoteUri": "ipfs://bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu/got-em.png",
+      "availability": "local-and-remote"
+    },
+    {
+      "slot": "Eyes",
+      "traitId": 5009,
+      "name": "HMMMHM",
+      "weight": 4,
+      "localPath": "data/robinhood/layers/Eyes/HMMMHM.png",
+      "remoteUri": "ipfs://bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu/hmmmhm.png",
+      "availability": "local-and-remote"
+    },
+    {
+      "slot": "Eyes",
+      "traitId": 5010,
+      "name": "I Know What You Did",
+      "weight": 2,
+      "localPath": "data/robinhood/layers/Eyes/I Know What You Did.png",
+      "remoteUri": "ipfs://bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu/i-know-what-you-did.png",
+      "availability": "local-and-remote"
+    },
+    {
+      "slot": "Eyes",
+      "traitId": 5011,
+      "name": "Intense",
+      "weight": 4,
+      "localPath": "data/robinhood/layers/Eyes/Intense.png",
+      "remoteUri": "ipfs://bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu/intense.png",
+      "availability": "local-and-remote"
+    },
+    {
+      "slot": "Eyes",
+      "traitId": 5012,
+      "name": "Lazy Laser",
+      "weight": 1,
+      "localPath": "data/robinhood/layers/Eyes/Lazy Laser.png",
+      "remoteUri": "ipfs://bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu/lazy-laser.png",
+      "availability": "local-and-remote"
+    },
+    {
+      "slot": "Eyes",
+      "traitId": 5015,
+      "name": "Neverland Specs",
+      "weight": 5,
+      "localPath": "data/robinhood/layers/Eyes/Neverland Specs.png",
+      "remoteUri": "ipfs://bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu/neverland-specs.png",
+      "availability": "local-and-remote"
+    },
+    {
+      "slot": "Eyes",
+      "traitId": 5016,
+      "name": "Okay",
+      "weight": 10,
+      "localPath": "data/robinhood/layers/Eyes/Okay.png",
+      "remoteUri": "ipfs://bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu/okay.png",
+      "availability": "local-and-remote"
+    },
+    {
+      "slot": "Eyes",
+      "traitId": 5017,
+      "name": "Pit Viper",
+      "weight": 1,
+      "localPath": "data/robinhood/layers/Eyes/Pit Viper.png",
+      "remoteUri": "ipfs://bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu/pit-viper.png",
+      "availability": "local-and-remote"
+    },
+    {
+      "slot": "Eyes",
+      "traitId": 5018,
+      "name": "Point Dexter Glasses Eyes",
+      "weight": 3,
+      "localPath": "data/robinhood/layers/Eyes/Point Dexter Glasses Eyes.png",
+      "remoteUri": "ipfs://bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu/point-dexter-glasses-eyes.png",
+      "availability": "local-and-remote"
+    },
+    {
+      "slot": "Eyes",
+      "traitId": 5020,
+      "name": "Radiation Glow (Red)",
+      "weight": 2,
+      "localPath": "data/robinhood/layers/Eyes/Radiation Glow (Red).png",
+      "remoteUri": "ipfs://bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu/radiation-glow-red.png",
+      "availability": "local-and-remote"
+    },
+    {
+      "slot": "Eyes",
+      "traitId": 5021,
+      "name": "Radiation Glow (Red)Laser",
+      "weight": 1,
+      "localPath": "data/robinhood/layers/Eyes/Radiation Glow (Red)Laser.png",
+      "remoteUri": "ipfs://bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu/radiation-glow-red-laser.png",
+      "availability": "local-and-remote"
+    },
+    {
+      "slot": "Eyes",
+      "traitId": 5019,
+      "name": "Radiation Glow",
+      "weight": 7,
+      "localPath": "data/robinhood/layers/Eyes/Radiation Glow.png",
+      "remoteUri": "ipfs://bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu/radiation-glow.png",
+      "availability": "local-and-remote"
+    },
+    {
+      "slot": "Eyes",
+      "traitId": 5022,
+      "name": "Ricky V",
+      "weight": 7,
+      "localPath": "data/robinhood/layers/Eyes/Ricky V.png",
+      "remoteUri": "ipfs://bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu/ricky-v.png",
+      "availability": "local-and-remote"
+    },
+    {
+      "slot": "Eyes",
+      "traitId": 5023,
+      "name": "Scared",
+      "weight": 4,
+      "localPath": "data/robinhood/layers/Eyes/Scared.png",
+      "remoteUri": "ipfs://bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu/scared.png",
+      "availability": "local-and-remote"
+    },
+    {
+      "slot": "Eyes",
+      "traitId": 5024,
+      "name": "Sly",
+      "weight": 4,
+      "localPath": "data/robinhood/layers/Eyes/Sly.png",
+      "remoteUri": "ipfs://bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu/sly.png",
+      "availability": "local-and-remote"
+    },
+    {
+      "slot": "Eyes",
+      "traitId": 5025,
+      "name": "Snake Eyes",
+      "weight": 2,
+      "localPath": "data/robinhood/layers/Eyes/Snake Eyes.png",
+      "remoteUri": "ipfs://bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu/snake-eyes.png",
+      "availability": "local-and-remote"
+    },
+    {
+      "slot": "Eyes",
+      "traitId": 5026,
+      "name": "Sunglasses",
+      "weight": 8,
+      "localPath": "data/robinhood/layers/Eyes/Sunglasses.png",
+      "remoteUri": "ipfs://bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu/sunglasses.png",
+      "availability": "local-and-remote"
+    },
+    {
+      "slot": "Eyes",
+      "traitId": 5027,
+      "name": "Third Eye",
+      "weight": 3,
+      "localPath": "data/robinhood/layers/Eyes/Third Eye.png",
+      "remoteUri": "ipfs://bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu/third-eye.png",
+      "availability": "local-and-remote"
+    },
+    {
+      "slot": "Eyes",
+      "traitId": 5028,
+      "name": "Tri-Specs",
+      "weight": 3,
+      "localPath": "data/robinhood/layers/Eyes/Tri-Specs.png",
+      "remoteUri": "ipfs://bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu/tri-specs.png",
+      "availability": "local-and-remote"
+    },
+    {
+      "slot": "Eyes",
+      "traitId": 5029,
+      "name": "Un Enthused",
+      "weight": 10,
+      "localPath": "data/robinhood/layers/Eyes/Un Enthused.png",
+      "remoteUri": "ipfs://bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu/un-enthused.png",
+      "availability": "local-and-remote"
+    },
+    {
+      "slot": "Eyes",
+      "traitId": 5030,
+      "name": "VR Headset",
+      "weight": 2,
+      "localPath": "data/robinhood/layers/Eyes/VR Headset.png",
+      "remoteUri": "ipfs://bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu/vr-headset.png",
+      "availability": "local-and-remote"
+    },
+    {
+      "slot": "Eyes",
+      "traitId": 5031,
+      "name": "Zombie",
+      "weight": 2,
+      "localPath": "data/robinhood/layers/Eyes/Zombie.png",
+      "remoteUri": "ipfs://bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu/zombie.png",
+      "availability": "local-and-remote"
+    },
+    {
+      "slot": "Eyes",
+      "traitId": 5032,
+      "name": "Robinhood Green Shades",
+      "weight": 3,
+      "localPath": "data/robinhood/layers/Eyes/Robinhood Green Shades.png",
+      "remoteUri": "",
+      "availability": "local"
+    },
+    {
+      "slot": "Hat",
+      "traitId": 6000,
+      "name": "Alternative",
+      "weight": 3,
+      "localPath": "data/robinhood/layers/Hat/Alternative.png",
+      "remoteUri": "ipfs://bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu/alternative.png",
+      "availability": "local-and-remote"
+    },
+    {
+      "slot": "Hat",
+      "traitId": 6001,
+      "name": "Antenna",
+      "weight": 10,
+      "localPath": "data/robinhood/layers/Hat/Antenna.png",
+      "remoteUri": "ipfs://bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu/antenna.png",
+      "availability": "local-and-remote"
+    },
+    {
+      "slot": "Hat",
+      "traitId": 6002,
+      "name": "Bartman",
+      "weight": 1,
+      "localPath": "data/robinhood/layers/Hat/Bartman.png",
+      "remoteUri": "ipfs://bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu/bartman.png",
+      "availability": "local-and-remote"
+    },
+    {
+      "slot": "Hat",
+      "traitId": 6003,
+      "name": "Beanie Red",
+      "weight": 2,
+      "localPath": "data/robinhood/layers/Hat/Beanie Red.png",
+      "remoteUri": "ipfs://bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu/beanie-red.png",
+      "availability": "local-and-remote"
+    },
+    {
+      "slot": "Hat",
+      "traitId": 6004,
+      "name": "Black Ball Cap",
+      "weight": 10,
+      "localPath": "data/robinhood/layers/Hat/Black Ball Cap.png",
+      "remoteUri": "ipfs://bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu/black-ball-cap.png",
+      "availability": "local-and-remote"
+    },
+    {
+      "slot": "Hat",
+      "traitId": 6005,
+      "name": "Black Beanie",
+      "weight": 7,
+      "localPath": "data/robinhood/layers/Hat/Black Beanie.png",
+      "remoteUri": "ipfs://bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu/black-beanie.png",
+      "availability": "local-and-remote"
+    },
+    {
+      "slot": "Hat",
+      "traitId": 6006,
+      "name": "Black Cap",
+      "weight": 7,
+      "localPath": "data/robinhood/layers/Hat/Black Cap.png",
+      "remoteUri": "ipfs://bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu/black-cap.png",
+      "availability": "local-and-remote"
+    },
+    {
+      "slot": "Hat",
+      "traitId": 6007,
+      "name": "Black N White Cap",
+      "weight": 3,
+      "localPath": "data/robinhood/layers/Hat/Black N White Cap.png",
+      "remoteUri": "ipfs://bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu/black-n-white-cap.png",
+      "availability": "local-and-remote"
+    },
+    {
+      "slot": "Hat",
+      "traitId": 6008,
+      "name": "Black Shystie",
+      "weight": 5,
+      "localPath": "data/robinhood/layers/Hat/Black Shystie.png",
+      "remoteUri": "ipfs://bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu/black-shystie.png",
+      "availability": "local-and-remote"
+    },
+    {
+      "slot": "Hat",
+      "traitId": 6010,
+      "name": "Burning Chog",
+      "weight": 2,
+      "localPath": "data/robinhood/layers/Hat/Burning Chog.png",
+      "remoteUri": "ipfs://bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu/burning-chog.png",
+      "availability": "local-and-remote"
+    },
+    {
+      "slot": "Hat",
+      "traitId": 6011,
+      "name": "Captain Hat",
+      "weight": 8,
+      "localPath": "data/robinhood/layers/Hat/Captain Hat.png",
+      "remoteUri": "ipfs://bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu/captain-hat.png",
+      "availability": "local-and-remote"
+    },
+    {
+      "slot": "Hat",
+      "traitId": 6012,
+      "name": "Casino",
+      "weight": 3,
+      "localPath": "data/robinhood/layers/Hat/Casino.png",
+      "remoteUri": "ipfs://bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu/casino.png",
+      "availability": "local-and-remote"
+    },
+    {
+      "slot": "Hat",
+      "traitId": 6013,
+      "name": "Construction",
+      "weight": 8,
+      "localPath": "data/robinhood/layers/Hat/Construction.png",
+      "remoteUri": "ipfs://bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu/construction.png",
+      "availability": "local-and-remote"
+    },
+    {
+      "slot": "Hat",
+      "traitId": 6014,
+      "name": "Cowboy",
+      "weight": 8,
+      "localPath": "data/robinhood/layers/Hat/Cowboy.png",
+      "remoteUri": "ipfs://bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu/cowboy.png",
+      "availability": "local-and-remote"
+    },
+    {
+      "slot": "Hat",
+      "traitId": 6015,
+      "name": "Crown",
+      "weight": 3,
+      "localPath": "data/robinhood/layers/Hat/Crown.png",
+      "remoteUri": "ipfs://bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu/crown.png",
+      "availability": "local-and-remote"
+    },
+    {
+      "slot": "Hat",
+      "traitId": 6018,
+      "name": "DWO Black Cap",
+      "weight": 2,
+      "localPath": "data/robinhood/layers/Hat/DWO Black Cap.png",
+      "remoteUri": "ipfs://bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu/dwo-black-cap.png",
+      "availability": "local-and-remote"
+    },
+    {
+      "slot": "Hat",
+      "traitId": 6019,
+      "name": "DYOOR Black Cap",
+      "weight": 10,
+      "localPath": "data/robinhood/layers/Hat/DYOOR Black Cap.png",
+      "remoteUri": "ipfs://bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu/dyoor-black-cap.png",
+      "availability": "local-and-remote"
+    },
+    {
+      "slot": "Hat",
+      "traitId": 6020,
+      "name": "DYOOR Flipped Brim",
+      "weight": 7,
+      "localPath": "data/robinhood/layers/Hat/DYOOR Flipped Brim.png",
+      "remoteUri": "ipfs://bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu/dyoor-flipped-brim.png",
+      "availability": "local-and-remote"
+    },
+    {
+      "slot": "Hat",
+      "traitId": 6021,
+      "name": "DYOOR White Cap",
+      "weight": 10,
+      "localPath": "data/robinhood/layers/Hat/DYOOR White Cap.png",
+      "remoteUri": "ipfs://bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu/dyoor-white-cap.png",
+      "availability": "local-and-remote"
+    },
+    {
+      "slot": "Hat",
+      "traitId": 6016,
+      "name": "Dunce Hat",
+      "weight": 2,
+      "localPath": "data/robinhood/layers/Hat/Dunce Hat.png",
+      "remoteUri": "ipfs://bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu/dunce-hat.png",
+      "availability": "local-and-remote"
+    },
+    {
+      "slot": "Hat",
+      "traitId": 6017,
+      "name": "Durag",
+      "weight": 3,
+      "localPath": "data/robinhood/layers/Hat/Durag.png",
+      "remoteUri": "ipfs://bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu/durag.png",
+      "availability": "local-and-remote"
+    },
+    {
+      "slot": "Hat",
+      "traitId": 6023,
+      "name": "Glowing Antenna",
+      "weight": 2,
+      "localPath": "data/robinhood/layers/Hat/Glowing Antenna.png",
+      "remoteUri": "ipfs://bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu/glowing-antenna.png",
+      "availability": "local-and-remote"
+    },
+    {
+      "slot": "Hat",
+      "traitId": 6024,
+      "name": "Gotta Catchem Cap",
+      "weight": 9,
+      "localPath": "data/robinhood/layers/Hat/Gotta Catchem Cap.png",
+      "remoteUri": "ipfs://bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu/gotta-catchem-cap.png",
+      "availability": "local-and-remote"
+    },
+    {
+      "slot": "Hat",
+      "traitId": 6025,
+      "name": "Halo",
+      "weight": 3,
+      "localPath": "data/robinhood/layers/Hat/Halo.png",
+      "remoteUri": "ipfs://bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu/halo.png",
+      "availability": "local-and-remote"
+    },
+    {
+      "slot": "Hat",
+      "traitId": 6026,
+      "name": "Horns",
+      "weight": 3,
+      "localPath": "data/robinhood/layers/Hat/Horns.png",
+      "remoteUri": "ipfs://bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu/horns.png",
+      "availability": "local-and-remote"
+    },
+    {
+      "slot": "Hat",
+      "traitId": 6027,
+      "name": "Jailhouse Stripes Hat",
+      "weight": 2,
+      "localPath": "data/robinhood/layers/Hat/Jailhouse Stripes Hat.png",
+      "remoteUri": "ipfs://bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu/jailhouse-stripes-hat.png",
+      "availability": "local-and-remote"
+    },
+    {
+      "slot": "Hat",
+      "traitId": 6028,
+      "name": "Luffy",
+      "weight": 1,
+      "localPath": "data/robinhood/layers/Hat/Luffy.png",
+      "remoteUri": "ipfs://bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu/luffy.png",
+      "availability": "local-and-remote"
+    },
+    {
+      "slot": "Hat",
+      "traitId": 6029,
+      "name": "McDYOORs",
+      "weight": 9,
+      "localPath": "data/robinhood/layers/Hat/McDYOORs.png",
+      "remoteUri": "ipfs://bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu/mcdyoors.png",
+      "availability": "local-and-remote"
+    },
+    {
+      "slot": "Hat",
+      "traitId": 6032,
+      "name": "PamPam",
+      "weight": 1,
+      "localPath": "data/robinhood/layers/Hat/PamPam.png",
+      "remoteUri": "ipfs://bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu/pampam.png",
+      "availability": "local-and-remote"
+    },
+    {
+      "slot": "Hat",
+      "traitId": 6033,
+      "name": "Party Hat",
+      "weight": 3,
+      "localPath": "data/robinhood/layers/Hat/Party Hat.png",
+      "remoteUri": "ipfs://bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu/party-hat.png",
+      "availability": "local-and-remote"
+    },
+    {
+      "slot": "Hat",
+      "traitId": 6034,
+      "name": "Pink Shystie",
+      "weight": 5,
+      "localPath": "data/robinhood/layers/Hat/Pink Shystie.png",
+      "remoteUri": "ipfs://bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu/pink-shystie.png",
+      "availability": "local-and-remote"
+    },
+    {
+      "slot": "Hat",
+      "traitId": 6035,
+      "name": "Pirate Hat",
+      "weight": 2,
+      "localPath": "data/robinhood/layers/Hat/Pirate Hat.png",
+      "remoteUri": "ipfs://bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu/pirate-hat.png",
+      "availability": "local-and-remote"
+    },
+    {
+      "slot": "Hat",
+      "traitId": 6037,
+      "name": "Sealuminati Mask",
+      "weight": 1,
+      "localPath": "data/robinhood/layers/Hat/Sealuminati Mask.png",
+      "remoteUri": "ipfs://bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu/sealuminati-mask.png",
+      "availability": "local-and-remote"
+    },
+    {
+      "slot": "Hat",
+      "traitId": 6039,
+      "name": "Sweatband",
+      "weight": 7,
+      "localPath": "data/robinhood/layers/Hat/Sweatband.png",
+      "remoteUri": "ipfs://bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu/sweatband.png",
+      "availability": "local-and-remote"
+    },
+    {
+      "slot": "Hat",
+      "traitId": 6040,
+      "name": "Tech bro",
+      "weight": 8,
+      "localPath": "data/robinhood/layers/Hat/Tech bro.png",
+      "remoteUri": "ipfs://bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu/tech-bro.png",
+      "availability": "local-and-remote"
+    },
+    {
+      "slot": "Hat",
+      "traitId": 6041,
+      "name": "Wormhole",
+      "weight": 3,
+      "localPath": "data/robinhood/layers/Hat/Wormhole.png",
+      "remoteUri": "ipfs://bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu/wormhole.png",
+      "availability": "local-and-remote"
+    },
+    {
+      "slot": "Hat",
+      "traitId": 6042,
+      "name": "Robinhood Feather Cap",
+      "weight": 3,
+      "localPath": "data/robinhood/layers/Hat/Robinhood Feather Cap.png",
+      "remoteUri": "",
+      "availability": "local"
+    },
+    {
+      "slot": "Accessories",
+      "traitId": 7001,
+      "name": "Bandaid",
+      "weight": 6,
+      "localPath": "data/robinhood/layers/Accessories/Bandaid.png",
+      "remoteUri": "ipfs://bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu/bandaid.png",
+      "availability": "local-and-remote"
+    },
+    {
+      "slot": "Accessories",
+      "traitId": 7002,
+      "name": "Bandana Black",
+      "weight": 6,
+      "localPath": "data/robinhood/layers/Accessories/Bandana Black.png",
+      "remoteUri": "ipfs://bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu/bandana-black.png",
+      "availability": "local-and-remote"
+    },
+    {
+      "slot": "Accessories",
+      "traitId": 7003,
+      "name": "Bandana Pink",
+      "weight": 6,
+      "localPath": "data/robinhood/layers/Accessories/Bandana Pink.png",
+      "remoteUri": "ipfs://bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu/bandana-pink.png",
+      "availability": "local-and-remote"
+    },
+    {
+      "slot": "Accessories",
+      "traitId": 7005,
+      "name": "Choker Necklace",
+      "weight": 4,
+      "localPath": "data/robinhood/layers/Accessories/Choker Necklace.png",
+      "remoteUri": "ipfs://bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu/choker-necklace.png",
+      "availability": "local-and-remote"
+    },
+    {
+      "slot": "Accessories",
+      "traitId": 7006,
+      "name": "MESH Bandanna",
+      "weight": 4,
+      "localPath": "data/robinhood/layers/Accessories/MESH Bandanna.png",
+      "remoteUri": "ipfs://bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu/mesh-bandanna.png",
+      "availability": "local-and-remote"
+    },
+    {
+      "slot": "Accessories",
+      "traitId": 7009,
+      "name": "Sealuminati chain",
+      "weight": 1,
+      "localPath": "data/robinhood/layers/Accessories/Sealuminati chain.png",
+      "remoteUri": "ipfs://bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu/sealuminati-chain.png",
+      "availability": "local-and-remote"
+    },
+    {
+      "slot": "Accessories 2",
+      "traitId": 8001,
+      "name": "Bandaid",
+      "weight": 6,
+      "localPath": "data/robinhood/layers/Accessories 2/Bandaid.png",
+      "remoteUri": "ipfs://bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu/bandaid.png",
+      "availability": "local-and-remote"
+    },
+    {
+      "slot": "Accessories 2",
+      "traitId": 8002,
+      "name": "Bandana Black",
+      "weight": 6,
+      "localPath": "data/robinhood/layers/Accessories 2/Bandana Black.png",
+      "remoteUri": "ipfs://bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu/bandana-black.png",
+      "availability": "local-and-remote"
+    },
+    {
+      "slot": "Accessories 2",
+      "traitId": 8003,
+      "name": "Bandana Pink",
+      "weight": 6,
+      "localPath": "data/robinhood/layers/Accessories 2/Bandana Pink.png",
+      "remoteUri": "ipfs://bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu/bandana-pink.png",
+      "availability": "local-and-remote"
+    },
+    {
+      "slot": "Accessories 2",
+      "traitId": 8005,
+      "name": "Choker Necklace",
+      "weight": 4,
+      "localPath": "data/robinhood/layers/Accessories 2/Choker Necklace.png",
+      "remoteUri": "ipfs://bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu/choker-necklace.png",
+      "availability": "local-and-remote"
+    },
+    {
+      "slot": "Accessories 2",
+      "traitId": 8006,
+      "name": "MESH Bandanna",
+      "weight": 4,
+      "localPath": "data/robinhood/layers/Accessories 2/MESH Bandanna.png",
+      "remoteUri": "ipfs://bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu/mesh-bandanna.png",
+      "availability": "local-and-remote"
+    },
+    {
+      "slot": "Accessories 2",
+      "traitId": 8009,
+      "name": "Sealuminati chain",
+      "weight": 1,
+      "localPath": "data/robinhood/layers/Accessories 2/Sealuminati chain.png",
+      "remoteUri": "ipfs://bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu/sealuminati-chain.png",
+      "availability": "local-and-remote"
+    }
+  ]
+}

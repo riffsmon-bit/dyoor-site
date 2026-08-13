@@ -1,0 +1,2295 @@
+{
+  "schemaVersion": 1,
+  "recordCount": 3333,
+  "attributeOrder": [
+    "Background",
+    "Droid",
+    "Conditions",
+    "Stickers/Body art",
+    "Clothes",
+    "Mouth",
+    "Eyes",
+    "Hat",
+    "Accessories",
+    "Accessories 2",
+    "Special"
+  ],
+  "renderOrder": [
+    "Background",
+    "Droid",
+    "Conditions",
+    "Stickers/Body art",
+    "Clothes",
+    "Mouth",
+    "Eyes",
+    "Hat",
+    "Accessories",
+    "Accessories 2",
+    "Special"
+  ],
+  "categories": {
+    "Background": [
+      {
+        "value": "Cynically Censored-Project M.A.D.",
+        "count": 1,
+        "frequency": 0.00030003000300030005,
+        "rarityWeight": 3333,
+        "layerId": "background--cynically-censored-project-m-a-d--448b5ba5e3",
+        "layerSheet": null,
+        "spriteStatus": "missing"
+      },
+      {
+        "value": "Don't Look At The Lighthouse-Project M.A.D.",
+        "count": 1,
+        "frequency": 0.00030003000300030005,
+        "rarityWeight": 3333,
+        "layerId": "background--don-t-look-at-the-lighthouse-project-m-a-d--6640f42a86",
+        "layerSheet": null,
+        "spriteStatus": "missing"
+      },
+      {
+        "value": "Eye Sea U-Project M.A.D.",
+        "count": 1,
+        "frequency": 0.00030003000300030005,
+        "rarityWeight": 3333,
+        "layerId": "background--eye-sea-u-project-m-a-d--af2ee44168",
+        "layerSheet": null,
+        "spriteStatus": "missing"
+      },
+      {
+        "value": "Fxxk Crabs-Project M.A.D.",
+        "count": 1,
+        "frequency": 0.00030003000300030005,
+        "rarityWeight": 3333,
+        "layerId": "background--fxxk-crabs-project-m-a-d--7a7b6e155a",
+        "layerSheet": null,
+        "spriteStatus": "missing"
+      },
+      {
+        "value": "Painfully Here-Project M.A.D.",
+        "count": 1,
+        "frequency": 0.00030003000300030005,
+        "rarityWeight": 3333,
+        "layerId": "background--painfully-here-project-m-a-d--01d065c010",
+        "layerSheet": null,
+        "spriteStatus": "missing"
+      },
+      {
+        "value": "Sad Cook-Project M.A.D.",
+        "count": 1,
+        "frequency": 0.00030003000300030005,
+        "rarityWeight": 3333,
+        "layerId": "background--sad-cook-project-m-a-d--8d2eef184b",
+        "layerSheet": null,
+        "spriteStatus": "missing"
+      },
+      {
+        "value": "Simovision-Project M.A.D.",
+        "count": 1,
+        "frequency": 0.00030003000300030005,
+        "rarityWeight": 3333,
+        "layerId": "background--simovision-project-m-a-d--86ba6c25a2",
+        "layerSheet": null,
+        "spriteStatus": "missing"
+      },
+      {
+        "value": "Soul Catcher-Project M.A.D.",
+        "count": 1,
+        "frequency": 0.00030003000300030005,
+        "rarityWeight": 3333,
+        "layerId": "background--soul-catcher-project-m-a-d--d10f6b13e9",
+        "layerSheet": null,
+        "spriteStatus": "missing"
+      },
+      {
+        "value": "The Way-Project M.A.D.",
+        "count": 1,
+        "frequency": 0.00030003000300030005,
+        "rarityWeight": 3333,
+        "layerId": "background--the-way-project-m-a-d--d6e15d145d",
+        "layerSheet": null,
+        "spriteStatus": "missing"
+      },
+      {
+        "value": "Tisumusem-Project M.A.D.",
+        "count": 1,
+        "frequency": 0.00030003000300030005,
+        "rarityWeight": 3333,
+        "layerId": "background--tisumusem-project-m-a-d--db538db270",
+        "layerSheet": null,
+        "spriteStatus": "missing"
+      },
+      {
+        "value": "Abtrastic",
+        "count": 20,
+        "frequency": 0.006000600060006,
+        "rarityWeight": 166.65,
+        "layerId": "background--abtrastic--d43e2603d5",
+        "layerSheet": null,
+        "spriteStatus": "missing"
+      },
+      {
+        "value": "Flash",
+        "count": 20,
+        "frequency": 0.006000600060006,
+        "rarityWeight": 166.65,
+        "layerId": "background--flash--62de23d444",
+        "layerSheet": null,
+        "spriteStatus": "missing"
+      },
+      {
+        "value": "Green Grade",
+        "count": 20,
+        "frequency": 0.006000600060006,
+        "rarityWeight": 166.65,
+        "layerId": "background--green-grade--17ae959608",
+        "layerSheet": null,
+        "spriteStatus": "missing"
+      },
+      {
+        "value": "Hawhyte",
+        "count": 20,
+        "frequency": 0.006000600060006,
+        "rarityWeight": 166.65,
+        "layerId": "background--hawhyte--fcd177c2e7",
+        "layerSheet": null,
+        "spriteStatus": "missing"
+      },
+      {
+        "value": "Kewl",
+        "count": 20,
+        "frequency": 0.006000600060006,
+        "rarityWeight": 166.65,
+        "layerId": "background--kewl--311464781e",
+        "layerSheet": null,
+        "spriteStatus": "missing"
+      },
+      {
+        "value": "Pernkple",
+        "count": 20,
+        "frequency": 0.006000600060006,
+        "rarityWeight": 166.65,
+        "layerId": "background--pernkple--d6c4816db1",
+        "layerSheet": null,
+        "spriteStatus": "missing"
+      },
+      {
+        "value": "Sunset",
+        "count": 20,
+        "frequency": 0.006000600060006,
+        "rarityWeight": 166.65,
+        "layerId": "background--sunset--a09520854e",
+        "layerSheet": null,
+        "spriteStatus": "missing"
+      },
+      {
+        "value": "Pank",
+        "count": 609,
+        "frequency": 0.18271827182718273,
+        "rarityWeight": 5.472906403940887,
+        "layerId": "background--pank--389f57d1d4",
+        "layerSheet": null,
+        "spriteStatus": "missing"
+      },
+      {
+        "value": "Goldish",
+        "count": 624,
+        "frequency": 0.18721872187218722,
+        "rarityWeight": 5.341346153846154,
+        "layerId": "background--goldish--e9612cc54b",
+        "layerSheet": null,
+        "spriteStatus": "missing"
+      },
+      {
+        "value": "Yorange",
+        "count": 625,
+        "frequency": 0.18751875187518752,
+        "rarityWeight": 5.3328,
+        "layerId": "background--yorange--2a3b18d224",
+        "layerSheet": null,
+        "spriteStatus": "missing"
+      },
+      {
+        "value": "Grey",
+        "count": 649,
+        "frequency": 0.19471947194719472,
+        "rarityWeight": 5.135593220338983,
+        "layerId": "background--grey--892fddad57",
+        "layerSheet": null,
+        "spriteStatus": "missing"
+      },
+      {
+        "value": "Kinda Blue",
+        "count": 676,
+        "frequency": 0.20282028202820282,
+        "rarityWeight": 4.930473372781065,
+        "layerId": "background--kinda-blue--e3781f49ff",
+        "layerSheet": null,
+        "spriteStatus": "missing"
+      }
+    ],
+    "Droid": [
+      {
+        "value": "Dark Chrome",
+        "count": 10,
+        "frequency": 0.003000300030003,
+        "rarityWeight": 333.3,
+        "layerId": "droid--dark-chrome--c230aa63a9",
+        "layerSheet": null,
+        "spriteStatus": "missing"
+      },
+      {
+        "value": "Gold Chrome",
+        "count": 10,
+        "frequency": 0.003000300030003,
+        "rarityWeight": 333.3,
+        "layerId": "droid--gold-chrome--c15497cc27",
+        "layerSheet": null,
+        "spriteStatus": "missing"
+      },
+      {
+        "value": "Green Chrome",
+        "count": 10,
+        "frequency": 0.003000300030003,
+        "rarityWeight": 333.3,
+        "layerId": "droid--green-chrome--c6deb342af",
+        "layerSheet": null,
+        "spriteStatus": "missing"
+      },
+      {
+        "value": "Olive Chrome",
+        "count": 10,
+        "frequency": 0.003000300030003,
+        "rarityWeight": 333.3,
+        "layerId": "droid--olive-chrome--0f8833bccf",
+        "layerSheet": null,
+        "spriteStatus": "missing"
+      },
+      {
+        "value": "Optimus (T3SLA Bot)",
+        "count": 10,
+        "frequency": 0.003000300030003,
+        "rarityWeight": 333.3,
+        "layerId": "droid--optimus-t3sla-bot--65e506a1fd",
+        "layerSheet": null,
+        "spriteStatus": "missing"
+      },
+      {
+        "value": "Rose Chrome",
+        "count": 10,
+        "frequency": 0.003000300030003,
+        "rarityWeight": 333.3,
+        "layerId": "droid--rose-chrome--40ec88edf6",
+        "layerSheet": null,
+        "spriteStatus": "missing"
+      },
+      {
+        "value": "Whyte Chrome",
+        "count": 10,
+        "frequency": 0.003000300030003,
+        "rarityWeight": 333.3,
+        "layerId": "droid--whyte-chrome--cea60c14ea",
+        "layerSheet": null,
+        "spriteStatus": "missing"
+      },
+      {
+        "value": "Pank",
+        "count": 31,
+        "frequency": 0.0093009300930093,
+        "rarityWeight": 107.51612903225806,
+        "layerId": "droid--pank--e8bb855086",
+        "layerSheet": null,
+        "spriteStatus": "missing"
+      },
+      {
+        "value": "Gold",
+        "count": 63,
+        "frequency": 0.018901890189018902,
+        "rarityWeight": 52.904761904761905,
+        "layerId": "droid--gold--451a934c33",
+        "layerSheet": null,
+        "spriteStatus": "missing"
+      },
+      {
+        "value": "Lime Green",
+        "count": 175,
+        "frequency": 0.052505250525052505,
+        "rarityWeight": 19.045714285714286,
+        "layerId": "droid--lime-green--8419e503b6",
+        "layerSheet": null,
+        "spriteStatus": "missing"
+      },
+      {
+        "value": "Olive",
+        "count": 207,
+        "frequency": 0.062106210621062106,
+        "rarityWeight": 16.10144927536232,
+        "layerId": "droid--olive--5897ebbd54",
+        "layerSheet": null,
+        "spriteStatus": "missing"
+      },
+      {
+        "value": "Purple",
+        "count": 251,
+        "frequency": 0.07530753075307531,
+        "rarityWeight": 13.278884462151394,
+        "layerId": "droid--purple--a3f48eeeb5",
+        "layerSheet": null,
+        "spriteStatus": "missing"
+      },
+      {
+        "value": "Black",
+        "count": 319,
+        "frequency": 0.09570957095709572,
+        "rarityWeight": 10.448275862068966,
+        "layerId": "droid--black--85d62a155b",
+        "layerSheet": null,
+        "spriteStatus": "missing"
+      },
+      {
+        "value": "Green",
+        "count": 340,
+        "frequency": 0.10201020102010201,
+        "rarityWeight": 9.802941176470588,
+        "layerId": "droid--green--3f3940f263",
+        "layerSheet": null,
+        "spriteStatus": "missing"
+      },
+      {
+        "value": "Orange",
+        "count": 346,
+        "frequency": 0.1038103810381038,
+        "rarityWeight": 9.632947976878613,
+        "layerId": "droid--orange--a1739aa1ed",
+        "layerSheet": null,
+        "spriteStatus": "missing"
+      },
+      {
+        "value": "Red",
+        "count": 360,
+        "frequency": 0.10801080108010801,
+        "rarityWeight": 9.258333333333333,
+        "layerId": "droid--red--854ff1ec69",
+        "layerSheet": null,
+        "spriteStatus": "missing"
+      },
+      {
+        "value": "Blue",
+        "count": 383,
+        "frequency": 0.1149114911491149,
+        "rarityWeight": 8.702349869451696,
+        "layerId": "droid--blue--a7eab99a14",
+        "layerSheet": null,
+        "spriteStatus": "missing"
+      },
+      {
+        "value": "Yellow",
+        "count": 390,
+        "frequency": 0.11701170117011701,
+        "rarityWeight": 8.546153846153846,
+        "layerId": "droid--yellow--9fdc55128c",
+        "layerSheet": null,
+        "spriteStatus": "missing"
+      },
+      {
+        "value": "White",
+        "count": 398,
+        "frequency": 0.11941194119411941,
+        "rarityWeight": 8.374371859296483,
+        "layerId": "droid--white--38915830d1",
+        "layerSheet": null,
+        "spriteStatus": "missing"
+      }
+    ],
+    "Conditions": [
+      {
+        "value": "S1 Skin",
+        "count": 15,
+        "frequency": 0.004500450045004501,
+        "rarityWeight": 222.2,
+        "layerId": "conditions--s1-skin--179917994f",
+        "layerSheet": null,
+        "spriteStatus": "missing"
+      },
+      {
+        "value": "Dirty Broken'er",
+        "count": 19,
+        "frequency": 0.005700570057005701,
+        "rarityWeight": 175.42105263157896,
+        "layerId": "conditions--dirty-broken-er--47c6c03f3d",
+        "layerSheet": null,
+        "spriteStatus": "missing"
+      },
+      {
+        "value": "Dirty-Broken",
+        "count": 22,
+        "frequency": 0.006600660066006601,
+        "rarityWeight": 151.5,
+        "layerId": "conditions--dirty-broken--4e4c2a3b67",
+        "layerSheet": null,
+        "spriteStatus": "missing"
+      },
+      {
+        "value": "None",
+        "count": 3277,
+        "frequency": 0.9831983198319832,
+        "rarityWeight": 1.0170888007323773,
+        "layerId": "conditions--none--15be144733",
+        "layerSheet": null,
+        "spriteStatus": "missing"
+      }
+    ],
+    "Stickers/Body art": [
+      {
+        "value": "143 Face Sticker",
+        "count": 25,
+        "frequency": 0.007500750075007501,
+        "rarityWeight": 133.32,
+        "layerId": "stickers-body-art--143-face-sticker--771eacbd5b",
+        "layerSheet": null,
+        "spriteStatus": "missing"
+      },
+      {
+        "value": "Chog Sticker",
+        "count": 28,
+        "frequency": 0.0084008400840084,
+        "rarityWeight": 119.03571428571429,
+        "layerId": "stickers-body-art--chog-sticker--2d9fd03bd3",
+        "layerSheet": null,
+        "spriteStatus": "missing"
+      },
+      {
+        "value": "143 Chest Sticker",
+        "count": 29,
+        "frequency": 0.0087008700870087,
+        "rarityWeight": 114.93103448275862,
+        "layerId": "stickers-body-art--143-chest-sticker--0e152d3b6b",
+        "layerSheet": null,
+        "spriteStatus": "missing"
+      },
+      {
+        "value": "LeverUp sticker",
+        "count": 32,
+        "frequency": 0.009600960096009602,
+        "rarityWeight": 104.15625,
+        "layerId": "stickers-body-art--leverup-sticker--dfdf94ae2e",
+        "layerSheet": null,
+        "spriteStatus": "missing"
+      },
+      {
+        "value": "DYOOR Chest Tat",
+        "count": 110,
+        "frequency": 0.033003300330033,
+        "rarityWeight": 30.3,
+        "layerId": "stickers-body-art--dyoor-chest-tat--c30570e1d5",
+        "layerSheet": null,
+        "spriteStatus": "missing"
+      },
+      {
+        "value": "None",
+        "count": 3109,
+        "frequency": 0.9327932793279328,
+        "rarityWeight": 1.0720488903184304,
+        "layerId": "stickers-body-art--none--2ccec05f00",
+        "layerSheet": null,
+        "spriteStatus": "missing"
+      }
+    ],
+    "Clothes": [
+      {
+        "value": "DYOOR Red Gold Text Hoodie",
+        "count": 16,
+        "frequency": 0.004800480048004801,
+        "rarityWeight": 208.3125,
+        "layerId": "clothes--dyoor-red-gold-text-hoodie--a49f314969",
+        "layerSheet": null,
+        "spriteStatus": "missing"
+      },
+      {
+        "value": "DYOOR Blue Hoodie",
+        "count": 17,
+        "frequency": 0.0051005100510051,
+        "rarityWeight": 196.05882352941177,
+        "layerId": "clothes--dyoor-blue-hoodie--23330b733d",
+        "layerSheet": null,
+        "spriteStatus": "missing"
+      },
+      {
+        "value": "Tuxedo",
+        "count": 17,
+        "frequency": 0.0051005100510051,
+        "rarityWeight": 196.05882352941177,
+        "layerId": "clothes--tuxedo--3e0ff912b7",
+        "layerSheet": null,
+        "spriteStatus": "missing"
+      },
+      {
+        "value": "DYOOR Black Gold Text Hoodie",
+        "count": 19,
+        "frequency": 0.005700570057005701,
+        "rarityWeight": 175.42105263157896,
+        "layerId": "clothes--dyoor-black-gold-text-hoodie--1a8a404013",
+        "layerSheet": null,
+        "spriteStatus": "missing"
+      },
+      {
+        "value": "Hawaiian Shirt",
+        "count": 19,
+        "frequency": 0.005700570057005701,
+        "rarityWeight": 175.42105263157896,
+        "layerId": "clothes--hawaiian-shirt--e62179258b",
+        "layerSheet": null,
+        "spriteStatus": "missing"
+      },
+      {
+        "value": "Torn Tee",
+        "count": 19,
+        "frequency": 0.005700570057005701,
+        "rarityWeight": 175.42105263157896,
+        "layerId": "clothes--torn-tee--2e06c23afb",
+        "layerSheet": null,
+        "spriteStatus": "missing"
+      },
+      {
+        "value": "Bartman Shirt n Cape",
+        "count": 20,
+        "frequency": 0.006000600060006,
+        "rarityWeight": 166.65,
+        "layerId": "clothes--bartman-shirt-n-cape--054c700803",
+        "layerSheet": null,
+        "spriteStatus": "missing"
+      },
+      {
+        "value": "Luffy",
+        "count": 20,
+        "frequency": 0.006000600060006,
+        "rarityWeight": 166.65,
+        "layerId": "clothes--luffy--05686974a8",
+        "layerSheet": null,
+        "spriteStatus": "missing"
+      },
+      {
+        "value": "Caveman Leotard",
+        "count": 22,
+        "frequency": 0.006600660066006601,
+        "rarityWeight": 151.5,
+        "layerId": "clothes--caveman-leotard--0d74a7507d",
+        "layerSheet": null,
+        "spriteStatus": "missing"
+      },
+      {
+        "value": "Convict Shirt",
+        "count": 23,
+        "frequency": 0.006900690069006901,
+        "rarityWeight": 144.91304347826087,
+        "layerId": "clothes--convict-shirt--5f06ec17eb",
+        "layerSheet": null,
+        "spriteStatus": "missing"
+      },
+      {
+        "value": "R3tard Tee",
+        "count": 23,
+        "frequency": 0.006900690069006901,
+        "rarityWeight": 144.91304347826087,
+        "layerId": "clothes--r3tard-tee--751739c09b",
+        "layerSheet": null,
+        "spriteStatus": "missing"
+      },
+      {
+        "value": "Jailhouse Stripes Shirt",
+        "count": 26,
+        "frequency": 0.007800780078007801,
+        "rarityWeight": 128.19230769230768,
+        "layerId": "clothes--jailhouse-stripes-shirt--6dc57de30e",
+        "layerSheet": null,
+        "spriteStatus": "missing"
+      },
+      {
+        "value": "Beige Hoodie",
+        "count": 28,
+        "frequency": 0.0084008400840084,
+        "rarityWeight": 119.03571428571429,
+        "layerId": "clothes--beige-hoodie--3e0fdcde41",
+        "layerSheet": null,
+        "spriteStatus": "missing"
+      },
+      {
+        "value": "Fur Coat Gold",
+        "count": 29,
+        "frequency": 0.0087008700870087,
+        "rarityWeight": 114.93103448275862,
+        "layerId": "clothes--fur-coat-gold--e627a83a74",
+        "layerSheet": null,
+        "spriteStatus": "missing"
+      },
+      {
+        "value": "Leather Jacket Torn Tee",
+        "count": 29,
+        "frequency": 0.0087008700870087,
+        "rarityWeight": 114.93103448275862,
+        "layerId": "clothes--leather-jacket-torn-tee--6a594c2bb3",
+        "layerSheet": null,
+        "spriteStatus": "missing"
+      },
+      {
+        "value": "DYOOR Black Hoodie",
+        "count": 30,
+        "frequency": 0.009000900090009001,
+        "rarityWeight": 111.1,
+        "layerId": "clothes--dyoor-black-hoodie--2cc8469502",
+        "layerSheet": null,
+        "spriteStatus": "missing"
+      },
+      {
+        "value": "Black N White Tee 2",
+        "count": 31,
+        "frequency": 0.0093009300930093,
+        "rarityWeight": 107.51612903225806,
+        "layerId": "clothes--black-n-white-tee-2--627e8f35db",
+        "layerSheet": null,
+        "spriteStatus": "missing"
+      },
+      {
+        "value": "Dictator Jacket",
+        "count": 31,
+        "frequency": 0.0093009300930093,
+        "rarityWeight": 107.51612903225806,
+        "layerId": "clothes--dictator-jacket--006e9352ea",
+        "layerSheet": null,
+        "spriteStatus": "missing"
+      },
+      {
+        "value": "Emo Tee",
+        "count": 31,
+        "frequency": 0.0093009300930093,
+        "rarityWeight": 107.51612903225806,
+        "layerId": "clothes--emo-tee--59eb3a89cd",
+        "layerSheet": null,
+        "spriteStatus": "missing"
+      },
+      {
+        "value": "Fur Coat Purple",
+        "count": 31,
+        "frequency": 0.0093009300930093,
+        "rarityWeight": 107.51612903225806,
+        "layerId": "clothes--fur-coat-purple--3a31d88147",
+        "layerSheet": null,
+        "spriteStatus": "missing"
+      },
+      {
+        "value": "King's Robe 2",
+        "count": 31,
+        "frequency": 0.0093009300930093,
+        "rarityWeight": 107.51612903225806,
+        "layerId": "clothes--king-s-robe-2--a8e9a1b5f5",
+        "layerSheet": null,
+        "spriteStatus": "missing"
+      },
+      {
+        "value": "Blue Racer",
+        "count": 33,
+        "frequency": 0.009900990099009901,
+        "rarityWeight": 101,
+        "layerId": "clothes--blue-racer--6bd1d1ebc7",
+        "layerSheet": null,
+        "spriteStatus": "missing"
+      },
+      {
+        "value": "King's Robe",
+        "count": 36,
+        "frequency": 0.010801080108010801,
+        "rarityWeight": 92.58333333333333,
+        "layerId": "clothes--king-s-robe--2045e4a4ab",
+        "layerSheet": null,
+        "spriteStatus": "missing"
+      },
+      {
+        "value": "Fur Coat Pink",
+        "count": 37,
+        "frequency": 0.0111011101110111,
+        "rarityWeight": 90.08108108108108,
+        "layerId": "clothes--fur-coat-pink--ecb0321f9e",
+        "layerSheet": null,
+        "spriteStatus": "missing"
+      },
+      {
+        "value": "Torn Black Tee",
+        "count": 39,
+        "frequency": 0.011701170117011701,
+        "rarityWeight": 85.46153846153847,
+        "layerId": "clothes--torn-black-tee--1f32501dfe",
+        "layerSheet": null,
+        "spriteStatus": "missing"
+      },
+      {
+        "value": "Overalls",
+        "count": 40,
+        "frequency": 0.012001200120012,
+        "rarityWeight": 83.325,
+        "layerId": "clothes--overalls--3824507879",
+        "layerSheet": null,
+        "spriteStatus": "missing"
+      },
+      {
+        "value": "Orange Plaid",
+        "count": 41,
+        "frequency": 0.012301230123012302,
+        "rarityWeight": 81.29268292682927,
+        "layerId": "clothes--orange-plaid--399c065088",
+        "layerSheet": null,
+        "spriteStatus": "missing"
+      },
+      {
+        "value": "Emo Tank",
+        "count": 43,
+        "frequency": 0.012901290129012902,
+        "rarityWeight": 77.51162790697674,
+        "layerId": "clothes--emo-tank--c426f17bf2",
+        "layerSheet": null,
+        "spriteStatus": "missing"
+      },
+      {
+        "value": "Durag Stays On Tank",
+        "count": 47,
+        "frequency": 0.014101410141014101,
+        "rarityWeight": 70.91489361702128,
+        "layerId": "clothes--durag-stays-on-tank--55ca1d66c9",
+        "layerSheet": null,
+        "spriteStatus": "missing"
+      },
+      {
+        "value": "MESH Tee",
+        "count": 47,
+        "frequency": 0.014101410141014101,
+        "rarityWeight": 70.91489361702128,
+        "layerId": "clothes--mesh-tee--c8932ef346",
+        "layerSheet": null,
+        "spriteStatus": "missing"
+      },
+      {
+        "value": "GiftGoats Tee",
+        "count": 49,
+        "frequency": 0.014701470147014702,
+        "rarityWeight": 68.0204081632653,
+        "layerId": "clothes--giftgoats-tee--4fd52339bb",
+        "layerSheet": null,
+        "spriteStatus": "missing"
+      },
+      {
+        "value": "DWO White",
+        "count": 51,
+        "frequency": 0.0153015301530153,
+        "rarityWeight": 65.3529411764706,
+        "layerId": "clothes--dwo-white--83264369fd",
+        "layerSheet": null,
+        "spriteStatus": "missing"
+      },
+      {
+        "value": "White Shirt W:Tie",
+        "count": 52,
+        "frequency": 0.015601560156015602,
+        "rarityWeight": 64.09615384615384,
+        "layerId": "clothes--white-shirt-w-tie--b02efe19fd",
+        "layerSheet": null,
+        "spriteStatus": "missing"
+      },
+      {
+        "value": "PAMPAM Tee",
+        "count": 54,
+        "frequency": 0.016201620162016202,
+        "rarityWeight": 61.72222222222222,
+        "layerId": "clothes--pampam-tee--ca35bc786a",
+        "layerSheet": null,
+        "spriteStatus": "missing"
+      },
+      {
+        "value": "BuildAnything Tee",
+        "count": 61,
+        "frequency": 0.018301830183018303,
+        "rarityWeight": 54.63934426229508,
+        "layerId": "clothes--buildanything-tee--6c08a01806",
+        "layerSheet": null,
+        "spriteStatus": "missing"
+      },
+      {
+        "value": "Neverland Tee",
+        "count": 66,
+        "frequency": 0.019801980198019802,
+        "rarityWeight": 50.5,
+        "layerId": "clothes--neverland-tee--8a9d4eba1a",
+        "layerSheet": null,
+        "spriteStatus": "missing"
+      },
+      {
+        "value": "Black Tee",
+        "count": 69,
+        "frequency": 0.020702070207020702,
+        "rarityWeight": 48.30434782608695,
+        "layerId": "clothes--black-tee--ca81302ebc",
+        "layerSheet": null,
+        "spriteStatus": "missing"
+      },
+      {
+        "value": "Black N White Tee",
+        "count": 71,
+        "frequency": 0.0213021302130213,
+        "rarityWeight": 46.943661971830984,
+        "layerId": "clothes--black-n-white-tee--0ea746a7aa",
+        "layerSheet": null,
+        "spriteStatus": "missing"
+      },
+      {
+        "value": "Kuru White Tee",
+        "count": 71,
+        "frequency": 0.0213021302130213,
+        "rarityWeight": 46.943661971830984,
+        "layerId": "clothes--kuru-white-tee--51f5f89199",
+        "layerSheet": null,
+        "spriteStatus": "missing"
+      },
+      {
+        "value": "White Tee",
+        "count": 71,
+        "frequency": 0.0213021302130213,
+        "rarityWeight": 46.943661971830984,
+        "layerId": "clothes--white-tee--28f28f8375",
+        "layerSheet": null,
+        "spriteStatus": "missing"
+      },
+      {
+        "value": "Leather Jacket White Shirt W:Tie",
+        "count": 74,
+        "frequency": 0.0222022202220222,
+        "rarityWeight": 45.04054054054054,
+        "layerId": "clothes--leather-jacket-white-shirt-w-tie--60c1fbde1c",
+        "layerSheet": null,
+        "spriteStatus": "missing"
+      },
+      {
+        "value": "Black Racer",
+        "count": 81,
+        "frequency": 0.024302430243024302,
+        "rarityWeight": 41.148148148148145,
+        "layerId": "clothes--black-racer--5f809dddc4",
+        "layerSheet": null,
+        "spriteStatus": "missing"
+      },
+      {
+        "value": "Baby Blue Tee",
+        "count": 84,
+        "frequency": 0.025202520252025202,
+        "rarityWeight": 39.67857142857143,
+        "layerId": "clothes--baby-blue-tee--21267ddcc9",
+        "layerSheet": null,
+        "spriteStatus": "missing"
+      },
+      {
+        "value": "Blue Hoodie",
+        "count": 85,
+        "frequency": 0.025502550255025503,
+        "rarityWeight": 39.21176470588235,
+        "layerId": "clothes--blue-hoodie--be3dc1e943",
+        "layerSheet": null,
+        "spriteStatus": "missing"
+      },
+      {
+        "value": "Pink Plaid",
+        "count": 86,
+        "frequency": 0.025802580258025804,
+        "rarityWeight": 38.75581395348837,
+        "layerId": "clothes--pink-plaid--c978f17f4b",
+        "layerSheet": null,
+        "spriteStatus": "missing"
+      },
+      {
+        "value": "Lab Coat",
+        "count": 89,
+        "frequency": 0.026702670267026704,
+        "rarityWeight": 37.449438202247194,
+        "layerId": "clothes--lab-coat--29a7609521",
+        "layerSheet": null,
+        "spriteStatus": "missing"
+      },
+      {
+        "value": "Leather Jacket",
+        "count": 92,
+        "frequency": 0.027602760276027604,
+        "rarityWeight": 36.22826086956522,
+        "layerId": "clothes--leather-jacket--142ce69ad0",
+        "layerSheet": null,
+        "spriteStatus": "missing"
+      },
+      {
+        "value": "Black Hoodie",
+        "count": 94,
+        "frequency": 0.028202820282028203,
+        "rarityWeight": 35.45744680851064,
+        "layerId": "clothes--black-hoodie--0cb6fde97f",
+        "layerSheet": null,
+        "spriteStatus": "missing"
+      },
+      {
+        "value": "McDyoornalds",
+        "count": 101,
+        "frequency": 0.030303030303030304,
+        "rarityWeight": 33,
+        "layerId": "clothes--mcdyoornalds--2809dea116",
+        "layerSheet": null,
+        "spriteStatus": "missing"
+      },
+      {
+        "value": "Orange Racer",
+        "count": 101,
+        "frequency": 0.030303030303030304,
+        "rarityWeight": 33,
+        "layerId": "clothes--orange-racer--9bf01d8e20",
+        "layerSheet": null,
+        "spriteStatus": "missing"
+      },
+      {
+        "value": "Grey Tee",
+        "count": 104,
+        "frequency": 0.031203120312031204,
+        "rarityWeight": 32.04807692307692,
+        "layerId": "clothes--grey-tee--324bc265d1",
+        "layerSheet": null,
+        "spriteStatus": "missing"
+      },
+      {
+        "value": "Red Hoodie",
+        "count": 109,
+        "frequency": 0.032703270327032706,
+        "rarityWeight": 30.577981651376145,
+        "layerId": "clothes--red-hoodie--c76860d188",
+        "layerSheet": null,
+        "spriteStatus": "missing"
+      },
+      {
+        "value": "Red Plaid",
+        "count": 111,
+        "frequency": 0.0333033303330333,
+        "rarityWeight": 30.027027027027028,
+        "layerId": "clothes--red-plaid--5c7fb3f474",
+        "layerSheet": null,
+        "spriteStatus": "missing"
+      },
+      {
+        "value": "Tech Bro",
+        "count": 111,
+        "frequency": 0.0333033303330333,
+        "rarityWeight": 30.027027027027028,
+        "layerId": "clothes--tech-bro--9e719cf01d",
+        "layerSheet": null,
+        "spriteStatus": "missing"
+      },
+      {
+        "value": "DWO Black 2",
+        "count": 114,
+        "frequency": 0.034203420342034205,
+        "rarityWeight": 29.236842105263158,
+        "layerId": "clothes--dwo-black-2--76f7330a83",
+        "layerSheet": null,
+        "spriteStatus": "missing"
+      },
+      {
+        "value": "Kuru Tee",
+        "count": 127,
+        "frequency": 0.038103810381038106,
+        "rarityWeight": 26.244094488188978,
+        "layerId": "clothes--kuru-tee--bb12135e42",
+        "layerSheet": null,
+        "spriteStatus": "missing"
+      },
+      {
+        "value": "DWO Black",
+        "count": 130,
+        "frequency": 0.039003900390039,
+        "rarityWeight": 25.638461538461538,
+        "layerId": "clothes--dwo-black--1a21e89735",
+        "layerSheet": null,
+        "spriteStatus": "missing"
+      },
+      {
+        "value": "None",
+        "count": 150,
+        "frequency": 0.045004500450045004,
+        "rarityWeight": 22.22,
+        "layerId": "clothes--none--ee6e2d3cfb",
+        "layerSheet": null,
+        "spriteStatus": "missing"
+      }
+    ],
+    "Mouth": [
+      {
+        "value": "Diamond Grill",
+        "count": 38,
+        "frequency": 0.011401140114011402,
+        "rarityWeight": 87.71052631578948,
+        "layerId": "mouth--diamond-grill--07889bb3b2",
+        "layerSheet": null,
+        "spriteStatus": "missing"
+      },
+      {
+        "value": "Vamp Fangs",
+        "count": 47,
+        "frequency": 0.014101410141014101,
+        "rarityWeight": 70.91489361702128,
+        "layerId": "mouth--vamp-fangs--62f303809a",
+        "layerSheet": null,
+        "spriteStatus": "missing"
+      },
+      {
+        "value": "Party Horn Mouth",
+        "count": 48,
+        "frequency": 0.0144014401440144,
+        "rarityWeight": 69.4375,
+        "layerId": "mouth--party-horn-mouth--c7bf6a85c2",
+        "layerSheet": null,
+        "spriteStatus": "missing"
+      },
+      {
+        "value": "AHHHH",
+        "count": 49,
+        "frequency": 0.014701470147014702,
+        "rarityWeight": 68.0204081632653,
+        "layerId": "mouth--ahhhh--1654619bf5",
+        "layerSheet": null,
+        "spriteStatus": "missing"
+      },
+      {
+        "value": "Pepe Mouth",
+        "count": 54,
+        "frequency": 0.016201620162016202,
+        "rarityWeight": 61.72222222222222,
+        "layerId": "mouth--pepe-mouth--137f9f833b",
+        "layerSheet": null,
+        "spriteStatus": "missing"
+      },
+      {
+        "value": "Cigar Mouth",
+        "count": 55,
+        "frequency": 0.0165016501650165,
+        "rarityWeight": 60.6,
+        "layerId": "mouth--cigar-mouth--61ea4b2e12",
+        "layerSheet": null,
+        "spriteStatus": "missing"
+      },
+      {
+        "value": "Pipe",
+        "count": 55,
+        "frequency": 0.0165016501650165,
+        "rarityWeight": 60.6,
+        "layerId": "mouth--pipe--acaede3967",
+        "layerSheet": null,
+        "spriteStatus": "missing"
+      },
+      {
+        "value": "Gold Bar",
+        "count": 57,
+        "frequency": 0.017101710171017102,
+        "rarityWeight": 58.473684210526315,
+        "layerId": "mouth--gold-bar--0f48f670ae",
+        "layerSheet": null,
+        "spriteStatus": "missing"
+      },
+      {
+        "value": "Braces",
+        "count": 62,
+        "frequency": 0.0186018601860186,
+        "rarityWeight": 53.75806451612903,
+        "layerId": "mouth--braces--78c21874d4",
+        "layerSheet": null,
+        "spriteStatus": "missing"
+      },
+      {
+        "value": "Deep Thought",
+        "count": 63,
+        "frequency": 0.018901890189018902,
+        "rarityWeight": 52.904761904761905,
+        "layerId": "mouth--deep-thought--40285e0304",
+        "layerSheet": null,
+        "spriteStatus": "missing"
+      },
+      {
+        "value": "Emo Sheesh",
+        "count": 63,
+        "frequency": 0.018901890189018902,
+        "rarityWeight": 52.904761904761905,
+        "layerId": "mouth--emo-sheesh--c260e38753",
+        "layerSheet": null,
+        "spriteStatus": "missing"
+      },
+      {
+        "value": "Gold Grill",
+        "count": 65,
+        "frequency": 0.0195019501950195,
+        "rarityWeight": 51.276923076923076,
+        "layerId": "mouth--gold-grill--bccacc30e5",
+        "layerSheet": null,
+        "spriteStatus": "missing"
+      },
+      {
+        "value": "AHHHH Flames",
+        "count": 66,
+        "frequency": 0.019801980198019802,
+        "rarityWeight": 50.5,
+        "layerId": "mouth--ahhhh-flames--d7193f6f56",
+        "layerSheet": null,
+        "spriteStatus": "missing"
+      },
+      {
+        "value": "Emo Whatever",
+        "count": 68,
+        "frequency": 0.0204020402040204,
+        "rarityWeight": 49.01470588235294,
+        "layerId": "mouth--emo-whatever--2579f27fa6",
+        "layerSheet": null,
+        "spriteStatus": "missing"
+      },
+      {
+        "value": "Meh",
+        "count": 72,
+        "frequency": 0.021602160216021602,
+        "rarityWeight": 46.291666666666664,
+        "layerId": "mouth--meh--33c94e42c7",
+        "layerSheet": null,
+        "spriteStatus": "missing"
+      },
+      {
+        "value": "Errrh",
+        "count": 73,
+        "frequency": 0.021902190219021903,
+        "rarityWeight": 45.657534246575345,
+        "layerId": "mouth--errrh--e36c219fa6",
+        "layerSheet": null,
+        "spriteStatus": "missing"
+      },
+      {
+        "value": "Joint Mouth",
+        "count": 73,
+        "frequency": 0.021902190219021903,
+        "rarityWeight": 45.657534246575345,
+        "layerId": "mouth--joint-mouth--ab8b798104",
+        "layerSheet": null,
+        "spriteStatus": "missing"
+      },
+      {
+        "value": "Displeased toothpick",
+        "count": 75,
+        "frequency": 0.022502250225022502,
+        "rarityWeight": 44.44,
+        "layerId": "mouth--displeased-toothpick--dd781d2abb",
+        "layerSheet": null,
+        "spriteStatus": "missing"
+      },
+      {
+        "value": "AHHH Scared",
+        "count": 76,
+        "frequency": 0.022802280228022803,
+        "rarityWeight": 43.85526315789474,
+        "layerId": "mouth--ahhh-scared--bf3f5f04c2",
+        "layerSheet": null,
+        "spriteStatus": "missing"
+      },
+      {
+        "value": "AHHH Tongue",
+        "count": 90,
+        "frequency": 0.027002700270027002,
+        "rarityWeight": 37.03333333333333,
+        "layerId": "mouth--ahhh-tongue--498bb6ca4b",
+        "layerSheet": null,
+        "spriteStatus": "missing"
+      },
+      {
+        "value": "Waaaat",
+        "count": 125,
+        "frequency": 0.0375037503750375,
+        "rarityWeight": 26.664,
+        "layerId": "mouth--waaaat--bd35815912",
+        "layerSheet": null,
+        "spriteStatus": "missing"
+      },
+      {
+        "value": "Meh Cigarette",
+        "count": 142,
+        "frequency": 0.0426042604260426,
+        "rarityWeight": 23.471830985915492,
+        "layerId": "mouth--meh-cigarette--2ef5411b4a",
+        "layerSheet": null,
+        "spriteStatus": "missing"
+      },
+      {
+        "value": "Drool",
+        "count": 146,
+        "frequency": 0.043804380438043806,
+        "rarityWeight": 22.828767123287673,
+        "layerId": "mouth--drool--e7c3866cf3",
+        "layerSheet": null,
+        "spriteStatus": "missing"
+      },
+      {
+        "value": "Muah",
+        "count": 151,
+        "frequency": 0.045304530453045305,
+        "rarityWeight": 22.072847682119207,
+        "layerId": "mouth--muah--e1cf57b618",
+        "layerSheet": null,
+        "spriteStatus": "missing"
+      },
+      {
+        "value": "Toothless Drool",
+        "count": 158,
+        "frequency": 0.047404740474047406,
+        "rarityWeight": 21.09493670886076,
+        "layerId": "mouth--toothless-drool--a0eb654052",
+        "layerSheet": null,
+        "spriteStatus": "missing"
+      },
+      {
+        "value": "Ayeyo",
+        "count": 168,
+        "frequency": 0.050405040504050404,
+        "rarityWeight": 19.839285714285715,
+        "layerId": "mouth--ayeyo--4e5535dfd6",
+        "layerSheet": null,
+        "spriteStatus": "missing"
+      },
+      {
+        "value": "Displeased",
+        "count": 173,
+        "frequency": 0.0519051905190519,
+        "rarityWeight": 19.265895953757227,
+        "layerId": "mouth--displeased--04e3966a5e",
+        "layerSheet": null,
+        "spriteStatus": "missing"
+      },
+      {
+        "value": "Ayeee",
+        "count": 182,
+        "frequency": 0.054605460546054606,
+        "rarityWeight": 18.313186813186814,
+        "layerId": "mouth--ayeee--6f86a822e3",
+        "layerSheet": null,
+        "spriteStatus": "missing"
+      },
+      {
+        "value": "Resting DYOOR mouth",
+        "count": 192,
+        "frequency": 0.0576057605760576,
+        "rarityWeight": 17.359375,
+        "layerId": "mouth--resting-dyoor-mouth--7cc3b69746",
+        "layerSheet": null,
+        "spriteStatus": "missing"
+      },
+      {
+        "value": "MMMMKay",
+        "count": 203,
+        "frequency": 0.06090609060906091,
+        "rarityWeight": 16.41871921182266,
+        "layerId": "mouth--mmmmkay--0673947aa7",
+        "layerSheet": null,
+        "spriteStatus": "missing"
+      },
+      {
+        "value": "None",
+        "count": 444,
+        "frequency": 0.1332133213321332,
+        "rarityWeight": 7.506756756756757,
+        "layerId": "mouth--none--00e3e61744",
+        "layerSheet": null,
+        "spriteStatus": "missing"
+      }
+    ],
+    "Eyes": [
+      {
+        "value": "Abyss Laser",
+        "count": 10,
+        "frequency": 0.003000300030003,
+        "rarityWeight": 333.3,
+        "layerId": "eyes--abyss-laser--5f9999f168",
+        "layerSheet": null,
+        "spriteStatus": "missing"
+      },
+      {
+        "value": "Lazy Laser",
+        "count": 10,
+        "frequency": 0.003000300030003,
+        "rarityWeight": 333.3,
+        "layerId": "eyes--lazy-laser--bd4fb2a20e",
+        "layerSheet": null,
+        "spriteStatus": "missing"
+      },
+      {
+        "value": "Radiation Glow (Red)Laser",
+        "count": 10,
+        "frequency": 0.003000300030003,
+        "rarityWeight": 333.3,
+        "layerId": "eyes--radiation-glow-red-laser--0dd95192c1",
+        "layerSheet": null,
+        "spriteStatus": "missing"
+      },
+      {
+        "value": "None",
+        "count": 25,
+        "frequency": 0.007500750075007501,
+        "rarityWeight": 133.32,
+        "layerId": "eyes--none--c0f6cf58fe",
+        "layerSheet": null,
+        "spriteStatus": "missing"
+      },
+      {
+        "value": "Pit Viper",
+        "count": 45,
+        "frequency": 0.013501350135013501,
+        "rarityWeight": 74.06666666666666,
+        "layerId": "eyes--pit-viper--4ab35fdd9c",
+        "layerSheet": null,
+        "spriteStatus": "missing"
+      },
+      {
+        "value": "Monad Specs Gold",
+        "count": 49,
+        "frequency": 0.014701470147014702,
+        "rarityWeight": 68.0204081632653,
+        "layerId": "eyes--monad-specs-gold--5b6fc5dfb1",
+        "layerSheet": null,
+        "spriteStatus": "missing"
+      },
+      {
+        "value": "Build Anything Glasses",
+        "count": 53,
+        "frequency": 0.0159015901590159,
+        "rarityWeight": 62.886792452830186,
+        "layerId": "eyes--build-anything-glasses--1d0e7a7727",
+        "layerSheet": null,
+        "spriteStatus": "missing"
+      },
+      {
+        "value": "VR Headset",
+        "count": 54,
+        "frequency": 0.016201620162016202,
+        "rarityWeight": 61.72222222222222,
+        "layerId": "eyes--vr-headset--0f74957458",
+        "layerSheet": null,
+        "spriteStatus": "missing"
+      },
+      {
+        "value": "Googley Eyes",
+        "count": 57,
+        "frequency": 0.017101710171017102,
+        "rarityWeight": 58.473684210526315,
+        "layerId": "eyes--googley-eyes--ed06dee39f",
+        "layerSheet": null,
+        "spriteStatus": "missing"
+      },
+      {
+        "value": "Monad Specs Black",
+        "count": 58,
+        "frequency": 0.0174017401740174,
+        "rarityWeight": 57.46551724137931,
+        "layerId": "eyes--monad-specs-black--75f09560d5",
+        "layerSheet": null,
+        "spriteStatus": "missing"
+      },
+      {
+        "value": "Eye Patch",
+        "count": 59,
+        "frequency": 0.0177017701770177,
+        "rarityWeight": 56.49152542372882,
+        "layerId": "eyes--eye-patch--f2cd7889ee",
+        "layerSheet": null,
+        "spriteStatus": "missing"
+      },
+      {
+        "value": "Snake Eyes",
+        "count": 59,
+        "frequency": 0.0177017701770177,
+        "rarityWeight": 56.49152542372882,
+        "layerId": "eyes--snake-eyes--1e18a3d667",
+        "layerSheet": null,
+        "spriteStatus": "missing"
+      },
+      {
+        "value": "Got em",
+        "count": 60,
+        "frequency": 0.018001800180018002,
+        "rarityWeight": 55.55,
+        "layerId": "eyes--got-em--014896745f",
+        "layerSheet": null,
+        "spriteStatus": "missing"
+      },
+      {
+        "value": "Cyclops",
+        "count": 77,
+        "frequency": 0.0231023102310231,
+        "rarityWeight": 43.285714285714285,
+        "layerId": "eyes--cyclops--226510cf8f",
+        "layerSheet": null,
+        "spriteStatus": "missing"
+      },
+      {
+        "value": "Radiation Glow (Red)",
+        "count": 80,
+        "frequency": 0.024002400240024,
+        "rarityWeight": 41.6625,
+        "layerId": "eyes--radiation-glow-red--2fb06b0b8b",
+        "layerSheet": null,
+        "spriteStatus": "missing"
+      },
+      {
+        "value": "Tri-Specs",
+        "count": 84,
+        "frequency": 0.025202520252025202,
+        "rarityWeight": 39.67857142857143,
+        "layerId": "eyes--tri-specs--32ae5db48f",
+        "layerSheet": null,
+        "spriteStatus": "missing"
+      },
+      {
+        "value": "Zombie",
+        "count": 86,
+        "frequency": 0.025802580258025804,
+        "rarityWeight": 38.75581395348837,
+        "layerId": "eyes--zombie--83d1384c6b",
+        "layerSheet": null,
+        "spriteStatus": "missing"
+      },
+      {
+        "value": "I Know What You Did",
+        "count": 87,
+        "frequency": 0.026102610261026102,
+        "rarityWeight": 38.310344827586206,
+        "layerId": "eyes--i-know-what-you-did--0e1b59d491",
+        "layerSheet": null,
+        "spriteStatus": "missing"
+      },
+      {
+        "value": "Point Dexter Glasses Eyes",
+        "count": 89,
+        "frequency": 0.026702670267026704,
+        "rarityWeight": 37.449438202247194,
+        "layerId": "eyes--point-dexter-glasses-eyes--c14d92445e",
+        "layerSheet": null,
+        "spriteStatus": "missing"
+      },
+      {
+        "value": "Emo Eyeliner",
+        "count": 92,
+        "frequency": 0.027602760276027604,
+        "rarityWeight": 36.22826086956522,
+        "layerId": "eyes--emo-eyeliner--d89125cef7",
+        "layerSheet": null,
+        "spriteStatus": "missing"
+      },
+      {
+        "value": "Scared",
+        "count": 111,
+        "frequency": 0.0333033303330333,
+        "rarityWeight": 30.027027027027028,
+        "layerId": "eyes--scared--a5f97d741a",
+        "layerSheet": null,
+        "spriteStatus": "missing"
+      },
+      {
+        "value": "Intense",
+        "count": 116,
+        "frequency": 0.0348034803480348,
+        "rarityWeight": 28.732758620689655,
+        "layerId": "eyes--intense--5dd3a4be94",
+        "layerSheet": null,
+        "spriteStatus": "missing"
+      },
+      {
+        "value": "Third Eye",
+        "count": 123,
+        "frequency": 0.0369036903690369,
+        "rarityWeight": 27.097560975609756,
+        "layerId": "eyes--third-eye--e90d68d76e",
+        "layerSheet": null,
+        "spriteStatus": "missing"
+      },
+      {
+        "value": "Neverland Specs",
+        "count": 141,
+        "frequency": 0.0423042304230423,
+        "rarityWeight": 23.638297872340427,
+        "layerId": "eyes--neverland-specs--02d627b796",
+        "layerSheet": null,
+        "spriteStatus": "missing"
+      },
+      {
+        "value": "HMMMHM",
+        "count": 144,
+        "frequency": 0.043204320432043204,
+        "rarityWeight": 23.145833333333332,
+        "layerId": "eyes--hmmmhm--f0af452e26",
+        "layerSheet": null,
+        "spriteStatus": "missing"
+      },
+      {
+        "value": "Sunglasses",
+        "count": 161,
+        "frequency": 0.0483048304830483,
+        "rarityWeight": 20.70186335403727,
+        "layerId": "eyes--sunglasses--d9799dbc00",
+        "layerSheet": null,
+        "spriteStatus": "missing"
+      },
+      {
+        "value": "Sly",
+        "count": 166,
+        "frequency": 0.04980498049804981,
+        "rarityWeight": 20.07831325301205,
+        "layerId": "eyes--sly--6df5047790",
+        "layerSheet": null,
+        "spriteStatus": "missing"
+      },
+      {
+        "value": "Abyss",
+        "count": 179,
+        "frequency": 0.0537053705370537,
+        "rarityWeight": 18.620111731843576,
+        "layerId": "eyes--abyss--398406fa3e",
+        "layerSheet": null,
+        "spriteStatus": "missing"
+      },
+      {
+        "value": "Ricky V",
+        "count": 185,
+        "frequency": 0.0555055505550555,
+        "rarityWeight": 18.016216216216215,
+        "layerId": "eyes--ricky-v--4143423508",
+        "layerSheet": null,
+        "spriteStatus": "missing"
+      },
+      {
+        "value": "Radiation Glow",
+        "count": 196,
+        "frequency": 0.05880588058805881,
+        "rarityWeight": 17.005102040816325,
+        "layerId": "eyes--radiation-glow--dd018ab707",
+        "layerSheet": null,
+        "spriteStatus": "missing"
+      },
+      {
+        "value": "Un Enthused",
+        "count": 219,
+        "frequency": 0.06570657065706571,
+        "rarityWeight": 15.219178082191782,
+        "layerId": "eyes--un-enthused--20321a4e91",
+        "layerSheet": null,
+        "spriteStatus": "missing"
+      },
+      {
+        "value": "Okay",
+        "count": 221,
+        "frequency": 0.0663066306630663,
+        "rarityWeight": 15.081447963800905,
+        "layerId": "eyes--okay--6101961f01",
+        "layerSheet": null,
+        "spriteStatus": "missing"
+      },
+      {
+        "value": "Excited",
+        "count": 227,
+        "frequency": 0.06810681068106811,
+        "rarityWeight": 14.682819383259911,
+        "layerId": "eyes--excited--06ddef8332",
+        "layerSheet": null,
+        "spriteStatus": "missing"
+      }
+    ],
+    "Hat": [
+      {
+        "value": "BOB Mask",
+        "count": 4,
+        "frequency": 0.0012001200120012002,
+        "rarityWeight": 833.25,
+        "layerId": "hat--bob-mask--72387daf2a",
+        "layerSheet": null,
+        "spriteStatus": "missing"
+      },
+      {
+        "value": "Sealuminati Mask",
+        "count": 4,
+        "frequency": 0.0012001200120012002,
+        "rarityWeight": 833.25,
+        "layerId": "hat--sealuminati-mask--afc160f589",
+        "layerSheet": null,
+        "spriteStatus": "missing"
+      },
+      {
+        "value": "Salmonad Mask",
+        "count": 5,
+        "frequency": 0.0015001500150015,
+        "rarityWeight": 666.6,
+        "layerId": "hat--salmonad-mask--54d2b588ac",
+        "layerSheet": null,
+        "spriteStatus": "missing"
+      },
+      {
+        "value": "PamPam",
+        "count": 10,
+        "frequency": 0.003000300030003,
+        "rarityWeight": 333.3,
+        "layerId": "hat--pampam--591f4e7e83",
+        "layerSheet": null,
+        "spriteStatus": "missing"
+      },
+      {
+        "value": "Pink Shystie",
+        "count": 11,
+        "frequency": 0.0033003300330033004,
+        "rarityWeight": 303,
+        "layerId": "hat--pink-shystie--b04b2d80c1",
+        "layerSheet": null,
+        "spriteStatus": "missing"
+      },
+      {
+        "value": "Black Shystie",
+        "count": 13,
+        "frequency": 0.0039003900390039005,
+        "rarityWeight": 256.38461538461536,
+        "layerId": "hat--black-shystie--b643bf9bdd",
+        "layerSheet": null,
+        "spriteStatus": "missing"
+      },
+      {
+        "value": "Emonad",
+        "count": 15,
+        "frequency": 0.004500450045004501,
+        "rarityWeight": 222.2,
+        "layerId": "hat--emonad--ac005973d8",
+        "layerSheet": null,
+        "spriteStatus": "missing"
+      },
+      {
+        "value": "Shramp Beanie",
+        "count": 16,
+        "frequency": 0.004800480048004801,
+        "rarityWeight": 208.3125,
+        "layerId": "hat--shramp-beanie--773c8066bf",
+        "layerSheet": null,
+        "spriteStatus": "missing"
+      },
+      {
+        "value": "Jailhouse Stripes Hat",
+        "count": 18,
+        "frequency": 0.0054005400540054005,
+        "rarityWeight": 185.16666666666666,
+        "layerId": "hat--jailhouse-stripes-hat--b7da07a6d1",
+        "layerSheet": null,
+        "spriteStatus": "missing"
+      },
+      {
+        "value": "Bartman",
+        "count": 20,
+        "frequency": 0.006000600060006,
+        "rarityWeight": 166.65,
+        "layerId": "hat--bartman--22a1d4772b",
+        "layerSheet": null,
+        "spriteStatus": "missing"
+      },
+      {
+        "value": "Luffy",
+        "count": 20,
+        "frequency": 0.006000600060006,
+        "rarityWeight": 166.65,
+        "layerId": "hat--luffy--a633d5aefb",
+        "layerSheet": null,
+        "spriteStatus": "missing"
+      },
+      {
+        "value": "Beanie Red",
+        "count": 21,
+        "frequency": 0.0063006300630063005,
+        "rarityWeight": 158.71428571428572,
+        "layerId": "hat--beanie-red--c30deb6dc0",
+        "layerSheet": null,
+        "spriteStatus": "missing"
+      },
+      {
+        "value": "DWO Black Cap",
+        "count": 22,
+        "frequency": 0.006600660066006601,
+        "rarityWeight": 151.5,
+        "layerId": "hat--dwo-black-cap--ad1e62be38",
+        "layerSheet": null,
+        "spriteStatus": "missing"
+      },
+      {
+        "value": "Dunce Hat",
+        "count": 23,
+        "frequency": 0.006900690069006901,
+        "rarityWeight": 144.91304347826087,
+        "layerId": "hat--dunce-hat--963df91adf",
+        "layerSheet": null,
+        "spriteStatus": "missing"
+      },
+      {
+        "value": "Casino",
+        "count": 24,
+        "frequency": 0.0072007200720072,
+        "rarityWeight": 138.875,
+        "layerId": "hat--casino--b9b52b554b",
+        "layerSheet": null,
+        "spriteStatus": "missing"
+      },
+      {
+        "value": "Durag",
+        "count": 24,
+        "frequency": 0.0072007200720072,
+        "rarityWeight": 138.875,
+        "layerId": "hat--durag--3354694527",
+        "layerSheet": null,
+        "spriteStatus": "missing"
+      },
+      {
+        "value": "Pirate Hat",
+        "count": 24,
+        "frequency": 0.0072007200720072,
+        "rarityWeight": 138.875,
+        "layerId": "hat--pirate-hat--45bd7e9ec8",
+        "layerSheet": null,
+        "spriteStatus": "missing"
+      },
+      {
+        "value": "Glowing Antenna",
+        "count": 25,
+        "frequency": 0.007500750075007501,
+        "rarityWeight": 133.32,
+        "layerId": "hat--glowing-antenna--0811835f0d",
+        "layerSheet": null,
+        "spriteStatus": "missing"
+      },
+      {
+        "value": "Burning Chog",
+        "count": 27,
+        "frequency": 0.008100810081008101,
+        "rarityWeight": 123.44444444444444,
+        "layerId": "hat--burning-chog--470a6fc52e",
+        "layerSheet": null,
+        "spriteStatus": "missing"
+      },
+      {
+        "value": "Wormhole",
+        "count": 29,
+        "frequency": 0.0087008700870087,
+        "rarityWeight": 114.93103448275862,
+        "layerId": "hat--wormhole--ac142b7f38",
+        "layerSheet": null,
+        "spriteStatus": "missing"
+      },
+      {
+        "value": "Alternative",
+        "count": 31,
+        "frequency": 0.0093009300930093,
+        "rarityWeight": 107.51612903225806,
+        "layerId": "hat--alternative--12c808e664",
+        "layerSheet": null,
+        "spriteStatus": "missing"
+      },
+      {
+        "value": "Party Hat",
+        "count": 32,
+        "frequency": 0.009600960096009602,
+        "rarityWeight": 104.15625,
+        "layerId": "hat--party-hat--62aba9b5c1",
+        "layerSheet": null,
+        "spriteStatus": "missing"
+      },
+      {
+        "value": "Black N White Cap",
+        "count": 33,
+        "frequency": 0.009900990099009901,
+        "rarityWeight": 101,
+        "layerId": "hat--black-n-white-cap--219800e832",
+        "layerSheet": null,
+        "spriteStatus": "missing"
+      },
+      {
+        "value": "Crown",
+        "count": 34,
+        "frequency": 0.0102010201020102,
+        "rarityWeight": 98.02941176470588,
+        "layerId": "hat--crown--fc8da53494",
+        "layerSheet": null,
+        "spriteStatus": "missing"
+      },
+      {
+        "value": "Halo",
+        "count": 35,
+        "frequency": 0.010501050105010502,
+        "rarityWeight": 95.22857142857143,
+        "layerId": "hat--halo--059407c58f",
+        "layerSheet": null,
+        "spriteStatus": "missing"
+      },
+      {
+        "value": "Horns",
+        "count": 35,
+        "frequency": 0.010501050105010502,
+        "rarityWeight": 95.22857142857143,
+        "layerId": "hat--horns--74c88903f0",
+        "layerSheet": null,
+        "spriteStatus": "missing"
+      },
+      {
+        "value": "Cowboy",
+        "count": 38,
+        "frequency": 0.011401140114011402,
+        "rarityWeight": 87.71052631578948,
+        "layerId": "hat--cowboy--d6238b9fa1",
+        "layerSheet": null,
+        "spriteStatus": "missing"
+      },
+      {
+        "value": "Black Beanie",
+        "count": 51,
+        "frequency": 0.0153015301530153,
+        "rarityWeight": 65.3529411764706,
+        "layerId": "hat--black-beanie--4c2829d67b",
+        "layerSheet": null,
+        "spriteStatus": "missing"
+      },
+      {
+        "value": "DYOOR Flipped Brim",
+        "count": 72,
+        "frequency": 0.021602160216021602,
+        "rarityWeight": 46.291666666666664,
+        "layerId": "hat--dyoor-flipped-brim--b4c5cd111e",
+        "layerSheet": null,
+        "spriteStatus": "missing"
+      },
+      {
+        "value": "Sweatband",
+        "count": 79,
+        "frequency": 0.023702370237023703,
+        "rarityWeight": 42.18987341772152,
+        "layerId": "hat--sweatband--4d2975f6e0",
+        "layerSheet": null,
+        "spriteStatus": "missing"
+      },
+      {
+        "value": "Black Cap",
+        "count": 85,
+        "frequency": 0.025502550255025503,
+        "rarityWeight": 39.21176470588235,
+        "layerId": "hat--black-cap--85dd952428",
+        "layerSheet": null,
+        "spriteStatus": "missing"
+      },
+      {
+        "value": "Monad Cap Black",
+        "count": 85,
+        "frequency": 0.025502550255025503,
+        "rarityWeight": 39.21176470588235,
+        "layerId": "hat--monad-cap-black--be0182c29a",
+        "layerSheet": null,
+        "spriteStatus": "missing"
+      },
+      {
+        "value": "DYOOR Black Cap",
+        "count": 93,
+        "frequency": 0.0279027902790279,
+        "rarityWeight": 35.83870967741935,
+        "layerId": "hat--dyoor-black-cap--d254822e4d",
+        "layerSheet": null,
+        "spriteStatus": "missing"
+      },
+      {
+        "value": "Tech bro",
+        "count": 93,
+        "frequency": 0.0279027902790279,
+        "rarityWeight": 35.83870967741935,
+        "layerId": "hat--tech-bro--6945b9937d",
+        "layerSheet": null,
+        "spriteStatus": "missing"
+      },
+      {
+        "value": "Construction",
+        "count": 95,
+        "frequency": 0.028502850285028504,
+        "rarityWeight": 35.084210526315786,
+        "layerId": "hat--construction--56b5f756c3",
+        "layerSheet": null,
+        "spriteStatus": "missing"
+      },
+      {
+        "value": "Monad Cap",
+        "count": 100,
+        "frequency": 0.030003000300030003,
+        "rarityWeight": 33.33,
+        "layerId": "hat--monad-cap--bca74c5c46",
+        "layerSheet": null,
+        "spriteStatus": "missing"
+      },
+      {
+        "value": "Gotta Catchem Cap",
+        "count": 105,
+        "frequency": 0.0315031503150315,
+        "rarityWeight": 31.742857142857144,
+        "layerId": "hat--gotta-catchem-cap--a2e0806601",
+        "layerSheet": null,
+        "spriteStatus": "missing"
+      },
+      {
+        "value": "McDYOORs",
+        "count": 107,
+        "frequency": 0.032103210321032104,
+        "rarityWeight": 31.149532710280372,
+        "layerId": "hat--mcdyoors--77a24166b7",
+        "layerSheet": null,
+        "spriteStatus": "missing"
+      },
+      {
+        "value": "Captain Hat",
+        "count": 112,
+        "frequency": 0.0336033603360336,
+        "rarityWeight": 29.758928571428573,
+        "layerId": "hat--captain-hat--9ad40af912",
+        "layerSheet": null,
+        "spriteStatus": "missing"
+      },
+      {
+        "value": "DYOOR White Cap",
+        "count": 116,
+        "frequency": 0.0348034803480348,
+        "rarityWeight": 28.732758620689655,
+        "layerId": "hat--dyoor-white-cap--24dd96bce8",
+        "layerSheet": null,
+        "spriteStatus": "missing"
+      },
+      {
+        "value": "Antenna",
+        "count": 122,
+        "frequency": 0.03660366036603661,
+        "rarityWeight": 27.31967213114754,
+        "layerId": "hat--antenna--b2d9a288f1",
+        "layerSheet": null,
+        "spriteStatus": "missing"
+      },
+      {
+        "value": "Black Ball Cap",
+        "count": 147,
+        "frequency": 0.04410441044104411,
+        "rarityWeight": 22.6734693877551,
+        "layerId": "hat--black-ball-cap--f46f9adfc4",
+        "layerSheet": null,
+        "spriteStatus": "missing"
+      },
+      {
+        "value": "None",
+        "count": 1278,
+        "frequency": 0.38343834383438347,
+        "rarityWeight": 2.607981220657277,
+        "layerId": "hat--none--e387523a96",
+        "layerSheet": null,
+        "spriteStatus": "missing"
+      }
+    ],
+    "Accessories": [
+      {
+        "value": "Shramp",
+        "count": 12,
+        "frequency": 0.0036003600360036,
+        "rarityWeight": 277.75,
+        "layerId": "accessories--shramp--3209b6c607",
+        "layerSheet": null,
+        "spriteStatus": "missing"
+      },
+      {
+        "value": "10KSquad",
+        "count": 17,
+        "frequency": 0.0051005100510051,
+        "rarityWeight": 196.05882352941177,
+        "layerId": "accessories--10ksquad--e1436e16ef",
+        "layerSheet": null,
+        "spriteStatus": "missing"
+      },
+      {
+        "value": "BOB-chain",
+        "count": 18,
+        "frequency": 0.0054005400540054005,
+        "rarityWeight": 185.16666666666666,
+        "layerId": "accessories--bob-chain--dd34b48a1a",
+        "layerSheet": null,
+        "spriteStatus": "missing"
+      },
+      {
+        "value": "Sealuminati chain",
+        "count": 18,
+        "frequency": 0.0054005400540054005,
+        "rarityWeight": 185.16666666666666,
+        "layerId": "accessories--sealuminati-chain--5dd210a611",
+        "layerSheet": null,
+        "spriteStatus": "missing"
+      },
+      {
+        "value": "Mouch",
+        "count": 24,
+        "frequency": 0.0072007200720072,
+        "rarityWeight": 138.875,
+        "layerId": "accessories--mouch--ba5ddf849e",
+        "layerSheet": null,
+        "spriteStatus": "missing"
+      },
+      {
+        "value": "Choker Necklace",
+        "count": 34,
+        "frequency": 0.0102010201020102,
+        "rarityWeight": 98.02941176470588,
+        "layerId": "accessories--choker-necklace--32ce2ecd92",
+        "layerSheet": null,
+        "spriteStatus": "missing"
+      },
+      {
+        "value": "MESH Bandanna",
+        "count": 44,
+        "frequency": 0.013201320132013201,
+        "rarityWeight": 75.75,
+        "layerId": "accessories--mesh-bandanna--cc216cb6aa",
+        "layerSheet": null,
+        "spriteStatus": "missing"
+      },
+      {
+        "value": "The Hive",
+        "count": 44,
+        "frequency": 0.013201320132013201,
+        "rarityWeight": 75.75,
+        "layerId": "accessories--the-hive--33e39acbee",
+        "layerSheet": null,
+        "spriteStatus": "missing"
+      },
+      {
+        "value": "Molandak",
+        "count": 51,
+        "frequency": 0.0153015301530153,
+        "rarityWeight": 65.3529411764706,
+        "layerId": "accessories--molandak--4daab08633",
+        "layerSheet": null,
+        "spriteStatus": "missing"
+      },
+      {
+        "value": "Bandaid",
+        "count": 65,
+        "frequency": 0.0195019501950195,
+        "rarityWeight": 51.276923076923076,
+        "layerId": "accessories--bandaid--b5601d8b03",
+        "layerSheet": null,
+        "spriteStatus": "missing"
+      },
+      {
+        "value": "Bandana Black",
+        "count": 90,
+        "frequency": 0.027002700270027002,
+        "rarityWeight": 37.03333333333333,
+        "layerId": "accessories--bandana-black--8c51e84427",
+        "layerSheet": null,
+        "spriteStatus": "missing"
+      },
+      {
+        "value": "Bandana Pink",
+        "count": 99,
+        "frequency": 0.0297029702970297,
+        "rarityWeight": 33.666666666666664,
+        "layerId": "accessories--bandana-pink--920972a283",
+        "layerSheet": null,
+        "spriteStatus": "missing"
+      },
+      {
+        "value": "None",
+        "count": 2817,
+        "frequency": 0.8451845184518452,
+        "rarityWeight": 1.1831735889243877,
+        "layerId": "accessories--none--9703f1eed1",
+        "layerSheet": null,
+        "spriteStatus": "missing"
+      }
+    ],
+    "Accessories 2": [
+      {
+        "value": "10KSquad",
+        "count": 6,
+        "frequency": 0.0018001800180018,
+        "rarityWeight": 555.5,
+        "layerId": "accessories-2--10ksquad--3b78a92462",
+        "layerSheet": null,
+        "spriteStatus": "missing"
+      },
+      {
+        "value": "Shramp",
+        "count": 11,
+        "frequency": 0.0033003300330033004,
+        "rarityWeight": 303,
+        "layerId": "accessories-2--shramp--f69df545a8",
+        "layerSheet": null,
+        "spriteStatus": "missing"
+      },
+      {
+        "value": "BOB-chain",
+        "count": 18,
+        "frequency": 0.0054005400540054005,
+        "rarityWeight": 185.16666666666666,
+        "layerId": "accessories-2--bob-chain--0e93e82c89",
+        "layerSheet": null,
+        "spriteStatus": "missing"
+      },
+      {
+        "value": "Sealuminati chain",
+        "count": 18,
+        "frequency": 0.0054005400540054005,
+        "rarityWeight": 185.16666666666666,
+        "layerId": "accessories-2--sealuminati-chain--7e58851823",
+        "layerSheet": null,
+        "spriteStatus": "missing"
+      },
+      {
+        "value": "Mouch",
+        "count": 22,
+        "frequency": 0.006600660066006601,
+        "rarityWeight": 151.5,
+        "layerId": "accessories-2--mouch--8939357754",
+        "layerSheet": null,
+        "spriteStatus": "missing"
+      },
+      {
+        "value": "Choker Necklace",
+        "count": 36,
+        "frequency": 0.010801080108010801,
+        "rarityWeight": 92.58333333333333,
+        "layerId": "accessories-2--choker-necklace--00c9389675",
+        "layerSheet": null,
+        "spriteStatus": "missing"
+      },
+      {
+        "value": "The Hive",
+        "count": 38,
+        "frequency": 0.011401140114011402,
+        "rarityWeight": 87.71052631578948,
+        "layerId": "accessories-2--the-hive--de94ff40b9",
+        "layerSheet": null,
+        "spriteStatus": "missing"
+      },
+      {
+        "value": "Bandaid",
+        "count": 41,
+        "frequency": 0.012301230123012302,
+        "rarityWeight": 81.29268292682927,
+        "layerId": "accessories-2--bandaid--34d4c77a8d",
+        "layerSheet": null,
+        "spriteStatus": "missing"
+      },
+      {
+        "value": "MESH Bandanna",
+        "count": 44,
+        "frequency": 0.013201320132013201,
+        "rarityWeight": 75.75,
+        "layerId": "accessories-2--mesh-bandanna--065b0a4809",
+        "layerSheet": null,
+        "spriteStatus": "missing"
+      },
+      {
+        "value": "Molandak",
+        "count": 53,
+        "frequency": 0.0159015901590159,
+        "rarityWeight": 62.886792452830186,
+        "layerId": "accessories-2--molandak--c9923ab684",
+        "layerSheet": null,
+        "spriteStatus": "missing"
+      },
+      {
+        "value": "Bandana Black",
+        "count": 65,
+        "frequency": 0.0195019501950195,
+        "rarityWeight": 51.276923076923076,
+        "layerId": "accessories-2--bandana-black--e1f75badec",
+        "layerSheet": null,
+        "spriteStatus": "missing"
+      },
+      {
+        "value": "Bandana Pink",
+        "count": 77,
+        "frequency": 0.0231023102310231,
+        "rarityWeight": 43.285714285714285,
+        "layerId": "accessories-2--bandana-pink--5c4cfa0a4b",
+        "layerSheet": null,
+        "spriteStatus": "missing"
+      },
+      {
+        "value": "None",
+        "count": 2904,
+        "frequency": 0.8712871287128713,
+        "rarityWeight": 1.1477272727272727,
+        "layerId": "accessories-2--none--454335a777",
+        "layerSheet": null,
+        "spriteStatus": "missing"
+      }
+    ],
+    "Special": [
+      {
+        "value": "DeepSea Bruh",
+        "count": 1,
+        "frequency": 0.00030003000300030005,
+        "rarityWeight": 3333,
+        "layerId": "special--deepsea-bruh--25cc9eb7f5",
+        "layerSheet": null,
+        "spriteStatus": "missing"
+      },
+      {
+        "value": "Space Suit",
+        "count": 3,
+        "frequency": 0.0009000900090009,
+        "rarityWeight": 1111,
+        "layerId": "special--space-suit--236a7cda99",
+        "layerSheet": null,
+        "spriteStatus": "missing"
+      },
+      {
+        "value": "Green Ski Mask Laser",
+        "count": 4,
+        "frequency": 0.0012001200120012002,
+        "rarityWeight": 833.25,
+        "layerId": "special--green-ski-mask-laser--27d241d63a",
+        "layerSheet": null,
+        "spriteStatus": "missing"
+      },
+      {
+        "value": "Gimp",
+        "count": 6,
+        "frequency": 0.0018001800180018,
+        "rarityWeight": 555.5,
+        "layerId": "special--gimp--a5c4d55667",
+        "layerSheet": null,
+        "spriteStatus": "missing"
+      },
+      {
+        "value": "Pink Ski Mask Laser",
+        "count": 7,
+        "frequency": 0.0021002100210021,
+        "rarityWeight": 476.14285714285717,
+        "layerId": "special--pink-ski-mask-laser--b213c4810d",
+        "layerSheet": null,
+        "spriteStatus": "missing"
+      },
+      {
+        "value": "Anime Mask",
+        "count": 8,
+        "frequency": 0.0024002400240024004,
+        "rarityWeight": 416.625,
+        "layerId": "special--anime-mask--83aa7d1c55",
+        "layerSheet": null,
+        "spriteStatus": "missing"
+      },
+      {
+        "value": "None",
+        "count": 3304,
+        "frequency": 0.9912991299129913,
+        "rarityWeight": 1.008777239709443,
+        "layerId": "special--none--9915e463eb",
+        "layerSheet": null,
+        "spriteStatus": "missing"
+      }
+    ]
+  }
+}

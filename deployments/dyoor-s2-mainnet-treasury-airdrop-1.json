@@ -1,0 +1,21 @@
+{
+  "action": "treasury-indexing-airdrop",
+  "chainId": "143",
+  "contractAddress": "0x349D8eb480c92cF75371fbA5C6344A4d11b9103A",
+  "signer": "0xC7f55cE6A7dF9A79cc4A643a5081230F890c7AA6",
+  "recipient": "0x4D540f7D0Eb841c839334655C9f88313D750c6d5",
+  "tokenId": "1",
+  "batchId": "0x8ecd2d88ab1126b1e931c323ed1ef135c43dc75621a5258bda82840e3535681f",
+  "transactionHash": "0xa43fd611209091e2d0b1c9c2be8553bf994f3e0a80393f1dbf5cfccb885cbdaa",
+  "blockNumber": 87622054,
+  "gasUsed": "233811",
+  "status": 1,
+  "totalMinted": "1",
+  "totalAirdropped": "1",
+  "remainingReserve": "609",
+  "totalSeaDropMinted": "0",
+  "remainingSeaDrop": "2723",
+  "ownerOf1": "0x4D540f7D0Eb841c839334655C9f88313D750c6d5",
+  "tokenURI1": "ipfs://bafybeidz7htb3digthznwvl4ytdpckq2q3d2ytgxtsie5bcp7a4lgtb2sq/1",
+  "timestamp": "2026-07-14T03:48:00.702Z"
+}

@@ -1,0 +1,4772 @@
+{
+  "schema": "dyoor-hoodyoor-reroll-rules-v1",
+  "generatedAt": "2026-08-09T14:03:51.161Z",
+  "collection": "HoodYØØR",
+  "targetChain": {
+    "name": "Robinhood Chain",
+    "chainId": 4663
+  },
+  "contract": {
+    "name": "HoodYOORTraitRules",
+    "expectedPairCount": 329,
+    "rulesHash": "0x14a33149be765254e70441c4ba2674c662f5b3f746fb3ac8a717a4f49b47ab0f"
+  },
+  "encoding": {
+    "byteOrder": "big-endian",
+    "recordBytes": 6,
+    "fields": [
+      {
+        "name": "layerA",
+        "bytes": 1
+      },
+      {
+        "name": "traitA",
+        "bytes": 2
+      },
+      {
+        "name": "layerB",
+        "bytes": 1
+      },
+      {
+        "name": "traitB",
+        "bytes": 2
+      }
+    ]
+  },
+  "totals": {
+    "pairs": 329,
+    "catalogPairs": 323,
+    "duplicateAccessoryPairs": 6,
+    "bytes": 1974,
+    "binarySha256": "484b05d17f974aa62430783a7d6f937daf9c785aeee376a1099a25397b9e3446",
+    "binaryKeccak256": "0x14a33149be765254e70441c4ba2674c662f5b3f746fb3ac8a717a4f49b47ab0f",
+    "skippedCatalogReferences": 18
+  },
+  "sources": {
+    "catalog": "data/robinhood/dyoor-trait-catalog.json",
+    "catalogSha256": "141b865fee22647122f442138c3b31c5d4b1c6dead95936528fc0950c89c04df",
+    "assetManifest": "data/robinhood/dyoor-trait-asset-manifest.json",
+    "assetManifestSha256": "2a5b5f04637f1cae5eaae05dfd8268e98b0fe48f1e1fa3e58dc435c1aea74cbb"
+  },
+  "binary": "data/robinhood/onchain-128/hoodyoor-reroll-rules.bin",
+  "skippedReferences": [
+    {
+      "rule": "Bartman / Sealuminati Mask compatibility",
+      "side": "cannot",
+      "slot": "Accessories",
+      "name": "OneFourThree Face Tat"
+    },
+    {
+      "rule": "Shysties block tall/wide eye traits and face accessories",
+      "side": "cannot",
+      "slot": "Accessories",
+      "name": "OneFourThree Face Tat"
+    },
+    {
+      "rule": "Sealuminati chain compatibility",
+      "side": "cannot",
+      "slot": "Conditions",
+      "name": "Choker Necklace"
+    },
+    {
+      "rule": "Sealuminati chain compatibility",
+      "side": "cannot",
+      "slot": "Clothes",
+      "name": "Grey Hoodie"
+    },
+    {
+      "rule": "Sealuminati chain compatibility",
+      "side": "cannot",
+      "slot": "Clothes",
+      "name": "Grey Racer"
+    },
+    {
+      "rule": "Sealuminati chain compatibility",
+      "side": "cannot",
+      "slot": "Clothes",
+      "name": "Hawaiian Shirt 2"
+    },
+    {
+      "rule": "Sealuminati chain compatibility",
+      "side": "cannot",
+      "slot": "Clothes",
+      "name": "Lab Coat 2"
+    },
+    {
+      "rule": "Sealuminati chain compatibility",
+      "side": "cannot",
+      "slot": "Clothes",
+      "name": "Leather Jacket Torn Tee 2"
+    },
+    {
+      "rule": "Sealuminati chain compatibility",
+      "side": "cannot",
+      "slot": "Clothes",
+      "name": "Orange Racer 2"
+    },
+    {
+      "rule": "Sealuminati chain compatibility",
+      "side": "cannot",
+      "slot": "Clothes",
+      "name": "Red Hoodie 2"
+    },
+    {
+      "rule": "Sealuminati chain compatibility",
+      "side": "cannot",
+      "slot": "Clothes",
+      "name": "Tuxedo 2"
+    },
+    {
+      "rule": "Choker needs an open neck",
+      "side": "if",
+      "slot": "Conditions",
+      "name": "Choker Necklace"
+    },
+    {
+      "rule": "Accessory choker needs an open neck",
+      "side": "cannot",
+      "slot": "Clothes",
+      "name": "Grey Hoodie"
+    },
+    {
+      "rule": "Accessory choker needs an open neck",
+      "side": "cannot",
+      "slot": "Clothes",
+      "name": "Red Hoodie 2"
+    },
+    {
+      "rule": "Second accessory choker needs an open neck",
+      "side": "cannot",
+      "slot": "Clothes",
+      "name": "Grey Hoodie"
+    },
+    {
+      "rule": "Second accessory choker needs an open neck",
+      "side": "cannot",
+      "slot": "Clothes",
+      "name": "Red Hoodie 2"
+    },
+    {
+      "rule": "Conditions choker conflicts with bandannas",
+      "side": "if",
+      "slot": "Conditions",
+      "name": "Choker Necklace"
+    },
+    {
+      "rule": "OneFourThree Face Tat conflicts with specs and VR",
+      "side": "if",
+      "slot": "Accessories",
+      "name": "OneFourThree Face Tat"
+    }
+  ],
+  "pairs": [
+    {
+      "pairKey": "0x030bba071b5d",
+      "layerA": 3,
+      "slotA": "Clothes",
+      "traitA": 3002,
+      "nameA": "Beige Hoodie",
+      "layerB": 7,
+      "slotB": "Accessories",
+      "traitB": 7005,
+      "nameB": "Choker Necklace",
+      "reasons": [
+        "Accessory choker needs an open neck"
+      ]
+    },
+    {
+      "pairKey": "0x030bba071b61",
+      "layerA": 3,
+      "slotA": "Clothes",
+      "traitA": 3002,
+      "nameA": "Beige Hoodie",
+      "layerB": 7,
+      "slotB": "Accessories",
+      "traitB": 7009,
+      "nameB": "Sealuminati chain",
+      "reasons": [
+        "Sealuminati chain compatibility"
+      ]
+    },
+    {
+      "pairKey": "0x030bba081f45",
+      "layerA": 3,
+      "slotA": "Clothes",
+      "traitA": 3002,
+      "nameA": "Beige Hoodie",
+      "layerB": 8,
+      "slotB": "Accessories 2",
+      "traitB": 8005,
+      "nameB": "Choker Necklace",
+      "reasons": [
+        "Second accessory choker needs an open neck"
+      ]
+    },
+    {
+      "pairKey": "0x030bba081f49",
+      "layerA": 3,
+      "slotA": "Clothes",
+      "traitA": 3002,
+      "nameA": "Beige Hoodie",
+      "layerB": 8,
+      "slotB": "Accessories 2",
+      "traitB": 8009,
+      "nameB": "Sealuminati chain",
+      "reasons": [
+        "Sealuminati chain compatibility"
+      ]
+    },
+    {
+      "pairKey": "0x030bbb071b5d",
+      "layerA": 3,
+      "slotA": "Clothes",
+      "traitA": 3003,
+      "nameA": "Black Hoodie",
+      "layerB": 7,
+      "slotB": "Accessories",
+      "traitB": 7005,
+      "nameB": "Choker Necklace",
+      "reasons": [
+        "Accessory choker needs an open neck"
+      ]
+    },
+    {
+      "pairKey": "0x030bbb071b61",
+      "layerA": 3,
+      "slotA": "Clothes",
+      "traitA": 3003,
+      "nameA": "Black Hoodie",
+      "layerB": 7,
+      "slotB": "Accessories",
+      "traitB": 7009,
+      "nameB": "Sealuminati chain",
+      "reasons": [
+        "Sealuminati chain compatibility"
+      ]
+    },
+    {
+      "pairKey": "0x030bbb081f45",
+      "layerA": 3,
+      "slotA": "Clothes",
+      "traitA": 3003,
+      "nameA": "Black Hoodie",
+      "layerB": 8,
+      "slotB": "Accessories 2",
+      "traitB": 8005,
+      "nameB": "Choker Necklace",
+      "reasons": [
+        "Second accessory choker needs an open neck"
+      ]
+    },
+    {
+      "pairKey": "0x030bbb081f49",
+      "layerA": 3,
+      "slotA": "Clothes",
+      "traitA": 3003,
+      "nameA": "Black Hoodie",
+      "layerB": 8,
+      "slotB": "Accessories 2",
+      "traitB": 8009,
+      "nameB": "Sealuminati chain",
+      "reasons": [
+        "Sealuminati chain compatibility"
+      ]
+    },
+    {
+      "pairKey": "0x030bbe071b61",
+      "layerA": 3,
+      "slotA": "Clothes",
+      "traitA": 3006,
+      "nameA": "Black Racer",
+      "layerB": 7,
+      "slotB": "Accessories",
+      "traitB": 7009,
+      "nameB": "Sealuminati chain",
+      "reasons": [
+        "Sealuminati chain compatibility"
+      ]
+    },
+    {
+      "pairKey": "0x030bbe081f49",
+      "layerA": 3,
+      "slotA": "Clothes",
+      "traitA": 3006,
+      "nameA": "Black Racer",
+      "layerB": 8,
+      "slotB": "Accessories 2",
+      "traitB": 8009,
+      "nameB": "Sealuminati chain",
+      "reasons": [
+        "Sealuminati chain compatibility"
+      ]
+    },
+    {
+      "pairKey": "0x030bc0071b5d",
+      "layerA": 3,
+      "slotA": "Clothes",
+      "traitA": 3008,
+      "nameA": "Blue Hoodie",
+      "layerB": 7,
+      "slotB": "Accessories",
+      "traitB": 7005,
+      "nameB": "Choker Necklace",
+      "reasons": [
+        "Accessory choker needs an open neck"
+      ]
+    },
+    {
+      "pairKey": "0x030bc0071b61",
+      "layerA": 3,
+      "slotA": "Clothes",
+      "traitA": 3008,
+      "nameA": "Blue Hoodie",
+      "layerB": 7,
+      "slotB": "Accessories",
+      "traitB": 7009,
+      "nameB": "Sealuminati chain",
+      "reasons": [
+        "Sealuminati chain compatibility"
+      ]
+    },
+    {
+      "pairKey": "0x030bc0081f45",
+      "layerA": 3,
+      "slotA": "Clothes",
+      "traitA": 3008,
+      "nameA": "Blue Hoodie",
+      "layerB": 8,
+      "slotB": "Accessories 2",
+      "traitB": 8005,
+      "nameB": "Choker Necklace",
+      "reasons": [
+        "Second accessory choker needs an open neck"
+      ]
+    },
+    {
+      "pairKey": "0x030bc0081f49",
+      "layerA": 3,
+      "slotA": "Clothes",
+      "traitA": 3008,
+      "nameA": "Blue Hoodie",
+      "layerB": 8,
+      "slotB": "Accessories 2",
+      "traitB": 8009,
+      "nameB": "Sealuminati chain",
+      "reasons": [
+        "Sealuminati chain compatibility"
+      ]
+    },
+    {
+      "pairKey": "0x030bc1071b61",
+      "layerA": 3,
+      "slotA": "Clothes",
+      "traitA": 3009,
+      "nameA": "Blue Racer",
+      "layerB": 7,
+      "slotB": "Accessories",
+      "traitB": 7009,
+      "nameB": "Sealuminati chain",
+      "reasons": [
+        "Sealuminati chain compatibility"
+      ]
+    },
+    {
+      "pairKey": "0x030bc1081f49",
+      "layerA": 3,
+      "slotA": "Clothes",
+      "traitA": 3009,
+      "nameA": "Blue Racer",
+      "layerB": 8,
+      "slotB": "Accessories 2",
+      "traitB": 8009,
+      "nameB": "Sealuminati chain",
+      "reasons": [
+        "Sealuminati chain compatibility"
+      ]
+    },
+    {
+      "pairKey": "0x030bc3071b61",
+      "layerA": 3,
+      "slotA": "Clothes",
+      "traitA": 3011,
+      "nameA": "Caveman Leotard",
+      "layerB": 7,
+      "slotB": "Accessories",
+      "traitB": 7009,
+      "nameB": "Sealuminati chain",
+      "reasons": [
+        "Sealuminati chain compatibility"
+      ]
+    },
+    {
+      "pairKey": "0x030bc3081f49",
+      "layerA": 3,
+      "slotA": "Clothes",
+      "traitA": 3011,
+      "nameA": "Caveman Leotard",
+      "layerB": 8,
+      "slotB": "Accessories 2",
+      "traitB": 8009,
+      "nameB": "Sealuminati chain",
+      "reasons": [
+        "Sealuminati chain compatibility"
+      ]
+    },
+    {
+      "pairKey": "0x030bc4071b61",
+      "layerA": 3,
+      "slotA": "Clothes",
+      "traitA": 3012,
+      "nameA": "Convict Shirt",
+      "layerB": 7,
+      "slotB": "Accessories",
+      "traitB": 7009,
+      "nameB": "Sealuminati chain",
+      "reasons": [
+        "Sealuminati chain compatibility"
+      ]
+    },
+    {
+      "pairKey": "0x030bc4081f49",
+      "layerA": 3,
+      "slotA": "Clothes",
+      "traitA": 3012,
+      "nameA": "Convict Shirt",
+      "layerB": 8,
+      "slotB": "Accessories 2",
+      "traitB": 8009,
+      "nameB": "Sealuminati chain",
+      "reasons": [
+        "Sealuminati chain compatibility"
+      ]
+    },
+    {
+      "pairKey": "0x030bc5071b61",
+      "layerA": 3,
+      "slotA": "Clothes",
+      "traitA": 3013,
+      "nameA": "Dictator Jacket",
+      "layerB": 7,
+      "slotB": "Accessories",
+      "traitB": 7009,
+      "nameB": "Sealuminati chain",
+      "reasons": [
+        "Sealuminati chain compatibility"
+      ]
+    },
+    {
+      "pairKey": "0x030bc5081f49",
+      "layerA": 3,
+      "slotA": "Clothes",
+      "traitA": 3013,
+      "nameA": "Dictator Jacket",
+      "layerB": 8,
+      "slotB": "Accessories 2",
+      "traitB": 8009,
+      "nameB": "Sealuminati chain",
+      "reasons": [
+        "Sealuminati chain compatibility"
+      ]
+    },
+    {
+      "pairKey": "0x030bca071b61",
+      "layerA": 3,
+      "slotA": "Clothes",
+      "traitA": 3018,
+      "nameA": "DYOOR Black Gold Text Hoodie",
+      "layerB": 7,
+      "slotB": "Accessories",
+      "traitB": 7009,
+      "nameB": "Sealuminati chain",
+      "reasons": [
+        "Sealuminati chain compatibility"
+      ]
+    },
+    {
+      "pairKey": "0x030bca081f49",
+      "layerA": 3,
+      "slotA": "Clothes",
+      "traitA": 3018,
+      "nameA": "DYOOR Black Gold Text Hoodie",
+      "layerB": 8,
+      "slotB": "Accessories 2",
+      "traitB": 8009,
+      "nameB": "Sealuminati chain",
+      "reasons": [
+        "Sealuminati chain compatibility"
+      ]
+    },
+    {
+      "pairKey": "0x030bcb071b5d",
+      "layerA": 3,
+      "slotA": "Clothes",
+      "traitA": 3019,
+      "nameA": "DYOOR Black Hoodie",
+      "layerB": 7,
+      "slotB": "Accessories",
+      "traitB": 7005,
+      "nameB": "Choker Necklace",
+      "reasons": [
+        "Accessory choker needs an open neck"
+      ]
+    },
+    {
+      "pairKey": "0x030bcb071b61",
+      "layerA": 3,
+      "slotA": "Clothes",
+      "traitA": 3019,
+      "nameA": "DYOOR Black Hoodie",
+      "layerB": 7,
+      "slotB": "Accessories",
+      "traitB": 7009,
+      "nameB": "Sealuminati chain",
+      "reasons": [
+        "Sealuminati chain compatibility"
+      ]
+    },
+    {
+      "pairKey": "0x030bcb081f45",
+      "layerA": 3,
+      "slotA": "Clothes",
+      "traitA": 3019,
+      "nameA": "DYOOR Black Hoodie",
+      "layerB": 8,
+      "slotB": "Accessories 2",
+      "traitB": 8005,
+      "nameB": "Choker Necklace",
+      "reasons": [
+        "Second accessory choker needs an open neck"
+      ]
+    },
+    {
+      "pairKey": "0x030bcb081f49",
+      "layerA": 3,
+      "slotA": "Clothes",
+      "traitA": 3019,
+      "nameA": "DYOOR Black Hoodie",
+      "layerB": 8,
+      "slotB": "Accessories 2",
+      "traitB": 8009,
+      "nameB": "Sealuminati chain",
+      "reasons": [
+        "Sealuminati chain compatibility"
+      ]
+    },
+    {
+      "pairKey": "0x030bcc071b61",
+      "layerA": 3,
+      "slotA": "Clothes",
+      "traitA": 3020,
+      "nameA": "DYOOR Blue Hoodie",
+      "layerB": 7,
+      "slotB": "Accessories",
+      "traitB": 7009,
+      "nameB": "Sealuminati chain",
+      "reasons": [
+        "Sealuminati chain compatibility"
+      ]
+    },
+    {
+      "pairKey": "0x030bcc081f49",
+      "layerA": 3,
+      "slotA": "Clothes",
+      "traitA": 3020,
+      "nameA": "DYOOR Blue Hoodie",
+      "layerB": 8,
+      "slotB": "Accessories 2",
+      "traitB": 8009,
+      "nameB": "Sealuminati chain",
+      "reasons": [
+        "Sealuminati chain compatibility"
+      ]
+    },
+    {
+      "pairKey": "0x030bcd071b61",
+      "layerA": 3,
+      "slotA": "Clothes",
+      "traitA": 3021,
+      "nameA": "DYOOR Red Gold Text Hoodie",
+      "layerB": 7,
+      "slotB": "Accessories",
+      "traitB": 7009,
+      "nameB": "Sealuminati chain",
+      "reasons": [
+        "Sealuminati chain compatibility"
+      ]
+    },
+    {
+      "pairKey": "0x030bcd081f49",
+      "layerA": 3,
+      "slotA": "Clothes",
+      "traitA": 3021,
+      "nameA": "DYOOR Red Gold Text Hoodie",
+      "layerB": 8,
+      "slotB": "Accessories 2",
+      "traitB": 8009,
+      "nameB": "Sealuminati chain",
+      "reasons": [
+        "Sealuminati chain compatibility"
+      ]
+    },
+    {
+      "pairKey": "0x030bd0071b5d",
+      "layerA": 3,
+      "slotA": "Clothes",
+      "traitA": 3024,
+      "nameA": "Fur Coat Gold",
+      "layerB": 7,
+      "slotB": "Accessories",
+      "traitB": 7005,
+      "nameB": "Choker Necklace",
+      "reasons": [
+        "Accessory choker needs an open neck"
+      ]
+    },
+    {
+      "pairKey": "0x030bd0071b61",
+      "layerA": 3,
+      "slotA": "Clothes",
+      "traitA": 3024,
+      "nameA": "Fur Coat Gold",
+      "layerB": 7,
+      "slotB": "Accessories",
+      "traitB": 7009,
+      "nameB": "Sealuminati chain",
+      "reasons": [
+        "Sealuminati chain compatibility"
+      ]
+    },
+    {
+      "pairKey": "0x030bd0081f45",
+      "layerA": 3,
+      "slotA": "Clothes",
+      "traitA": 3024,
+      "nameA": "Fur Coat Gold",
+      "layerB": 8,
+      "slotB": "Accessories 2",
+      "traitB": 8005,
+      "nameB": "Choker Necklace",
+      "reasons": [
+        "Second accessory choker needs an open neck"
+      ]
+    },
+    {
+      "pairKey": "0x030bd0081f49",
+      "layerA": 3,
+      "slotA": "Clothes",
+      "traitA": 3024,
+      "nameA": "Fur Coat Gold",
+      "layerB": 8,
+      "slotB": "Accessories 2",
+      "traitB": 8009,
+      "nameB": "Sealuminati chain",
+      "reasons": [
+        "Sealuminati chain compatibility"
+      ]
+    },
+    {
+      "pairKey": "0x030bd1071b5d",
+      "layerA": 3,
+      "slotA": "Clothes",
+      "traitA": 3025,
+      "nameA": "Fur Coat Pink",
+      "layerB": 7,
+      "slotB": "Accessories",
+      "traitB": 7005,
+      "nameB": "Choker Necklace",
+      "reasons": [
+        "Accessory choker needs an open neck"
+      ]
+    },
+    {
+      "pairKey": "0x030bd1071b61",
+      "layerA": 3,
+      "slotA": "Clothes",
+      "traitA": 3025,
+      "nameA": "Fur Coat Pink",
+      "layerB": 7,
+      "slotB": "Accessories",
+      "traitB": 7009,
+      "nameB": "Sealuminati chain",
+      "reasons": [
+        "Sealuminati chain compatibility"
+      ]
+    },
+    {
+      "pairKey": "0x030bd1081f45",
+      "layerA": 3,
+      "slotA": "Clothes",
+      "traitA": 3025,
+      "nameA": "Fur Coat Pink",
+      "layerB": 8,
+      "slotB": "Accessories 2",
+      "traitB": 8005,
+      "nameB": "Choker Necklace",
+      "reasons": [
+        "Second accessory choker needs an open neck"
+      ]
+    },
+    {
+      "pairKey": "0x030bd1081f49",
+      "layerA": 3,
+      "slotA": "Clothes",
+      "traitA": 3025,
+      "nameA": "Fur Coat Pink",
+      "layerB": 8,
+      "slotB": "Accessories 2",
+      "traitB": 8009,
+      "nameB": "Sealuminati chain",
+      "reasons": [
+        "Sealuminati chain compatibility"
+      ]
+    },
+    {
+      "pairKey": "0x030bd2071b5d",
+      "layerA": 3,
+      "slotA": "Clothes",
+      "traitA": 3026,
+      "nameA": "Fur Coat Purple",
+      "layerB": 7,
+      "slotB": "Accessories",
+      "traitB": 7005,
+      "nameB": "Choker Necklace",
+      "reasons": [
+        "Accessory choker needs an open neck"
+      ]
+    },
+    {
+      "pairKey": "0x030bd2071b61",
+      "layerA": 3,
+      "slotA": "Clothes",
+      "traitA": 3026,
+      "nameA": "Fur Coat Purple",
+      "layerB": 7,
+      "slotB": "Accessories",
+      "traitB": 7009,
+      "nameB": "Sealuminati chain",
+      "reasons": [
+        "Sealuminati chain compatibility"
+      ]
+    },
+    {
+      "pairKey": "0x030bd2081f45",
+      "layerA": 3,
+      "slotA": "Clothes",
+      "traitA": 3026,
+      "nameA": "Fur Coat Purple",
+      "layerB": 8,
+      "slotB": "Accessories 2",
+      "traitB": 8005,
+      "nameB": "Choker Necklace",
+      "reasons": [
+        "Second accessory choker needs an open neck"
+      ]
+    },
+    {
+      "pairKey": "0x030bd2081f49",
+      "layerA": 3,
+      "slotA": "Clothes",
+      "traitA": 3026,
+      "nameA": "Fur Coat Purple",
+      "layerB": 8,
+      "slotB": "Accessories 2",
+      "traitB": 8009,
+      "nameB": "Sealuminati chain",
+      "reasons": [
+        "Sealuminati chain compatibility"
+      ]
+    },
+    {
+      "pairKey": "0x030bd6071b61",
+      "layerA": 3,
+      "slotA": "Clothes",
+      "traitA": 3030,
+      "nameA": "Jailhouse Stripes Shirt",
+      "layerB": 7,
+      "slotB": "Accessories",
+      "traitB": 7009,
+      "nameB": "Sealuminati chain",
+      "reasons": [
+        "Sealuminati chain compatibility"
+      ]
+    },
+    {
+      "pairKey": "0x030bd6081f49",
+      "layerA": 3,
+      "slotA": "Clothes",
+      "traitA": 3030,
+      "nameA": "Jailhouse Stripes Shirt",
+      "layerB": 8,
+      "slotB": "Accessories 2",
+      "traitB": 8009,
+      "nameB": "Sealuminati chain",
+      "reasons": [
+        "Sealuminati chain compatibility"
+      ]
+    },
+    {
+      "pairKey": "0x030bd7071b61",
+      "layerA": 3,
+      "slotA": "Clothes",
+      "traitA": 3031,
+      "nameA": "King's Robe",
+      "layerB": 7,
+      "slotB": "Accessories",
+      "traitB": 7009,
+      "nameB": "Sealuminati chain",
+      "reasons": [
+        "Sealuminati chain compatibility"
+      ]
+    },
+    {
+      "pairKey": "0x030bd7081f49",
+      "layerA": 3,
+      "slotA": "Clothes",
+      "traitA": 3031,
+      "nameA": "King's Robe",
+      "layerB": 8,
+      "slotB": "Accessories 2",
+      "traitB": 8009,
+      "nameB": "Sealuminati chain",
+      "reasons": [
+        "Sealuminati chain compatibility"
+      ]
+    },
+    {
+      "pairKey": "0x030bd8071b61",
+      "layerA": 3,
+      "slotA": "Clothes",
+      "traitA": 3032,
+      "nameA": "King's Robe 2",
+      "layerB": 7,
+      "slotB": "Accessories",
+      "traitB": 7009,
+      "nameB": "Sealuminati chain",
+      "reasons": [
+        "Sealuminati chain compatibility"
+      ]
+    },
+    {
+      "pairKey": "0x030bd8081f49",
+      "layerA": 3,
+      "slotA": "Clothes",
+      "traitA": 3032,
+      "nameA": "King's Robe 2",
+      "layerB": 8,
+      "slotB": "Accessories 2",
+      "traitB": 8009,
+      "nameB": "Sealuminati chain",
+      "reasons": [
+        "Sealuminati chain compatibility"
+      ]
+    },
+    {
+      "pairKey": "0x030bdb071b61",
+      "layerA": 3,
+      "slotA": "Clothes",
+      "traitA": 3035,
+      "nameA": "Lab Coat",
+      "layerB": 7,
+      "slotB": "Accessories",
+      "traitB": 7009,
+      "nameB": "Sealuminati chain",
+      "reasons": [
+        "Sealuminati chain compatibility"
+      ]
+    },
+    {
+      "pairKey": "0x030bdb081f49",
+      "layerA": 3,
+      "slotA": "Clothes",
+      "traitA": 3035,
+      "nameA": "Lab Coat",
+      "layerB": 8,
+      "slotB": "Accessories 2",
+      "traitB": 8009,
+      "nameB": "Sealuminati chain",
+      "reasons": [
+        "Sealuminati chain compatibility"
+      ]
+    },
+    {
+      "pairKey": "0x030bdc071b61",
+      "layerA": 3,
+      "slotA": "Clothes",
+      "traitA": 3036,
+      "nameA": "Leather Jacket",
+      "layerB": 7,
+      "slotB": "Accessories",
+      "traitB": 7009,
+      "nameB": "Sealuminati chain",
+      "reasons": [
+        "Sealuminati chain compatibility"
+      ]
+    },
+    {
+      "pairKey": "0x030bdc081f49",
+      "layerA": 3,
+      "slotA": "Clothes",
+      "traitA": 3036,
+      "nameA": "Leather Jacket",
+      "layerB": 8,
+      "slotB": "Accessories 2",
+      "traitB": 8009,
+      "nameB": "Sealuminati chain",
+      "reasons": [
+        "Sealuminati chain compatibility"
+      ]
+    },
+    {
+      "pairKey": "0x030bdd071b61",
+      "layerA": 3,
+      "slotA": "Clothes",
+      "traitA": 3037,
+      "nameA": "Leather Jacket Torn Tee",
+      "layerB": 7,
+      "slotB": "Accessories",
+      "traitB": 7009,
+      "nameB": "Sealuminati chain",
+      "reasons": [
+        "Sealuminati chain compatibility"
+      ]
+    },
+    {
+      "pairKey": "0x030bdd081f49",
+      "layerA": 3,
+      "slotA": "Clothes",
+      "traitA": 3037,
+      "nameA": "Leather Jacket Torn Tee",
+      "layerB": 8,
+      "slotB": "Accessories 2",
+      "traitB": 8009,
+      "nameB": "Sealuminati chain",
+      "reasons": [
+        "Sealuminati chain compatibility"
+      ]
+    },
+    {
+      "pairKey": "0x030bde071b61",
+      "layerA": 3,
+      "slotA": "Clothes",
+      "traitA": 3038,
+      "nameA": "Leather Jacket White Shirt W:Tie",
+      "layerB": 7,
+      "slotB": "Accessories",
+      "traitB": 7009,
+      "nameB": "Sealuminati chain",
+      "reasons": [
+        "Sealuminati chain compatibility"
+      ]
+    },
+    {
+      "pairKey": "0x030bde081f49",
+      "layerA": 3,
+      "slotA": "Clothes",
+      "traitA": 3038,
+      "nameA": "Leather Jacket White Shirt W:Tie",
+      "layerB": 8,
+      "slotB": "Accessories 2",
+      "traitB": 8009,
+      "nameB": "Sealuminati chain",
+      "reasons": [
+        "Sealuminati chain compatibility"
+      ]
+    },
+    {
+      "pairKey": "0x030bdf071b61",
+      "layerA": 3,
+      "slotA": "Clothes",
+      "traitA": 3039,
+      "nameA": "Luffy",
+      "layerB": 7,
+      "slotB": "Accessories",
+      "traitB": 7009,
+      "nameB": "Sealuminati chain",
+      "reasons": [
+        "Sealuminati chain compatibility"
+      ]
+    },
+    {
+      "pairKey": "0x030bdf081f49",
+      "layerA": 3,
+      "slotA": "Clothes",
+      "traitA": 3039,
+      "nameA": "Luffy",
+      "layerB": 8,
+      "slotB": "Accessories 2",
+      "traitB": 8009,
+      "nameB": "Sealuminati chain",
+      "reasons": [
+        "Sealuminati chain compatibility"
+      ]
+    },
+    {
+      "pairKey": "0x030be0071b5d",
+      "layerA": 3,
+      "slotA": "Clothes",
+      "traitA": 3040,
+      "nameA": "McDyoornalds",
+      "layerB": 7,
+      "slotB": "Accessories",
+      "traitB": 7005,
+      "nameB": "Choker Necklace",
+      "reasons": [
+        "Accessory choker needs an open neck"
+      ]
+    },
+    {
+      "pairKey": "0x030be0071b61",
+      "layerA": 3,
+      "slotA": "Clothes",
+      "traitA": 3040,
+      "nameA": "McDyoornalds",
+      "layerB": 7,
+      "slotB": "Accessories",
+      "traitB": 7009,
+      "nameB": "Sealuminati chain",
+      "reasons": [
+        "Sealuminati chain compatibility"
+      ]
+    },
+    {
+      "pairKey": "0x030be0081f45",
+      "layerA": 3,
+      "slotA": "Clothes",
+      "traitA": 3040,
+      "nameA": "McDyoornalds",
+      "layerB": 8,
+      "slotB": "Accessories 2",
+      "traitB": 8005,
+      "nameB": "Choker Necklace",
+      "reasons": [
+        "Second accessory choker needs an open neck"
+      ]
+    },
+    {
+      "pairKey": "0x030be0081f49",
+      "layerA": 3,
+      "slotA": "Clothes",
+      "traitA": 3040,
+      "nameA": "McDyoornalds",
+      "layerB": 8,
+      "slotB": "Accessories 2",
+      "traitB": 8009,
+      "nameB": "Sealuminati chain",
+      "reasons": [
+        "Sealuminati chain compatibility"
+      ]
+    },
+    {
+      "pairKey": "0x030be3071b61",
+      "layerA": 3,
+      "slotA": "Clothes",
+      "traitA": 3043,
+      "nameA": "Orange Plaid",
+      "layerB": 7,
+      "slotB": "Accessories",
+      "traitB": 7009,
+      "nameB": "Sealuminati chain",
+      "reasons": [
+        "Sealuminati chain compatibility"
+      ]
+    },
+    {
+      "pairKey": "0x030be3081f49",
+      "layerA": 3,
+      "slotA": "Clothes",
+      "traitA": 3043,
+      "nameA": "Orange Plaid",
+      "layerB": 8,
+      "slotB": "Accessories 2",
+      "traitB": 8009,
+      "nameB": "Sealuminati chain",
+      "reasons": [
+        "Sealuminati chain compatibility"
+      ]
+    },
+    {
+      "pairKey": "0x030be4071b61",
+      "layerA": 3,
+      "slotA": "Clothes",
+      "traitA": 3044,
+      "nameA": "Orange Racer",
+      "layerB": 7,
+      "slotB": "Accessories",
+      "traitB": 7009,
+      "nameB": "Sealuminati chain",
+      "reasons": [
+        "Sealuminati chain compatibility"
+      ]
+    },
+    {
+      "pairKey": "0x030be4081f49",
+      "layerA": 3,
+      "slotA": "Clothes",
+      "traitA": 3044,
+      "nameA": "Orange Racer",
+      "layerB": 8,
+      "slotB": "Accessories 2",
+      "traitB": 8009,
+      "nameB": "Sealuminati chain",
+      "reasons": [
+        "Sealuminati chain compatibility"
+      ]
+    },
+    {
+      "pairKey": "0x030be7071b61",
+      "layerA": 3,
+      "slotA": "Clothes",
+      "traitA": 3047,
+      "nameA": "Pink Plaid",
+      "layerB": 7,
+      "slotB": "Accessories",
+      "traitB": 7009,
+      "nameB": "Sealuminati chain",
+      "reasons": [
+        "Sealuminati chain compatibility"
+      ]
+    },
+    {
+      "pairKey": "0x030be7081f49",
+      "layerA": 3,
+      "slotA": "Clothes",
+      "traitA": 3047,
+      "nameA": "Pink Plaid",
+      "layerB": 8,
+      "slotB": "Accessories 2",
+      "traitB": 8009,
+      "nameB": "Sealuminati chain",
+      "reasons": [
+        "Sealuminati chain compatibility"
+      ]
+    },
+    {
+      "pairKey": "0x030be9071b5d",
+      "layerA": 3,
+      "slotA": "Clothes",
+      "traitA": 3049,
+      "nameA": "Red Hoodie",
+      "layerB": 7,
+      "slotB": "Accessories",
+      "traitB": 7005,
+      "nameB": "Choker Necklace",
+      "reasons": [
+        "Accessory choker needs an open neck"
+      ]
+    },
+    {
+      "pairKey": "0x030be9071b61",
+      "layerA": 3,
+      "slotA": "Clothes",
+      "traitA": 3049,
+      "nameA": "Red Hoodie",
+      "layerB": 7,
+      "slotB": "Accessories",
+      "traitB": 7009,
+      "nameB": "Sealuminati chain",
+      "reasons": [
+        "Sealuminati chain compatibility"
+      ]
+    },
+    {
+      "pairKey": "0x030be9081f45",
+      "layerA": 3,
+      "slotA": "Clothes",
+      "traitA": 3049,
+      "nameA": "Red Hoodie",
+      "layerB": 8,
+      "slotB": "Accessories 2",
+      "traitB": 8005,
+      "nameB": "Choker Necklace",
+      "reasons": [
+        "Second accessory choker needs an open neck"
+      ]
+    },
+    {
+      "pairKey": "0x030be9081f49",
+      "layerA": 3,
+      "slotA": "Clothes",
+      "traitA": 3049,
+      "nameA": "Red Hoodie",
+      "layerB": 8,
+      "slotB": "Accessories 2",
+      "traitB": 8009,
+      "nameB": "Sealuminati chain",
+      "reasons": [
+        "Sealuminati chain compatibility"
+      ]
+    },
+    {
+      "pairKey": "0x030bea071b61",
+      "layerA": 3,
+      "slotA": "Clothes",
+      "traitA": 3050,
+      "nameA": "Red Plaid",
+      "layerB": 7,
+      "slotB": "Accessories",
+      "traitB": 7009,
+      "nameB": "Sealuminati chain",
+      "reasons": [
+        "Sealuminati chain compatibility"
+      ]
+    },
+    {
+      "pairKey": "0x030bea081f49",
+      "layerA": 3,
+      "slotA": "Clothes",
+      "traitA": 3050,
+      "nameA": "Red Plaid",
+      "layerB": 8,
+      "slotB": "Accessories 2",
+      "traitB": 8009,
+      "nameB": "Sealuminati chain",
+      "reasons": [
+        "Sealuminati chain compatibility"
+      ]
+    },
+    {
+      "pairKey": "0x030bee071b61",
+      "layerA": 3,
+      "slotA": "Clothes",
+      "traitA": 3054,
+      "nameA": "Tuxedo",
+      "layerB": 7,
+      "slotB": "Accessories",
+      "traitB": 7009,
+      "nameB": "Sealuminati chain",
+      "reasons": [
+        "Sealuminati chain compatibility"
+      ]
+    },
+    {
+      "pairKey": "0x030bee081f49",
+      "layerA": 3,
+      "slotA": "Clothes",
+      "traitA": 3054,
+      "nameA": "Tuxedo",
+      "layerB": 8,
+      "slotB": "Accessories 2",
+      "traitB": 8009,
+      "nameB": "Sealuminati chain",
+      "reasons": [
+        "Sealuminati chain compatibility"
+      ]
+    },
+    {
+      "pairKey": "0x030bef071b61",
+      "layerA": 3,
+      "slotA": "Clothes",
+      "traitA": 3055,
+      "nameA": "White Shirt W:Tie",
+      "layerB": 7,
+      "slotB": "Accessories",
+      "traitB": 7009,
+      "nameB": "Sealuminati chain",
+      "reasons": [
+        "Sealuminati chain compatibility"
+      ]
+    },
+    {
+      "pairKey": "0x030bef081f49",
+      "layerA": 3,
+      "slotA": "Clothes",
+      "traitA": 3055,
+      "nameA": "White Shirt W:Tie",
+      "layerB": 8,
+      "slotB": "Accessories 2",
+      "traitB": 8009,
+      "nameB": "Sealuminati chain",
+      "reasons": [
+        "Sealuminati chain compatibility"
+      ]
+    },
+    {
+      "pairKey": "0x040fa1061772",
+      "layerA": 4,
+      "slotA": "Mouth",
+      "traitA": 4001,
+      "nameA": "AHHH Tongue",
+      "layerB": 6,
+      "slotB": "Hat",
+      "traitB": 6002,
+      "nameB": "Bartman",
+      "reasons": [
+        "Bartman / Sealuminati Mask compatibility"
+      ]
+    },
+    {
+      "pairKey": "0x040fa1061778",
+      "layerA": 4,
+      "slotA": "Mouth",
+      "traitA": 4001,
+      "nameA": "AHHH Tongue",
+      "layerB": 6,
+      "slotB": "Hat",
+      "traitB": 6008,
+      "nameB": "Black Shystie",
+      "reasons": [
+        "Black Shystie covers the mouth area"
+      ]
+    },
+    {
+      "pairKey": "0x040fa1061792",
+      "layerA": 4,
+      "slotA": "Mouth",
+      "traitA": 4001,
+      "nameA": "AHHH Tongue",
+      "layerB": 6,
+      "slotB": "Hat",
+      "traitB": 6034,
+      "nameB": "Pink Shystie",
+      "reasons": [
+        "Pink Shystie covers the mouth area"
+      ]
+    },
+    {
+      "pairKey": "0x040fa1061795",
+      "layerA": 4,
+      "slotA": "Mouth",
+      "traitA": 4001,
+      "nameA": "AHHH Tongue",
+      "layerB": 6,
+      "slotB": "Hat",
+      "traitB": 6037,
+      "nameB": "Sealuminati Mask",
+      "reasons": [
+        "Bartman / Sealuminati Mask compatibility"
+      ]
+    },
+    {
+      "pairKey": "0x040fa1071b5d",
+      "layerA": 4,
+      "slotA": "Mouth",
+      "traitA": 4001,
+      "nameA": "AHHH Tongue",
+      "layerB": 7,
+      "slotB": "Accessories",
+      "traitB": 7005,
+      "nameB": "Choker Necklace",
+      "reasons": [
+        "Accessory choker needs an open neck"
+      ]
+    },
+    {
+      "pairKey": "0x040fa1071b61",
+      "layerA": 4,
+      "slotA": "Mouth",
+      "traitA": 4001,
+      "nameA": "AHHH Tongue",
+      "layerB": 7,
+      "slotB": "Accessories",
+      "traitB": 7009,
+      "nameB": "Sealuminati chain",
+      "reasons": [
+        "Sealuminati chain compatibility"
+      ]
+    },
+    {
+      "pairKey": "0x040fa1081f45",
+      "layerA": 4,
+      "slotA": "Mouth",
+      "traitA": 4001,
+      "nameA": "AHHH Tongue",
+      "layerB": 8,
+      "slotB": "Accessories 2",
+      "traitB": 8005,
+      "nameB": "Choker Necklace",
+      "reasons": [
+        "Second accessory choker needs an open neck"
+      ]
+    },
+    {
+      "pairKey": "0x040fa1081f49",
+      "layerA": 4,
+      "slotA": "Mouth",
+      "traitA": 4001,
+      "nameA": "AHHH Tongue",
+      "layerB": 8,
+      "slotB": "Accessories 2",
+      "traitB": 8009,
+      "nameB": "Sealuminati chain",
+      "reasons": [
+        "Sealuminati chain compatibility"
+      ]
+    },
+    {
+      "pairKey": "0x040fa2061772",
+      "layerA": 4,
+      "slotA": "Mouth",
+      "traitA": 4002,
+      "nameA": "AHHHH",
+      "layerB": 6,
+      "slotB": "Hat",
+      "traitB": 6002,
+      "nameB": "Bartman",
+      "reasons": [
+        "Bartman / Sealuminati Mask compatibility"
+      ]
+    },
+    {
+      "pairKey": "0x040fa2061778",
+      "layerA": 4,
+      "slotA": "Mouth",
+      "traitA": 4002,
+      "nameA": "AHHHH",
+      "layerB": 6,
+      "slotB": "Hat",
+      "traitB": 6008,
+      "nameB": "Black Shystie",
+      "reasons": [
+        "Black Shystie covers the mouth area"
+      ]
+    },
+    {
+      "pairKey": "0x040fa2061792",
+      "layerA": 4,
+      "slotA": "Mouth",
+      "traitA": 4002,
+      "nameA": "AHHHH",
+      "layerB": 6,
+      "slotB": "Hat",
+      "traitB": 6034,
+      "nameB": "Pink Shystie",
+      "reasons": [
+        "Pink Shystie covers the mouth area"
+      ]
+    },
+    {
+      "pairKey": "0x040fa2061795",
+      "layerA": 4,
+      "slotA": "Mouth",
+      "traitA": 4002,
+      "nameA": "AHHHH",
+      "layerB": 6,
+      "slotB": "Hat",
+      "traitB": 6037,
+      "nameB": "Sealuminati Mask",
+      "reasons": [
+        "Bartman / Sealuminati Mask compatibility"
+      ]
+    },
+    {
+      "pairKey": "0x040fa3061772",
+      "layerA": 4,
+      "slotA": "Mouth",
+      "traitA": 4003,
+      "nameA": "AHHHH Flames",
+      "layerB": 6,
+      "slotB": "Hat",
+      "traitB": 6002,
+      "nameB": "Bartman",
+      "reasons": [
+        "Bartman / Sealuminati Mask compatibility"
+      ]
+    },
+    {
+      "pairKey": "0x040fa3061778",
+      "layerA": 4,
+      "slotA": "Mouth",
+      "traitA": 4003,
+      "nameA": "AHHHH Flames",
+      "layerB": 6,
+      "slotB": "Hat",
+      "traitB": 6008,
+      "nameB": "Black Shystie",
+      "reasons": [
+        "Black Shystie covers the mouth area"
+      ]
+    },
+    {
+      "pairKey": "0x040fa3061792",
+      "layerA": 4,
+      "slotA": "Mouth",
+      "traitA": 4003,
+      "nameA": "AHHHH Flames",
+      "layerB": 6,
+      "slotB": "Hat",
+      "traitB": 6034,
+      "nameB": "Pink Shystie",
+      "reasons": [
+        "Pink Shystie covers the mouth area"
+      ]
+    },
+    {
+      "pairKey": "0x040fa3061795",
+      "layerA": 4,
+      "slotA": "Mouth",
+      "traitA": 4003,
+      "nameA": "AHHHH Flames",
+      "layerB": 6,
+      "slotB": "Hat",
+      "traitB": 6037,
+      "nameB": "Sealuminati Mask",
+      "reasons": [
+        "Bartman / Sealuminati Mask compatibility"
+      ]
+    },
+    {
+      "pairKey": "0x040fa3071b61",
+      "layerA": 4,
+      "slotA": "Mouth",
+      "traitA": 4003,
+      "nameA": "AHHHH Flames",
+      "layerB": 7,
+      "slotB": "Accessories",
+      "traitB": 7009,
+      "nameB": "Sealuminati chain",
+      "reasons": [
+        "Sealuminati chain compatibility"
+      ]
+    },
+    {
+      "pairKey": "0x040fa3081f49",
+      "layerA": 4,
+      "slotA": "Mouth",
+      "traitA": 4003,
+      "nameA": "AHHHH Flames",
+      "layerB": 8,
+      "slotB": "Accessories 2",
+      "traitB": 8009,
+      "nameB": "Sealuminati chain",
+      "reasons": [
+        "Sealuminati chain compatibility"
+      ]
+    },
+    {
+      "pairKey": "0x040fa4061772",
+      "layerA": 4,
+      "slotA": "Mouth",
+      "traitA": 4004,
+      "nameA": "Ayeee",
+      "layerB": 6,
+      "slotB": "Hat",
+      "traitB": 6002,
+      "nameB": "Bartman",
+      "reasons": [
+        "Bartman / Sealuminati Mask compatibility"
+      ]
+    },
+    {
+      "pairKey": "0x040fa4061778",
+      "layerA": 4,
+      "slotA": "Mouth",
+      "traitA": 4004,
+      "nameA": "Ayeee",
+      "layerB": 6,
+      "slotB": "Hat",
+      "traitB": 6008,
+      "nameB": "Black Shystie",
+      "reasons": [
+        "Black Shystie covers the mouth area"
+      ]
+    },
+    {
+      "pairKey": "0x040fa4061792",
+      "layerA": 4,
+      "slotA": "Mouth",
+      "traitA": 4004,
+      "nameA": "Ayeee",
+      "layerB": 6,
+      "slotB": "Hat",
+      "traitB": 6034,
+      "nameB": "Pink Shystie",
+      "reasons": [
+        "Pink Shystie covers the mouth area"
+      ]
+    },
+    {
+      "pairKey": "0x040fa4061795",
+      "layerA": 4,
+      "slotA": "Mouth",
+      "traitA": 4004,
+      "nameA": "Ayeee",
+      "layerB": 6,
+      "slotB": "Hat",
+      "traitB": 6037,
+      "nameB": "Sealuminati Mask",
+      "reasons": [
+        "Bartman / Sealuminati Mask compatibility"
+      ]
+    },
+    {
+      "pairKey": "0x040fa5061772",
+      "layerA": 4,
+      "slotA": "Mouth",
+      "traitA": 4005,
+      "nameA": "Ayeyo",
+      "layerB": 6,
+      "slotB": "Hat",
+      "traitB": 6002,
+      "nameB": "Bartman",
+      "reasons": [
+        "Bartman / Sealuminati Mask compatibility"
+      ]
+    },
+    {
+      "pairKey": "0x040fa5061778",
+      "layerA": 4,
+      "slotA": "Mouth",
+      "traitA": 4005,
+      "nameA": "Ayeyo",
+      "layerB": 6,
+      "slotB": "Hat",
+      "traitB": 6008,
+      "nameB": "Black Shystie",
+      "reasons": [
+        "Black Shystie covers the mouth area"
+      ]
+    },
+    {
+      "pairKey": "0x040fa5061792",
+      "layerA": 4,
+      "slotA": "Mouth",
+      "traitA": 4005,
+      "nameA": "Ayeyo",
+      "layerB": 6,
+      "slotB": "Hat",
+      "traitB": 6034,
+      "nameB": "Pink Shystie",
+      "reasons": [
+        "Pink Shystie covers the mouth area"
+      ]
+    },
+    {
+      "pairKey": "0x040fa5061795",
+      "layerA": 4,
+      "slotA": "Mouth",
+      "traitA": 4005,
+      "nameA": "Ayeyo",
+      "layerB": 6,
+      "slotB": "Hat",
+      "traitB": 6037,
+      "nameB": "Sealuminati Mask",
+      "reasons": [
+        "Bartman / Sealuminati Mask compatibility"
+      ]
+    },
+    {
+      "pairKey": "0x040fa6061772",
+      "layerA": 4,
+      "slotA": "Mouth",
+      "traitA": 4006,
+      "nameA": "Braces",
+      "layerB": 6,
+      "slotB": "Hat",
+      "traitB": 6002,
+      "nameB": "Bartman",
+      "reasons": [
+        "Bartman / Sealuminati Mask compatibility"
+      ]
+    },
+    {
+      "pairKey": "0x040fa6061778",
+      "layerA": 4,
+      "slotA": "Mouth",
+      "traitA": 4006,
+      "nameA": "Braces",
+      "layerB": 6,
+      "slotB": "Hat",
+      "traitB": 6008,
+      "nameB": "Black Shystie",
+      "reasons": [
+        "Black Shystie covers the mouth area"
+      ]
+    },
+    {
+      "pairKey": "0x040fa6061792",
+      "layerA": 4,
+      "slotA": "Mouth",
+      "traitA": 4006,
+      "nameA": "Braces",
+      "layerB": 6,
+      "slotB": "Hat",
+      "traitB": 6034,
+      "nameB": "Pink Shystie",
+      "reasons": [
+        "Pink Shystie covers the mouth area"
+      ]
+    },
+    {
+      "pairKey": "0x040fa6061795",
+      "layerA": 4,
+      "slotA": "Mouth",
+      "traitA": 4006,
+      "nameA": "Braces",
+      "layerB": 6,
+      "slotB": "Hat",
+      "traitB": 6037,
+      "nameB": "Sealuminati Mask",
+      "reasons": [
+        "Bartman / Sealuminati Mask compatibility"
+      ]
+    },
+    {
+      "pairKey": "0x040fa7061772",
+      "layerA": 4,
+      "slotA": "Mouth",
+      "traitA": 4007,
+      "nameA": "Cigar Mouth",
+      "layerB": 6,
+      "slotB": "Hat",
+      "traitB": 6002,
+      "nameB": "Bartman",
+      "reasons": [
+        "Bartman / Sealuminati Mask compatibility"
+      ]
+    },
+    {
+      "pairKey": "0x040fa7061778",
+      "layerA": 4,
+      "slotA": "Mouth",
+      "traitA": 4007,
+      "nameA": "Cigar Mouth",
+      "layerB": 6,
+      "slotB": "Hat",
+      "traitB": 6008,
+      "nameB": "Black Shystie",
+      "reasons": [
+        "Black Shystie covers the mouth area"
+      ]
+    },
+    {
+      "pairKey": "0x040fa7061792",
+      "layerA": 4,
+      "slotA": "Mouth",
+      "traitA": 4007,
+      "nameA": "Cigar Mouth",
+      "layerB": 6,
+      "slotB": "Hat",
+      "traitB": 6034,
+      "nameB": "Pink Shystie",
+      "reasons": [
+        "Pink Shystie covers the mouth area"
+      ]
+    },
+    {
+      "pairKey": "0x040fa7061795",
+      "layerA": 4,
+      "slotA": "Mouth",
+      "traitA": 4007,
+      "nameA": "Cigar Mouth",
+      "layerB": 6,
+      "slotB": "Hat",
+      "traitB": 6037,
+      "nameB": "Sealuminati Mask",
+      "reasons": [
+        "Bartman / Sealuminati Mask compatibility"
+      ]
+    },
+    {
+      "pairKey": "0x040fa8061772",
+      "layerA": 4,
+      "slotA": "Mouth",
+      "traitA": 4008,
+      "nameA": "Deep Thought",
+      "layerB": 6,
+      "slotB": "Hat",
+      "traitB": 6002,
+      "nameB": "Bartman",
+      "reasons": [
+        "Bartman / Sealuminati Mask compatibility"
+      ]
+    },
+    {
+      "pairKey": "0x040fa8061778",
+      "layerA": 4,
+      "slotA": "Mouth",
+      "traitA": 4008,
+      "nameA": "Deep Thought",
+      "layerB": 6,
+      "slotB": "Hat",
+      "traitB": 6008,
+      "nameB": "Black Shystie",
+      "reasons": [
+        "Black Shystie covers the mouth area"
+      ]
+    },
+    {
+      "pairKey": "0x040fa8061792",
+      "layerA": 4,
+      "slotA": "Mouth",
+      "traitA": 4008,
+      "nameA": "Deep Thought",
+      "layerB": 6,
+      "slotB": "Hat",
+      "traitB": 6034,
+      "nameB": "Pink Shystie",
+      "reasons": [
+        "Pink Shystie covers the mouth area"
+      ]
+    },
+    {
+      "pairKey": "0x040fa8061795",
+      "layerA": 4,
+      "slotA": "Mouth",
+      "traitA": 4008,
+      "nameA": "Deep Thought",
+      "layerB": 6,
+      "slotB": "Hat",
+      "traitB": 6037,
+      "nameB": "Sealuminati Mask",
+      "reasons": [
+        "Bartman / Sealuminati Mask compatibility"
+      ]
+    },
+    {
+      "pairKey": "0x040fab061772",
+      "layerA": 4,
+      "slotA": "Mouth",
+      "traitA": 4011,
+      "nameA": "Displeased toothpick",
+      "layerB": 6,
+      "slotB": "Hat",
+      "traitB": 6002,
+      "nameB": "Bartman",
+      "reasons": [
+        "Bartman / Sealuminati Mask compatibility"
+      ]
+    },
+    {
+      "pairKey": "0x040fab061778",
+      "layerA": 4,
+      "slotA": "Mouth",
+      "traitA": 4011,
+      "nameA": "Displeased toothpick",
+      "layerB": 6,
+      "slotB": "Hat",
+      "traitB": 6008,
+      "nameB": "Black Shystie",
+      "reasons": [
+        "Black Shystie covers the mouth area"
+      ]
+    },
+    {
+      "pairKey": "0x040fab061792",
+      "layerA": 4,
+      "slotA": "Mouth",
+      "traitA": 4011,
+      "nameA": "Displeased toothpick",
+      "layerB": 6,
+      "slotB": "Hat",
+      "traitB": 6034,
+      "nameB": "Pink Shystie",
+      "reasons": [
+        "Pink Shystie covers the mouth area"
+      ]
+    },
+    {
+      "pairKey": "0x040fab061795",
+      "layerA": 4,
+      "slotA": "Mouth",
+      "traitA": 4011,
+      "nameA": "Displeased toothpick",
+      "layerB": 6,
+      "slotB": "Hat",
+      "traitB": 6037,
+      "nameB": "Sealuminati Mask",
+      "reasons": [
+        "Bartman / Sealuminati Mask compatibility"
+      ]
+    },
+    {
+      "pairKey": "0x040fac061772",
+      "layerA": 4,
+      "slotA": "Mouth",
+      "traitA": 4012,
+      "nameA": "Drool",
+      "layerB": 6,
+      "slotB": "Hat",
+      "traitB": 6002,
+      "nameB": "Bartman",
+      "reasons": [
+        "Bartman / Sealuminati Mask compatibility"
+      ]
+    },
+    {
+      "pairKey": "0x040fac061778",
+      "layerA": 4,
+      "slotA": "Mouth",
+      "traitA": 4012,
+      "nameA": "Drool",
+      "layerB": 6,
+      "slotB": "Hat",
+      "traitB": 6008,
+      "nameB": "Black Shystie",
+      "reasons": [
+        "Black Shystie covers the mouth area"
+      ]
+    },
+    {
+      "pairKey": "0x040fac061792",
+      "layerA": 4,
+      "slotA": "Mouth",
+      "traitA": 4012,
+      "nameA": "Drool",
+      "layerB": 6,
+      "slotB": "Hat",
+      "traitB": 6034,
+      "nameB": "Pink Shystie",
+      "reasons": [
+        "Pink Shystie covers the mouth area"
+      ]
+    },
+    {
+      "pairKey": "0x040fac061795",
+      "layerA": 4,
+      "slotA": "Mouth",
+      "traitA": 4012,
+      "nameA": "Drool",
+      "layerB": 6,
+      "slotB": "Hat",
+      "traitB": 6037,
+      "nameB": "Sealuminati Mask",
+      "reasons": [
+        "Bartman / Sealuminati Mask compatibility"
+      ]
+    },
+    {
+      "pairKey": "0x040fac071b61",
+      "layerA": 4,
+      "slotA": "Mouth",
+      "traitA": 4012,
+      "nameA": "Drool",
+      "layerB": 7,
+      "slotB": "Accessories",
+      "traitB": 7009,
+      "nameB": "Sealuminati chain",
+      "reasons": [
+        "Sealuminati chain compatibility"
+      ]
+    },
+    {
+      "pairKey": "0x040fac081f49",
+      "layerA": 4,
+      "slotA": "Mouth",
+      "traitA": 4012,
+      "nameA": "Drool",
+      "layerB": 8,
+      "slotB": "Accessories 2",
+      "traitB": 8009,
+      "nameB": "Sealuminati chain",
+      "reasons": [
+        "Sealuminati chain compatibility"
+      ]
+    },
+    {
+      "pairKey": "0x040faf061772",
+      "layerA": 4,
+      "slotA": "Mouth",
+      "traitA": 4015,
+      "nameA": "Errrh",
+      "layerB": 6,
+      "slotB": "Hat",
+      "traitB": 6002,
+      "nameB": "Bartman",
+      "reasons": [
+        "Bartman / Sealuminati Mask compatibility"
+      ]
+    },
+    {
+      "pairKey": "0x040faf061778",
+      "layerA": 4,
+      "slotA": "Mouth",
+      "traitA": 4015,
+      "nameA": "Errrh",
+      "layerB": 6,
+      "slotB": "Hat",
+      "traitB": 6008,
+      "nameB": "Black Shystie",
+      "reasons": [
+        "Black Shystie covers the mouth area"
+      ]
+    },
+    {
+      "pairKey": "0x040faf061792",
+      "layerA": 4,
+      "slotA": "Mouth",
+      "traitA": 4015,
+      "nameA": "Errrh",
+      "layerB": 6,
+      "slotB": "Hat",
+      "traitB": 6034,
+      "nameB": "Pink Shystie",
+      "reasons": [
+        "Pink Shystie covers the mouth area"
+      ]
+    },
+    {
+      "pairKey": "0x040faf061795",
+      "layerA": 4,
+      "slotA": "Mouth",
+      "traitA": 4015,
+      "nameA": "Errrh",
+      "layerB": 6,
+      "slotB": "Hat",
+      "traitB": 6037,
+      "nameB": "Sealuminati Mask",
+      "reasons": [
+        "Bartman / Sealuminati Mask compatibility"
+      ]
+    },
+    {
+      "pairKey": "0x040faf071b61",
+      "layerA": 4,
+      "slotA": "Mouth",
+      "traitA": 4015,
+      "nameA": "Errrh",
+      "layerB": 7,
+      "slotB": "Accessories",
+      "traitB": 7009,
+      "nameB": "Sealuminati chain",
+      "reasons": [
+        "Sealuminati chain compatibility"
+      ]
+    },
+    {
+      "pairKey": "0x040faf081f49",
+      "layerA": 4,
+      "slotA": "Mouth",
+      "traitA": 4015,
+      "nameA": "Errrh",
+      "layerB": 8,
+      "slotB": "Accessories 2",
+      "traitB": 8009,
+      "nameB": "Sealuminati chain",
+      "reasons": [
+        "Sealuminati chain compatibility"
+      ]
+    },
+    {
+      "pairKey": "0x040fb0061772",
+      "layerA": 4,
+      "slotA": "Mouth",
+      "traitA": 4016,
+      "nameA": "Gold Bar",
+      "layerB": 6,
+      "slotB": "Hat",
+      "traitB": 6002,
+      "nameB": "Bartman",
+      "reasons": [
+        "Bartman / Sealuminati Mask compatibility"
+      ]
+    },
+    {
+      "pairKey": "0x040fb0061778",
+      "layerA": 4,
+      "slotA": "Mouth",
+      "traitA": 4016,
+      "nameA": "Gold Bar",
+      "layerB": 6,
+      "slotB": "Hat",
+      "traitB": 6008,
+      "nameB": "Black Shystie",
+      "reasons": [
+        "Black Shystie covers the mouth area"
+      ]
+    },
+    {
+      "pairKey": "0x040fb0061792",
+      "layerA": 4,
+      "slotA": "Mouth",
+      "traitA": 4016,
+      "nameA": "Gold Bar",
+      "layerB": 6,
+      "slotB": "Hat",
+      "traitB": 6034,
+      "nameB": "Pink Shystie",
+      "reasons": [
+        "Pink Shystie covers the mouth area"
+      ]
+    },
+    {
+      "pairKey": "0x040fb0061795",
+      "layerA": 4,
+      "slotA": "Mouth",
+      "traitA": 4016,
+      "nameA": "Gold Bar",
+      "layerB": 6,
+      "slotB": "Hat",
+      "traitB": 6037,
+      "nameB": "Sealuminati Mask",
+      "reasons": [
+        "Bartman / Sealuminati Mask compatibility"
+      ]
+    },
+    {
+      "pairKey": "0x040fb0071b61",
+      "layerA": 4,
+      "slotA": "Mouth",
+      "traitA": 4016,
+      "nameA": "Gold Bar",
+      "layerB": 7,
+      "slotB": "Accessories",
+      "traitB": 7009,
+      "nameB": "Sealuminati chain",
+      "reasons": [
+        "Sealuminati chain compatibility"
+      ]
+    },
+    {
+      "pairKey": "0x040fb0081f49",
+      "layerA": 4,
+      "slotA": "Mouth",
+      "traitA": 4016,
+      "nameA": "Gold Bar",
+      "layerB": 8,
+      "slotB": "Accessories 2",
+      "traitB": 8009,
+      "nameB": "Sealuminati chain",
+      "reasons": [
+        "Sealuminati chain compatibility"
+      ]
+    },
+    {
+      "pairKey": "0x040fb1061772",
+      "layerA": 4,
+      "slotA": "Mouth",
+      "traitA": 4017,
+      "nameA": "Gold Grill",
+      "layerB": 6,
+      "slotB": "Hat",
+      "traitB": 6002,
+      "nameB": "Bartman",
+      "reasons": [
+        "Bartman / Sealuminati Mask compatibility"
+      ]
+    },
+    {
+      "pairKey": "0x040fb1061778",
+      "layerA": 4,
+      "slotA": "Mouth",
+      "traitA": 4017,
+      "nameA": "Gold Grill",
+      "layerB": 6,
+      "slotB": "Hat",
+      "traitB": 6008,
+      "nameB": "Black Shystie",
+      "reasons": [
+        "Black Shystie covers the mouth area"
+      ]
+    },
+    {
+      "pairKey": "0x040fb1061792",
+      "layerA": 4,
+      "slotA": "Mouth",
+      "traitA": 4017,
+      "nameA": "Gold Grill",
+      "layerB": 6,
+      "slotB": "Hat",
+      "traitB": 6034,
+      "nameB": "Pink Shystie",
+      "reasons": [
+        "Pink Shystie covers the mouth area"
+      ]
+    },
+    {
+      "pairKey": "0x040fb1061795",
+      "layerA": 4,
+      "slotA": "Mouth",
+      "traitA": 4017,
+      "nameA": "Gold Grill",
+      "layerB": 6,
+      "slotB": "Hat",
+      "traitB": 6037,
+      "nameB": "Sealuminati Mask",
+      "reasons": [
+        "Bartman / Sealuminati Mask compatibility"
+      ]
+    },
+    {
+      "pairKey": "0x040fb1071b61",
+      "layerA": 4,
+      "slotA": "Mouth",
+      "traitA": 4017,
+      "nameA": "Gold Grill",
+      "layerB": 7,
+      "slotB": "Accessories",
+      "traitB": 7009,
+      "nameB": "Sealuminati chain",
+      "reasons": [
+        "Sealuminati chain compatibility"
+      ]
+    },
+    {
+      "pairKey": "0x040fb1081f49",
+      "layerA": 4,
+      "slotA": "Mouth",
+      "traitA": 4017,
+      "nameA": "Gold Grill",
+      "layerB": 8,
+      "slotB": "Accessories 2",
+      "traitB": 8009,
+      "nameB": "Sealuminati chain",
+      "reasons": [
+        "Sealuminati chain compatibility"
+      ]
+    },
+    {
+      "pairKey": "0x040fb2061772",
+      "layerA": 4,
+      "slotA": "Mouth",
+      "traitA": 4018,
+      "nameA": "Joint Mouth",
+      "layerB": 6,
+      "slotB": "Hat",
+      "traitB": 6002,
+      "nameB": "Bartman",
+      "reasons": [
+        "Bartman / Sealuminati Mask compatibility"
+      ]
+    },
+    {
+      "pairKey": "0x040fb2061778",
+      "layerA": 4,
+      "slotA": "Mouth",
+      "traitA": 4018,
+      "nameA": "Joint Mouth",
+      "layerB": 6,
+      "slotB": "Hat",
+      "traitB": 6008,
+      "nameB": "Black Shystie",
+      "reasons": [
+        "Black Shystie covers the mouth area"
+      ]
+    },
+    {
+      "pairKey": "0x040fb2061792",
+      "layerA": 4,
+      "slotA": "Mouth",
+      "traitA": 4018,
+      "nameA": "Joint Mouth",
+      "layerB": 6,
+      "slotB": "Hat",
+      "traitB": 6034,
+      "nameB": "Pink Shystie",
+      "reasons": [
+        "Pink Shystie covers the mouth area"
+      ]
+    },
+    {
+      "pairKey": "0x040fb2061795",
+      "layerA": 4,
+      "slotA": "Mouth",
+      "traitA": 4018,
+      "nameA": "Joint Mouth",
+      "layerB": 6,
+      "slotB": "Hat",
+      "traitB": 6037,
+      "nameB": "Sealuminati Mask",
+      "reasons": [
+        "Bartman / Sealuminati Mask compatibility"
+      ]
+    },
+    {
+      "pairKey": "0x040fb4061772",
+      "layerA": 4,
+      "slotA": "Mouth",
+      "traitA": 4020,
+      "nameA": "Meh Cigarette",
+      "layerB": 6,
+      "slotB": "Hat",
+      "traitB": 6002,
+      "nameB": "Bartman",
+      "reasons": [
+        "Bartman / Sealuminati Mask compatibility"
+      ]
+    },
+    {
+      "pairKey": "0x040fb4061778",
+      "layerA": 4,
+      "slotA": "Mouth",
+      "traitA": 4020,
+      "nameA": "Meh Cigarette",
+      "layerB": 6,
+      "slotB": "Hat",
+      "traitB": 6008,
+      "nameB": "Black Shystie",
+      "reasons": [
+        "Black Shystie covers the mouth area"
+      ]
+    },
+    {
+      "pairKey": "0x040fb4061792",
+      "layerA": 4,
+      "slotA": "Mouth",
+      "traitA": 4020,
+      "nameA": "Meh Cigarette",
+      "layerB": 6,
+      "slotB": "Hat",
+      "traitB": 6034,
+      "nameB": "Pink Shystie",
+      "reasons": [
+        "Pink Shystie covers the mouth area"
+      ]
+    },
+    {
+      "pairKey": "0x040fb4061795",
+      "layerA": 4,
+      "slotA": "Mouth",
+      "traitA": 4020,
+      "nameA": "Meh Cigarette",
+      "layerB": 6,
+      "slotB": "Hat",
+      "traitB": 6037,
+      "nameB": "Sealuminati Mask",
+      "reasons": [
+        "Bartman / Sealuminati Mask compatibility"
+      ]
+    },
+    {
+      "pairKey": "0x040fb6061772",
+      "layerA": 4,
+      "slotA": "Mouth",
+      "traitA": 4022,
+      "nameA": "Muah",
+      "layerB": 6,
+      "slotB": "Hat",
+      "traitB": 6002,
+      "nameB": "Bartman",
+      "reasons": [
+        "Bartman / Sealuminati Mask compatibility"
+      ]
+    },
+    {
+      "pairKey": "0x040fb6061778",
+      "layerA": 4,
+      "slotA": "Mouth",
+      "traitA": 4022,
+      "nameA": "Muah",
+      "layerB": 6,
+      "slotB": "Hat",
+      "traitB": 6008,
+      "nameB": "Black Shystie",
+      "reasons": [
+        "Black Shystie covers the mouth area"
+      ]
+    },
+    {
+      "pairKey": "0x040fb6061792",
+      "layerA": 4,
+      "slotA": "Mouth",
+      "traitA": 4022,
+      "nameA": "Muah",
+      "layerB": 6,
+      "slotB": "Hat",
+      "traitB": 6034,
+      "nameB": "Pink Shystie",
+      "reasons": [
+        "Pink Shystie covers the mouth area"
+      ]
+    },
+    {
+      "pairKey": "0x040fb6061795",
+      "layerA": 4,
+      "slotA": "Mouth",
+      "traitA": 4022,
+      "nameA": "Muah",
+      "layerB": 6,
+      "slotB": "Hat",
+      "traitB": 6037,
+      "nameB": "Sealuminati Mask",
+      "reasons": [
+        "Bartman / Sealuminati Mask compatibility"
+      ]
+    },
+    {
+      "pairKey": "0x040fb7061772",
+      "layerA": 4,
+      "slotA": "Mouth",
+      "traitA": 4023,
+      "nameA": "Party Horn Mouth",
+      "layerB": 6,
+      "slotB": "Hat",
+      "traitB": 6002,
+      "nameB": "Bartman",
+      "reasons": [
+        "Bartman / Sealuminati Mask compatibility"
+      ]
+    },
+    {
+      "pairKey": "0x040fb7061778",
+      "layerA": 4,
+      "slotA": "Mouth",
+      "traitA": 4023,
+      "nameA": "Party Horn Mouth",
+      "layerB": 6,
+      "slotB": "Hat",
+      "traitB": 6008,
+      "nameB": "Black Shystie",
+      "reasons": [
+        "Black Shystie covers the mouth area"
+      ]
+    },
+    {
+      "pairKey": "0x040fb7061792",
+      "layerA": 4,
+      "slotA": "Mouth",
+      "traitA": 4023,
+      "nameA": "Party Horn Mouth",
+      "layerB": 6,
+      "slotB": "Hat",
+      "traitB": 6034,
+      "nameB": "Pink Shystie",
+      "reasons": [
+        "Pink Shystie covers the mouth area"
+      ]
+    },
+    {
+      "pairKey": "0x040fb7061795",
+      "layerA": 4,
+      "slotA": "Mouth",
+      "traitA": 4023,
+      "nameA": "Party Horn Mouth",
+      "layerB": 6,
+      "slotB": "Hat",
+      "traitB": 6037,
+      "nameB": "Sealuminati Mask",
+      "reasons": [
+        "Bartman / Sealuminati Mask compatibility"
+      ]
+    },
+    {
+      "pairKey": "0x040fb7071b61",
+      "layerA": 4,
+      "slotA": "Mouth",
+      "traitA": 4023,
+      "nameA": "Party Horn Mouth",
+      "layerB": 7,
+      "slotB": "Accessories",
+      "traitB": 7009,
+      "nameB": "Sealuminati chain",
+      "reasons": [
+        "Sealuminati chain compatibility"
+      ]
+    },
+    {
+      "pairKey": "0x040fb7081f49",
+      "layerA": 4,
+      "slotA": "Mouth",
+      "traitA": 4023,
+      "nameA": "Party Horn Mouth",
+      "layerB": 8,
+      "slotB": "Accessories 2",
+      "traitB": 8009,
+      "nameB": "Sealuminati chain",
+      "reasons": [
+        "Sealuminati chain compatibility"
+      ]
+    },
+    {
+      "pairKey": "0x040fb9061772",
+      "layerA": 4,
+      "slotA": "Mouth",
+      "traitA": 4025,
+      "nameA": "Pipe",
+      "layerB": 6,
+      "slotB": "Hat",
+      "traitB": 6002,
+      "nameB": "Bartman",
+      "reasons": [
+        "Bartman / Sealuminati Mask compatibility"
+      ]
+    },
+    {
+      "pairKey": "0x040fb9061778",
+      "layerA": 4,
+      "slotA": "Mouth",
+      "traitA": 4025,
+      "nameA": "Pipe",
+      "layerB": 6,
+      "slotB": "Hat",
+      "traitB": 6008,
+      "nameB": "Black Shystie",
+      "reasons": [
+        "Black Shystie covers the mouth area"
+      ]
+    },
+    {
+      "pairKey": "0x040fb9061792",
+      "layerA": 4,
+      "slotA": "Mouth",
+      "traitA": 4025,
+      "nameA": "Pipe",
+      "layerB": 6,
+      "slotB": "Hat",
+      "traitB": 6034,
+      "nameB": "Pink Shystie",
+      "reasons": [
+        "Pink Shystie covers the mouth area"
+      ]
+    },
+    {
+      "pairKey": "0x040fb9061795",
+      "layerA": 4,
+      "slotA": "Mouth",
+      "traitA": 4025,
+      "nameA": "Pipe",
+      "layerB": 6,
+      "slotB": "Hat",
+      "traitB": 6037,
+      "nameB": "Sealuminati Mask",
+      "reasons": [
+        "Bartman / Sealuminati Mask compatibility"
+      ]
+    },
+    {
+      "pairKey": "0x040fbb061772",
+      "layerA": 4,
+      "slotA": "Mouth",
+      "traitA": 4027,
+      "nameA": "Toothless Drool",
+      "layerB": 6,
+      "slotB": "Hat",
+      "traitB": 6002,
+      "nameB": "Bartman",
+      "reasons": [
+        "Bartman / Sealuminati Mask compatibility"
+      ]
+    },
+    {
+      "pairKey": "0x040fbb061778",
+      "layerA": 4,
+      "slotA": "Mouth",
+      "traitA": 4027,
+      "nameA": "Toothless Drool",
+      "layerB": 6,
+      "slotB": "Hat",
+      "traitB": 6008,
+      "nameB": "Black Shystie",
+      "reasons": [
+        "Black Shystie covers the mouth area"
+      ]
+    },
+    {
+      "pairKey": "0x040fbb061792",
+      "layerA": 4,
+      "slotA": "Mouth",
+      "traitA": 4027,
+      "nameA": "Toothless Drool",
+      "layerB": 6,
+      "slotB": "Hat",
+      "traitB": 6034,
+      "nameB": "Pink Shystie",
+      "reasons": [
+        "Pink Shystie covers the mouth area"
+      ]
+    },
+    {
+      "pairKey": "0x040fbb061795",
+      "layerA": 4,
+      "slotA": "Mouth",
+      "traitA": 4027,
+      "nameA": "Toothless Drool",
+      "layerB": 6,
+      "slotB": "Hat",
+      "traitB": 6037,
+      "nameB": "Sealuminati Mask",
+      "reasons": [
+        "Bartman / Sealuminati Mask compatibility"
+      ]
+    },
+    {
+      "pairKey": "0x040fbb071b61",
+      "layerA": 4,
+      "slotA": "Mouth",
+      "traitA": 4027,
+      "nameA": "Toothless Drool",
+      "layerB": 7,
+      "slotB": "Accessories",
+      "traitB": 7009,
+      "nameB": "Sealuminati chain",
+      "reasons": [
+        "Sealuminati chain compatibility"
+      ]
+    },
+    {
+      "pairKey": "0x040fbb081f49",
+      "layerA": 4,
+      "slotA": "Mouth",
+      "traitA": 4027,
+      "nameA": "Toothless Drool",
+      "layerB": 8,
+      "slotB": "Accessories 2",
+      "traitB": 8009,
+      "nameB": "Sealuminati chain",
+      "reasons": [
+        "Sealuminati chain compatibility"
+      ]
+    },
+    {
+      "pairKey": "0x040fbc061772",
+      "layerA": 4,
+      "slotA": "Mouth",
+      "traitA": 4028,
+      "nameA": "Vamp Fangs",
+      "layerB": 6,
+      "slotB": "Hat",
+      "traitB": 6002,
+      "nameB": "Bartman",
+      "reasons": [
+        "Bartman / Sealuminati Mask compatibility"
+      ]
+    },
+    {
+      "pairKey": "0x040fbc061778",
+      "layerA": 4,
+      "slotA": "Mouth",
+      "traitA": 4028,
+      "nameA": "Vamp Fangs",
+      "layerB": 6,
+      "slotB": "Hat",
+      "traitB": 6008,
+      "nameB": "Black Shystie",
+      "reasons": [
+        "Black Shystie covers the mouth area"
+      ]
+    },
+    {
+      "pairKey": "0x040fbc061792",
+      "layerA": 4,
+      "slotA": "Mouth",
+      "traitA": 4028,
+      "nameA": "Vamp Fangs",
+      "layerB": 6,
+      "slotB": "Hat",
+      "traitB": 6034,
+      "nameB": "Pink Shystie",
+      "reasons": [
+        "Pink Shystie covers the mouth area"
+      ]
+    },
+    {
+      "pairKey": "0x040fbc061795",
+      "layerA": 4,
+      "slotA": "Mouth",
+      "traitA": 4028,
+      "nameA": "Vamp Fangs",
+      "layerB": 6,
+      "slotB": "Hat",
+      "traitB": 6037,
+      "nameB": "Sealuminati Mask",
+      "reasons": [
+        "Bartman / Sealuminati Mask compatibility"
+      ]
+    },
+    {
+      "pairKey": "0x040fbc071b61",
+      "layerA": 4,
+      "slotA": "Mouth",
+      "traitA": 4028,
+      "nameA": "Vamp Fangs",
+      "layerB": 7,
+      "slotB": "Accessories",
+      "traitB": 7009,
+      "nameB": "Sealuminati chain",
+      "reasons": [
+        "Sealuminati chain compatibility"
+      ]
+    },
+    {
+      "pairKey": "0x040fbc081f49",
+      "layerA": 4,
+      "slotA": "Mouth",
+      "traitA": 4028,
+      "nameA": "Vamp Fangs",
+      "layerB": 8,
+      "slotB": "Accessories 2",
+      "traitB": 8009,
+      "nameB": "Sealuminati chain",
+      "reasons": [
+        "Sealuminati chain compatibility"
+      ]
+    },
+    {
+      "pairKey": "0x040fbd061772",
+      "layerA": 4,
+      "slotA": "Mouth",
+      "traitA": 4029,
+      "nameA": "Waaaat",
+      "layerB": 6,
+      "slotB": "Hat",
+      "traitB": 6002,
+      "nameB": "Bartman",
+      "reasons": [
+        "Bartman / Sealuminati Mask compatibility"
+      ]
+    },
+    {
+      "pairKey": "0x040fbd061778",
+      "layerA": 4,
+      "slotA": "Mouth",
+      "traitA": 4029,
+      "nameA": "Waaaat",
+      "layerB": 6,
+      "slotB": "Hat",
+      "traitB": 6008,
+      "nameB": "Black Shystie",
+      "reasons": [
+        "Black Shystie covers the mouth area"
+      ]
+    },
+    {
+      "pairKey": "0x040fbd061792",
+      "layerA": 4,
+      "slotA": "Mouth",
+      "traitA": 4029,
+      "nameA": "Waaaat",
+      "layerB": 6,
+      "slotB": "Hat",
+      "traitB": 6034,
+      "nameB": "Pink Shystie",
+      "reasons": [
+        "Pink Shystie covers the mouth area"
+      ]
+    },
+    {
+      "pairKey": "0x040fbd061795",
+      "layerA": 4,
+      "slotA": "Mouth",
+      "traitA": 4029,
+      "nameA": "Waaaat",
+      "layerB": 6,
+      "slotB": "Hat",
+      "traitB": 6037,
+      "nameB": "Sealuminati Mask",
+      "reasons": [
+        "Bartman / Sealuminati Mask compatibility"
+      ]
+    },
+    {
+      "pairKey": "0x051389061772",
+      "layerA": 5,
+      "slotA": "Eyes",
+      "traitA": 5001,
+      "nameA": "Abyss Laser",
+      "layerB": 6,
+      "slotB": "Hat",
+      "traitB": 6002,
+      "nameB": "Bartman",
+      "reasons": [
+        "Bartman / Sealuminati Mask compatibility"
+      ]
+    },
+    {
+      "pairKey": "0x051389061778",
+      "layerA": 5,
+      "slotA": "Eyes",
+      "traitA": 5001,
+      "nameA": "Abyss Laser",
+      "layerB": 6,
+      "slotB": "Hat",
+      "traitB": 6008,
+      "nameB": "Black Shystie",
+      "reasons": [
+        "Shysties block tall/wide eye traits and face accessories"
+      ]
+    },
+    {
+      "pairKey": "0x051389061792",
+      "layerA": 5,
+      "slotA": "Eyes",
+      "traitA": 5001,
+      "nameA": "Abyss Laser",
+      "layerB": 6,
+      "slotB": "Hat",
+      "traitB": 6034,
+      "nameB": "Pink Shystie",
+      "reasons": [
+        "Shysties block tall/wide eye traits and face accessories"
+      ]
+    },
+    {
+      "pairKey": "0x051389061795",
+      "layerA": 5,
+      "slotA": "Eyes",
+      "traitA": 5001,
+      "nameA": "Abyss Laser",
+      "layerB": 6,
+      "slotB": "Hat",
+      "traitB": 6037,
+      "nameB": "Sealuminati Mask",
+      "reasons": [
+        "Bartman / Sealuminati Mask compatibility"
+      ]
+    },
+    {
+      "pairKey": "0x05138a061772",
+      "layerA": 5,
+      "slotA": "Eyes",
+      "traitA": 5002,
+      "nameA": "Build Anything Glasses",
+      "layerB": 6,
+      "slotB": "Hat",
+      "traitB": 6002,
+      "nameB": "Bartman",
+      "reasons": [
+        "Bartman / Sealuminati Mask compatibility"
+      ]
+    },
+    {
+      "pairKey": "0x05138a061775",
+      "layerA": 5,
+      "slotA": "Eyes",
+      "traitA": 5002,
+      "nameA": "Build Anything Glasses",
+      "layerB": 6,
+      "slotB": "Hat",
+      "traitB": 6005,
+      "nameB": "Black Beanie",
+      "reasons": [
+        "Black Beanie blocks glasses and specs"
+      ]
+    },
+    {
+      "pairKey": "0x05138a061778",
+      "layerA": 5,
+      "slotA": "Eyes",
+      "traitA": 5002,
+      "nameA": "Build Anything Glasses",
+      "layerB": 6,
+      "slotB": "Hat",
+      "traitB": 6008,
+      "nameB": "Black Shystie",
+      "reasons": [
+        "Shysties block tall/wide eye traits and face accessories"
+      ]
+    },
+    {
+      "pairKey": "0x05138a06177c",
+      "layerA": 5,
+      "slotA": "Eyes",
+      "traitA": 5002,
+      "nameA": "Build Anything Glasses",
+      "layerB": 6,
+      "slotB": "Hat",
+      "traitB": 6012,
+      "nameB": "Casino",
+      "reasons": [
+        "Casino visor blocks wide eye traits"
+      ]
+    },
+    {
+      "pairKey": "0x05138a06177e",
+      "layerA": 5,
+      "slotA": "Eyes",
+      "traitA": 5002,
+      "nameA": "Build Anything Glasses",
+      "layerB": 6,
+      "slotB": "Hat",
+      "traitB": 6014,
+      "nameB": "Cowboy",
+      "reasons": [
+        "Cowboy brim blocks tall/wide eye traits"
+      ]
+    },
+    {
+      "pairKey": "0x05138a061781",
+      "layerA": 5,
+      "slotA": "Eyes",
+      "traitA": 5002,
+      "nameA": "Build Anything Glasses",
+      "layerB": 6,
+      "slotB": "Hat",
+      "traitB": 6017,
+      "nameB": "Durag",
+      "reasons": [
+        "Durag compatibility"
+      ]
+    },
+    {
+      "pairKey": "0x05138a061792",
+      "layerA": 5,
+      "slotA": "Eyes",
+      "traitA": 5002,
+      "nameA": "Build Anything Glasses",
+      "layerB": 6,
+      "slotB": "Hat",
+      "traitB": 6034,
+      "nameB": "Pink Shystie",
+      "reasons": [
+        "Shysties block tall/wide eye traits and face accessories"
+      ]
+    },
+    {
+      "pairKey": "0x05138a061795",
+      "layerA": 5,
+      "slotA": "Eyes",
+      "traitA": 5002,
+      "nameA": "Build Anything Glasses",
+      "layerB": 6,
+      "slotB": "Hat",
+      "traitB": 6037,
+      "nameB": "Sealuminati Mask",
+      "reasons": [
+        "Bartman / Sealuminati Mask compatibility"
+      ]
+    },
+    {
+      "pairKey": "0x05138e061772",
+      "layerA": 5,
+      "slotA": "Eyes",
+      "traitA": 5006,
+      "nameA": "Eye Patch",
+      "layerB": 6,
+      "slotB": "Hat",
+      "traitB": 6002,
+      "nameB": "Bartman",
+      "reasons": [
+        "Bartman / Sealuminati Mask compatibility"
+      ]
+    },
+    {
+      "pairKey": "0x05138e061778",
+      "layerA": 5,
+      "slotA": "Eyes",
+      "traitA": 5006,
+      "nameA": "Eye Patch",
+      "layerB": 6,
+      "slotB": "Hat",
+      "traitB": 6008,
+      "nameB": "Black Shystie",
+      "reasons": [
+        "Shysties block tall/wide eye traits and face accessories"
+      ]
+    },
+    {
+      "pairKey": "0x05138e061792",
+      "layerA": 5,
+      "slotA": "Eyes",
+      "traitA": 5006,
+      "nameA": "Eye Patch",
+      "layerB": 6,
+      "slotB": "Hat",
+      "traitB": 6034,
+      "nameB": "Pink Shystie",
+      "reasons": [
+        "Shysties block tall/wide eye traits and face accessories"
+      ]
+    },
+    {
+      "pairKey": "0x05138e061795",
+      "layerA": 5,
+      "slotA": "Eyes",
+      "traitA": 5006,
+      "nameA": "Eye Patch",
+      "layerB": 6,
+      "slotB": "Hat",
+      "traitB": 6037,
+      "nameB": "Sealuminati Mask",
+      "reasons": [
+        "Bartman / Sealuminati Mask compatibility"
+      ]
+    },
+    {
+      "pairKey": "0x051394061772",
+      "layerA": 5,
+      "slotA": "Eyes",
+      "traitA": 5012,
+      "nameA": "Lazy Laser",
+      "layerB": 6,
+      "slotB": "Hat",
+      "traitB": 6002,
+      "nameB": "Bartman",
+      "reasons": [
+        "Bartman / Sealuminati Mask compatibility"
+      ]
+    },
+    {
+      "pairKey": "0x051394061778",
+      "layerA": 5,
+      "slotA": "Eyes",
+      "traitA": 5012,
+      "nameA": "Lazy Laser",
+      "layerB": 6,
+      "slotB": "Hat",
+      "traitB": 6008,
+      "nameB": "Black Shystie",
+      "reasons": [
+        "Shysties block tall/wide eye traits and face accessories"
+      ]
+    },
+    {
+      "pairKey": "0x051394061792",
+      "layerA": 5,
+      "slotA": "Eyes",
+      "traitA": 5012,
+      "nameA": "Lazy Laser",
+      "layerB": 6,
+      "slotB": "Hat",
+      "traitB": 6034,
+      "nameB": "Pink Shystie",
+      "reasons": [
+        "Shysties block tall/wide eye traits and face accessories"
+      ]
+    },
+    {
+      "pairKey": "0x051394061795",
+      "layerA": 5,
+      "slotA": "Eyes",
+      "traitA": 5012,
+      "nameA": "Lazy Laser",
+      "layerB": 6,
+      "slotB": "Hat",
+      "traitB": 6037,
+      "nameB": "Sealuminati Mask",
+      "reasons": [
+        "Bartman / Sealuminati Mask compatibility"
+      ]
+    },
+    {
+      "pairKey": "0x051397061772",
+      "layerA": 5,
+      "slotA": "Eyes",
+      "traitA": 5015,
+      "nameA": "Neverland Specs",
+      "layerB": 6,
+      "slotB": "Hat",
+      "traitB": 6002,
+      "nameB": "Bartman",
+      "reasons": [
+        "Bartman / Sealuminati Mask compatibility"
+      ]
+    },
+    {
+      "pairKey": "0x051397061775",
+      "layerA": 5,
+      "slotA": "Eyes",
+      "traitA": 5015,
+      "nameA": "Neverland Specs",
+      "layerB": 6,
+      "slotB": "Hat",
+      "traitB": 6005,
+      "nameB": "Black Beanie",
+      "reasons": [
+        "Black Beanie blocks glasses and specs"
+      ]
+    },
+    {
+      "pairKey": "0x051397061778",
+      "layerA": 5,
+      "slotA": "Eyes",
+      "traitA": 5015,
+      "nameA": "Neverland Specs",
+      "layerB": 6,
+      "slotB": "Hat",
+      "traitB": 6008,
+      "nameB": "Black Shystie",
+      "reasons": [
+        "Shysties block tall/wide eye traits and face accessories"
+      ]
+    },
+    {
+      "pairKey": "0x05139706177c",
+      "layerA": 5,
+      "slotA": "Eyes",
+      "traitA": 5015,
+      "nameA": "Neverland Specs",
+      "layerB": 6,
+      "slotB": "Hat",
+      "traitB": 6012,
+      "nameB": "Casino",
+      "reasons": [
+        "Casino visor blocks wide eye traits"
+      ]
+    },
+    {
+      "pairKey": "0x05139706177e",
+      "layerA": 5,
+      "slotA": "Eyes",
+      "traitA": 5015,
+      "nameA": "Neverland Specs",
+      "layerB": 6,
+      "slotB": "Hat",
+      "traitB": 6014,
+      "nameB": "Cowboy",
+      "reasons": [
+        "Cowboy brim blocks tall/wide eye traits"
+      ]
+    },
+    {
+      "pairKey": "0x051397061781",
+      "layerA": 5,
+      "slotA": "Eyes",
+      "traitA": 5015,
+      "nameA": "Neverland Specs",
+      "layerB": 6,
+      "slotB": "Hat",
+      "traitB": 6017,
+      "nameB": "Durag",
+      "reasons": [
+        "Durag compatibility"
+      ]
+    },
+    {
+      "pairKey": "0x051397061792",
+      "layerA": 5,
+      "slotA": "Eyes",
+      "traitA": 5015,
+      "nameA": "Neverland Specs",
+      "layerB": 6,
+      "slotB": "Hat",
+      "traitB": 6034,
+      "nameB": "Pink Shystie",
+      "reasons": [
+        "Shysties block tall/wide eye traits and face accessories"
+      ]
+    },
+    {
+      "pairKey": "0x051397061795",
+      "layerA": 5,
+      "slotA": "Eyes",
+      "traitA": 5015,
+      "nameA": "Neverland Specs",
+      "layerB": 6,
+      "slotB": "Hat",
+      "traitB": 6037,
+      "nameB": "Sealuminati Mask",
+      "reasons": [
+        "Bartman / Sealuminati Mask compatibility"
+      ]
+    },
+    {
+      "pairKey": "0x051399061775",
+      "layerA": 5,
+      "slotA": "Eyes",
+      "traitA": 5017,
+      "nameA": "Pit Viper",
+      "layerB": 6,
+      "slotB": "Hat",
+      "traitB": 6005,
+      "nameB": "Black Beanie",
+      "reasons": [
+        "Black Beanie blocks glasses and specs"
+      ]
+    },
+    {
+      "pairKey": "0x051399071b59",
+      "layerA": 5,
+      "slotA": "Eyes",
+      "traitA": 5017,
+      "nameA": "Pit Viper",
+      "layerB": 7,
+      "slotB": "Accessories",
+      "traitB": 7001,
+      "nameB": "Bandaid",
+      "reasons": [
+        "Bandaid conflicts with VR headset and Pit Viper"
+      ]
+    },
+    {
+      "pairKey": "0x051399081f41",
+      "layerA": 5,
+      "slotA": "Eyes",
+      "traitA": 5017,
+      "nameA": "Pit Viper",
+      "layerB": 8,
+      "slotB": "Accessories 2",
+      "traitB": 8001,
+      "nameB": "Bandaid",
+      "reasons": [
+        "Second accessory Bandaid conflicts with VR headset and Pit Viper"
+      ]
+    },
+    {
+      "pairKey": "0x05139a061772",
+      "layerA": 5,
+      "slotA": "Eyes",
+      "traitA": 5018,
+      "nameA": "Point Dexter Glasses Eyes",
+      "layerB": 6,
+      "slotB": "Hat",
+      "traitB": 6002,
+      "nameB": "Bartman",
+      "reasons": [
+        "Bartman / Sealuminati Mask compatibility"
+      ]
+    },
+    {
+      "pairKey": "0x05139a061775",
+      "layerA": 5,
+      "slotA": "Eyes",
+      "traitA": 5018,
+      "nameA": "Point Dexter Glasses Eyes",
+      "layerB": 6,
+      "slotB": "Hat",
+      "traitB": 6005,
+      "nameB": "Black Beanie",
+      "reasons": [
+        "Black Beanie blocks glasses and specs"
+      ]
+    },
+    {
+      "pairKey": "0x05139a061778",
+      "layerA": 5,
+      "slotA": "Eyes",
+      "traitA": 5018,
+      "nameA": "Point Dexter Glasses Eyes",
+      "layerB": 6,
+      "slotB": "Hat",
+      "traitB": 6008,
+      "nameB": "Black Shystie",
+      "reasons": [
+        "Shysties block tall/wide eye traits and face accessories"
+      ]
+    },
+    {
+      "pairKey": "0x05139a06177c",
+      "layerA": 5,
+      "slotA": "Eyes",
+      "traitA": 5018,
+      "nameA": "Point Dexter Glasses Eyes",
+      "layerB": 6,
+      "slotB": "Hat",
+      "traitB": 6012,
+      "nameB": "Casino",
+      "reasons": [
+        "Casino visor blocks wide eye traits"
+      ]
+    },
+    {
+      "pairKey": "0x05139a06177e",
+      "layerA": 5,
+      "slotA": "Eyes",
+      "traitA": 5018,
+      "nameA": "Point Dexter Glasses Eyes",
+      "layerB": 6,
+      "slotB": "Hat",
+      "traitB": 6014,
+      "nameB": "Cowboy",
+      "reasons": [
+        "Cowboy brim blocks tall/wide eye traits"
+      ]
+    },
+    {
+      "pairKey": "0x05139a061781",
+      "layerA": 5,
+      "slotA": "Eyes",
+      "traitA": 5018,
+      "nameA": "Point Dexter Glasses Eyes",
+      "layerB": 6,
+      "slotB": "Hat",
+      "traitB": 6017,
+      "nameB": "Durag",
+      "reasons": [
+        "Durag compatibility"
+      ]
+    },
+    {
+      "pairKey": "0x05139a061792",
+      "layerA": 5,
+      "slotA": "Eyes",
+      "traitA": 5018,
+      "nameA": "Point Dexter Glasses Eyes",
+      "layerB": 6,
+      "slotB": "Hat",
+      "traitB": 6034,
+      "nameB": "Pink Shystie",
+      "reasons": [
+        "Shysties block tall/wide eye traits and face accessories"
+      ]
+    },
+    {
+      "pairKey": "0x05139a061795",
+      "layerA": 5,
+      "slotA": "Eyes",
+      "traitA": 5018,
+      "nameA": "Point Dexter Glasses Eyes",
+      "layerB": 6,
+      "slotB": "Hat",
+      "traitB": 6037,
+      "nameB": "Sealuminati Mask",
+      "reasons": [
+        "Bartman / Sealuminati Mask compatibility"
+      ]
+    },
+    {
+      "pairKey": "0x05139d061772",
+      "layerA": 5,
+      "slotA": "Eyes",
+      "traitA": 5021,
+      "nameA": "Radiation Glow (Red)Laser",
+      "layerB": 6,
+      "slotB": "Hat",
+      "traitB": 6002,
+      "nameB": "Bartman",
+      "reasons": [
+        "Bartman / Sealuminati Mask compatibility"
+      ]
+    },
+    {
+      "pairKey": "0x05139d061778",
+      "layerA": 5,
+      "slotA": "Eyes",
+      "traitA": 5021,
+      "nameA": "Radiation Glow (Red)Laser",
+      "layerB": 6,
+      "slotB": "Hat",
+      "traitB": 6008,
+      "nameB": "Black Shystie",
+      "reasons": [
+        "Shysties block tall/wide eye traits and face accessories"
+      ]
+    },
+    {
+      "pairKey": "0x05139d061792",
+      "layerA": 5,
+      "slotA": "Eyes",
+      "traitA": 5021,
+      "nameA": "Radiation Glow (Red)Laser",
+      "layerB": 6,
+      "slotB": "Hat",
+      "traitB": 6034,
+      "nameB": "Pink Shystie",
+      "reasons": [
+        "Shysties block tall/wide eye traits and face accessories"
+      ]
+    },
+    {
+      "pairKey": "0x05139d061795",
+      "layerA": 5,
+      "slotA": "Eyes",
+      "traitA": 5021,
+      "nameA": "Radiation Glow (Red)Laser",
+      "layerB": 6,
+      "slotB": "Hat",
+      "traitB": 6037,
+      "nameB": "Sealuminati Mask",
+      "reasons": [
+        "Bartman / Sealuminati Mask compatibility"
+      ]
+    },
+    {
+      "pairKey": "0x0513a2061772",
+      "layerA": 5,
+      "slotA": "Eyes",
+      "traitA": 5026,
+      "nameA": "Sunglasses",
+      "layerB": 6,
+      "slotB": "Hat",
+      "traitB": 6002,
+      "nameB": "Bartman",
+      "reasons": [
+        "Bartman / Sealuminati Mask compatibility"
+      ]
+    },
+    {
+      "pairKey": "0x0513a2061775",
+      "layerA": 5,
+      "slotA": "Eyes",
+      "traitA": 5026,
+      "nameA": "Sunglasses",
+      "layerB": 6,
+      "slotB": "Hat",
+      "traitB": 6005,
+      "nameB": "Black Beanie",
+      "reasons": [
+        "Black Beanie blocks glasses and specs"
+      ]
+    },
+    {
+      "pairKey": "0x0513a2061778",
+      "layerA": 5,
+      "slotA": "Eyes",
+      "traitA": 5026,
+      "nameA": "Sunglasses",
+      "layerB": 6,
+      "slotB": "Hat",
+      "traitB": 6008,
+      "nameB": "Black Shystie",
+      "reasons": [
+        "Shysties block tall/wide eye traits and face accessories"
+      ]
+    },
+    {
+      "pairKey": "0x0513a206177c",
+      "layerA": 5,
+      "slotA": "Eyes",
+      "traitA": 5026,
+      "nameA": "Sunglasses",
+      "layerB": 6,
+      "slotB": "Hat",
+      "traitB": 6012,
+      "nameB": "Casino",
+      "reasons": [
+        "Casino visor blocks wide eye traits"
+      ]
+    },
+    {
+      "pairKey": "0x0513a206177e",
+      "layerA": 5,
+      "slotA": "Eyes",
+      "traitA": 5026,
+      "nameA": "Sunglasses",
+      "layerB": 6,
+      "slotB": "Hat",
+      "traitB": 6014,
+      "nameB": "Cowboy",
+      "reasons": [
+        "Cowboy brim blocks tall/wide eye traits"
+      ]
+    },
+    {
+      "pairKey": "0x0513a2061781",
+      "layerA": 5,
+      "slotA": "Eyes",
+      "traitA": 5026,
+      "nameA": "Sunglasses",
+      "layerB": 6,
+      "slotB": "Hat",
+      "traitB": 6017,
+      "nameB": "Durag",
+      "reasons": [
+        "Durag compatibility"
+      ]
+    },
+    {
+      "pairKey": "0x0513a2061792",
+      "layerA": 5,
+      "slotA": "Eyes",
+      "traitA": 5026,
+      "nameA": "Sunglasses",
+      "layerB": 6,
+      "slotB": "Hat",
+      "traitB": 6034,
+      "nameB": "Pink Shystie",
+      "reasons": [
+        "Shysties block tall/wide eye traits and face accessories"
+      ]
+    },
+    {
+      "pairKey": "0x0513a2061795",
+      "layerA": 5,
+      "slotA": "Eyes",
+      "traitA": 5026,
+      "nameA": "Sunglasses",
+      "layerB": 6,
+      "slotB": "Hat",
+      "traitB": 6037,
+      "nameB": "Sealuminati Mask",
+      "reasons": [
+        "Bartman / Sealuminati Mask compatibility"
+      ]
+    },
+    {
+      "pairKey": "0x0513a3061772",
+      "layerA": 5,
+      "slotA": "Eyes",
+      "traitA": 5027,
+      "nameA": "Third Eye",
+      "layerB": 6,
+      "slotB": "Hat",
+      "traitB": 6002,
+      "nameB": "Bartman",
+      "reasons": [
+        "Bartman / Sealuminati Mask compatibility"
+      ]
+    },
+    {
+      "pairKey": "0x0513a3061773",
+      "layerA": 5,
+      "slotA": "Eyes",
+      "traitA": 5027,
+      "nameA": "Third Eye",
+      "layerB": 6,
+      "slotB": "Hat",
+      "traitB": 6003,
+      "nameB": "Beanie Red",
+      "reasons": [
+        "Beanies block tall eye traits"
+      ]
+    },
+    {
+      "pairKey": "0x0513a3061775",
+      "layerA": 5,
+      "slotA": "Eyes",
+      "traitA": 5027,
+      "nameA": "Third Eye",
+      "layerB": 6,
+      "slotB": "Hat",
+      "traitB": 6005,
+      "nameB": "Black Beanie",
+      "reasons": [
+        "Beanies block tall eye traits"
+      ]
+    },
+    {
+      "pairKey": "0x0513a3061778",
+      "layerA": 5,
+      "slotA": "Eyes",
+      "traitA": 5027,
+      "nameA": "Third Eye",
+      "layerB": 6,
+      "slotB": "Hat",
+      "traitB": 6008,
+      "nameB": "Black Shystie",
+      "reasons": [
+        "Shysties block tall/wide eye traits and face accessories"
+      ]
+    },
+    {
+      "pairKey": "0x0513a306177e",
+      "layerA": 5,
+      "slotA": "Eyes",
+      "traitA": 5027,
+      "nameA": "Third Eye",
+      "layerB": 6,
+      "slotB": "Hat",
+      "traitB": 6014,
+      "nameB": "Cowboy",
+      "reasons": [
+        "Cowboy brim blocks tall/wide eye traits"
+      ]
+    },
+    {
+      "pairKey": "0x0513a3061781",
+      "layerA": 5,
+      "slotA": "Eyes",
+      "traitA": 5027,
+      "nameA": "Third Eye",
+      "layerB": 6,
+      "slotB": "Hat",
+      "traitB": 6017,
+      "nameB": "Durag",
+      "reasons": [
+        "Durag compatibility"
+      ]
+    },
+    {
+      "pairKey": "0x0513a3061792",
+      "layerA": 5,
+      "slotA": "Eyes",
+      "traitA": 5027,
+      "nameA": "Third Eye",
+      "layerB": 6,
+      "slotB": "Hat",
+      "traitB": 6034,
+      "nameB": "Pink Shystie",
+      "reasons": [
+        "Shysties block tall/wide eye traits and face accessories"
+      ]
+    },
+    {
+      "pairKey": "0x0513a3061795",
+      "layerA": 5,
+      "slotA": "Eyes",
+      "traitA": 5027,
+      "nameA": "Third Eye",
+      "layerB": 6,
+      "slotB": "Hat",
+      "traitB": 6037,
+      "nameB": "Sealuminati Mask",
+      "reasons": [
+        "Bartman / Sealuminati Mask compatibility"
+      ]
+    },
+    {
+      "pairKey": "0x0513a3061797",
+      "layerA": 5,
+      "slotA": "Eyes",
+      "traitA": 5027,
+      "nameA": "Third Eye",
+      "layerB": 6,
+      "slotB": "Hat",
+      "traitB": 6039,
+      "nameB": "Sweatband",
+      "reasons": [
+        "Sweatband blocks forehead eye traits"
+      ]
+    },
+    {
+      "pairKey": "0x0513a4061772",
+      "layerA": 5,
+      "slotA": "Eyes",
+      "traitA": 5028,
+      "nameA": "Tri-Specs",
+      "layerB": 6,
+      "slotB": "Hat",
+      "traitB": 6002,
+      "nameB": "Bartman",
+      "reasons": [
+        "Bartman / Sealuminati Mask compatibility"
+      ]
+    },
+    {
+      "pairKey": "0x0513a4061773",
+      "layerA": 5,
+      "slotA": "Eyes",
+      "traitA": 5028,
+      "nameA": "Tri-Specs",
+      "layerB": 6,
+      "slotB": "Hat",
+      "traitB": 6003,
+      "nameB": "Beanie Red",
+      "reasons": [
+        "Beanies block tall eye traits"
+      ]
+    },
+    {
+      "pairKey": "0x0513a4061775",
+      "layerA": 5,
+      "slotA": "Eyes",
+      "traitA": 5028,
+      "nameA": "Tri-Specs",
+      "layerB": 6,
+      "slotB": "Hat",
+      "traitB": 6005,
+      "nameB": "Black Beanie",
+      "reasons": [
+        "Beanies block tall eye traits",
+        "Black Beanie blocks glasses and specs"
+      ]
+    },
+    {
+      "pairKey": "0x0513a4061778",
+      "layerA": 5,
+      "slotA": "Eyes",
+      "traitA": 5028,
+      "nameA": "Tri-Specs",
+      "layerB": 6,
+      "slotB": "Hat",
+      "traitB": 6008,
+      "nameB": "Black Shystie",
+      "reasons": [
+        "Shysties block tall/wide eye traits and face accessories"
+      ]
+    },
+    {
+      "pairKey": "0x0513a406177c",
+      "layerA": 5,
+      "slotA": "Eyes",
+      "traitA": 5028,
+      "nameA": "Tri-Specs",
+      "layerB": 6,
+      "slotB": "Hat",
+      "traitB": 6012,
+      "nameB": "Casino",
+      "reasons": [
+        "Casino visor blocks wide eye traits"
+      ]
+    },
+    {
+      "pairKey": "0x0513a406177e",
+      "layerA": 5,
+      "slotA": "Eyes",
+      "traitA": 5028,
+      "nameA": "Tri-Specs",
+      "layerB": 6,
+      "slotB": "Hat",
+      "traitB": 6014,
+      "nameB": "Cowboy",
+      "reasons": [
+        "Cowboy brim blocks tall/wide eye traits"
+      ]
+    },
+    {
+      "pairKey": "0x0513a4061781",
+      "layerA": 5,
+      "slotA": "Eyes",
+      "traitA": 5028,
+      "nameA": "Tri-Specs",
+      "layerB": 6,
+      "slotB": "Hat",
+      "traitB": 6017,
+      "nameB": "Durag",
+      "reasons": [
+        "Durag compatibility"
+      ]
+    },
+    {
+      "pairKey": "0x0513a4061792",
+      "layerA": 5,
+      "slotA": "Eyes",
+      "traitA": 5028,
+      "nameA": "Tri-Specs",
+      "layerB": 6,
+      "slotB": "Hat",
+      "traitB": 6034,
+      "nameB": "Pink Shystie",
+      "reasons": [
+        "Shysties block tall/wide eye traits and face accessories"
+      ]
+    },
+    {
+      "pairKey": "0x0513a4061795",
+      "layerA": 5,
+      "slotA": "Eyes",
+      "traitA": 5028,
+      "nameA": "Tri-Specs",
+      "layerB": 6,
+      "slotB": "Hat",
+      "traitB": 6037,
+      "nameB": "Sealuminati Mask",
+      "reasons": [
+        "Bartman / Sealuminati Mask compatibility"
+      ]
+    },
+    {
+      "pairKey": "0x0513a4061797",
+      "layerA": 5,
+      "slotA": "Eyes",
+      "traitA": 5028,
+      "nameA": "Tri-Specs",
+      "layerB": 6,
+      "slotB": "Hat",
+      "traitB": 6039,
+      "nameB": "Sweatband",
+      "reasons": [
+        "Sweatband blocks forehead eye traits"
+      ]
+    },
+    {
+      "pairKey": "0x0513a6061772",
+      "layerA": 5,
+      "slotA": "Eyes",
+      "traitA": 5030,
+      "nameA": "VR Headset",
+      "layerB": 6,
+      "slotB": "Hat",
+      "traitB": 6002,
+      "nameB": "Bartman",
+      "reasons": [
+        "Bartman / Sealuminati Mask compatibility"
+      ]
+    },
+    {
+      "pairKey": "0x0513a6061773",
+      "layerA": 5,
+      "slotA": "Eyes",
+      "traitA": 5030,
+      "nameA": "VR Headset",
+      "layerB": 6,
+      "slotB": "Hat",
+      "traitB": 6003,
+      "nameB": "Beanie Red",
+      "reasons": [
+        "Beanies block tall eye traits"
+      ]
+    },
+    {
+      "pairKey": "0x0513a6061775",
+      "layerA": 5,
+      "slotA": "Eyes",
+      "traitA": 5030,
+      "nameA": "VR Headset",
+      "layerB": 6,
+      "slotB": "Hat",
+      "traitB": 6005,
+      "nameB": "Black Beanie",
+      "reasons": [
+        "Beanies block tall eye traits",
+        "Black Beanie blocks glasses and specs"
+      ]
+    },
+    {
+      "pairKey": "0x0513a6061778",
+      "layerA": 5,
+      "slotA": "Eyes",
+      "traitA": 5030,
+      "nameA": "VR Headset",
+      "layerB": 6,
+      "slotB": "Hat",
+      "traitB": 6008,
+      "nameB": "Black Shystie",
+      "reasons": [
+        "Shysties block tall/wide eye traits and face accessories"
+      ]
+    },
+    {
+      "pairKey": "0x0513a606177c",
+      "layerA": 5,
+      "slotA": "Eyes",
+      "traitA": 5030,
+      "nameA": "VR Headset",
+      "layerB": 6,
+      "slotB": "Hat",
+      "traitB": 6012,
+      "nameB": "Casino",
+      "reasons": [
+        "Casino visor blocks wide eye traits"
+      ]
+    },
+    {
+      "pairKey": "0x0513a606177e",
+      "layerA": 5,
+      "slotA": "Eyes",
+      "traitA": 5030,
+      "nameA": "VR Headset",
+      "layerB": 6,
+      "slotB": "Hat",
+      "traitB": 6014,
+      "nameB": "Cowboy",
+      "reasons": [
+        "Cowboy brim blocks tall/wide eye traits"
+      ]
+    },
+    {
+      "pairKey": "0x0513a6061781",
+      "layerA": 5,
+      "slotA": "Eyes",
+      "traitA": 5030,
+      "nameA": "VR Headset",
+      "layerB": 6,
+      "slotB": "Hat",
+      "traitB": 6017,
+      "nameB": "Durag",
+      "reasons": [
+        "Durag compatibility"
+      ]
+    },
+    {
+      "pairKey": "0x0513a6061792",
+      "layerA": 5,
+      "slotA": "Eyes",
+      "traitA": 5030,
+      "nameA": "VR Headset",
+      "layerB": 6,
+      "slotB": "Hat",
+      "traitB": 6034,
+      "nameB": "Pink Shystie",
+      "reasons": [
+        "Shysties block tall/wide eye traits and face accessories"
+      ]
+    },
+    {
+      "pairKey": "0x0513a6061795",
+      "layerA": 5,
+      "slotA": "Eyes",
+      "traitA": 5030,
+      "nameA": "VR Headset",
+      "layerB": 6,
+      "slotB": "Hat",
+      "traitB": 6037,
+      "nameB": "Sealuminati Mask",
+      "reasons": [
+        "Bartman / Sealuminati Mask compatibility"
+      ]
+    },
+    {
+      "pairKey": "0x0513a6071b59",
+      "layerA": 5,
+      "slotA": "Eyes",
+      "traitA": 5030,
+      "nameA": "VR Headset",
+      "layerB": 7,
+      "slotB": "Accessories",
+      "traitB": 7001,
+      "nameB": "Bandaid",
+      "reasons": [
+        "Bandaid conflicts with VR headset and Pit Viper"
+      ]
+    },
+    {
+      "pairKey": "0x0513a6081f41",
+      "layerA": 5,
+      "slotA": "Eyes",
+      "traitA": 5030,
+      "nameA": "VR Headset",
+      "layerB": 8,
+      "slotB": "Accessories 2",
+      "traitB": 8001,
+      "nameB": "Bandaid",
+      "reasons": [
+        "Second accessory Bandaid conflicts with VR headset and Pit Viper"
+      ]
+    },
+    {
+      "pairKey": "0x061772071b59",
+      "layerA": 6,
+      "slotA": "Hat",
+      "traitA": 6002,
+      "nameA": "Bartman",
+      "layerB": 7,
+      "slotB": "Accessories",
+      "traitB": 7001,
+      "nameB": "Bandaid",
+      "reasons": [
+        "Bartman / Sealuminati Mask compatibility"
+      ]
+    },
+    {
+      "pairKey": "0x061772071b5a",
+      "layerA": 6,
+      "slotA": "Hat",
+      "traitA": 6002,
+      "nameA": "Bartman",
+      "layerB": 7,
+      "slotB": "Accessories",
+      "traitB": 7002,
+      "nameB": "Bandana Black",
+      "reasons": [
+        "Bartman / Sealuminati Mask compatibility"
+      ]
+    },
+    {
+      "pairKey": "0x061772071b5b",
+      "layerA": 6,
+      "slotA": "Hat",
+      "traitA": 6002,
+      "nameA": "Bartman",
+      "layerB": 7,
+      "slotB": "Accessories",
+      "traitB": 7003,
+      "nameB": "Bandana Pink",
+      "reasons": [
+        "Bartman / Sealuminati Mask compatibility"
+      ]
+    },
+    {
+      "pairKey": "0x061772071b5e",
+      "layerA": 6,
+      "slotA": "Hat",
+      "traitA": 6002,
+      "nameA": "Bartman",
+      "layerB": 7,
+      "slotB": "Accessories",
+      "traitB": 7006,
+      "nameB": "MESH Bandanna",
+      "reasons": [
+        "Bartman / Sealuminati Mask compatibility"
+      ]
+    },
+    {
+      "pairKey": "0x061772071b61",
+      "layerA": 6,
+      "slotA": "Hat",
+      "traitA": 6002,
+      "nameA": "Bartman",
+      "layerB": 7,
+      "slotB": "Accessories",
+      "traitB": 7009,
+      "nameB": "Sealuminati chain",
+      "reasons": [
+        "Bartman / Sealuminati Mask compatibility"
+      ]
+    },
+    {
+      "pairKey": "0x061772081f41",
+      "layerA": 6,
+      "slotA": "Hat",
+      "traitA": 6002,
+      "nameA": "Bartman",
+      "layerB": 8,
+      "slotB": "Accessories 2",
+      "traitB": 8001,
+      "nameB": "Bandaid",
+      "reasons": [
+        "Bartman / Sealuminati Mask compatibility"
+      ]
+    },
+    {
+      "pairKey": "0x061772081f42",
+      "layerA": 6,
+      "slotA": "Hat",
+      "traitA": 6002,
+      "nameA": "Bartman",
+      "layerB": 8,
+      "slotB": "Accessories 2",
+      "traitB": 8002,
+      "nameB": "Bandana Black",
+      "reasons": [
+        "Bartman / Sealuminati Mask compatibility"
+      ]
+    },
+    {
+      "pairKey": "0x061772081f43",
+      "layerA": 6,
+      "slotA": "Hat",
+      "traitA": 6002,
+      "nameA": "Bartman",
+      "layerB": 8,
+      "slotB": "Accessories 2",
+      "traitB": 8003,
+      "nameB": "Bandana Pink",
+      "reasons": [
+        "Bartman / Sealuminati Mask compatibility"
+      ]
+    },
+    {
+      "pairKey": "0x061772081f46",
+      "layerA": 6,
+      "slotA": "Hat",
+      "traitA": 6002,
+      "nameA": "Bartman",
+      "layerB": 8,
+      "slotB": "Accessories 2",
+      "traitB": 8006,
+      "nameB": "MESH Bandanna",
+      "reasons": [
+        "Bartman / Sealuminati Mask compatibility"
+      ]
+    },
+    {
+      "pairKey": "0x061772081f49",
+      "layerA": 6,
+      "slotA": "Hat",
+      "traitA": 6002,
+      "nameA": "Bartman",
+      "layerB": 8,
+      "slotB": "Accessories 2",
+      "traitB": 8009,
+      "nameB": "Sealuminati chain",
+      "reasons": [
+        "Bartman / Sealuminati Mask compatibility"
+      ]
+    },
+    {
+      "pairKey": "0x061778071b59",
+      "layerA": 6,
+      "slotA": "Hat",
+      "traitA": 6008,
+      "nameA": "Black Shystie",
+      "layerB": 7,
+      "slotB": "Accessories",
+      "traitB": 7001,
+      "nameB": "Bandaid",
+      "reasons": [
+        "Shysties block tall/wide eye traits and face accessories"
+      ]
+    },
+    {
+      "pairKey": "0x061778071b5a",
+      "layerA": 6,
+      "slotA": "Hat",
+      "traitA": 6008,
+      "nameA": "Black Shystie",
+      "layerB": 7,
+      "slotB": "Accessories",
+      "traitB": 7002,
+      "nameB": "Bandana Black",
+      "reasons": [
+        "Shysties block tall/wide eye traits and face accessories"
+      ]
+    },
+    {
+      "pairKey": "0x061778071b5b",
+      "layerA": 6,
+      "slotA": "Hat",
+      "traitA": 6008,
+      "nameA": "Black Shystie",
+      "layerB": 7,
+      "slotB": "Accessories",
+      "traitB": 7003,
+      "nameB": "Bandana Pink",
+      "reasons": [
+        "Shysties block tall/wide eye traits and face accessories"
+      ]
+    },
+    {
+      "pairKey": "0x061778071b5e",
+      "layerA": 6,
+      "slotA": "Hat",
+      "traitA": 6008,
+      "nameA": "Black Shystie",
+      "layerB": 7,
+      "slotB": "Accessories",
+      "traitB": 7006,
+      "nameB": "MESH Bandanna",
+      "reasons": [
+        "Shysties block tall/wide eye traits and face accessories"
+      ]
+    },
+    {
+      "pairKey": "0x061778071b61",
+      "layerA": 6,
+      "slotA": "Hat",
+      "traitA": 6008,
+      "nameA": "Black Shystie",
+      "layerB": 7,
+      "slotB": "Accessories",
+      "traitB": 7009,
+      "nameB": "Sealuminati chain",
+      "reasons": [
+        "Shysties block tall/wide eye traits and face accessories"
+      ]
+    },
+    {
+      "pairKey": "0x061778081f41",
+      "layerA": 6,
+      "slotA": "Hat",
+      "traitA": 6008,
+      "nameA": "Black Shystie",
+      "layerB": 8,
+      "slotB": "Accessories 2",
+      "traitB": 8001,
+      "nameB": "Bandaid",
+      "reasons": [
+        "Shysties block tall/wide eye traits and face accessories"
+      ]
+    },
+    {
+      "pairKey": "0x061778081f42",
+      "layerA": 6,
+      "slotA": "Hat",
+      "traitA": 6008,
+      "nameA": "Black Shystie",
+      "layerB": 8,
+      "slotB": "Accessories 2",
+      "traitB": 8002,
+      "nameB": "Bandana Black",
+      "reasons": [
+        "Shysties block tall/wide eye traits and face accessories"
+      ]
+    },
+    {
+      "pairKey": "0x061778081f43",
+      "layerA": 6,
+      "slotA": "Hat",
+      "traitA": 6008,
+      "nameA": "Black Shystie",
+      "layerB": 8,
+      "slotB": "Accessories 2",
+      "traitB": 8003,
+      "nameB": "Bandana Pink",
+      "reasons": [
+        "Shysties block tall/wide eye traits and face accessories"
+      ]
+    },
+    {
+      "pairKey": "0x061778081f46",
+      "layerA": 6,
+      "slotA": "Hat",
+      "traitA": 6008,
+      "nameA": "Black Shystie",
+      "layerB": 8,
+      "slotB": "Accessories 2",
+      "traitB": 8006,
+      "nameB": "MESH Bandanna",
+      "reasons": [
+        "Shysties block tall/wide eye traits and face accessories"
+      ]
+    },
+    {
+      "pairKey": "0x061778081f49",
+      "layerA": 6,
+      "slotA": "Hat",
+      "traitA": 6008,
+      "nameA": "Black Shystie",
+      "layerB": 8,
+      "slotB": "Accessories 2",
+      "traitB": 8009,
+      "nameB": "Sealuminati chain",
+      "reasons": [
+        "Shysties block tall/wide eye traits and face accessories"
+      ]
+    },
+    {
+      "pairKey": "0x061791071b5a",
+      "layerA": 6,
+      "slotA": "Hat",
+      "traitA": 6033,
+      "nameA": "Party Hat",
+      "layerB": 7,
+      "slotB": "Accessories",
+      "traitB": 7002,
+      "nameB": "Bandana Black",
+      "reasons": [
+        "Party Hat strap conflicts with bandanas"
+      ]
+    },
+    {
+      "pairKey": "0x061791071b5b",
+      "layerA": 6,
+      "slotA": "Hat",
+      "traitA": 6033,
+      "nameA": "Party Hat",
+      "layerB": 7,
+      "slotB": "Accessories",
+      "traitB": 7003,
+      "nameB": "Bandana Pink",
+      "reasons": [
+        "Party Hat strap conflicts with bandanas"
+      ]
+    },
+    {
+      "pairKey": "0x061791071b5e",
+      "layerA": 6,
+      "slotA": "Hat",
+      "traitA": 6033,
+      "nameA": "Party Hat",
+      "layerB": 7,
+      "slotB": "Accessories",
+      "traitB": 7006,
+      "nameB": "MESH Bandanna",
+      "reasons": [
+        "Party Hat strap conflicts with bandanas"
+      ]
+    },
+    {
+      "pairKey": "0x061791081f42",
+      "layerA": 6,
+      "slotA": "Hat",
+      "traitA": 6033,
+      "nameA": "Party Hat",
+      "layerB": 8,
+      "slotB": "Accessories 2",
+      "traitB": 8002,
+      "nameB": "Bandana Black",
+      "reasons": [
+        "Party Hat strap conflicts with bandanas"
+      ]
+    },
+    {
+      "pairKey": "0x061791081f43",
+      "layerA": 6,
+      "slotA": "Hat",
+      "traitA": 6033,
+      "nameA": "Party Hat",
+      "layerB": 8,
+      "slotB": "Accessories 2",
+      "traitB": 8003,
+      "nameB": "Bandana Pink",
+      "reasons": [
+        "Party Hat strap conflicts with bandanas"
+      ]
+    },
+    {
+      "pairKey": "0x061791081f46",
+      "layerA": 6,
+      "slotA": "Hat",
+      "traitA": 6033,
+      "nameA": "Party Hat",
+      "layerB": 8,
+      "slotB": "Accessories 2",
+      "traitB": 8006,
+      "nameB": "MESH Bandanna",
+      "reasons": [
+        "Party Hat strap conflicts with bandanas"
+      ]
+    },
+    {
+      "pairKey": "0x061792071b59",
+      "layerA": 6,
+      "slotA": "Hat",
+      "traitA": 6034,
+      "nameA": "Pink Shystie",
+      "layerB": 7,
+      "slotB": "Accessories",
+      "traitB": 7001,
+      "nameB": "Bandaid",
+      "reasons": [
+        "Shysties block tall/wide eye traits and face accessories"
+      ]
+    },
+    {
+      "pairKey": "0x061792071b5a",
+      "layerA": 6,
+      "slotA": "Hat",
+      "traitA": 6034,
+      "nameA": "Pink Shystie",
+      "layerB": 7,
+      "slotB": "Accessories",
+      "traitB": 7002,
+      "nameB": "Bandana Black",
+      "reasons": [
+        "Shysties block tall/wide eye traits and face accessories"
+      ]
+    },
+    {
+      "pairKey": "0x061792071b5b",
+      "layerA": 6,
+      "slotA": "Hat",
+      "traitA": 6034,
+      "nameA": "Pink Shystie",
+      "layerB": 7,
+      "slotB": "Accessories",
+      "traitB": 7003,
+      "nameB": "Bandana Pink",
+      "reasons": [
+        "Shysties block tall/wide eye traits and face accessories"
+      ]
+    },
+    {
+      "pairKey": "0x061792071b5e",
+      "layerA": 6,
+      "slotA": "Hat",
+      "traitA": 6034,
+      "nameA": "Pink Shystie",
+      "layerB": 7,
+      "slotB": "Accessories",
+      "traitB": 7006,
+      "nameB": "MESH Bandanna",
+      "reasons": [
+        "Shysties block tall/wide eye traits and face accessories"
+      ]
+    },
+    {
+      "pairKey": "0x061792071b61",
+      "layerA": 6,
+      "slotA": "Hat",
+      "traitA": 6034,
+      "nameA": "Pink Shystie",
+      "layerB": 7,
+      "slotB": "Accessories",
+      "traitB": 7009,
+      "nameB": "Sealuminati chain",
+      "reasons": [
+        "Shysties block tall/wide eye traits and face accessories"
+      ]
+    },
+    {
+      "pairKey": "0x061792081f41",
+      "layerA": 6,
+      "slotA": "Hat",
+      "traitA": 6034,
+      "nameA": "Pink Shystie",
+      "layerB": 8,
+      "slotB": "Accessories 2",
+      "traitB": 8001,
+      "nameB": "Bandaid",
+      "reasons": [
+        "Shysties block tall/wide eye traits and face accessories"
+      ]
+    },
+    {
+      "pairKey": "0x061792081f42",
+      "layerA": 6,
+      "slotA": "Hat",
+      "traitA": 6034,
+      "nameA": "Pink Shystie",
+      "layerB": 8,
+      "slotB": "Accessories 2",
+      "traitB": 8002,
+      "nameB": "Bandana Black",
+      "reasons": [
+        "Shysties block tall/wide eye traits and face accessories"
+      ]
+    },
+    {
+      "pairKey": "0x061792081f43",
+      "layerA": 6,
+      "slotA": "Hat",
+      "traitA": 6034,
+      "nameA": "Pink Shystie",
+      "layerB": 8,
+      "slotB": "Accessories 2",
+      "traitB": 8003,
+      "nameB": "Bandana Pink",
+      "reasons": [
+        "Shysties block tall/wide eye traits and face accessories"
+      ]
+    },
+    {
+      "pairKey": "0x061792081f46",
+      "layerA": 6,
+      "slotA": "Hat",
+      "traitA": 6034,
+      "nameA": "Pink Shystie",
+      "layerB": 8,
+      "slotB": "Accessories 2",
+      "traitB": 8006,
+      "nameB": "MESH Bandanna",
+      "reasons": [
+        "Shysties block tall/wide eye traits and face accessories"
+      ]
+    },
+    {
+      "pairKey": "0x061792081f49",
+      "layerA": 6,
+      "slotA": "Hat",
+      "traitA": 6034,
+      "nameA": "Pink Shystie",
+      "layerB": 8,
+      "slotB": "Accessories 2",
+      "traitB": 8009,
+      "nameB": "Sealuminati chain",
+      "reasons": [
+        "Shysties block tall/wide eye traits and face accessories"
+      ]
+    },
+    {
+      "pairKey": "0x061795071b59",
+      "layerA": 6,
+      "slotA": "Hat",
+      "traitA": 6037,
+      "nameA": "Sealuminati Mask",
+      "layerB": 7,
+      "slotB": "Accessories",
+      "traitB": 7001,
+      "nameB": "Bandaid",
+      "reasons": [
+        "Bartman / Sealuminati Mask compatibility"
+      ]
+    },
+    {
+      "pairKey": "0x061795071b5a",
+      "layerA": 6,
+      "slotA": "Hat",
+      "traitA": 6037,
+      "nameA": "Sealuminati Mask",
+      "layerB": 7,
+      "slotB": "Accessories",
+      "traitB": 7002,
+      "nameB": "Bandana Black",
+      "reasons": [
+        "Bartman / Sealuminati Mask compatibility"
+      ]
+    },
+    {
+      "pairKey": "0x061795071b5b",
+      "layerA": 6,
+      "slotA": "Hat",
+      "traitA": 6037,
+      "nameA": "Sealuminati Mask",
+      "layerB": 7,
+      "slotB": "Accessories",
+      "traitB": 7003,
+      "nameB": "Bandana Pink",
+      "reasons": [
+        "Bartman / Sealuminati Mask compatibility"
+      ]
+    },
+    {
+      "pairKey": "0x061795071b5e",
+      "layerA": 6,
+      "slotA": "Hat",
+      "traitA": 6037,
+      "nameA": "Sealuminati Mask",
+      "layerB": 7,
+      "slotB": "Accessories",
+      "traitB": 7006,
+      "nameB": "MESH Bandanna",
+      "reasons": [
+        "Bartman / Sealuminati Mask compatibility"
+      ]
+    },
+    {
+      "pairKey": "0x061795071b61",
+      "layerA": 6,
+      "slotA": "Hat",
+      "traitA": 6037,
+      "nameA": "Sealuminati Mask",
+      "layerB": 7,
+      "slotB": "Accessories",
+      "traitB": 7009,
+      "nameB": "Sealuminati chain",
+      "reasons": [
+        "Bartman / Sealuminati Mask compatibility"
+      ]
+    },
+    {
+      "pairKey": "0x061795081f41",
+      "layerA": 6,
+      "slotA": "Hat",
+      "traitA": 6037,
+      "nameA": "Sealuminati Mask",
+      "layerB": 8,
+      "slotB": "Accessories 2",
+      "traitB": 8001,
+      "nameB": "Bandaid",
+      "reasons": [
+        "Bartman / Sealuminati Mask compatibility"
+      ]
+    },
+    {
+      "pairKey": "0x061795081f42",
+      "layerA": 6,
+      "slotA": "Hat",
+      "traitA": 6037,
+      "nameA": "Sealuminati Mask",
+      "layerB": 8,
+      "slotB": "Accessories 2",
+      "traitB": 8002,
+      "nameB": "Bandana Black",
+      "reasons": [
+        "Bartman / Sealuminati Mask compatibility"
+      ]
+    },
+    {
+      "pairKey": "0x061795081f43",
+      "layerA": 6,
+      "slotA": "Hat",
+      "traitA": 6037,
+      "nameA": "Sealuminati Mask",
+      "layerB": 8,
+      "slotB": "Accessories 2",
+      "traitB": 8003,
+      "nameB": "Bandana Pink",
+      "reasons": [
+        "Bartman / Sealuminati Mask compatibility"
+      ]
+    },
+    {
+      "pairKey": "0x061795081f46",
+      "layerA": 6,
+      "slotA": "Hat",
+      "traitA": 6037,
+      "nameA": "Sealuminati Mask",
+      "layerB": 8,
+      "slotB": "Accessories 2",
+      "traitB": 8006,
+      "nameB": "MESH Bandanna",
+      "reasons": [
+        "Bartman / Sealuminati Mask compatibility"
+      ]
+    },
+    {
+      "pairKey": "0x061795081f49",
+      "layerA": 6,
+      "slotA": "Hat",
+      "traitA": 6037,
+      "nameA": "Sealuminati Mask",
+      "layerB": 8,
+      "slotB": "Accessories 2",
+      "traitB": 8009,
+      "nameB": "Sealuminati chain",
+      "reasons": [
+        "Bartman / Sealuminati Mask compatibility"
+      ]
+    },
+    {
+      "pairKey": "0x071b59081f41",
+      "layerA": 7,
+      "slotA": "Accessories",
+      "traitA": 7001,
+      "nameA": "Bandaid",
+      "layerB": 8,
+      "slotB": "Accessories 2",
+      "traitB": 8001,
+      "nameB": "Bandaid",
+      "reasons": [
+        "Duplicate visible accessory: Bandaid"
+      ]
+    },
+    {
+      "pairKey": "0x071b5a081f42",
+      "layerA": 7,
+      "slotA": "Accessories",
+      "traitA": 7002,
+      "nameA": "Bandana Black",
+      "layerB": 8,
+      "slotB": "Accessories 2",
+      "traitB": 8002,
+      "nameB": "Bandana Black",
+      "reasons": [
+        "Duplicate visible accessory: Bandana Black"
+      ]
+    },
+    {
+      "pairKey": "0x071b5a081f45",
+      "layerA": 7,
+      "slotA": "Accessories",
+      "traitA": 7002,
+      "nameA": "Bandana Black",
+      "layerB": 8,
+      "slotB": "Accessories 2",
+      "traitB": 8005,
+      "nameB": "Choker Necklace",
+      "reasons": [
+        "Second accessory choker conflicts with first-slot bandannas"
+      ]
+    },
+    {
+      "pairKey": "0x071b5a081f49",
+      "layerA": 7,
+      "slotA": "Accessories",
+      "traitA": 7002,
+      "nameA": "Bandana Black",
+      "layerB": 8,
+      "slotB": "Accessories 2",
+      "traitB": 8009,
+      "nameB": "Sealuminati chain",
+      "reasons": [
+        "Second-slot chains conflict with bandannas"
+      ]
+    },
+    {
+      "pairKey": "0x071b5b081f43",
+      "layerA": 7,
+      "slotA": "Accessories",
+      "traitA": 7003,
+      "nameA": "Bandana Pink",
+      "layerB": 8,
+      "slotB": "Accessories 2",
+      "traitB": 8003,
+      "nameB": "Bandana Pink",
+      "reasons": [
+        "Duplicate visible accessory: Bandana Pink"
+      ]
+    },
+    {
+      "pairKey": "0x071b5b081f45",
+      "layerA": 7,
+      "slotA": "Accessories",
+      "traitA": 7003,
+      "nameA": "Bandana Pink",
+      "layerB": 8,
+      "slotB": "Accessories 2",
+      "traitB": 8005,
+      "nameB": "Choker Necklace",
+      "reasons": [
+        "Second accessory choker conflicts with first-slot bandannas"
+      ]
+    },
+    {
+      "pairKey": "0x071b5b081f49",
+      "layerA": 7,
+      "slotA": "Accessories",
+      "traitA": 7003,
+      "nameA": "Bandana Pink",
+      "layerB": 8,
+      "slotB": "Accessories 2",
+      "traitB": 8009,
+      "nameB": "Sealuminati chain",
+      "reasons": [
+        "Second-slot chains conflict with bandannas"
+      ]
+    },
+    {
+      "pairKey": "0x071b5d081f42",
+      "layerA": 7,
+      "slotA": "Accessories",
+      "traitA": 7005,
+      "nameA": "Choker Necklace",
+      "layerB": 8,
+      "slotB": "Accessories 2",
+      "traitB": 8002,
+      "nameB": "Bandana Black",
+      "reasons": [
+        "Accessory choker conflicts with second-slot bandannas"
+      ]
+    },
+    {
+      "pairKey": "0x071b5d081f43",
+      "layerA": 7,
+      "slotA": "Accessories",
+      "traitA": 7005,
+      "nameA": "Choker Necklace",
+      "layerB": 8,
+      "slotB": "Accessories 2",
+      "traitB": 8003,
+      "nameB": "Bandana Pink",
+      "reasons": [
+        "Accessory choker conflicts with second-slot bandannas"
+      ]
+    },
+    {
+      "pairKey": "0x071b5d081f45",
+      "layerA": 7,
+      "slotA": "Accessories",
+      "traitA": 7005,
+      "nameA": "Choker Necklace",
+      "layerB": 8,
+      "slotB": "Accessories 2",
+      "traitB": 8005,
+      "nameB": "Choker Necklace",
+      "reasons": [
+        "Duplicate visible accessory: Choker Necklace"
+      ]
+    },
+    {
+      "pairKey": "0x071b5d081f46",
+      "layerA": 7,
+      "slotA": "Accessories",
+      "traitA": 7005,
+      "nameA": "Choker Necklace",
+      "layerB": 8,
+      "slotB": "Accessories 2",
+      "traitB": 8006,
+      "nameB": "MESH Bandanna",
+      "reasons": [
+        "Accessory choker conflicts with second-slot bandannas"
+      ]
+    },
+    {
+      "pairKey": "0x071b5e081f45",
+      "layerA": 7,
+      "slotA": "Accessories",
+      "traitA": 7006,
+      "nameA": "MESH Bandanna",
+      "layerB": 8,
+      "slotB": "Accessories 2",
+      "traitB": 8005,
+      "nameB": "Choker Necklace",
+      "reasons": [
+        "Second accessory choker conflicts with first-slot bandannas"
+      ]
+    },
+    {
+      "pairKey": "0x071b5e081f46",
+      "layerA": 7,
+      "slotA": "Accessories",
+      "traitA": 7006,
+      "nameA": "MESH Bandanna",
+      "layerB": 8,
+      "slotB": "Accessories 2",
+      "traitB": 8006,
+      "nameB": "MESH Bandanna",
+      "reasons": [
+        "Duplicate visible accessory: MESH Bandanna"
+      ]
+    },
+    {
+      "pairKey": "0x071b5e081f49",
+      "layerA": 7,
+      "slotA": "Accessories",
+      "traitA": 7006,
+      "nameA": "MESH Bandanna",
+      "layerB": 8,
+      "slotB": "Accessories 2",
+      "traitB": 8009,
+      "nameB": "Sealuminati chain",
+      "reasons": [
+        "Second-slot chains conflict with bandannas"
+      ]
+    },
+    {
+      "pairKey": "0x071b61081f42",
+      "layerA": 7,
+      "slotA": "Accessories",
+      "traitA": 7009,
+      "nameA": "Sealuminati chain",
+      "layerB": 8,
+      "slotB": "Accessories 2",
+      "traitB": 8002,
+      "nameB": "Bandana Black",
+      "reasons": [
+        "Chains conflict with bandannas in second accessories slot"
+      ]
+    },
+    {
+      "pairKey": "0x071b61081f43",
+      "layerA": 7,
+      "slotA": "Accessories",
+      "traitA": 7009,
+      "nameA": "Sealuminati chain",
+      "layerB": 8,
+      "slotB": "Accessories 2",
+      "traitB": 8003,
+      "nameB": "Bandana Pink",
+      "reasons": [
+        "Chains conflict with bandannas in second accessories slot"
+      ]
+    },
+    {
+      "pairKey": "0x071b61081f46",
+      "layerA": 7,
+      "slotA": "Accessories",
+      "traitA": 7009,
+      "nameA": "Sealuminati chain",
+      "layerB": 8,
+      "slotB": "Accessories 2",
+      "traitB": 8006,
+      "nameB": "MESH Bandanna",
+      "reasons": [
+        "Chains conflict with bandannas in second accessories slot"
+      ]
+    },
+    {
+      "pairKey": "0x071b61081f49",
+      "layerA": 7,
+      "slotA": "Accessories",
+      "traitA": 7009,
+      "nameA": "Sealuminati chain",
+      "layerB": 8,
+      "slotB": "Accessories 2",
+      "traitB": 8009,
+      "nameB": "Sealuminati chain",
+      "reasons": [
+        "Duplicate visible accessory: Sealuminati chain"
+      ]
+    }
+  ]
+}

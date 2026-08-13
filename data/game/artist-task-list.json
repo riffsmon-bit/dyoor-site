@@ -1,0 +1,1999 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-07-28T15:19:01.751Z",
+  "missingLayerCount": 249,
+  "tasks": [
+    {
+      "traitType": "Background",
+      "value": "Cynically Censored-Project M.A.D.",
+      "layerId": "background--cynically-censored-project-m-a-d--448b5ba5e3",
+      "requiredSheet": "apps/game/public/assets/sprites/layers/background/background--cynically-censored-project-m-a-d--448b5ba5e3.png",
+      "requiredCanvas": "256x256 transparent PNG (4 directions × 4 frames at 64x64)",
+      "status": "artist_required"
+    },
+    {
+      "traitType": "Background",
+      "value": "Don't Look At The Lighthouse-Project M.A.D.",
+      "layerId": "background--don-t-look-at-the-lighthouse-project-m-a-d--6640f42a86",
+      "requiredSheet": "apps/game/public/assets/sprites/layers/background/background--don-t-look-at-the-lighthouse-project-m-a-d--6640f42a86.png",
+      "requiredCanvas": "256x256 transparent PNG (4 directions × 4 frames at 64x64)",
+      "status": "artist_required"
+    },
+    {
+      "traitType": "Background",
+      "value": "Eye Sea U-Project M.A.D.",
+      "layerId": "background--eye-sea-u-project-m-a-d--af2ee44168",
+      "requiredSheet": "apps/game/public/assets/sprites/layers/background/background--eye-sea-u-project-m-a-d--af2ee44168.png",
+      "requiredCanvas": "256x256 transparent PNG (4 directions × 4 frames at 64x64)",
+      "status": "artist_required"
+    },
+    {
+      "traitType": "Background",
+      "value": "Fxxk Crabs-Project M.A.D.",
+      "layerId": "background--fxxk-crabs-project-m-a-d--7a7b6e155a",
+      "requiredSheet": "apps/game/public/assets/sprites/layers/background/background--fxxk-crabs-project-m-a-d--7a7b6e155a.png",
+      "requiredCanvas": "256x256 transparent PNG (4 directions × 4 frames at 64x64)",
+      "status": "artist_required"
+    },
+    {
+      "traitType": "Background",
+      "value": "Painfully Here-Project M.A.D.",
+      "layerId": "background--painfully-here-project-m-a-d--01d065c010",
+      "requiredSheet": "apps/game/public/assets/sprites/layers/background/background--painfully-here-project-m-a-d--01d065c010.png",
+      "requiredCanvas": "256x256 transparent PNG (4 directions × 4 frames at 64x64)",
+      "status": "artist_required"
+    },
+    {
+      "traitType": "Background",
+      "value": "Sad Cook-Project M.A.D.",
+      "layerId": "background--sad-cook-project-m-a-d--8d2eef184b",
+      "requiredSheet": "apps/game/public/assets/sprites/layers/background/background--sad-cook-project-m-a-d--8d2eef184b.png",
+      "requiredCanvas": "256x256 transparent PNG (4 directions × 4 frames at 64x64)",
+      "status": "artist_required"
+    },
+    {
+      "traitType": "Background",
+      "value": "Simovision-Project M.A.D.",
+      "layerId": "background--simovision-project-m-a-d--86ba6c25a2",
+      "requiredSheet": "apps/game/public/assets/sprites/layers/background/background--simovision-project-m-a-d--86ba6c25a2.png",
+      "requiredCanvas": "256x256 transparent PNG (4 directions × 4 frames at 64x64)",
+      "status": "artist_required"
+    },
+    {
+      "traitType": "Background",
+      "value": "Soul Catcher-Project M.A.D.",
+      "layerId": "background--soul-catcher-project-m-a-d--d10f6b13e9",
+      "requiredSheet": "apps/game/public/assets/sprites/layers/background/background--soul-catcher-project-m-a-d--d10f6b13e9.png",
+      "requiredCanvas": "256x256 transparent PNG (4 directions × 4 frames at 64x64)",
+      "status": "artist_required"
+    },
+    {
+      "traitType": "Background",
+      "value": "The Way-Project M.A.D.",
+      "layerId": "background--the-way-project-m-a-d--d6e15d145d",
+      "requiredSheet": "apps/game/public/assets/sprites/layers/background/background--the-way-project-m-a-d--d6e15d145d.png",
+      "requiredCanvas": "256x256 transparent PNG (4 directions × 4 frames at 64x64)",
+      "status": "artist_required"
+    },
+    {
+      "traitType": "Background",
+      "value": "Tisumusem-Project M.A.D.",
+      "layerId": "background--tisumusem-project-m-a-d--db538db270",
+      "requiredSheet": "apps/game/public/assets/sprites/layers/background/background--tisumusem-project-m-a-d--db538db270.png",
+      "requiredCanvas": "256x256 transparent PNG (4 directions × 4 frames at 64x64)",
+      "status": "artist_required"
+    },
+    {
+      "traitType": "Background",
+      "value": "Abtrastic",
+      "layerId": "background--abtrastic--d43e2603d5",
+      "requiredSheet": "apps/game/public/assets/sprites/layers/background/background--abtrastic--d43e2603d5.png",
+      "requiredCanvas": "256x256 transparent PNG (4 directions × 4 frames at 64x64)",
+      "status": "artist_required"
+    },
+    {
+      "traitType": "Background",
+      "value": "Flash",
+      "layerId": "background--flash--62de23d444",
+      "requiredSheet": "apps/game/public/assets/sprites/layers/background/background--flash--62de23d444.png",
+      "requiredCanvas": "256x256 transparent PNG (4 directions × 4 frames at 64x64)",
+      "status": "artist_required"
+    },
+    {
+      "traitType": "Background",
+      "value": "Green Grade",
+      "layerId": "background--green-grade--17ae959608",
+      "requiredSheet": "apps/game/public/assets/sprites/layers/background/background--green-grade--17ae959608.png",
+      "requiredCanvas": "256x256 transparent PNG (4 directions × 4 frames at 64x64)",
+      "status": "artist_required"
+    },
+    {
+      "traitType": "Background",
+      "value": "Hawhyte",
+      "layerId": "background--hawhyte--fcd177c2e7",
+      "requiredSheet": "apps/game/public/assets/sprites/layers/background/background--hawhyte--fcd177c2e7.png",
+      "requiredCanvas": "256x256 transparent PNG (4 directions × 4 frames at 64x64)",
+      "status": "artist_required"
+    },
+    {
+      "traitType": "Background",
+      "value": "Kewl",
+      "layerId": "background--kewl--311464781e",
+      "requiredSheet": "apps/game/public/assets/sprites/layers/background/background--kewl--311464781e.png",
+      "requiredCanvas": "256x256 transparent PNG (4 directions × 4 frames at 64x64)",
+      "status": "artist_required"
+    },
+    {
+      "traitType": "Background",
+      "value": "Pernkple",
+      "layerId": "background--pernkple--d6c4816db1",
+      "requiredSheet": "apps/game/public/assets/sprites/layers/background/background--pernkple--d6c4816db1.png",
+      "requiredCanvas": "256x256 transparent PNG (4 directions × 4 frames at 64x64)",
+      "status": "artist_required"
+    },
+    {
+      "traitType": "Background",
+      "value": "Sunset",
+      "layerId": "background--sunset--a09520854e",
+      "requiredSheet": "apps/game/public/assets/sprites/layers/background/background--sunset--a09520854e.png",
+      "requiredCanvas": "256x256 transparent PNG (4 directions × 4 frames at 64x64)",
+      "status": "artist_required"
+    },
+    {
+      "traitType": "Background",
+      "value": "Pank",
+      "layerId": "background--pank--389f57d1d4",
+      "requiredSheet": "apps/game/public/assets/sprites/layers/background/background--pank--389f57d1d4.png",
+      "requiredCanvas": "256x256 transparent PNG (4 directions × 4 frames at 64x64)",
+      "status": "artist_required"
+    },
+    {
+      "traitType": "Background",
+      "value": "Goldish",
+      "layerId": "background--goldish--e9612cc54b",
+      "requiredSheet": "apps/game/public/assets/sprites/layers/background/background--goldish--e9612cc54b.png",
+      "requiredCanvas": "256x256 transparent PNG (4 directions × 4 frames at 64x64)",
+      "status": "artist_required"
+    },
+    {
+      "traitType": "Background",
+      "value": "Yorange",
+      "layerId": "background--yorange--2a3b18d224",
+      "requiredSheet": "apps/game/public/assets/sprites/layers/background/background--yorange--2a3b18d224.png",
+      "requiredCanvas": "256x256 transparent PNG (4 directions × 4 frames at 64x64)",
+      "status": "artist_required"
+    },
+    {
+      "traitType": "Background",
+      "value": "Grey",
+      "layerId": "background--grey--892fddad57",
+      "requiredSheet": "apps/game/public/assets/sprites/layers/background/background--grey--892fddad57.png",
+      "requiredCanvas": "256x256 transparent PNG (4 directions × 4 frames at 64x64)",
+      "status": "artist_required"
+    },
+    {
+      "traitType": "Background",
+      "value": "Kinda Blue",
+      "layerId": "background--kinda-blue--e3781f49ff",
+      "requiredSheet": "apps/game/public/assets/sprites/layers/background/background--kinda-blue--e3781f49ff.png",
+      "requiredCanvas": "256x256 transparent PNG (4 directions × 4 frames at 64x64)",
+      "status": "artist_required"
+    },
+    {
+      "traitType": "Droid",
+      "value": "Dark Chrome",
+      "layerId": "droid--dark-chrome--c230aa63a9",
+      "requiredSheet": "apps/game/public/assets/sprites/layers/droid/droid--dark-chrome--c230aa63a9.png",
+      "requiredCanvas": "256x256 transparent PNG (4 directions × 4 frames at 64x64)",
+      "status": "artist_required"
+    },
+    {
+      "traitType": "Droid",
+      "value": "Gold Chrome",
+      "layerId": "droid--gold-chrome--c15497cc27",
+      "requiredSheet": "apps/game/public/assets/sprites/layers/droid/droid--gold-chrome--c15497cc27.png",
+      "requiredCanvas": "256x256 transparent PNG (4 directions × 4 frames at 64x64)",
+      "status": "artist_required"
+    },
+    {
+      "traitType": "Droid",
+      "value": "Green Chrome",
+      "layerId": "droid--green-chrome--c6deb342af",
+      "requiredSheet": "apps/game/public/assets/sprites/layers/droid/droid--green-chrome--c6deb342af.png",
+      "requiredCanvas": "256x256 transparent PNG (4 directions × 4 frames at 64x64)",
+      "status": "artist_required"
+    },
+    {
+      "traitType": "Droid",
+      "value": "Olive Chrome",
+      "layerId": "droid--olive-chrome--0f8833bccf",
+      "requiredSheet": "apps/game/public/assets/sprites/layers/droid/droid--olive-chrome--0f8833bccf.png",
+      "requiredCanvas": "256x256 transparent PNG (4 directions × 4 frames at 64x64)",
+      "status": "artist_required"
+    },
+    {
+      "traitType": "Droid",
+      "value": "Optimus (T3SLA Bot)",
+      "layerId": "droid--optimus-t3sla-bot--65e506a1fd",
+      "requiredSheet": "apps/game/public/assets/sprites/layers/droid/droid--optimus-t3sla-bot--65e506a1fd.png",
+      "requiredCanvas": "256x256 transparent PNG (4 directions × 4 frames at 64x64)",
+      "status": "artist_required"
+    },
+    {
+      "traitType": "Droid",
+      "value": "Rose Chrome",
+      "layerId": "droid--rose-chrome--40ec88edf6",
+      "requiredSheet": "apps/game/public/assets/sprites/layers/droid/droid--rose-chrome--40ec88edf6.png",
+      "requiredCanvas": "256x256 transparent PNG (4 directions × 4 frames at 64x64)",
+      "status": "artist_required"
+    },
+    {
+      "traitType": "Droid",
+      "value": "Whyte Chrome",
+      "layerId": "droid--whyte-chrome--cea60c14ea",
+      "requiredSheet": "apps/game/public/assets/sprites/layers/droid/droid--whyte-chrome--cea60c14ea.png",
+      "requiredCanvas": "256x256 transparent PNG (4 directions × 4 frames at 64x64)",
+      "status": "artist_required"
+    },
+    {
+      "traitType": "Droid",
+      "value": "Pank",
+      "layerId": "droid--pank--e8bb855086",
+      "requiredSheet": "apps/game/public/assets/sprites/layers/droid/droid--pank--e8bb855086.png",
+      "requiredCanvas": "256x256 transparent PNG (4 directions × 4 frames at 64x64)",
+      "status": "artist_required"
+    },
+    {
+      "traitType": "Droid",
+      "value": "Gold",
+      "layerId": "droid--gold--451a934c33",
+      "requiredSheet": "apps/game/public/assets/sprites/layers/droid/droid--gold--451a934c33.png",
+      "requiredCanvas": "256x256 transparent PNG (4 directions × 4 frames at 64x64)",
+      "status": "artist_required"
+    },
+    {
+      "traitType": "Droid",
+      "value": "Lime Green",
+      "layerId": "droid--lime-green--8419e503b6",
+      "requiredSheet": "apps/game/public/assets/sprites/layers/droid/droid--lime-green--8419e503b6.png",
+      "requiredCanvas": "256x256 transparent PNG (4 directions × 4 frames at 64x64)",
+      "status": "artist_required"
+    },
+    {
+      "traitType": "Droid",
+      "value": "Olive",
+      "layerId": "droid--olive--5897ebbd54",
+      "requiredSheet": "apps/game/public/assets/sprites/layers/droid/droid--olive--5897ebbd54.png",
+      "requiredCanvas": "256x256 transparent PNG (4 directions × 4 frames at 64x64)",
+      "status": "artist_required"
+    },
+    {
+      "traitType": "Droid",
+      "value": "Purple",
+      "layerId": "droid--purple--a3f48eeeb5",
+      "requiredSheet": "apps/game/public/assets/sprites/layers/droid/droid--purple--a3f48eeeb5.png",
+      "requiredCanvas": "256x256 transparent PNG (4 directions × 4 frames at 64x64)",
+      "status": "artist_required"
+    },
+    {
+      "traitType": "Droid",
+      "value": "Black",
+      "layerId": "droid--black--85d62a155b",
+      "requiredSheet": "apps/game/public/assets/sprites/layers/droid/droid--black--85d62a155b.png",
+      "requiredCanvas": "256x256 transparent PNG (4 directions × 4 frames at 64x64)",
+      "status": "artist_required"
+    },
+    {
+      "traitType": "Droid",
+      "value": "Green",
+      "layerId": "droid--green--3f3940f263",
+      "requiredSheet": "apps/game/public/assets/sprites/layers/droid/droid--green--3f3940f263.png",
+      "requiredCanvas": "256x256 transparent PNG (4 directions × 4 frames at 64x64)",
+      "status": "artist_required"
+    },
+    {
+      "traitType": "Droid",
+      "value": "Orange",
+      "layerId": "droid--orange--a1739aa1ed",
+      "requiredSheet": "apps/game/public/assets/sprites/layers/droid/droid--orange--a1739aa1ed.png",
+      "requiredCanvas": "256x256 transparent PNG (4 directions × 4 frames at 64x64)",
+      "status": "artist_required"
+    },
+    {
+      "traitType": "Droid",
+      "value": "Red",
+      "layerId": "droid--red--854ff1ec69",
+      "requiredSheet": "apps/game/public/assets/sprites/layers/droid/droid--red--854ff1ec69.png",
+      "requiredCanvas": "256x256 transparent PNG (4 directions × 4 frames at 64x64)",
+      "status": "artist_required"
+    },
+    {
+      "traitType": "Droid",
+      "value": "Blue",
+      "layerId": "droid--blue--a7eab99a14",
+      "requiredSheet": "apps/game/public/assets/sprites/layers/droid/droid--blue--a7eab99a14.png",
+      "requiredCanvas": "256x256 transparent PNG (4 directions × 4 frames at 64x64)",
+      "status": "artist_required"
+    },
+    {
+      "traitType": "Droid",
+      "value": "Yellow",
+      "layerId": "droid--yellow--9fdc55128c",
+      "requiredSheet": "apps/game/public/assets/sprites/layers/droid/droid--yellow--9fdc55128c.png",
+      "requiredCanvas": "256x256 transparent PNG (4 directions × 4 frames at 64x64)",
+      "status": "artist_required"
+    },
+    {
+      "traitType": "Droid",
+      "value": "White",
+      "layerId": "droid--white--38915830d1",
+      "requiredSheet": "apps/game/public/assets/sprites/layers/droid/droid--white--38915830d1.png",
+      "requiredCanvas": "256x256 transparent PNG (4 directions × 4 frames at 64x64)",
+      "status": "artist_required"
+    },
+    {
+      "traitType": "Conditions",
+      "value": "S1 Skin",
+      "layerId": "conditions--s1-skin--179917994f",
+      "requiredSheet": "apps/game/public/assets/sprites/layers/conditions/conditions--s1-skin--179917994f.png",
+      "requiredCanvas": "256x256 transparent PNG (4 directions × 4 frames at 64x64)",
+      "status": "artist_required"
+    },
+    {
+      "traitType": "Conditions",
+      "value": "Dirty Broken'er",
+      "layerId": "conditions--dirty-broken-er--47c6c03f3d",
+      "requiredSheet": "apps/game/public/assets/sprites/layers/conditions/conditions--dirty-broken-er--47c6c03f3d.png",
+      "requiredCanvas": "256x256 transparent PNG (4 directions × 4 frames at 64x64)",
+      "status": "artist_required"
+    },
+    {
+      "traitType": "Conditions",
+      "value": "Dirty-Broken",
+      "layerId": "conditions--dirty-broken--4e4c2a3b67",
+      "requiredSheet": "apps/game/public/assets/sprites/layers/conditions/conditions--dirty-broken--4e4c2a3b67.png",
+      "requiredCanvas": "256x256 transparent PNG (4 directions × 4 frames at 64x64)",
+      "status": "artist_required"
+    },
+    {
+      "traitType": "Conditions",
+      "value": "None",
+      "layerId": "conditions--none--15be144733",
+      "requiredSheet": "apps/game/public/assets/sprites/layers/conditions/conditions--none--15be144733.png",
+      "requiredCanvas": "256x256 transparent PNG (4 directions × 4 frames at 64x64)",
+      "status": "artist_required"
+    },
+    {
+      "traitType": "Stickers/Body art",
+      "value": "143 Face Sticker",
+      "layerId": "stickers-body-art--143-face-sticker--771eacbd5b",
+      "requiredSheet": "apps/game/public/assets/sprites/layers/stickers-body-art/stickers-body-art--143-face-sticker--771eacbd5b.png",
+      "requiredCanvas": "256x256 transparent PNG (4 directions × 4 frames at 64x64)",
+      "status": "artist_required"
+    },
+    {
+      "traitType": "Stickers/Body art",
+      "value": "Chog Sticker",
+      "layerId": "stickers-body-art--chog-sticker--2d9fd03bd3",
+      "requiredSheet": "apps/game/public/assets/sprites/layers/stickers-body-art/stickers-body-art--chog-sticker--2d9fd03bd3.png",
+      "requiredCanvas": "256x256 transparent PNG (4 directions × 4 frames at 64x64)",
+      "status": "artist_required"
+    },
+    {
+      "traitType": "Stickers/Body art",
+      "value": "143 Chest Sticker",
+      "layerId": "stickers-body-art--143-chest-sticker--0e152d3b6b",
+      "requiredSheet": "apps/game/public/assets/sprites/layers/stickers-body-art/stickers-body-art--143-chest-sticker--0e152d3b6b.png",
+      "requiredCanvas": "256x256 transparent PNG (4 directions × 4 frames at 64x64)",
+      "status": "artist_required"
+    },
+    {
+      "traitType": "Stickers/Body art",
+      "value": "LeverUp sticker",
+      "layerId": "stickers-body-art--leverup-sticker--dfdf94ae2e",
+      "requiredSheet": "apps/game/public/assets/sprites/layers/stickers-body-art/stickers-body-art--leverup-sticker--dfdf94ae2e.png",
+      "requiredCanvas": "256x256 transparent PNG (4 directions × 4 frames at 64x64)",
+      "status": "artist_required"
+    },
+    {
+      "traitType": "Stickers/Body art",
+      "value": "DYOOR Chest Tat",
+      "layerId": "stickers-body-art--dyoor-chest-tat--c30570e1d5",
+      "requiredSheet": "apps/game/public/assets/sprites/layers/stickers-body-art/stickers-body-art--dyoor-chest-tat--c30570e1d5.png",
+      "requiredCanvas": "256x256 transparent PNG (4 directions × 4 frames at 64x64)",
+      "status": "artist_required"
+    },
+    {
+      "traitType": "Stickers/Body art",
+      "value": "None",
+      "layerId": "stickers-body-art--none--2ccec05f00",
+      "requiredSheet": "apps/game/public/assets/sprites/layers/stickers-body-art/stickers-body-art--none--2ccec05f00.png",
+      "requiredCanvas": "256x256 transparent PNG (4 directions × 4 frames at 64x64)",
+      "status": "artist_required"
+    },
+    {
+      "traitType": "Clothes",
+      "value": "DYOOR Red Gold Text Hoodie",
+      "layerId": "clothes--dyoor-red-gold-text-hoodie--a49f314969",
+      "requiredSheet": "apps/game/public/assets/sprites/layers/clothes/clothes--dyoor-red-gold-text-hoodie--a49f314969.png",
+      "requiredCanvas": "256x256 transparent PNG (4 directions × 4 frames at 64x64)",
+      "status": "artist_required"
+    },
+    {
+      "traitType": "Clothes",
+      "value": "DYOOR Blue Hoodie",
+      "layerId": "clothes--dyoor-blue-hoodie--23330b733d",
+      "requiredSheet": "apps/game/public/assets/sprites/layers/clothes/clothes--dyoor-blue-hoodie--23330b733d.png",
+      "requiredCanvas": "256x256 transparent PNG (4 directions × 4 frames at 64x64)",
+      "status": "artist_required"
+    },
+    {
+      "traitType": "Clothes",
+      "value": "Tuxedo",
+      "layerId": "clothes--tuxedo--3e0ff912b7",
+      "requiredSheet": "apps/game/public/assets/sprites/layers/clothes/clothes--tuxedo--3e0ff912b7.png",
+      "requiredCanvas": "256x256 transparent PNG (4 directions × 4 frames at 64x64)",
+      "status": "artist_required"
+    },
+    {
+      "traitType": "Clothes",
+      "value": "DYOOR Black Gold Text Hoodie",
+      "layerId": "clothes--dyoor-black-gold-text-hoodie--1a8a404013",
+      "requiredSheet": "apps/game/public/assets/sprites/layers/clothes/clothes--dyoor-black-gold-text-hoodie--1a8a404013.png",
+      "requiredCanvas": "256x256 transparent PNG (4 directions × 4 frames at 64x64)",
+      "status": "artist_required"
+    },
+    {
+      "traitType": "Clothes",
+      "value": "Hawaiian Shirt",
+      "layerId": "clothes--hawaiian-shirt--e62179258b",
+      "requiredSheet": "apps/game/public/assets/sprites/layers/clothes/clothes--hawaiian-shirt--e62179258b.png",
+      "requiredCanvas": "256x256 transparent PNG (4 directions × 4 frames at 64x64)",
+      "status": "artist_required"
+    },
+    {
+      "traitType": "Clothes",
+      "value": "Torn Tee",
+      "layerId": "clothes--torn-tee--2e06c23afb",
+      "requiredSheet": "apps/game/public/assets/sprites/layers/clothes/clothes--torn-tee--2e06c23afb.png",
+      "requiredCanvas": "256x256 transparent PNG (4 directions × 4 frames at 64x64)",
+      "status": "artist_required"
+    },
+    {
+      "traitType": "Clothes",
+      "value": "Bartman Shirt n Cape",
+      "layerId": "clothes--bartman-shirt-n-cape--054c700803",
+      "requiredSheet": "apps/game/public/assets/sprites/layers/clothes/clothes--bartman-shirt-n-cape--054c700803.png",
+      "requiredCanvas": "256x256 transparent PNG (4 directions × 4 frames at 64x64)",
+      "status": "artist_required"
+    },
+    {
+      "traitType": "Clothes",
+      "value": "Luffy",
+      "layerId": "clothes--luffy--05686974a8",
+      "requiredSheet": "apps/game/public/assets/sprites/layers/clothes/clothes--luffy--05686974a8.png",
+      "requiredCanvas": "256x256 transparent PNG (4 directions × 4 frames at 64x64)",
+      "status": "artist_required"
+    },
+    {
+      "traitType": "Clothes",
+      "value": "Caveman Leotard",
+      "layerId": "clothes--caveman-leotard--0d74a7507d",
+      "requiredSheet": "apps/game/public/assets/sprites/layers/clothes/clothes--caveman-leotard--0d74a7507d.png",
+      "requiredCanvas": "256x256 transparent PNG (4 directions × 4 frames at 64x64)",
+      "status": "artist_required"
+    },
+    {
+      "traitType": "Clothes",
+      "value": "Convict Shirt",
+      "layerId": "clothes--convict-shirt--5f06ec17eb",
+      "requiredSheet": "apps/game/public/assets/sprites/layers/clothes/clothes--convict-shirt--5f06ec17eb.png",
+      "requiredCanvas": "256x256 transparent PNG (4 directions × 4 frames at 64x64)",
+      "status": "artist_required"
+    },
+    {
+      "traitType": "Clothes",
+      "value": "R3tard Tee",
+      "layerId": "clothes--r3tard-tee--751739c09b",
+      "requiredSheet": "apps/game/public/assets/sprites/layers/clothes/clothes--r3tard-tee--751739c09b.png",
+      "requiredCanvas": "256x256 transparent PNG (4 directions × 4 frames at 64x64)",
+      "status": "artist_required"
+    },
+    {
+      "traitType": "Clothes",
+      "value": "Jailhouse Stripes Shirt",
+      "layerId": "clothes--jailhouse-stripes-shirt--6dc57de30e",
+      "requiredSheet": "apps/game/public/assets/sprites/layers/clothes/clothes--jailhouse-stripes-shirt--6dc57de30e.png",
+      "requiredCanvas": "256x256 transparent PNG (4 directions × 4 frames at 64x64)",
+      "status": "artist_required"
+    },
+    {
+      "traitType": "Clothes",
+      "value": "Beige Hoodie",
+      "layerId": "clothes--beige-hoodie--3e0fdcde41",
+      "requiredSheet": "apps/game/public/assets/sprites/layers/clothes/clothes--beige-hoodie--3e0fdcde41.png",
+      "requiredCanvas": "256x256 transparent PNG (4 directions × 4 frames at 64x64)",
+      "status": "artist_required"
+    },
+    {
+      "traitType": "Clothes",
+      "value": "Fur Coat Gold",
+      "layerId": "clothes--fur-coat-gold--e627a83a74",
+      "requiredSheet": "apps/game/public/assets/sprites/layers/clothes/clothes--fur-coat-gold--e627a83a74.png",
+      "requiredCanvas": "256x256 transparent PNG (4 directions × 4 frames at 64x64)",
+      "status": "artist_required"
+    },
+    {
+      "traitType": "Clothes",
+      "value": "Leather Jacket Torn Tee",
+      "layerId": "clothes--leather-jacket-torn-tee--6a594c2bb3",
+      "requiredSheet": "apps/game/public/assets/sprites/layers/clothes/clothes--leather-jacket-torn-tee--6a594c2bb3.png",
+      "requiredCanvas": "256x256 transparent PNG (4 directions × 4 frames at 64x64)",
+      "status": "artist_required"
+    },
+    {
+      "traitType": "Clothes",
+      "value": "DYOOR Black Hoodie",
+      "layerId": "clothes--dyoor-black-hoodie--2cc8469502",
+      "requiredSheet": "apps/game/public/assets/sprites/layers/clothes/clothes--dyoor-black-hoodie--2cc8469502.png",
+      "requiredCanvas": "256x256 transparent PNG (4 directions × 4 frames at 64x64)",
+      "status": "artist_required"
+    },
+    {
+      "traitType": "Clothes",
+      "value": "Black N White Tee 2",
+      "layerId": "clothes--black-n-white-tee-2--627e8f35db",
+      "requiredSheet": "apps/game/public/assets/sprites/layers/clothes/clothes--black-n-white-tee-2--627e8f35db.png",
+      "requiredCanvas": "256x256 transparent PNG (4 directions × 4 frames at 64x64)",
+      "status": "artist_required"
+    },
+    {
+      "traitType": "Clothes",
+      "value": "Dictator Jacket",
+      "layerId": "clothes--dictator-jacket--006e9352ea",
+      "requiredSheet": "apps/game/public/assets/sprites/layers/clothes/clothes--dictator-jacket--006e9352ea.png",
+      "requiredCanvas": "256x256 transparent PNG (4 directions × 4 frames at 64x64)",
+      "status": "artist_required"
+    },
+    {
+      "traitType": "Clothes",
+      "value": "Emo Tee",
+      "layerId": "clothes--emo-tee--59eb3a89cd",
+      "requiredSheet": "apps/game/public/assets/sprites/layers/clothes/clothes--emo-tee--59eb3a89cd.png",
+      "requiredCanvas": "256x256 transparent PNG (4 directions × 4 frames at 64x64)",
+      "status": "artist_required"
+    },
+    {
+      "traitType": "Clothes",
+      "value": "Fur Coat Purple",
+      "layerId": "clothes--fur-coat-purple--3a31d88147",
+      "requiredSheet": "apps/game/public/assets/sprites/layers/clothes/clothes--fur-coat-purple--3a31d88147.png",
+      "requiredCanvas": "256x256 transparent PNG (4 directions × 4 frames at 64x64)",
+      "status": "artist_required"
+    },
+    {
+      "traitType": "Clothes",
+      "value": "King's Robe 2",
+      "layerId": "clothes--king-s-robe-2--a8e9a1b5f5",
+      "requiredSheet": "apps/game/public/assets/sprites/layers/clothes/clothes--king-s-robe-2--a8e9a1b5f5.png",
+      "requiredCanvas": "256x256 transparent PNG (4 directions × 4 frames at 64x64)",
+      "status": "artist_required"
+    },
+    {
+      "traitType": "Clothes",
+      "value": "Blue Racer",
+      "layerId": "clothes--blue-racer--6bd1d1ebc7",
+      "requiredSheet": "apps/game/public/assets/sprites/layers/clothes/clothes--blue-racer--6bd1d1ebc7.png",
+      "requiredCanvas": "256x256 transparent PNG (4 directions × 4 frames at 64x64)",
+      "status": "artist_required"
+    },
+    {
+      "traitType": "Clothes",
+      "value": "King's Robe",
+      "layerId": "clothes--king-s-robe--2045e4a4ab",
+      "requiredSheet": "apps/game/public/assets/sprites/layers/clothes/clothes--king-s-robe--2045e4a4ab.png",
+      "requiredCanvas": "256x256 transparent PNG (4 directions × 4 frames at 64x64)",
+      "status": "artist_required"
+    },
+    {
+      "traitType": "Clothes",
+      "value": "Fur Coat Pink",
+      "layerId": "clothes--fur-coat-pink--ecb0321f9e",
+      "requiredSheet": "apps/game/public/assets/sprites/layers/clothes/clothes--fur-coat-pink--ecb0321f9e.png",
+      "requiredCanvas": "256x256 transparent PNG (4 directions × 4 frames at 64x64)",
+      "status": "artist_required"
+    },
+    {
+      "traitType": "Clothes",
+      "value": "Torn Black Tee",
+      "layerId": "clothes--torn-black-tee--1f32501dfe",
+      "requiredSheet": "apps/game/public/assets/sprites/layers/clothes/clothes--torn-black-tee--1f32501dfe.png",
+      "requiredCanvas": "256x256 transparent PNG (4 directions × 4 frames at 64x64)",
+      "status": "artist_required"
+    },
+    {
+      "traitType": "Clothes",
+      "value": "Overalls",
+      "layerId": "clothes--overalls--3824507879",
+      "requiredSheet": "apps/game/public/assets/sprites/layers/clothes/clothes--overalls--3824507879.png",
+      "requiredCanvas": "256x256 transparent PNG (4 directions × 4 frames at 64x64)",
+      "status": "artist_required"
+    },
+    {
+      "traitType": "Clothes",
+      "value": "Orange Plaid",
+      "layerId": "clothes--orange-plaid--399c065088",
+      "requiredSheet": "apps/game/public/assets/sprites/layers/clothes/clothes--orange-plaid--399c065088.png",
+      "requiredCanvas": "256x256 transparent PNG (4 directions × 4 frames at 64x64)",
+      "status": "artist_required"
+    },
+    {
+      "traitType": "Clothes",
+      "value": "Emo Tank",
+      "layerId": "clothes--emo-tank--c426f17bf2",
+      "requiredSheet": "apps/game/public/assets/sprites/layers/clothes/clothes--emo-tank--c426f17bf2.png",
+      "requiredCanvas": "256x256 transparent PNG (4 directions × 4 frames at 64x64)",
+      "status": "artist_required"
+    },
+    {
+      "traitType": "Clothes",
+      "value": "Durag Stays On Tank",
+      "layerId": "clothes--durag-stays-on-tank--55ca1d66c9",
+      "requiredSheet": "apps/game/public/assets/sprites/layers/clothes/clothes--durag-stays-on-tank--55ca1d66c9.png",
+      "requiredCanvas": "256x256 transparent PNG (4 directions × 4 frames at 64x64)",
+      "status": "artist_required"
+    },
+    {
+      "traitType": "Clothes",
+      "value": "MESH Tee",
+      "layerId": "clothes--mesh-tee--c8932ef346",
+      "requiredSheet": "apps/game/public/assets/sprites/layers/clothes/clothes--mesh-tee--c8932ef346.png",
+      "requiredCanvas": "256x256 transparent PNG (4 directions × 4 frames at 64x64)",
+      "status": "artist_required"
+    },
+    {
+      "traitType": "Clothes",
+      "value": "GiftGoats Tee",
+      "layerId": "clothes--giftgoats-tee--4fd52339bb",
+      "requiredSheet": "apps/game/public/assets/sprites/layers/clothes/clothes--giftgoats-tee--4fd52339bb.png",
+      "requiredCanvas": "256x256 transparent PNG (4 directions × 4 frames at 64x64)",
+      "status": "artist_required"
+    },
+    {
+      "traitType": "Clothes",
+      "value": "DWO White",
+      "layerId": "clothes--dwo-white--83264369fd",
+      "requiredSheet": "apps/game/public/assets/sprites/layers/clothes/clothes--dwo-white--83264369fd.png",
+      "requiredCanvas": "256x256 transparent PNG (4 directions × 4 frames at 64x64)",
+      "status": "artist_required"
+    },
+    {
+      "traitType": "Clothes",
+      "value": "White Shirt W:Tie",
+      "layerId": "clothes--white-shirt-w-tie--b02efe19fd",
+      "requiredSheet": "apps/game/public/assets/sprites/layers/clothes/clothes--white-shirt-w-tie--b02efe19fd.png",
+      "requiredCanvas": "256x256 transparent PNG (4 directions × 4 frames at 64x64)",
+      "status": "artist_required"
+    },
+    {
+      "traitType": "Clothes",
+      "value": "PAMPAM Tee",
+      "layerId": "clothes--pampam-tee--ca35bc786a",
+      "requiredSheet": "apps/game/public/assets/sprites/layers/clothes/clothes--pampam-tee--ca35bc786a.png",
+      "requiredCanvas": "256x256 transparent PNG (4 directions × 4 frames at 64x64)",
+      "status": "artist_required"
+    },
+    {
+      "traitType": "Clothes",
+      "value": "BuildAnything Tee",
+      "layerId": "clothes--buildanything-tee--6c08a01806",
+      "requiredSheet": "apps/game/public/assets/sprites/layers/clothes/clothes--buildanything-tee--6c08a01806.png",
+      "requiredCanvas": "256x256 transparent PNG (4 directions × 4 frames at 64x64)",
+      "status": "artist_required"
+    },
+    {
+      "traitType": "Clothes",
+      "value": "Neverland Tee",
+      "layerId": "clothes--neverland-tee--8a9d4eba1a",
+      "requiredSheet": "apps/game/public/assets/sprites/layers/clothes/clothes--neverland-tee--8a9d4eba1a.png",
+      "requiredCanvas": "256x256 transparent PNG (4 directions × 4 frames at 64x64)",
+      "status": "artist_required"
+    },
+    {
+      "traitType": "Clothes",
+      "value": "Black Tee",
+      "layerId": "clothes--black-tee--ca81302ebc",
+      "requiredSheet": "apps/game/public/assets/sprites/layers/clothes/clothes--black-tee--ca81302ebc.png",
+      "requiredCanvas": "256x256 transparent PNG (4 directions × 4 frames at 64x64)",
+      "status": "artist_required"
+    },
+    {
+      "traitType": "Clothes",
+      "value": "Black N White Tee",
+      "layerId": "clothes--black-n-white-tee--0ea746a7aa",
+      "requiredSheet": "apps/game/public/assets/sprites/layers/clothes/clothes--black-n-white-tee--0ea746a7aa.png",
+      "requiredCanvas": "256x256 transparent PNG (4 directions × 4 frames at 64x64)",
+      "status": "artist_required"
+    },
+    {
+      "traitType": "Clothes",
+      "value": "Kuru White Tee",
+      "layerId": "clothes--kuru-white-tee--51f5f89199",
+      "requiredSheet": "apps/game/public/assets/sprites/layers/clothes/clothes--kuru-white-tee--51f5f89199.png",
+      "requiredCanvas": "256x256 transparent PNG (4 directions × 4 frames at 64x64)",
+      "status": "artist_required"
+    },
+    {
+      "traitType": "Clothes",
+      "value": "White Tee",
+      "layerId": "clothes--white-tee--28f28f8375",
+      "requiredSheet": "apps/game/public/assets/sprites/layers/clothes/clothes--white-tee--28f28f8375.png",
+      "requiredCanvas": "256x256 transparent PNG (4 directions × 4 frames at 64x64)",
+      "status": "artist_required"
+    },
+    {
+      "traitType": "Clothes",
+      "value": "Leather Jacket White Shirt W:Tie",
+      "layerId": "clothes--leather-jacket-white-shirt-w-tie--60c1fbde1c",
+      "requiredSheet": "apps/game/public/assets/sprites/layers/clothes/clothes--leather-jacket-white-shirt-w-tie--60c1fbde1c.png",
+      "requiredCanvas": "256x256 transparent PNG (4 directions × 4 frames at 64x64)",
+      "status": "artist_required"
+    },
+    {
+      "traitType": "Clothes",
+      "value": "Black Racer",
+      "layerId": "clothes--black-racer--5f809dddc4",
+      "requiredSheet": "apps/game/public/assets/sprites/layers/clothes/clothes--black-racer--5f809dddc4.png",
+      "requiredCanvas": "256x256 transparent PNG (4 directions × 4 frames at 64x64)",
+      "status": "artist_required"
+    },
+    {
+      "traitType": "Clothes",
+      "value": "Baby Blue Tee",
+      "layerId": "clothes--baby-blue-tee--21267ddcc9",
+      "requiredSheet": "apps/game/public/assets/sprites/layers/clothes/clothes--baby-blue-tee--21267ddcc9.png",
+      "requiredCanvas": "256x256 transparent PNG (4 directions × 4 frames at 64x64)",
+      "status": "artist_required"
+    },
+    {
+      "traitType": "Clothes",
+      "value": "Blue Hoodie",
+      "layerId": "clothes--blue-hoodie--be3dc1e943",
+      "requiredSheet": "apps/game/public/assets/sprites/layers/clothes/clothes--blue-hoodie--be3dc1e943.png",
+      "requiredCanvas": "256x256 transparent PNG (4 directions × 4 frames at 64x64)",
+      "status": "artist_required"
+    },
+    {
+      "traitType": "Clothes",
+      "value": "Pink Plaid",
+      "layerId": "clothes--pink-plaid--c978f17f4b",
+      "requiredSheet": "apps/game/public/assets/sprites/layers/clothes/clothes--pink-plaid--c978f17f4b.png",
+      "requiredCanvas": "256x256 transparent PNG (4 directions × 4 frames at 64x64)",
+      "status": "artist_required"
+    },
+    {
+      "traitType": "Clothes",
+      "value": "Lab Coat",
+      "layerId": "clothes--lab-coat--29a7609521",
+      "requiredSheet": "apps/game/public/assets/sprites/layers/clothes/clothes--lab-coat--29a7609521.png",
+      "requiredCanvas": "256x256 transparent PNG (4 directions × 4 frames at 64x64)",
+      "status": "artist_required"
+    },
+    {
+      "traitType": "Clothes",
+      "value": "Leather Jacket",
+      "layerId": "clothes--leather-jacket--142ce69ad0",
+      "requiredSheet": "apps/game/public/assets/sprites/layers/clothes/clothes--leather-jacket--142ce69ad0.png",
+      "requiredCanvas": "256x256 transparent PNG (4 directions × 4 frames at 64x64)",
+      "status": "artist_required"
+    },
+    {
+      "traitType": "Clothes",
+      "value": "Black Hoodie",
+      "layerId": "clothes--black-hoodie--0cb6fde97f",
+      "requiredSheet": "apps/game/public/assets/sprites/layers/clothes/clothes--black-hoodie--0cb6fde97f.png",
+      "requiredCanvas": "256x256 transparent PNG (4 directions × 4 frames at 64x64)",
+      "status": "artist_required"
+    },
+    {
+      "traitType": "Clothes",
+      "value": "McDyoornalds",
+      "layerId": "clothes--mcdyoornalds--2809dea116",
+      "requiredSheet": "apps/game/public/assets/sprites/layers/clothes/clothes--mcdyoornalds--2809dea116.png",
+      "requiredCanvas": "256x256 transparent PNG (4 directions × 4 frames at 64x64)",
+      "status": "artist_required"
+    },
+    {
+      "traitType": "Clothes",
+      "value": "Orange Racer",
+      "layerId": "clothes--orange-racer--9bf01d8e20",
+      "requiredSheet": "apps/game/public/assets/sprites/layers/clothes/clothes--orange-racer--9bf01d8e20.png",
+      "requiredCanvas": "256x256 transparent PNG (4 directions × 4 frames at 64x64)",
+      "status": "artist_required"
+    },
+    {
+      "traitType": "Clothes",
+      "value": "Grey Tee",
+      "layerId": "clothes--grey-tee--324bc265d1",
+      "requiredSheet": "apps/game/public/assets/sprites/layers/clothes/clothes--grey-tee--324bc265d1.png",
+      "requiredCanvas": "256x256 transparent PNG (4 directions × 4 frames at 64x64)",
+      "status": "artist_required"
+    },
+    {
+      "traitType": "Clothes",
+      "value": "Red Hoodie",
+      "layerId": "clothes--red-hoodie--c76860d188",
+      "requiredSheet": "apps/game/public/assets/sprites/layers/clothes/clothes--red-hoodie--c76860d188.png",
+      "requiredCanvas": "256x256 transparent PNG (4 directions × 4 frames at 64x64)",
+      "status": "artist_required"
+    },
+    {
+      "traitType": "Clothes",
+      "value": "Red Plaid",
+      "layerId": "clothes--red-plaid--5c7fb3f474",
+      "requiredSheet": "apps/game/public/assets/sprites/layers/clothes/clothes--red-plaid--5c7fb3f474.png",
+      "requiredCanvas": "256x256 transparent PNG (4 directions × 4 frames at 64x64)",
+      "status": "artist_required"
+    },
+    {
+      "traitType": "Clothes",
+      "value": "Tech Bro",
+      "layerId": "clothes--tech-bro--9e719cf01d",
+      "requiredSheet": "apps/game/public/assets/sprites/layers/clothes/clothes--tech-bro--9e719cf01d.png",
+      "requiredCanvas": "256x256 transparent PNG (4 directions × 4 frames at 64x64)",
+      "status": "artist_required"
+    },
+    {
+      "traitType": "Clothes",
+      "value": "DWO Black 2",
+      "layerId": "clothes--dwo-black-2--76f7330a83",
+      "requiredSheet": "apps/game/public/assets/sprites/layers/clothes/clothes--dwo-black-2--76f7330a83.png",
+      "requiredCanvas": "256x256 transparent PNG (4 directions × 4 frames at 64x64)",
+      "status": "artist_required"
+    },
+    {
+      "traitType": "Clothes",
+      "value": "Kuru Tee",
+      "layerId": "clothes--kuru-tee--bb12135e42",
+      "requiredSheet": "apps/game/public/assets/sprites/layers/clothes/clothes--kuru-tee--bb12135e42.png",
+      "requiredCanvas": "256x256 transparent PNG (4 directions × 4 frames at 64x64)",
+      "status": "artist_required"
+    },
+    {
+      "traitType": "Clothes",
+      "value": "DWO Black",
+      "layerId": "clothes--dwo-black--1a21e89735",
+      "requiredSheet": "apps/game/public/assets/sprites/layers/clothes/clothes--dwo-black--1a21e89735.png",
+      "requiredCanvas": "256x256 transparent PNG (4 directions × 4 frames at 64x64)",
+      "status": "artist_required"
+    },
+    {
+      "traitType": "Clothes",
+      "value": "None",
+      "layerId": "clothes--none--ee6e2d3cfb",
+      "requiredSheet": "apps/game/public/assets/sprites/layers/clothes/clothes--none--ee6e2d3cfb.png",
+      "requiredCanvas": "256x256 transparent PNG (4 directions × 4 frames at 64x64)",
+      "status": "artist_required"
+    },
+    {
+      "traitType": "Mouth",
+      "value": "Diamond Grill",
+      "layerId": "mouth--diamond-grill--07889bb3b2",
+      "requiredSheet": "apps/game/public/assets/sprites/layers/mouth/mouth--diamond-grill--07889bb3b2.png",
+      "requiredCanvas": "256x256 transparent PNG (4 directions × 4 frames at 64x64)",
+      "status": "artist_required"
+    },
+    {
+      "traitType": "Mouth",
+      "value": "Vamp Fangs",
+      "layerId": "mouth--vamp-fangs--62f303809a",
+      "requiredSheet": "apps/game/public/assets/sprites/layers/mouth/mouth--vamp-fangs--62f303809a.png",
+      "requiredCanvas": "256x256 transparent PNG (4 directions × 4 frames at 64x64)",
+      "status": "artist_required"
+    },
+    {
+      "traitType": "Mouth",
+      "value": "Party Horn Mouth",
+      "layerId": "mouth--party-horn-mouth--c7bf6a85c2",
+      "requiredSheet": "apps/game/public/assets/sprites/layers/mouth/mouth--party-horn-mouth--c7bf6a85c2.png",
+      "requiredCanvas": "256x256 transparent PNG (4 directions × 4 frames at 64x64)",
+      "status": "artist_required"
+    },
+    {
+      "traitType": "Mouth",
+      "value": "AHHHH",
+      "layerId": "mouth--ahhhh--1654619bf5",
+      "requiredSheet": "apps/game/public/assets/sprites/layers/mouth/mouth--ahhhh--1654619bf5.png",
+      "requiredCanvas": "256x256 transparent PNG (4 directions × 4 frames at 64x64)",
+      "status": "artist_required"
+    },
+    {
+      "traitType": "Mouth",
+      "value": "Pepe Mouth",
+      "layerId": "mouth--pepe-mouth--137f9f833b",
+      "requiredSheet": "apps/game/public/assets/sprites/layers/mouth/mouth--pepe-mouth--137f9f833b.png",
+      "requiredCanvas": "256x256 transparent PNG (4 directions × 4 frames at 64x64)",
+      "status": "artist_required"
+    },
+    {
+      "traitType": "Mouth",
+      "value": "Cigar Mouth",
+      "layerId": "mouth--cigar-mouth--61ea4b2e12",
+      "requiredSheet": "apps/game/public/assets/sprites/layers/mouth/mouth--cigar-mouth--61ea4b2e12.png",
+      "requiredCanvas": "256x256 transparent PNG (4 directions × 4 frames at 64x64)",
+      "status": "artist_required"
+    },
+    {
+      "traitType": "Mouth",
+      "value": "Pipe",
+      "layerId": "mouth--pipe--acaede3967",
+      "requiredSheet": "apps/game/public/assets/sprites/layers/mouth/mouth--pipe--acaede3967.png",
+      "requiredCanvas": "256x256 transparent PNG (4 directions × 4 frames at 64x64)",
+      "status": "artist_required"
+    },
+    {
+      "traitType": "Mouth",
+      "value": "Gold Bar",
+      "layerId": "mouth--gold-bar--0f48f670ae",
+      "requiredSheet": "apps/game/public/assets/sprites/layers/mouth/mouth--gold-bar--0f48f670ae.png",
+      "requiredCanvas": "256x256 transparent PNG (4 directions × 4 frames at 64x64)",
+      "status": "artist_required"
+    },
+    {
+      "traitType": "Mouth",
+      "value": "Braces",
+      "layerId": "mouth--braces--78c21874d4",
+      "requiredSheet": "apps/game/public/assets/sprites/layers/mouth/mouth--braces--78c21874d4.png",
+      "requiredCanvas": "256x256 transparent PNG (4 directions × 4 frames at 64x64)",
+      "status": "artist_required"
+    },
+    {
+      "traitType": "Mouth",
+      "value": "Deep Thought",
+      "layerId": "mouth--deep-thought--40285e0304",
+      "requiredSheet": "apps/game/public/assets/sprites/layers/mouth/mouth--deep-thought--40285e0304.png",
+      "requiredCanvas": "256x256 transparent PNG (4 directions × 4 frames at 64x64)",
+      "status": "artist_required"
+    },
+    {
+      "traitType": "Mouth",
+      "value": "Emo Sheesh",
+      "layerId": "mouth--emo-sheesh--c260e38753",
+      "requiredSheet": "apps/game/public/assets/sprites/layers/mouth/mouth--emo-sheesh--c260e38753.png",
+      "requiredCanvas": "256x256 transparent PNG (4 directions × 4 frames at 64x64)",
+      "status": "artist_required"
+    },
+    {
+      "traitType": "Mouth",
+      "value": "Gold Grill",
+      "layerId": "mouth--gold-grill--bccacc30e5",
+      "requiredSheet": "apps/game/public/assets/sprites/layers/mouth/mouth--gold-grill--bccacc30e5.png",
+      "requiredCanvas": "256x256 transparent PNG (4 directions × 4 frames at 64x64)",
+      "status": "artist_required"
+    },
+    {
+      "traitType": "Mouth",
+      "value": "AHHHH Flames",
+      "layerId": "mouth--ahhhh-flames--d7193f6f56",
+      "requiredSheet": "apps/game/public/assets/sprites/layers/mouth/mouth--ahhhh-flames--d7193f6f56.png",
+      "requiredCanvas": "256x256 transparent PNG (4 directions × 4 frames at 64x64)",
+      "status": "artist_required"
+    },
+    {
+      "traitType": "Mouth",
+      "value": "Emo Whatever",
+      "layerId": "mouth--emo-whatever--2579f27fa6",
+      "requiredSheet": "apps/game/public/assets/sprites/layers/mouth/mouth--emo-whatever--2579f27fa6.png",
+      "requiredCanvas": "256x256 transparent PNG (4 directions × 4 frames at 64x64)",
+      "status": "artist_required"
+    },
+    {
+      "traitType": "Mouth",
+      "value": "Meh",
+      "layerId": "mouth--meh--33c94e42c7",
+      "requiredSheet": "apps/game/public/assets/sprites/layers/mouth/mouth--meh--33c94e42c7.png",
+      "requiredCanvas": "256x256 transparent PNG (4 directions × 4 frames at 64x64)",
+      "status": "artist_required"
+    },
+    {
+      "traitType": "Mouth",
+      "value": "Errrh",
+      "layerId": "mouth--errrh--e36c219fa6",
+      "requiredSheet": "apps/game/public/assets/sprites/layers/mouth/mouth--errrh--e36c219fa6.png",
+      "requiredCanvas": "256x256 transparent PNG (4 directions × 4 frames at 64x64)",
+      "status": "artist_required"
+    },
+    {
+      "traitType": "Mouth",
+      "value": "Joint Mouth",
+      "layerId": "mouth--joint-mouth--ab8b798104",
+      "requiredSheet": "apps/game/public/assets/sprites/layers/mouth/mouth--joint-mouth--ab8b798104.png",
+      "requiredCanvas": "256x256 transparent PNG (4 directions × 4 frames at 64x64)",
+      "status": "artist_required"
+    },
+    {
+      "traitType": "Mouth",
+      "value": "Displeased toothpick",
+      "layerId": "mouth--displeased-toothpick--dd781d2abb",
+      "requiredSheet": "apps/game/public/assets/sprites/layers/mouth/mouth--displeased-toothpick--dd781d2abb.png",
+      "requiredCanvas": "256x256 transparent PNG (4 directions × 4 frames at 64x64)",
+      "status": "artist_required"
+    },
+    {
+      "traitType": "Mouth",
+      "value": "AHHH Scared",
+      "layerId": "mouth--ahhh-scared--bf3f5f04c2",
+      "requiredSheet": "apps/game/public/assets/sprites/layers/mouth/mouth--ahhh-scared--bf3f5f04c2.png",
+      "requiredCanvas": "256x256 transparent PNG (4 directions × 4 frames at 64x64)",
+      "status": "artist_required"
+    },
+    {
+      "traitType": "Mouth",
+      "value": "AHHH Tongue",
+      "layerId": "mouth--ahhh-tongue--498bb6ca4b",
+      "requiredSheet": "apps/game/public/assets/sprites/layers/mouth/mouth--ahhh-tongue--498bb6ca4b.png",
+      "requiredCanvas": "256x256 transparent PNG (4 directions × 4 frames at 64x64)",
+      "status": "artist_required"
+    },
+    {
+      "traitType": "Mouth",
+      "value": "Waaaat",
+      "layerId": "mouth--waaaat--bd35815912",
+      "requiredSheet": "apps/game/public/assets/sprites/layers/mouth/mouth--waaaat--bd35815912.png",
+      "requiredCanvas": "256x256 transparent PNG (4 directions × 4 frames at 64x64)",
+      "status": "artist_required"
+    },
+    {
+      "traitType": "Mouth",
+      "value": "Meh Cigarette",
+      "layerId": "mouth--meh-cigarette--2ef5411b4a",
+      "requiredSheet": "apps/game/public/assets/sprites/layers/mouth/mouth--meh-cigarette--2ef5411b4a.png",
+      "requiredCanvas": "256x256 transparent PNG (4 directions × 4 frames at 64x64)",
+      "status": "artist_required"
+    },
+    {
+      "traitType": "Mouth",
+      "value": "Drool",
+      "layerId": "mouth--drool--e7c3866cf3",
+      "requiredSheet": "apps/game/public/assets/sprites/layers/mouth/mouth--drool--e7c3866cf3.png",
+      "requiredCanvas": "256x256 transparent PNG (4 directions × 4 frames at 64x64)",
+      "status": "artist_required"
+    },
+    {
+      "traitType": "Mouth",
+      "value": "Muah",
+      "layerId": "mouth--muah--e1cf57b618",
+      "requiredSheet": "apps/game/public/assets/sprites/layers/mouth/mouth--muah--e1cf57b618.png",
+      "requiredCanvas": "256x256 transparent PNG (4 directions × 4 frames at 64x64)",
+      "status": "artist_required"
+    },
+    {
+      "traitType": "Mouth",
+      "value": "Toothless Drool",
+      "layerId": "mouth--toothless-drool--a0eb654052",
+      "requiredSheet": "apps/game/public/assets/sprites/layers/mouth/mouth--toothless-drool--a0eb654052.png",
+      "requiredCanvas": "256x256 transparent PNG (4 directions × 4 frames at 64x64)",
+      "status": "artist_required"
+    },
+    {
+      "traitType": "Mouth",
+      "value": "Ayeyo",
+      "layerId": "mouth--ayeyo--4e5535dfd6",
+      "requiredSheet": "apps/game/public/assets/sprites/layers/mouth/mouth--ayeyo--4e5535dfd6.png",
+      "requiredCanvas": "256x256 transparent PNG (4 directions × 4 frames at 64x64)",
+      "status": "artist_required"
+    },
+    {
+      "traitType": "Mouth",
+      "value": "Displeased",
+      "layerId": "mouth--displeased--04e3966a5e",
+      "requiredSheet": "apps/game/public/assets/sprites/layers/mouth/mouth--displeased--04e3966a5e.png",
+      "requiredCanvas": "256x256 transparent PNG (4 directions × 4 frames at 64x64)",
+      "status": "artist_required"
+    },
+    {
+      "traitType": "Mouth",
+      "value": "Ayeee",
+      "layerId": "mouth--ayeee--6f86a822e3",
+      "requiredSheet": "apps/game/public/assets/sprites/layers/mouth/mouth--ayeee--6f86a822e3.png",
+      "requiredCanvas": "256x256 transparent PNG (4 directions × 4 frames at 64x64)",
+      "status": "artist_required"
+    },
+    {
+      "traitType": "Mouth",
+      "value": "Resting DYOOR mouth",
+      "layerId": "mouth--resting-dyoor-mouth--7cc3b69746",
+      "requiredSheet": "apps/game/public/assets/sprites/layers/mouth/mouth--resting-dyoor-mouth--7cc3b69746.png",
+      "requiredCanvas": "256x256 transparent PNG (4 directions × 4 frames at 64x64)",
+      "status": "artist_required"
+    },
+    {
+      "traitType": "Mouth",
+      "value": "MMMMKay",
+      "layerId": "mouth--mmmmkay--0673947aa7",
+      "requiredSheet": "apps/game/public/assets/sprites/layers/mouth/mouth--mmmmkay--0673947aa7.png",
+      "requiredCanvas": "256x256 transparent PNG (4 directions × 4 frames at 64x64)",
+      "status": "artist_required"
+    },
+    {
+      "traitType": "Mouth",
+      "value": "None",
+      "layerId": "mouth--none--00e3e61744",
+      "requiredSheet": "apps/game/public/assets/sprites/layers/mouth/mouth--none--00e3e61744.png",
+      "requiredCanvas": "256x256 transparent PNG (4 directions × 4 frames at 64x64)",
+      "status": "artist_required"
+    },
+    {
+      "traitType": "Eyes",
+      "value": "Abyss Laser",
+      "layerId": "eyes--abyss-laser--5f9999f168",
+      "requiredSheet": "apps/game/public/assets/sprites/layers/eyes/eyes--abyss-laser--5f9999f168.png",
+      "requiredCanvas": "256x256 transparent PNG (4 directions × 4 frames at 64x64)",
+      "status": "artist_required"
+    },
+    {
+      "traitType": "Eyes",
+      "value": "Lazy Laser",
+      "layerId": "eyes--lazy-laser--bd4fb2a20e",
+      "requiredSheet": "apps/game/public/assets/sprites/layers/eyes/eyes--lazy-laser--bd4fb2a20e.png",
+      "requiredCanvas": "256x256 transparent PNG (4 directions × 4 frames at 64x64)",
+      "status": "artist_required"
+    },
+    {
+      "traitType": "Eyes",
+      "value": "Radiation Glow (Red)Laser",
+      "layerId": "eyes--radiation-glow-red-laser--0dd95192c1",
+      "requiredSheet": "apps/game/public/assets/sprites/layers/eyes/eyes--radiation-glow-red-laser--0dd95192c1.png",
+      "requiredCanvas": "256x256 transparent PNG (4 directions × 4 frames at 64x64)",
+      "status": "artist_required"
+    },
+    {
+      "traitType": "Eyes",
+      "value": "None",
+      "layerId": "eyes--none--c0f6cf58fe",
+      "requiredSheet": "apps/game/public/assets/sprites/layers/eyes/eyes--none--c0f6cf58fe.png",
+      "requiredCanvas": "256x256 transparent PNG (4 directions × 4 frames at 64x64)",
+      "status": "artist_required"
+    },
+    {
+      "traitType": "Eyes",
+      "value": "Pit Viper",
+      "layerId": "eyes--pit-viper--4ab35fdd9c",
+      "requiredSheet": "apps/game/public/assets/sprites/layers/eyes/eyes--pit-viper--4ab35fdd9c.png",
+      "requiredCanvas": "256x256 transparent PNG (4 directions × 4 frames at 64x64)",
+      "status": "artist_required"
+    },
+    {
+      "traitType": "Eyes",
+      "value": "Monad Specs Gold",
+      "layerId": "eyes--monad-specs-gold--5b6fc5dfb1",
+      "requiredSheet": "apps/game/public/assets/sprites/layers/eyes/eyes--monad-specs-gold--5b6fc5dfb1.png",
+      "requiredCanvas": "256x256 transparent PNG (4 directions × 4 frames at 64x64)",
+      "status": "artist_required"
+    },
+    {
+      "traitType": "Eyes",
+      "value": "Build Anything Glasses",
+      "layerId": "eyes--build-anything-glasses--1d0e7a7727",
+      "requiredSheet": "apps/game/public/assets/sprites/layers/eyes/eyes--build-anything-glasses--1d0e7a7727.png",
+      "requiredCanvas": "256x256 transparent PNG (4 directions × 4 frames at 64x64)",
+      "status": "artist_required"
+    },
+    {
+      "traitType": "Eyes",
+      "value": "VR Headset",
+      "layerId": "eyes--vr-headset--0f74957458",
+      "requiredSheet": "apps/game/public/assets/sprites/layers/eyes/eyes--vr-headset--0f74957458.png",
+      "requiredCanvas": "256x256 transparent PNG (4 directions × 4 frames at 64x64)",
+      "status": "artist_required"
+    },
+    {
+      "traitType": "Eyes",
+      "value": "Googley Eyes",
+      "layerId": "eyes--googley-eyes--ed06dee39f",
+      "requiredSheet": "apps/game/public/assets/sprites/layers/eyes/eyes--googley-eyes--ed06dee39f.png",
+      "requiredCanvas": "256x256 transparent PNG (4 directions × 4 frames at 64x64)",
+      "status": "artist_required"
+    },
+    {
+      "traitType": "Eyes",
+      "value": "Monad Specs Black",
+      "layerId": "eyes--monad-specs-black--75f09560d5",
+      "requiredSheet": "apps/game/public/assets/sprites/layers/eyes/eyes--monad-specs-black--75f09560d5.png",
+      "requiredCanvas": "256x256 transparent PNG (4 directions × 4 frames at 64x64)",
+      "status": "artist_required"
+    },
+    {
+      "traitType": "Eyes",
+      "value": "Eye Patch",
+      "layerId": "eyes--eye-patch--f2cd7889ee",
+      "requiredSheet": "apps/game/public/assets/sprites/layers/eyes/eyes--eye-patch--f2cd7889ee.png",
+      "requiredCanvas": "256x256 transparent PNG (4 directions × 4 frames at 64x64)",
+      "status": "artist_required"
+    },
+    {
+      "traitType": "Eyes",
+      "value": "Snake Eyes",
+      "layerId": "eyes--snake-eyes--1e18a3d667",
+      "requiredSheet": "apps/game/public/assets/sprites/layers/eyes/eyes--snake-eyes--1e18a3d667.png",
+      "requiredCanvas": "256x256 transparent PNG (4 directions × 4 frames at 64x64)",
+      "status": "artist_required"
+    },
+    {
+      "traitType": "Eyes",
+      "value": "Got em",
+      "layerId": "eyes--got-em--014896745f",
+      "requiredSheet": "apps/game/public/assets/sprites/layers/eyes/eyes--got-em--014896745f.png",
+      "requiredCanvas": "256x256 transparent PNG (4 directions × 4 frames at 64x64)",
+      "status": "artist_required"
+    },
+    {
+      "traitType": "Eyes",
+      "value": "Cyclops",
+      "layerId": "eyes--cyclops--226510cf8f",
+      "requiredSheet": "apps/game/public/assets/sprites/layers/eyes/eyes--cyclops--226510cf8f.png",
+      "requiredCanvas": "256x256 transparent PNG (4 directions × 4 frames at 64x64)",
+      "status": "artist_required"
+    },
+    {
+      "traitType": "Eyes",
+      "value": "Radiation Glow (Red)",
+      "layerId": "eyes--radiation-glow-red--2fb06b0b8b",
+      "requiredSheet": "apps/game/public/assets/sprites/layers/eyes/eyes--radiation-glow-red--2fb06b0b8b.png",
+      "requiredCanvas": "256x256 transparent PNG (4 directions × 4 frames at 64x64)",
+      "status": "artist_required"
+    },
+    {
+      "traitType": "Eyes",
+      "value": "Tri-Specs",
+      "layerId": "eyes--tri-specs--32ae5db48f",
+      "requiredSheet": "apps/game/public/assets/sprites/layers/eyes/eyes--tri-specs--32ae5db48f.png",
+      "requiredCanvas": "256x256 transparent PNG (4 directions × 4 frames at 64x64)",
+      "status": "artist_required"
+    },
+    {
+      "traitType": "Eyes",
+      "value": "Zombie",
+      "layerId": "eyes--zombie--83d1384c6b",
+      "requiredSheet": "apps/game/public/assets/sprites/layers/eyes/eyes--zombie--83d1384c6b.png",
+      "requiredCanvas": "256x256 transparent PNG (4 directions × 4 frames at 64x64)",
+      "status": "artist_required"
+    },
+    {
+      "traitType": "Eyes",
+      "value": "I Know What You Did",
+      "layerId": "eyes--i-know-what-you-did--0e1b59d491",
+      "requiredSheet": "apps/game/public/assets/sprites/layers/eyes/eyes--i-know-what-you-did--0e1b59d491.png",
+      "requiredCanvas": "256x256 transparent PNG (4 directions × 4 frames at 64x64)",
+      "status": "artist_required"
+    },
+    {
+      "traitType": "Eyes",
+      "value": "Point Dexter Glasses Eyes",
+      "layerId": "eyes--point-dexter-glasses-eyes--c14d92445e",
+      "requiredSheet": "apps/game/public/assets/sprites/layers/eyes/eyes--point-dexter-glasses-eyes--c14d92445e.png",
+      "requiredCanvas": "256x256 transparent PNG (4 directions × 4 frames at 64x64)",
+      "status": "artist_required"
+    },
+    {
+      "traitType": "Eyes",
+      "value": "Emo Eyeliner",
+      "layerId": "eyes--emo-eyeliner--d89125cef7",
+      "requiredSheet": "apps/game/public/assets/sprites/layers/eyes/eyes--emo-eyeliner--d89125cef7.png",
+      "requiredCanvas": "256x256 transparent PNG (4 directions × 4 frames at 64x64)",
+      "status": "artist_required"
+    },
+    {
+      "traitType": "Eyes",
+      "value": "Scared",
+      "layerId": "eyes--scared--a5f97d741a",
+      "requiredSheet": "apps/game/public/assets/sprites/layers/eyes/eyes--scared--a5f97d741a.png",
+      "requiredCanvas": "256x256 transparent PNG (4 directions × 4 frames at 64x64)",
+      "status": "artist_required"
+    },
+    {
+      "traitType": "Eyes",
+      "value": "Intense",
+      "layerId": "eyes--intense--5dd3a4be94",
+      "requiredSheet": "apps/game/public/assets/sprites/layers/eyes/eyes--intense--5dd3a4be94.png",
+      "requiredCanvas": "256x256 transparent PNG (4 directions × 4 frames at 64x64)",
+      "status": "artist_required"
+    },
+    {
+      "traitType": "Eyes",
+      "value": "Third Eye",
+      "layerId": "eyes--third-eye--e90d68d76e",
+      "requiredSheet": "apps/game/public/assets/sprites/layers/eyes/eyes--third-eye--e90d68d76e.png",
+      "requiredCanvas": "256x256 transparent PNG (4 directions × 4 frames at 64x64)",
+      "status": "artist_required"
+    },
+    {
+      "traitType": "Eyes",
+      "value": "Neverland Specs",
+      "layerId": "eyes--neverland-specs--02d627b796",
+      "requiredSheet": "apps/game/public/assets/sprites/layers/eyes/eyes--neverland-specs--02d627b796.png",
+      "requiredCanvas": "256x256 transparent PNG (4 directions × 4 frames at 64x64)",
+      "status": "artist_required"
+    },
+    {
+      "traitType": "Eyes",
+      "value": "HMMMHM",
+      "layerId": "eyes--hmmmhm--f0af452e26",
+      "requiredSheet": "apps/game/public/assets/sprites/layers/eyes/eyes--hmmmhm--f0af452e26.png",
+      "requiredCanvas": "256x256 transparent PNG (4 directions × 4 frames at 64x64)",
+      "status": "artist_required"
+    },
+    {
+      "traitType": "Eyes",
+      "value": "Sunglasses",
+      "layerId": "eyes--sunglasses--d9799dbc00",
+      "requiredSheet": "apps/game/public/assets/sprites/layers/eyes/eyes--sunglasses--d9799dbc00.png",
+      "requiredCanvas": "256x256 transparent PNG (4 directions × 4 frames at 64x64)",
+      "status": "artist_required"
+    },
+    {
+      "traitType": "Eyes",
+      "value": "Sly",
+      "layerId": "eyes--sly--6df5047790",
+      "requiredSheet": "apps/game/public/assets/sprites/layers/eyes/eyes--sly--6df5047790.png",
+      "requiredCanvas": "256x256 transparent PNG (4 directions × 4 frames at 64x64)",
+      "status": "artist_required"
+    },
+    {
+      "traitType": "Eyes",
+      "value": "Abyss",
+      "layerId": "eyes--abyss--398406fa3e",
+      "requiredSheet": "apps/game/public/assets/sprites/layers/eyes/eyes--abyss--398406fa3e.png",
+      "requiredCanvas": "256x256 transparent PNG (4 directions × 4 frames at 64x64)",
+      "status": "artist_required"
+    },
+    {
+      "traitType": "Eyes",
+      "value": "Ricky V",
+      "layerId": "eyes--ricky-v--4143423508",
+      "requiredSheet": "apps/game/public/assets/sprites/layers/eyes/eyes--ricky-v--4143423508.png",
+      "requiredCanvas": "256x256 transparent PNG (4 directions × 4 frames at 64x64)",
+      "status": "artist_required"
+    },
+    {
+      "traitType": "Eyes",
+      "value": "Radiation Glow",
+      "layerId": "eyes--radiation-glow--dd018ab707",
+      "requiredSheet": "apps/game/public/assets/sprites/layers/eyes/eyes--radiation-glow--dd018ab707.png",
+      "requiredCanvas": "256x256 transparent PNG (4 directions × 4 frames at 64x64)",
+      "status": "artist_required"
+    },
+    {
+      "traitType": "Eyes",
+      "value": "Un Enthused",
+      "layerId": "eyes--un-enthused--20321a4e91",
+      "requiredSheet": "apps/game/public/assets/sprites/layers/eyes/eyes--un-enthused--20321a4e91.png",
+      "requiredCanvas": "256x256 transparent PNG (4 directions × 4 frames at 64x64)",
+      "status": "artist_required"
+    },
+    {
+      "traitType": "Eyes",
+      "value": "Okay",
+      "layerId": "eyes--okay--6101961f01",
+      "requiredSheet": "apps/game/public/assets/sprites/layers/eyes/eyes--okay--6101961f01.png",
+      "requiredCanvas": "256x256 transparent PNG (4 directions × 4 frames at 64x64)",
+      "status": "artist_required"
+    },
+    {
+      "traitType": "Eyes",
+      "value": "Excited",
+      "layerId": "eyes--excited--06ddef8332",
+      "requiredSheet": "apps/game/public/assets/sprites/layers/eyes/eyes--excited--06ddef8332.png",
+      "requiredCanvas": "256x256 transparent PNG (4 directions × 4 frames at 64x64)",
+      "status": "artist_required"
+    },
+    {
+      "traitType": "Hat",
+      "value": "BOB Mask",
+      "layerId": "hat--bob-mask--72387daf2a",
+      "requiredSheet": "apps/game/public/assets/sprites/layers/hat/hat--bob-mask--72387daf2a.png",
+      "requiredCanvas": "256x256 transparent PNG (4 directions × 4 frames at 64x64)",
+      "status": "artist_required"
+    },
+    {
+      "traitType": "Hat",
+      "value": "Sealuminati Mask",
+      "layerId": "hat--sealuminati-mask--afc160f589",
+      "requiredSheet": "apps/game/public/assets/sprites/layers/hat/hat--sealuminati-mask--afc160f589.png",
+      "requiredCanvas": "256x256 transparent PNG (4 directions × 4 frames at 64x64)",
+      "status": "artist_required"
+    },
+    {
+      "traitType": "Hat",
+      "value": "Salmonad Mask",
+      "layerId": "hat--salmonad-mask--54d2b588ac",
+      "requiredSheet": "apps/game/public/assets/sprites/layers/hat/hat--salmonad-mask--54d2b588ac.png",
+      "requiredCanvas": "256x256 transparent PNG (4 directions × 4 frames at 64x64)",
+      "status": "artist_required"
+    },
+    {
+      "traitType": "Hat",
+      "value": "PamPam",
+      "layerId": "hat--pampam--591f4e7e83",
+      "requiredSheet": "apps/game/public/assets/sprites/layers/hat/hat--pampam--591f4e7e83.png",
+      "requiredCanvas": "256x256 transparent PNG (4 directions × 4 frames at 64x64)",
+      "status": "artist_required"
+    },
+    {
+      "traitType": "Hat",
+      "value": "Pink Shystie",
+      "layerId": "hat--pink-shystie--b04b2d80c1",
+      "requiredSheet": "apps/game/public/assets/sprites/layers/hat/hat--pink-shystie--b04b2d80c1.png",
+      "requiredCanvas": "256x256 transparent PNG (4 directions × 4 frames at 64x64)",
+      "status": "artist_required"
+    },
+    {
+      "traitType": "Hat",
+      "value": "Black Shystie",
+      "layerId": "hat--black-shystie--b643bf9bdd",
+      "requiredSheet": "apps/game/public/assets/sprites/layers/hat/hat--black-shystie--b643bf9bdd.png",
+      "requiredCanvas": "256x256 transparent PNG (4 directions × 4 frames at 64x64)",
+      "status": "artist_required"
+    },
+    {
+      "traitType": "Hat",
+      "value": "Emonad",
+      "layerId": "hat--emonad--ac005973d8",
+      "requiredSheet": "apps/game/public/assets/sprites/layers/hat/hat--emonad--ac005973d8.png",
+      "requiredCanvas": "256x256 transparent PNG (4 directions × 4 frames at 64x64)",
+      "status": "artist_required"
+    },
+    {
+      "traitType": "Hat",
+      "value": "Shramp Beanie",
+      "layerId": "hat--shramp-beanie--773c8066bf",
+      "requiredSheet": "apps/game/public/assets/sprites/layers/hat/hat--shramp-beanie--773c8066bf.png",
+      "requiredCanvas": "256x256 transparent PNG (4 directions × 4 frames at 64x64)",
+      "status": "artist_required"
+    },
+    {
+      "traitType": "Hat",
+      "value": "Jailhouse Stripes Hat",
+      "layerId": "hat--jailhouse-stripes-hat--b7da07a6d1",
+      "requiredSheet": "apps/game/public/assets/sprites/layers/hat/hat--jailhouse-stripes-hat--b7da07a6d1.png",
+      "requiredCanvas": "256x256 transparent PNG (4 directions × 4 frames at 64x64)",
+      "status": "artist_required"
+    },
+    {
+      "traitType": "Hat",
+      "value": "Bartman",
+      "layerId": "hat--bartman--22a1d4772b",
+      "requiredSheet": "apps/game/public/assets/sprites/layers/hat/hat--bartman--22a1d4772b.png",
+      "requiredCanvas": "256x256 transparent PNG (4 directions × 4 frames at 64x64)",
+      "status": "artist_required"
+    },
+    {
+      "traitType": "Hat",
+      "value": "Luffy",
+      "layerId": "hat--luffy--a633d5aefb",
+      "requiredSheet": "apps/game/public/assets/sprites/layers/hat/hat--luffy--a633d5aefb.png",
+      "requiredCanvas": "256x256 transparent PNG (4 directions × 4 frames at 64x64)",
+      "status": "artist_required"
+    },
+    {
+      "traitType": "Hat",
+      "value": "Beanie Red",
+      "layerId": "hat--beanie-red--c30deb6dc0",
+      "requiredSheet": "apps/game/public/assets/sprites/layers/hat/hat--beanie-red--c30deb6dc0.png",
+      "requiredCanvas": "256x256 transparent PNG (4 directions × 4 frames at 64x64)",
+      "status": "artist_required"
+    },
+    {
+      "traitType": "Hat",
+      "value": "DWO Black Cap",
+      "layerId": "hat--dwo-black-cap--ad1e62be38",
+      "requiredSheet": "apps/game/public/assets/sprites/layers/hat/hat--dwo-black-cap--ad1e62be38.png",
+      "requiredCanvas": "256x256 transparent PNG (4 directions × 4 frames at 64x64)",
+      "status": "artist_required"
+    },
+    {
+      "traitType": "Hat",
+      "value": "Dunce Hat",
+      "layerId": "hat--dunce-hat--963df91adf",
+      "requiredSheet": "apps/game/public/assets/sprites/layers/hat/hat--dunce-hat--963df91adf.png",
+      "requiredCanvas": "256x256 transparent PNG (4 directions × 4 frames at 64x64)",
+      "status": "artist_required"
+    },
+    {
+      "traitType": "Hat",
+      "value": "Casino",
+      "layerId": "hat--casino--b9b52b554b",
+      "requiredSheet": "apps/game/public/assets/sprites/layers/hat/hat--casino--b9b52b554b.png",
+      "requiredCanvas": "256x256 transparent PNG (4 directions × 4 frames at 64x64)",
+      "status": "artist_required"
+    },
+    {
+      "traitType": "Hat",
+      "value": "Durag",
+      "layerId": "hat--durag--3354694527",
+      "requiredSheet": "apps/game/public/assets/sprites/layers/hat/hat--durag--3354694527.png",
+      "requiredCanvas": "256x256 transparent PNG (4 directions × 4 frames at 64x64)",
+      "status": "artist_required"
+    },
+    {
+      "traitType": "Hat",
+      "value": "Pirate Hat",
+      "layerId": "hat--pirate-hat--45bd7e9ec8",
+      "requiredSheet": "apps/game/public/assets/sprites/layers/hat/hat--pirate-hat--45bd7e9ec8.png",
+      "requiredCanvas": "256x256 transparent PNG (4 directions × 4 frames at 64x64)",
+      "status": "artist_required"
+    },
+    {
+      "traitType": "Hat",
+      "value": "Glowing Antenna",
+      "layerId": "hat--glowing-antenna--0811835f0d",
+      "requiredSheet": "apps/game/public/assets/sprites/layers/hat/hat--glowing-antenna--0811835f0d.png",
+      "requiredCanvas": "256x256 transparent PNG (4 directions × 4 frames at 64x64)",
+      "status": "artist_required"
+    },
+    {
+      "traitType": "Hat",
+      "value": "Burning Chog",
+      "layerId": "hat--burning-chog--470a6fc52e",
+      "requiredSheet": "apps/game/public/assets/sprites/layers/hat/hat--burning-chog--470a6fc52e.png",
+      "requiredCanvas": "256x256 transparent PNG (4 directions × 4 frames at 64x64)",
+      "status": "artist_required"
+    },
+    {
+      "traitType": "Hat",
+      "value": "Wormhole",
+      "layerId": "hat--wormhole--ac142b7f38",
+      "requiredSheet": "apps/game/public/assets/sprites/layers/hat/hat--wormhole--ac142b7f38.png",
+      "requiredCanvas": "256x256 transparent PNG (4 directions × 4 frames at 64x64)",
+      "status": "artist_required"
+    },
+    {
+      "traitType": "Hat",
+      "value": "Alternative",
+      "layerId": "hat--alternative--12c808e664",
+      "requiredSheet": "apps/game/public/assets/sprites/layers/hat/hat--alternative--12c808e664.png",
+      "requiredCanvas": "256x256 transparent PNG (4 directions × 4 frames at 64x64)",
+      "status": "artist_required"
+    },
+    {
+      "traitType": "Hat",
+      "value": "Party Hat",
+      "layerId": "hat--party-hat--62aba9b5c1",
+      "requiredSheet": "apps/game/public/assets/sprites/layers/hat/hat--party-hat--62aba9b5c1.png",
+      "requiredCanvas": "256x256 transparent PNG (4 directions × 4 frames at 64x64)",
+      "status": "artist_required"
+    },
+    {
+      "traitType": "Hat",
+      "value": "Black N White Cap",
+      "layerId": "hat--black-n-white-cap--219800e832",
+      "requiredSheet": "apps/game/public/assets/sprites/layers/hat/hat--black-n-white-cap--219800e832.png",
+      "requiredCanvas": "256x256 transparent PNG (4 directions × 4 frames at 64x64)",
+      "status": "artist_required"
+    },
+    {
+      "traitType": "Hat",
+      "value": "Crown",
+      "layerId": "hat--crown--fc8da53494",
+      "requiredSheet": "apps/game/public/assets/sprites/layers/hat/hat--crown--fc8da53494.png",
+      "requiredCanvas": "256x256 transparent PNG (4 directions × 4 frames at 64x64)",
+      "status": "artist_required"
+    },
+    {
+      "traitType": "Hat",
+      "value": "Halo",
+      "layerId": "hat--halo--059407c58f",
+      "requiredSheet": "apps/game/public/assets/sprites/layers/hat/hat--halo--059407c58f.png",
+      "requiredCanvas": "256x256 transparent PNG (4 directions × 4 frames at 64x64)",
+      "status": "artist_required"
+    },
+    {
+      "traitType": "Hat",
+      "value": "Horns",
+      "layerId": "hat--horns--74c88903f0",
+      "requiredSheet": "apps/game/public/assets/sprites/layers/hat/hat--horns--74c88903f0.png",
+      "requiredCanvas": "256x256 transparent PNG (4 directions × 4 frames at 64x64)",
+      "status": "artist_required"
+    },
+    {
+      "traitType": "Hat",
+      "value": "Cowboy",
+      "layerId": "hat--cowboy--d6238b9fa1",
+      "requiredSheet": "apps/game/public/assets/sprites/layers/hat/hat--cowboy--d6238b9fa1.png",
+      "requiredCanvas": "256x256 transparent PNG (4 directions × 4 frames at 64x64)",
+      "status": "artist_required"
+    },
+    {
+      "traitType": "Hat",
+      "value": "Black Beanie",
+      "layerId": "hat--black-beanie--4c2829d67b",
+      "requiredSheet": "apps/game/public/assets/sprites/layers/hat/hat--black-beanie--4c2829d67b.png",
+      "requiredCanvas": "256x256 transparent PNG (4 directions × 4 frames at 64x64)",
+      "status": "artist_required"
+    },
+    {
+      "traitType": "Hat",
+      "value": "DYOOR Flipped Brim",
+      "layerId": "hat--dyoor-flipped-brim--b4c5cd111e",
+      "requiredSheet": "apps/game/public/assets/sprites/layers/hat/hat--dyoor-flipped-brim--b4c5cd111e.png",
+      "requiredCanvas": "256x256 transparent PNG (4 directions × 4 frames at 64x64)",
+      "status": "artist_required"
+    },
+    {
+      "traitType": "Hat",
+      "value": "Sweatband",
+      "layerId": "hat--sweatband--4d2975f6e0",
+      "requiredSheet": "apps/game/public/assets/sprites/layers/hat/hat--sweatband--4d2975f6e0.png",
+      "requiredCanvas": "256x256 transparent PNG (4 directions × 4 frames at 64x64)",
+      "status": "artist_required"
+    },
+    {
+      "traitType": "Hat",
+      "value": "Black Cap",
+      "layerId": "hat--black-cap--85dd952428",
+      "requiredSheet": "apps/game/public/assets/sprites/layers/hat/hat--black-cap--85dd952428.png",
+      "requiredCanvas": "256x256 transparent PNG (4 directions × 4 frames at 64x64)",
+      "status": "artist_required"
+    },
+    {
+      "traitType": "Hat",
+      "value": "Monad Cap Black",
+      "layerId": "hat--monad-cap-black--be0182c29a",
+      "requiredSheet": "apps/game/public/assets/sprites/layers/hat/hat--monad-cap-black--be0182c29a.png",
+      "requiredCanvas": "256x256 transparent PNG (4 directions × 4 frames at 64x64)",
+      "status": "artist_required"
+    },
+    {
+      "traitType": "Hat",
+      "value": "DYOOR Black Cap",
+      "layerId": "hat--dyoor-black-cap--d254822e4d",
+      "requiredSheet": "apps/game/public/assets/sprites/layers/hat/hat--dyoor-black-cap--d254822e4d.png",
+      "requiredCanvas": "256x256 transparent PNG (4 directions × 4 frames at 64x64)",
+      "status": "artist_required"
+    },
+    {
+      "traitType": "Hat",
+      "value": "Tech bro",
+      "layerId": "hat--tech-bro--6945b9937d",
+      "requiredSheet": "apps/game/public/assets/sprites/layers/hat/hat--tech-bro--6945b9937d.png",
+      "requiredCanvas": "256x256 transparent PNG (4 directions × 4 frames at 64x64)",
+      "status": "artist_required"
+    },
+    {
+      "traitType": "Hat",
+      "value": "Construction",
+      "layerId": "hat--construction--56b5f756c3",
+      "requiredSheet": "apps/game/public/assets/sprites/layers/hat/hat--construction--56b5f756c3.png",
+      "requiredCanvas": "256x256 transparent PNG (4 directions × 4 frames at 64x64)",
+      "status": "artist_required"
+    },
+    {
+      "traitType": "Hat",
+      "value": "Monad Cap",
+      "layerId": "hat--monad-cap--bca74c5c46",
+      "requiredSheet": "apps/game/public/assets/sprites/layers/hat/hat--monad-cap--bca74c5c46.png",
+      "requiredCanvas": "256x256 transparent PNG (4 directions × 4 frames at 64x64)",
+      "status": "artist_required"
+    },
+    {
+      "traitType": "Hat",
+      "value": "Gotta Catchem Cap",
+      "layerId": "hat--gotta-catchem-cap--a2e0806601",
+      "requiredSheet": "apps/game/public/assets/sprites/layers/hat/hat--gotta-catchem-cap--a2e0806601.png",
+      "requiredCanvas": "256x256 transparent PNG (4 directions × 4 frames at 64x64)",
+      "status": "artist_required"
+    },
+    {
+      "traitType": "Hat",
+      "value": "McDYOORs",
+      "layerId": "hat--mcdyoors--77a24166b7",
+      "requiredSheet": "apps/game/public/assets/sprites/layers/hat/hat--mcdyoors--77a24166b7.png",
+      "requiredCanvas": "256x256 transparent PNG (4 directions × 4 frames at 64x64)",
+      "status": "artist_required"
+    },
+    {
+      "traitType": "Hat",
+      "value": "Captain Hat",
+      "layerId": "hat--captain-hat--9ad40af912",
+      "requiredSheet": "apps/game/public/assets/sprites/layers/hat/hat--captain-hat--9ad40af912.png",
+      "requiredCanvas": "256x256 transparent PNG (4 directions × 4 frames at 64x64)",
+      "status": "artist_required"
+    },
+    {
+      "traitType": "Hat",
+      "value": "DYOOR White Cap",
+      "layerId": "hat--dyoor-white-cap--24dd96bce8",
+      "requiredSheet": "apps/game/public/assets/sprites/layers/hat/hat--dyoor-white-cap--24dd96bce8.png",
+      "requiredCanvas": "256x256 transparent PNG (4 directions × 4 frames at 64x64)",
+      "status": "artist_required"
+    },
+    {
+      "traitType": "Hat",
+      "value": "Antenna",
+      "layerId": "hat--antenna--b2d9a288f1",
+      "requiredSheet": "apps/game/public/assets/sprites/layers/hat/hat--antenna--b2d9a288f1.png",
+      "requiredCanvas": "256x256 transparent PNG (4 directions × 4 frames at 64x64)",
+      "status": "artist_required"
+    },
+    {
+      "traitType": "Hat",
+      "value": "Black Ball Cap",
+      "layerId": "hat--black-ball-cap--f46f9adfc4",
+      "requiredSheet": "apps/game/public/assets/sprites/layers/hat/hat--black-ball-cap--f46f9adfc4.png",
+      "requiredCanvas": "256x256 transparent PNG (4 directions × 4 frames at 64x64)",
+      "status": "artist_required"
+    },
+    {
+      "traitType": "Hat",
+      "value": "None",
+      "layerId": "hat--none--e387523a96",
+      "requiredSheet": "apps/game/public/assets/sprites/layers/hat/hat--none--e387523a96.png",
+      "requiredCanvas": "256x256 transparent PNG (4 directions × 4 frames at 64x64)",
+      "status": "artist_required"
+    },
+    {
+      "traitType": "Accessories",
+      "value": "Shramp",
+      "layerId": "accessories--shramp--3209b6c607",
+      "requiredSheet": "apps/game/public/assets/sprites/layers/accessories/accessories--shramp--3209b6c607.png",
+      "requiredCanvas": "256x256 transparent PNG (4 directions × 4 frames at 64x64)",
+      "status": "artist_required"
+    },
+    {
+      "traitType": "Accessories",
+      "value": "10KSquad",
+      "layerId": "accessories--10ksquad--e1436e16ef",
+      "requiredSheet": "apps/game/public/assets/sprites/layers/accessories/accessories--10ksquad--e1436e16ef.png",
+      "requiredCanvas": "256x256 transparent PNG (4 directions × 4 frames at 64x64)",
+      "status": "artist_required"
+    },
+    {
+      "traitType": "Accessories",
+      "value": "BOB-chain",
+      "layerId": "accessories--bob-chain--dd34b48a1a",
+      "requiredSheet": "apps/game/public/assets/sprites/layers/accessories/accessories--bob-chain--dd34b48a1a.png",
+      "requiredCanvas": "256x256 transparent PNG (4 directions × 4 frames at 64x64)",
+      "status": "artist_required"
+    },
+    {
+      "traitType": "Accessories",
+      "value": "Sealuminati chain",
+      "layerId": "accessories--sealuminati-chain--5dd210a611",
+      "requiredSheet": "apps/game/public/assets/sprites/layers/accessories/accessories--sealuminati-chain--5dd210a611.png",
+      "requiredCanvas": "256x256 transparent PNG (4 directions × 4 frames at 64x64)",
+      "status": "artist_required"
+    },
+    {
+      "traitType": "Accessories",
+      "value": "Mouch",
+      "layerId": "accessories--mouch--ba5ddf849e",
+      "requiredSheet": "apps/game/public/assets/sprites/layers/accessories/accessories--mouch--ba5ddf849e.png",
+      "requiredCanvas": "256x256 transparent PNG (4 directions × 4 frames at 64x64)",
+      "status": "artist_required"
+    },
+    {
+      "traitType": "Accessories",
+      "value": "Choker Necklace",
+      "layerId": "accessories--choker-necklace--32ce2ecd92",
+      "requiredSheet": "apps/game/public/assets/sprites/layers/accessories/accessories--choker-necklace--32ce2ecd92.png",
+      "requiredCanvas": "256x256 transparent PNG (4 directions × 4 frames at 64x64)",
+      "status": "artist_required"
+    },
+    {
+      "traitType": "Accessories",
+      "value": "MESH Bandanna",
+      "layerId": "accessories--mesh-bandanna--cc216cb6aa",
+      "requiredSheet": "apps/game/public/assets/sprites/layers/accessories/accessories--mesh-bandanna--cc216cb6aa.png",
+      "requiredCanvas": "256x256 transparent PNG (4 directions × 4 frames at 64x64)",
+      "status": "artist_required"
+    },
+    {
+      "traitType": "Accessories",
+      "value": "The Hive",
+      "layerId": "accessories--the-hive--33e39acbee",
+      "requiredSheet": "apps/game/public/assets/sprites/layers/accessories/accessories--the-hive--33e39acbee.png",
+      "requiredCanvas": "256x256 transparent PNG (4 directions × 4 frames at 64x64)",
+      "status": "artist_required"
+    },
+    {
+      "traitType": "Accessories",
+      "value": "Molandak",
+      "layerId": "accessories--molandak--4daab08633",
+      "requiredSheet": "apps/game/public/assets/sprites/layers/accessories/accessories--molandak--4daab08633.png",
+      "requiredCanvas": "256x256 transparent PNG (4 directions × 4 frames at 64x64)",
+      "status": "artist_required"
+    },
+    {
+      "traitType": "Accessories",
+      "value": "Bandaid",
+      "layerId": "accessories--bandaid--b5601d8b03",
+      "requiredSheet": "apps/game/public/assets/sprites/layers/accessories/accessories--bandaid--b5601d8b03.png",
+      "requiredCanvas": "256x256 transparent PNG (4 directions × 4 frames at 64x64)",
+      "status": "artist_required"
+    },
+    {
+      "traitType": "Accessories",
+      "value": "Bandana Black",
+      "layerId": "accessories--bandana-black--8c51e84427",
+      "requiredSheet": "apps/game/public/assets/sprites/layers/accessories/accessories--bandana-black--8c51e84427.png",
+      "requiredCanvas": "256x256 transparent PNG (4 directions × 4 frames at 64x64)",
+      "status": "artist_required"
+    },
+    {
+      "traitType": "Accessories",
+      "value": "Bandana Pink",
+      "layerId": "accessories--bandana-pink--920972a283",
+      "requiredSheet": "apps/game/public/assets/sprites/layers/accessories/accessories--bandana-pink--920972a283.png",
+      "requiredCanvas": "256x256 transparent PNG (4 directions × 4 frames at 64x64)",
+      "status": "artist_required"
+    },
+    {
+      "traitType": "Accessories",
+      "value": "None",
+      "layerId": "accessories--none--9703f1eed1",
+      "requiredSheet": "apps/game/public/assets/sprites/layers/accessories/accessories--none--9703f1eed1.png",
+      "requiredCanvas": "256x256 transparent PNG (4 directions × 4 frames at 64x64)",
+      "status": "artist_required"
+    },
+    {
+      "traitType": "Accessories 2",
+      "value": "10KSquad",
+      "layerId": "accessories-2--10ksquad--3b78a92462",
+      "requiredSheet": "apps/game/public/assets/sprites/layers/accessories-2/accessories-2--10ksquad--3b78a92462.png",
+      "requiredCanvas": "256x256 transparent PNG (4 directions × 4 frames at 64x64)",
+      "status": "artist_required"
+    },
+    {
+      "traitType": "Accessories 2",
+      "value": "Shramp",
+      "layerId": "accessories-2--shramp--f69df545a8",
+      "requiredSheet": "apps/game/public/assets/sprites/layers/accessories-2/accessories-2--shramp--f69df545a8.png",
+      "requiredCanvas": "256x256 transparent PNG (4 directions × 4 frames at 64x64)",
+      "status": "artist_required"
+    },
+    {
+      "traitType": "Accessories 2",
+      "value": "BOB-chain",
+      "layerId": "accessories-2--bob-chain--0e93e82c89",
+      "requiredSheet": "apps/game/public/assets/sprites/layers/accessories-2/accessories-2--bob-chain--0e93e82c89.png",
+      "requiredCanvas": "256x256 transparent PNG (4 directions × 4 frames at 64x64)",
+      "status": "artist_required"
+    },
+    {
+      "traitType": "Accessories 2",
+      "value": "Sealuminati chain",
+      "layerId": "accessories-2--sealuminati-chain--7e58851823",
+      "requiredSheet": "apps/game/public/assets/sprites/layers/accessories-2/accessories-2--sealuminati-chain--7e58851823.png",
+      "requiredCanvas": "256x256 transparent PNG (4 directions × 4 frames at 64x64)",
+      "status": "artist_required"
+    },
+    {
+      "traitType": "Accessories 2",
+      "value": "Mouch",
+      "layerId": "accessories-2--mouch--8939357754",
+      "requiredSheet": "apps/game/public/assets/sprites/layers/accessories-2/accessories-2--mouch--8939357754.png",
+      "requiredCanvas": "256x256 transparent PNG (4 directions × 4 frames at 64x64)",
+      "status": "artist_required"
+    },
+    {
+      "traitType": "Accessories 2",
+      "value": "Choker Necklace",
+      "layerId": "accessories-2--choker-necklace--00c9389675",
+      "requiredSheet": "apps/game/public/assets/sprites/layers/accessories-2/accessories-2--choker-necklace--00c9389675.png",
+      "requiredCanvas": "256x256 transparent PNG (4 directions × 4 frames at 64x64)",
+      "status": "artist_required"
+    },
+    {
+      "traitType": "Accessories 2",
+      "value": "The Hive",
+      "layerId": "accessories-2--the-hive--de94ff40b9",
+      "requiredSheet": "apps/game/public/assets/sprites/layers/accessories-2/accessories-2--the-hive--de94ff40b9.png",
+      "requiredCanvas": "256x256 transparent PNG (4 directions × 4 frames at 64x64)",
+      "status": "artist_required"
+    },
+    {
+      "traitType": "Accessories 2",
+      "value": "Bandaid",
+      "layerId": "accessories-2--bandaid--34d4c77a8d",
+      "requiredSheet": "apps/game/public/assets/sprites/layers/accessories-2/accessories-2--bandaid--34d4c77a8d.png",
+      "requiredCanvas": "256x256 transparent PNG (4 directions × 4 frames at 64x64)",
+      "status": "artist_required"
+    },
+    {
+      "traitType": "Accessories 2",
+      "value": "MESH Bandanna",
+      "layerId": "accessories-2--mesh-bandanna--065b0a4809",
+      "requiredSheet": "apps/game/public/assets/sprites/layers/accessories-2/accessories-2--mesh-bandanna--065b0a4809.png",
+      "requiredCanvas": "256x256 transparent PNG (4 directions × 4 frames at 64x64)",
+      "status": "artist_required"
+    },
+    {
+      "traitType": "Accessories 2",
+      "value": "Molandak",
+      "layerId": "accessories-2--molandak--c9923ab684",
+      "requiredSheet": "apps/game/public/assets/sprites/layers/accessories-2/accessories-2--molandak--c9923ab684.png",
+      "requiredCanvas": "256x256 transparent PNG (4 directions × 4 frames at 64x64)",
+      "status": "artist_required"
+    },
+    {
+      "traitType": "Accessories 2",
+      "value": "Bandana Black",
+      "layerId": "accessories-2--bandana-black--e1f75badec",
+      "requiredSheet": "apps/game/public/assets/sprites/layers/accessories-2/accessories-2--bandana-black--e1f75badec.png",
+      "requiredCanvas": "256x256 transparent PNG (4 directions × 4 frames at 64x64)",
+      "status": "artist_required"
+    },
+    {
+      "traitType": "Accessories 2",
+      "value": "Bandana Pink",
+      "layerId": "accessories-2--bandana-pink--5c4cfa0a4b",
+      "requiredSheet": "apps/game/public/assets/sprites/layers/accessories-2/accessories-2--bandana-pink--5c4cfa0a4b.png",
+      "requiredCanvas": "256x256 transparent PNG (4 directions × 4 frames at 64x64)",
+      "status": "artist_required"
+    },
+    {
+      "traitType": "Accessories 2",
+      "value": "None",
+      "layerId": "accessories-2--none--454335a777",
+      "requiredSheet": "apps/game/public/assets/sprites/layers/accessories-2/accessories-2--none--454335a777.png",
+      "requiredCanvas": "256x256 transparent PNG (4 directions × 4 frames at 64x64)",
+      "status": "artist_required"
+    },
+    {
+      "traitType": "Special",
+      "value": "DeepSea Bruh",
+      "layerId": "special--deepsea-bruh--25cc9eb7f5",
+      "requiredSheet": "apps/game/public/assets/sprites/layers/special/special--deepsea-bruh--25cc9eb7f5.png",
+      "requiredCanvas": "256x256 transparent PNG (4 directions × 4 frames at 64x64)",
+      "status": "artist_required"
+    },
+    {
+      "traitType": "Special",
+      "value": "Space Suit",
+      "layerId": "special--space-suit--236a7cda99",
+      "requiredSheet": "apps/game/public/assets/sprites/layers/special/special--space-suit--236a7cda99.png",
+      "requiredCanvas": "256x256 transparent PNG (4 directions × 4 frames at 64x64)",
+      "status": "artist_required"
+    },
+    {
+      "traitType": "Special",
+      "value": "Green Ski Mask Laser",
+      "layerId": "special--green-ski-mask-laser--27d241d63a",
+      "requiredSheet": "apps/game/public/assets/sprites/layers/special/special--green-ski-mask-laser--27d241d63a.png",
+      "requiredCanvas": "256x256 transparent PNG (4 directions × 4 frames at 64x64)",
+      "status": "artist_required"
+    },
+    {
+      "traitType": "Special",
+      "value": "Gimp",
+      "layerId": "special--gimp--a5c4d55667",
+      "requiredSheet": "apps/game/public/assets/sprites/layers/special/special--gimp--a5c4d55667.png",
+      "requiredCanvas": "256x256 transparent PNG (4 directions × 4 frames at 64x64)",
+      "status": "artist_required"
+    },
+    {
+      "traitType": "Special",
+      "value": "Pink Ski Mask Laser",
+      "layerId": "special--pink-ski-mask-laser--b213c4810d",
+      "requiredSheet": "apps/game/public/assets/sprites/layers/special/special--pink-ski-mask-laser--b213c4810d.png",
+      "requiredCanvas": "256x256 transparent PNG (4 directions × 4 frames at 64x64)",
+      "status": "artist_required"
+    },
+    {
+      "traitType": "Special",
+      "value": "Anime Mask",
+      "layerId": "special--anime-mask--83aa7d1c55",
+      "requiredSheet": "apps/game/public/assets/sprites/layers/special/special--anime-mask--83aa7d1c55.png",
+      "requiredCanvas": "256x256 transparent PNG (4 directions × 4 frames at 64x64)",
+      "status": "artist_required"
+    },
+    {
+      "traitType": "Special",
+      "value": "None",
+      "layerId": "special--none--9915e463eb",
+      "requiredSheet": "apps/game/public/assets/sprites/layers/special/special--none--9915e463eb.png",
+      "requiredCanvas": "256x256 transparent PNG (4 directions × 4 frames at 64x64)",
+      "status": "artist_required"
+    }
+  ]
+}

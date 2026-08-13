@@ -1,0 +1,5 @@
+{
+  "schemaVersion": 1,
+  "description": "Human-reviewed story role overrides. These always take priority over generated suggestions.",
+  "overrides": {}
+}

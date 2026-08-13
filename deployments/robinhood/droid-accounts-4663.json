@@ -1,0 +1,80 @@
+{
+  "schema": "dyoor-droid-accounts-deployment-v1",
+  "chainId": 4663,
+  "environment": "mainnet",
+  "deployer": "0xC7f55cE6A7dF9A79cc4A643a5081230F890c7AA6",
+  "controllingCollection": "0x8277F8126722B11D7b44C5C453bcF62A78AAFa25",
+  "canonicalRegistry": "0x000000006551c19487814612e58FE06813775758",
+  "accountSalt": "0x0000000000000000000000000000000000000000000000000000000000000000",
+  "implementationVersion": 1,
+  "implementation": "0x0FFDc6ACb41D39ee7b535026202AA8fe0054F52A",
+  "registry": "0x190602Aa70199ec3623ad3bc97a10B534b26fE48",
+  "transactions": [
+    {
+      "label": "deploy-droid-account-v1",
+      "hash": "0x1605862ea19f7b5e1944b12aad703657cd24b76c061f1a198bc1fce7f17cb747",
+      "blockNumber": 33356761,
+      "gasUsed": "1178094",
+      "effectiveGasPrice": "27390000",
+      "fee": "32267994660000"
+    },
+    {
+      "label": "deploy-droid-account-registry",
+      "hash": "0xe85480a44c56ac02233c87c574f06646f8b607cc831cc205e3435b8c5ccad0c2",
+      "blockNumber": 33356809,
+      "gasUsed": "525027",
+      "effectiveGasPrice": "27756000",
+      "fee": "14572649412000"
+    }
+  ],
+  "verification": {
+    "implementationContract": "src/droid/DroidAccountV1.sol:DroidAccountV1",
+    "registryContract": "src/droid/DroidAccountRegistry.sol:DroidAccountRegistry",
+    "registryConstructorArguments": "0x000000000000000000000000000000006551c19487814612e58fe068137757580000000000000000000000008277f8126722b11d7b44c5c453bcf62a78aafa250000000000000000000000000ffdc6acb41d39ee7b535026202aa8fe0054f52a00000000000000000000000000000000000000000000000000000000000012370000000000000000000000000000000000000000000000000000000000000000",
+    "compilerVersion": "0.8.24",
+    "evmVersion": "paris",
+    "optimizerRuns": 200,
+    "viaIR": true
+  },
+  "preflight": {
+    "checkedAt": "2026-08-11T03:59:49.510Z",
+    "implementationBytecodeHash": "0x6e7cdb06a6bc731269420b037eac74cf9de8afadf4a6a3a836f0317bedabb083",
+    "registryBytecodeHash": "0x4f7fd054d933400fdf2cb2a5ee6de4ffa5cc7d6b9ffe4aa87085c275fa366652",
+    "canonicalRegistryRuntimeHash": "0xda1d5b06e579f9e42e59b00fbc22939896ecb38dc8830d40de0a2508fecd6735",
+    "collectionRuntimeHash": "0xb0fdec098263081f9f48307f5af421919d5393822e7e7581a01044aadf8e405e",
+    "estimatedImplementationGas": "1188611",
+    "estimatedRegistryGas": "530373",
+    "estimatedGasPriceWei": "55612000",
+    "estimatedDeploymentWei": "95596138208000",
+    "requiredBufferedBalanceWei": "286788414624000",
+    "deployerBalanceWei": "15362699355944681",
+    "productionSnapshot": {
+      "owner": "0xC7f55cE6A7dF9A79cc4A643a5081230F890c7AA6",
+      "treasury": "0xC7f55cE6A7dF9A79cc4A643a5081230F890c7AA6",
+      "totalSupply": 0,
+      "revealed": false,
+      "renderer": "0xb9cB0563013D9741f76a802d2F658EbF3433eE12",
+      "energyBank": "0x9bA9aa6c6A1CB04bc0477E90f4D93214c6b1D7c3",
+      "rerollController": "0x6cf24a0119b7286ad88855Baa9CB220DF628FD11",
+      "rerollControllerFrozen": true,
+      "rendererFrozen": true,
+      "energyConfigurationFrozen": true,
+      "initialTraitsFrozen": true,
+      "rerollPaused": false,
+      "paymentConfigurationFrozen": true,
+      "weiPerEnergy": "1000000000000",
+      "usdgUnitsPerEnergy": "1000"
+    }
+  },
+  "completedAt": "2026-08-11T03:59:59.545Z",
+  "startBlock": 33356761,
+  "runtimeCodeHashes": {
+    "implementation": "0x79960eb6eafdb9d59a629dc2f221199ef05e432ef6a39894840fbaf841a134a5",
+    "registry": "0x92c3ea93ff1fdaa33e8e04912eb96b5e89471d6fd7e35cdc4565b050f64f19da",
+    "canonicalRegistry": "0xda1d5b06e579f9e42e59b00fbc22939896ecb38dc8830d40de0a2508fecd6735"
+  },
+  "counterfactualExample": {
+    "tokenId": 1,
+    "account": "0xbA23CC9C7C13E6cE599cd1c5E1085904F0Fa6709"
+  }
+}

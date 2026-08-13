@@ -1,0 +1,59 @@
+{
+  "version": 1,
+  "chainId": 143,
+  "finalizedAt": "2026-07-24T13:25:40.157Z",
+  "owner": "0xC7f55cE6A7dF9A79cc4A643a5081230F890c7AA6",
+  "processor": "0xca2A0ae3F042AA2522a49941059317Ec812dD5cD",
+  "totalChargedMon": "0.576113582002301573",
+  "worldNames": {
+    "address": "0xDE073c0ea9052a51c7fC67BE6fc311a1C0c00357",
+    "startBlock": 89918006,
+    "deploymentTx": "0x99f37b311641fd1c914c6b20f90ba470905851b2d38554893ad1cca3e9faf2cd",
+    "reserveLabelsTx": "0x72985253cba05086b147168bc76107acfeacd35b43661fd40d53392dadf841a2",
+    "s2Collection": "0x349D8eb480c92cF75371fbA5C6344A4d11b9103A",
+    "claimsOpen": false,
+    "totalNames": "0",
+    "sourcify": "https://sourcify-api-monad.blockvision.org/repo-ui/143/0xDE073c0ea9052a51c7fC67BE6fc311a1C0c00357"
+  },
+  "traitBounties": {
+    "address": "0x0273a3880a097f3F73c36c015558E271f5911251",
+    "startBlock": 89918088,
+    "deploymentTx": "0x9b6a476baf80ce0fc39637d437fd582769a30bf21bb64ebfa1e68b4a69e2dd18",
+    "grantCreditRoleTx": "0xfecd76f7f20db8dabb9215ab8d41354232a309fe01df77bddc7690bb6d764299",
+    "energyBank": "0x291a8cC0FCa08EBd64a0e4d67B4455d24e9E6767",
+    "processorEnabled": true,
+    "creditRoleGranted": true,
+    "bountyCount": "0",
+    "sourcify": "https://sourcify-api-monad.blockvision.org/repo-ui/143/0x0273a3880a097f3F73c36c015558E271f5911251"
+  },
+  "transactions": [
+    {
+      "hash": "0x99f37b311641fd1c914c6b20f90ba470905851b2d38554893ad1cca3e9faf2cd",
+      "blockNumber": 89918006,
+      "gasUsed": "2301573",
+      "gasPriceGwei": "102.000000001",
+      "chargedMon": "0.234760446002301573"
+    },
+    {
+      "hash": "0x72985253cba05086b147168bc76107acfeacd35b43661fd40d53392dadf841a2",
+      "blockNumber": 89918011,
+      "gasUsed": "1163118",
+      "gasPriceGwei": "102.0",
+      "chargedMon": "0.118638036"
+    },
+    {
+      "hash": "0x9b6a476baf80ce0fc39637d437fd582769a30bf21bb64ebfa1e68b4a69e2dd18",
+      "blockNumber": 89918088,
+      "gasUsed": "2099354",
+      "gasPriceGwei": "102.0",
+      "chargedMon": "0.214134108"
+    },
+    {
+      "hash": "0xfecd76f7f20db8dabb9215ab8d41354232a309fe01df77bddc7690bb6d764299",
+      "blockNumber": 89918091,
+      "gasUsed": "70336",
+      "gasPriceGwei": "122.0",
+      "chargedMon": "0.008580992"
+    }
+  ]
+}

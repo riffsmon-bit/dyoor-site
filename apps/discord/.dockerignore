@@ -1,0 +1,14 @@
+.DS_Store
+.env
+.env.*
+backups
+coverage
+database
+dist
+docs
+node_modules
+tests
+*.db
+*.db-*
+*.sqlite
+*.sqlite-*

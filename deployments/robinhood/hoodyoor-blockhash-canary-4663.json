@@ -1,0 +1,35 @@
+{
+  "schema": "dyoor-hoodyoor-blockhash-canary-v1",
+  "chainId": 4663,
+  "deployer": "0xC7f55cE6A7dF9A79cc4A643a5081230F890c7AA6",
+  "canary": "0x3f38DBe5d52f824f3f4738Fe7db5D58dfD1A2216",
+  "creationBytecodeHash": "0xb8e660d743e82588f942ebcac78204fb4fd1932e55eb350a065ca1f9a7cedddd",
+  "runtimeBytecodeHash": "0x37281ea1246cf47640e0d0d47ab32002917228e058e3b92c5f2bae4a45889b7f",
+  "deploymentTransaction": "0x09d620cf3492d8dd41a640f52c7ac0c3cbedda237c9823190b8d45d165c16559",
+  "deploymentBlock": 32230586,
+  "requestBlock": 25719874,
+  "targetBlock": 25719938,
+  "transactions": [
+    {
+      "label": "deploy-blockhash-canary",
+      "hash": "0x09d620cf3492d8dd41a640f52c7ac0c3cbedda237c9823190b8d45d165c16559",
+      "blockNumber": 32230586
+    },
+    {
+      "label": "observe-target-blockhash",
+      "hash": "0xd87a389f04df92bac95532a89488decff7719959f49e96d400914f24248f6a1e",
+      "blockNumber": 32238381
+    }
+  ],
+  "status": "validated",
+  "observationTransaction": "0xd87a389f04df92bac95532a89488decff7719959f49e96d400914f24248f6a1e",
+  "observationBlock": 32238381,
+  "observedBlockHash": "0x00d1ac94c0e080489cb7146f2a62e8e21e4d3360a162661ffba6a7d967f85fe8",
+  "canonicalTargetBlockHash": "0x00d1ac94c0e080489cb7146f2a62e8e21e4d3360a162661ffba6a7d967f85fe8",
+  "canonicalTargetChainId": 4663,
+  "canonicalTargetBlockNumber": 32238349,
+  "canonicalTargetParentBlockNumber": 25719938,
+  "canonicalTargetSource": "Robinhood L2 block resolved by hash; its Nitro l1BlockNumber equals the Solidity BLOCKHASH argument",
+  "observer": "0xC7f55cE6A7dF9A79cc4A643a5081230F890c7AA6",
+  "validatedAt": "2026-08-09T21:16:39.367Z"
+}

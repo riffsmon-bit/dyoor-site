@@ -1,0 +1,98 @@
+{
+  "schema": "dyoor-hoodyoor-opensea-branding-v1",
+  "collection": "HoodYØØR",
+  "chain": "robinhood",
+  "generationPolicy": {
+    "newGenerativeArtwork": true,
+    "mode": "built-in-imagegen",
+    "style": "refined HoodYØØR 128x128-era pixel art",
+    "promptRecord": "data/robinhood/branding/PIXEL_OPENSEA_IMAGEGEN_PROMPTS.md",
+    "note": "All marketplace branding uses the approved pixel collection identity; every uncovered Droid face includes a visible mouth."
+  },
+  "assets": [
+    {
+      "id": "banner-desktop",
+      "purpose": "OpenSea desktop page header (8:3)",
+      "path": "data/robinhood/branding/opensea/opensea-banner-desktop.png",
+      "source": "data/robinhood/branding/robinhood-collection-banner-pixel-v2.png",
+      "width": 3200,
+      "height": 1200,
+      "logicalWidth": 800,
+      "logicalHeight": 300,
+      "pixelScale": 4,
+      "format": "png",
+      "bytes": 554759,
+      "sha256": "250532753febd80548a2bb1caac546e79a5fa5302a59d9322bcb1ceeda0ea741"
+    },
+    {
+      "id": "banner-mobile",
+      "purpose": "OpenSea mobile page header (16:9)",
+      "path": "data/robinhood/branding/opensea/opensea-banner-mobile.png",
+      "source": "data/robinhood/branding/robinhood-collection-mobile-trio-pixel-v3.png",
+      "width": 1920,
+      "height": 1080,
+      "logicalWidth": 640,
+      "logicalHeight": 360,
+      "pixelScale": 3,
+      "format": "png",
+      "bytes": 484557,
+      "sha256": "4fd1b02e593d15b5f71a13db1a2ab54c2ca81401c71dbdabc009af7d760fd0f2"
+    },
+    {
+      "id": "banner-logo",
+      "purpose": "OpenSea banner logo and collection profile image (1:1)",
+      "path": "data/robinhood/branding/opensea/opensea-banner-logo.png",
+      "source": "data/robinhood/branding/robinhood-collection-pfp-pixel-v2.png",
+      "width": 1024,
+      "height": 1024,
+      "logicalWidth": 256,
+      "logicalHeight": 256,
+      "pixelScale": 4,
+      "format": "png",
+      "bytes": 153974,
+      "sha256": "0b266881e78767c749d4e78a7d789369d2d9a48796faa01332e46a09fb14fcd7"
+    },
+    {
+      "id": "overview-background",
+      "purpose": "OpenSea overview background media (16:9)",
+      "path": "data/robinhood/branding/opensea/opensea-overview-background.png",
+      "source": "data/robinhood/branding/robinhood-collection-overview-pixel-v2.png",
+      "width": 2560,
+      "height": 1440,
+      "logicalWidth": 640,
+      "logicalHeight": 360,
+      "pixelScale": 4,
+      "format": "png",
+      "bytes": 607067,
+      "sha256": "786d1831cdc2acbc04240d86613f154b832b3ffc88b4a742d70abf605c771dc2"
+    },
+    {
+      "id": "pixel-art-preview",
+      "purpose": "Pixel-faithful 8x preview of a real onchain 128x128 composition",
+      "path": "data/robinhood/branding/opensea/opensea-pixel-art-preview.png",
+      "source": "data/robinhood/pixel-pilot/contact-sheet-128/sample-01-128.png",
+      "width": 1024,
+      "height": 1024,
+      "logicalWidth": 128,
+      "logicalHeight": 128,
+      "pixelScale": 8,
+      "format": "png",
+      "bytes": 13969,
+      "sha256": "6cf8681d50a1661ed698ed0e01d4bf798a36971bc63b1a3a2fba544e41247816"
+    },
+    {
+      "id": "social-share",
+      "purpose": "Collection social/share card",
+      "path": "data/robinhood/branding/opensea/opensea-social-share.png",
+      "source": "data/robinhood/branding/robinhood-collection-overview-pixel-v2.png",
+      "width": 1200,
+      "height": 630,
+      "logicalWidth": 400,
+      "logicalHeight": 210,
+      "pixelScale": 3,
+      "format": "png",
+      "bytes": 231559,
+      "sha256": "e3aa9e48ecd4ef182a45a606a5e19636cdc2576a38a67cbfd67f959b9169d8bb"
+    }
+  ]
+}

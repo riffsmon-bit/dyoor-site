@@ -1,0 +1,25 @@
+[profile.default]
+src = "src"
+test = "test"
+script = "script"
+out = "out"
+libs = ["lib"]
+remappings = ["@openzeppelin/contracts/=../../node_modules/@openzeppelin/contracts/"]
+allow_paths = ["../../node_modules/@openzeppelin/contracts"]
+solc_version = "0.8.24"
+evm_version = "paris"
+optimizer = true
+optimizer_runs = 200
+via_ir = true
+fs_permissions = [{ access = "read", path = "../../data/robinhood/onchain-128" }]
+
+[fmt]
+line_length = 100
+tab_width = 4
+bracket_spacing = true
+
+# Release artifacts are built from an explicit source scope by the release
+# tooling. Storage layout is retained for auditors; source maps and compiler
+# source/AST IDs are treated as debug metadata by canonical hashing.
+[profile.release]
+extra_output = ["storageLayout"]

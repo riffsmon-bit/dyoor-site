@@ -1,0 +1,17 @@
+{
+  "schema": "dyoor-hoodyoor-owner-launch-decisions-v1",
+  "chainId": 4663,
+  "owner": "0xC7f55cE6A7dF9A79cc4A643a5081230F890c7AA6",
+  "sourceTreeKeccak256": "0xe1d826b0509fa93d8373e9f8cea20fac2b8015f8dfcebc3d670824923794598c",
+  "paidMintEnergy": {
+    "rewardPerToken": 1000,
+    "approved": true
+  },
+  "securityReview": {
+    "independentlyReviewed": false,
+    "explicitOwnerWaiver": true,
+    "acknowledgement": "HOODYOOR-OWNER-ACCEPTS-UNAUDITED-MAINNET-RISK",
+    "statement": "Owner explicitly accepts unaudited smart-contract mainnet deployment risk. This waiver is not an audit or independent security approval."
+  },
+  "recordedAt": "2026-08-09T21:57:32.192Z"
+}

@@ -16,6 +16,15 @@ const csp = [
   "form-action 'self'",
 ].join("; ");
 
+const hoodYoorOnchainData = [
+  "./data/robinhood/dyoor-trait-catalog.json",
+  "./data/robinhood/dyoor-trait-asset-manifest.json",
+  "./data/robinhood/onchain-128/hoodyoor-onchain-art-manifest.json",
+  "./data/robinhood/onchain-128/hoodyoor-onchain-art.bin",
+  "./data/robinhood/onchain-128/hoodyoor-reroll-rules.json",
+  "./data/robinhood/onchain-128/hoodyoor-reroll-rules.bin",
+];
+
 const nextConfig = {
   reactStrictMode: true,
   poweredByHeader: false,
@@ -36,6 +45,10 @@ const nextConfig = {
     ],
   },
   outputFileTracingIncludes: {
+    "/api/robinhood/trait-lab": hoodYoorOnchainData,
+    "/api/robinhood/trait-lab/confirm": hoodYoorOnchainData,
+    "/api/robinhood/trait-lab/image": hoodYoorOnchainData,
+    "/api/robinhood/trait-lab/preview": hoodYoorOnchainData,
     "/api/metadata/[tokenId]": [
       "./data/dyoor-s2-base-layers/**/*",
     ],

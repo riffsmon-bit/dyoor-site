@@ -1,0 +1,52 @@
+{
+  "contractName": "DYOORSeason2SeaDrop",
+  "name": "D.Y.O.O.R",
+  "symbol": "DYOOR",
+  "contractAddress": "0x349D8eb480c92cF75371fbA5C6344A4d11b9103A",
+  "deployer": "0xC7f55cE6A7dF9A79cc4A643a5081230F890c7AA6",
+  "chainId": 143,
+  "constructorSeaDrop": "0x00005EA00Ac477B1030CE78506496e8C2dE24bf5",
+  "treasury": "0x4D540f7D0Eb841c839334655C9f88313D750c6d5",
+  "royaltyReceiver": "0x4D540f7D0Eb841c839334655C9f88313D750c6d5",
+  "royaltyBps": "500",
+  "metadataManager": null,
+  "baseURI": "ipfs://bafybeidz7htb3digthznwvl4ytdpckq2q3d2ytgxtsie5bcp7a4lgtb2sq/",
+  "contractURI": null,
+  "maxSupply": "3333",
+  "airdropReserve": "610",
+  "seaDropMaxSupply": "2723",
+  "timestamp": "2026-07-14T03:13:43.021Z",
+  "constructorArgs": [
+    "D.Y.O.O.R",
+    "DYOOR",
+    [
+      "0x00005EA00Ac477B1030CE78506496e8C2dE24bf5"
+    ]
+  ],
+  "transactions": [
+    {
+      "label": "deploy",
+      "hash": "0x4bf48a20f598ffeb3e5bbd655ace2660129f0bc6624d4e685cc4623daead6d79",
+      "blockNumber": 87616887,
+      "gasUsed": "4940433"
+    },
+    {
+      "label": "setTreasury",
+      "hash": "0xabd2b53649406a621dfeafbad1f975e0e51e8f297f8e434b48c19f0209525d24",
+      "blockNumber": 87616898,
+      "gasUsed": "44714"
+    },
+    {
+      "label": "setRoyaltyInfo",
+      "hash": "0x63c8c120a17c146a912572de77ed7da4cb4eea9e1d7c3079c80e7a0c3e6ae57c",
+      "blockNumber": 87616909,
+      "gasUsed": "43939"
+    },
+    {
+      "label": "setBaseURI",
+      "hash": "0xc806cff5c724d14c8916dcb1d17b62a5138920f32f85cf19e0d5ac0dcbfa21ec",
+      "blockNumber": 87616921,
+      "gasUsed": "172000"
+    }
+  ]
+}

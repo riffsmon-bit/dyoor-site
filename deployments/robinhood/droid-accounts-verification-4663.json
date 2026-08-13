@@ -1,0 +1,52 @@
+{
+  "schema": "dyoor-droid-accounts-verification-v1",
+  "chainId": 4663,
+  "deployedAt": "2026-08-11T03:59:59.545Z",
+  "verifiedAt": "2026-08-11T04:08:26Z",
+  "compiler": {
+    "version": "v0.8.24+commit.e11b9ed9",
+    "optimizerEnabled": true,
+    "optimizerRuns": 200,
+    "viaIR": true,
+    "evmVersion": "paris"
+  },
+  "contracts": {
+    "implementation": {
+      "name": "DroidAccountV1",
+      "address": "0x0FFDc6ACb41D39ee7b535026202AA8fe0054F52A",
+      "deploymentTransaction": "0x1605862ea19f7b5e1944b12aad703657cd24b76c061f1a198bc1fce7f17cb747",
+      "deploymentBlock": 33356761,
+      "runtimeCodeHash": "0x79960eb6eafdb9d59a629dc2f221199ef05e432ef6a39894840fbaf841a134a5",
+      "verified": true,
+      "explorerUrl": "https://robinhoodchain.blockscout.com/address/0x0FFDc6ACb41D39ee7b535026202AA8fe0054F52A"
+    },
+    "registry": {
+      "name": "DroidAccountRegistry",
+      "address": "0x190602Aa70199ec3623ad3bc97a10B534b26fE48",
+      "deploymentTransaction": "0xe85480a44c56ac02233c87c574f06646f8b607cc831cc205e3435b8c5ccad0c2",
+      "deploymentBlock": 33356809,
+      "runtimeCodeHash": "0x92c3ea93ff1fdaa33e8e04912eb96b5e89471d6fd7e35cdc4565b050f64f19da",
+      "verified": true,
+      "explorerUrl": "https://robinhoodchain.blockscout.com/address/0x190602Aa70199ec3623ad3bc97a10B534b26fE48"
+    }
+  },
+  "binding": {
+    "collection": "0x8277F8126722B11D7b44C5C453bcF62A78AAFa25",
+    "canonicalRegistry": "0x000000006551c19487814612e58FE06813775758",
+    "salt": "0x0000000000000000000000000000000000000000000000000000000000000000",
+    "implementationVersion": 1,
+    "counterfactualTokenOneAccount": "0xbA23CC9C7C13E6cE599cd1c5E1085904F0Fa6709"
+  },
+  "deploymentCheckpoint": "deployments/robinhood/droid-accounts-4663.json",
+  "localSolidityTests": {
+    "passed": 72,
+    "failed": 0,
+    "forkTestSkippedInLocalSuite": 1
+  },
+  "mainnetForkSimulation": {
+    "passed": true,
+    "test": "DroidAccountRobinhoodForkTest.testForkDeploymentActivationTransferAndRerollInvariants"
+  },
+  "independentAudit": false,
+  "note": "Source verification and automated/fork simulation are not an independent security audit."
+}
