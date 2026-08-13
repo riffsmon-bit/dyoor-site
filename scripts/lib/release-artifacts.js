@@ -144,6 +144,7 @@ export function artifactRecord(root, outDirectory, definition) {
     wholeArtifactSha256: sha256(artifactBytes),
     canonicalArtifactSha256: hashJson(canonical),
     abiSha256: hashJson(artifact.abi || []),
+    constructorSchema: constructorSchema(artifact.abi || []),
     constructorSchemaSha256: hashJson(constructorSchema(artifact.abi || [])),
     creationBytecodeHash: keccak256(creation),
     runtimeBytecodeHash: keccak256(runtime),

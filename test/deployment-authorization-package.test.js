@@ -11,16 +11,17 @@ function readJson(relativePath) {
   return JSON.parse(fs.readFileSync(path.join(ROOT, relativePath), "utf8"));
 }
 
-test("deployment authorization package is fail-closed", () => {
+test("deployment authorization package is reproducibly frozen and audit-gated", () => {
   const release = readJson("deployments/authorization/dual-chain-release.json");
   const source = readJson("deployments/authorization/release-source-snapshot.json");
   const monad = readJson("deployments/authorization/monad-transactions.json");
   const robinhood = readJson("deployments/authorization/robinhood-transactions.json");
 
-  assert.equal(release.packageStatus, "BLOCKED");
-  assert.equal(release.releaseGate, "ARTIFACT_FREEZE_BROKEN");
-  assert.equal(source.cleanSourceSnapshot, false);
-  assert.equal(source.privateKeyRead, true);
+  assert.equal(release.packageStatus, "AUDIT_REQUIRED");
+  assert.equal(release.releaseGate, "INDEPENDENT_AUDIT_NOT_STARTED");
+  assert.equal(source.cleanSourceSnapshot, true);
+  assert.equal(source.privateKeyRead, false);
+  assert.equal(source.historicalSecretAccessIncident.occurredInPriorBlockedPass, true);
   assert.equal(release.deploymentAuthorized, false);
   assert.equal(release.broadcastCapability, false);
   assert.equal(monad.transactionAuthorizationPrepared, false);
@@ -43,15 +44,16 @@ test("treasury, asset, source, strategy, agent, and bridge defaults remain inact
   assert.equal(release.featureActivationAuthorizations.BRIDGE_APPROVED, false);
 });
 
-test("offline package verifier accepts only the intentionally blocked state", () => {
+test("offline package verifier stops at the independent-audit gate", () => {
   const output = execFileSync(
     process.execPath,
     [path.join(ROOT, "scripts", "verify-deployment-authorization-package.js")],
     { cwd: ROOT, encoding: "utf8" },
   );
   const result = JSON.parse(output);
-  assert.equal(result.result, "PASS_BLOCKED");
-  assert.equal(result.artifactFileMismatches, 6);
+  assert.equal(result.result, "PASS_AUDIT_REQUIRED");
+  assert.equal(result.reproducibleBuilds, 3);
+  assert.equal(result.independentAudit, "NOT_STARTED");
   assert.equal(result.deploymentAuthorized, false);
   assert.equal(result.broadcastCapability, false);
 });

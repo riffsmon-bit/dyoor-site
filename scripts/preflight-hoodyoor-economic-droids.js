@@ -38,6 +38,24 @@ const newAddressVariables = {
   achievementRegistry: "HOODYOOR_ACHIEVEMENT_REGISTRY_ADDRESS",
 };
 
+function outputPath() {
+  const inline = process.argv.find((value) => value.startsWith("--output="));
+  if (inline) return inline.slice("--output=".length);
+  const index = process.argv.indexOf("--output");
+  return index >= 0 ? process.argv[index + 1] : "";
+}
+
+function writeReport(report) {
+  const serialized = `${JSON.stringify(report, null, 2)}\n`;
+  const requested = outputPath();
+  if (requested) {
+    const target = path.isAbsolute(requested) ? requested : path.resolve(ROOT, requested);
+    fs.mkdirSync(path.dirname(target), { recursive: true });
+    fs.writeFileSync(target, serialized);
+  }
+  process.stdout.write(serialized);
+}
+
 function truthy(value) {
   return /^(1|true|yes|on)$/i.test(String(value || "").trim());
 }
@@ -291,7 +309,7 @@ async function main() {
     privateKeyRead: false,
     nextAction: "Review docs/hoodyoor-economic-droid-deployment-report.md. No deployment is authorized.",
   };
-  process.stdout.write(`${JSON.stringify(report, null, 2)}\n`);
+  writeReport(report);
 }
 
 main().catch((error) => {

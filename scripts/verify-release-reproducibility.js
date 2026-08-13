@@ -39,6 +39,7 @@ function critical(record) {
     wholeArtifactSha256: record.wholeArtifactSha256,
     canonicalArtifactSha256: record.canonicalArtifactSha256,
     abiSha256: record.abiSha256,
+    constructorSchema: record.constructorSchema,
     constructorSchemaSha256: record.constructorSchemaSha256,
     creationBytecodeHash: record.creationBytecodeHash,
     runtimeBytecodeHash: record.runtimeBytecodeHash,

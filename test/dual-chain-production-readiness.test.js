@@ -27,7 +27,7 @@ test("dual-chain manifests remain at the non-broadcast deployment hold", () => {
   assert.deepEqual(robinhood.governanceConfiguration.approvedRevenueSources, []);
 });
 
-test("superseded offline freeze verifier fails closed after artifact-container drift", () => {
+test("replacement offline freeze verifier accepts only the reproducible audit-gated freeze", () => {
   const source = fs.readFileSync(freezeScript, "utf8");
   assert.doesNotMatch(source, /JsonRpcProvider|ContractFactory|new Wallet|sendTransaction|broadcastTransaction/);
 
@@ -35,12 +35,14 @@ test("superseded offline freeze verifier fails closed after artifact-container d
     cwd: process.cwd(),
     encoding: "utf8",
   });
-  assert.notEqual(result.status, 0);
-  assert.match(result.stderr, /artifact SHA-256 changed/);
+  assert.equal(result.status, 0, result.stderr);
+  const report = JSON.parse(result.stdout);
+  assert.equal(report.result, "PASS_AUDIT_REQUIRED");
+  assert.equal(report.buildsMatched, 3);
 
   const authorization = manifest("deployments/authorization/dual-chain-release.json");
-  assert.equal(authorization.packageStatus, "BLOCKED");
-  assert.equal(authorization.releaseGate, "ARTIFACT_FREEZE_BROKEN");
+  assert.equal(authorization.packageStatus, "AUDIT_REQUIRED");
+  assert.equal(authorization.releaseGate, "INDEPENDENT_AUDIT_NOT_STARTED");
   assert.equal(authorization.broadcastCapability, false);
 });
 

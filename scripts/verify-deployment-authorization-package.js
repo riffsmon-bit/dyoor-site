@@ -1,19 +1,22 @@
-import { createHash } from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { keccak256 } from "ethers";
+import { hashJson, sha256 } from "./lib/release-artifacts.js";
+import { assertReadOnlyReleaseEnvironment } from "./lib/release-safety.js";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
-
-const FILES = {
+const FILES = Object.freeze({
   release: "deployments/authorization/dual-chain-release.json",
   source: "deployments/authorization/release-source-snapshot.json",
-  monad: "deployments/authorization/monad-transactions.json",
-  robinhood: "deployments/authorization/robinhood-transactions.json",
-};
-
-const REQUIRED_DOCS = [
+  monadTransactions: "deployments/authorization/monad-transactions.json",
+  robinhoodTransactions: "deployments/authorization/robinhood-transactions.json",
+  monadRelease: "deployments/monad/release-candidate-143.json",
+  robinhoodRelease: "deployments/robinhood/pre-mint-release-plan.json",
+  artifacts: "deployments/release-freeze/contract-artifacts.json",
+  reproducibility: "deployments/release-freeze/reproducibility.json",
+  cleanRoom: "deployments/release-freeze/clean-room-check.json",
+});
+const REQUIRED_DOCS = Object.freeze([
   "docs/deployment-authorization-master.md",
   "docs/owner-release-checklist.md",
   "docs/treasury-policy.md",
@@ -21,9 +24,14 @@ const REQUIRED_DOCS = [
   "docs/monad-canary-runbook.md",
   "docs/robinhood-economic-activation-plan.md",
   "docs/release-source-snapshot.md",
-];
-
-const FORBIDDEN_SWITCHES = [
+  "docs/release-change-classification.md",
+  "docs/artifact-drift-analysis.md",
+  "docs/release-environment-separation.md",
+  "docs/robinhood-eoa-safe-migration.md",
+  "docs/independent-audit-package.md",
+  "docs/release-validation-report.md",
+]);
+const FORBIDDEN_EXECUTION_SWITCHES = Object.freeze([
   "EXECUTE_MONAD_DROID_DEPLOYMENT",
   "ALLOW_MONAD_DROID_MAINNET",
   "EXECUTE_HOODYOOR_ECONOMIC_DEPLOYMENT",
@@ -31,7 +39,7 @@ const FORBIDDEN_SWITCHES = [
   "EXECUTE_HOODYOOR_MAINNET_DEPLOYMENT",
   "EXECUTE_HOODYOOR_SEADROP_V2_DEPLOYMENT",
   "BROADCAST",
-];
+]);
 
 function truthy(value) {
   return /^(1|true|yes|on)$/i.test(String(value || "").trim());
@@ -42,9 +50,9 @@ function fail(message) {
 }
 
 function bytes(relativePath) {
-  const absolutePath = path.join(ROOT, relativePath);
-  if (!fs.existsSync(absolutePath)) fail(`missing ${relativePath}`);
-  return fs.readFileSync(absolutePath);
+  const target = path.join(ROOT, relativePath);
+  if (!fs.existsSync(target)) fail(`missing ${relativePath}`);
+  return fs.readFileSync(target);
 }
 
 function json(relativePath) {
@@ -55,191 +63,225 @@ function json(relativePath) {
   }
 }
 
-function sha256(value) {
-  return `0x${createHash("sha256").update(value).digest("hex")}`;
-}
-
 function assertFalseApprovals(value, trail = []) {
   if (!value || typeof value !== "object") return;
   for (const [key, child] of Object.entries(value)) {
-    const nextTrail = [...trail, key];
-    if (
-      typeof child === "boolean"
-      && /(approved|authorized)$/i.test(key)
-      && child !== false
-    ) {
-      fail(`${nextTrail.join(".")} must remain false`);
+    const next = [...trail, key];
+    if (typeof child === "boolean" && /(approved|authorized)$/i.test(key) && child !== false) {
+      fail(`${next.join(".")} must remain false`);
     }
-    assertFalseApprovals(child, nextTrail);
+    assertFalseApprovals(child, next);
   }
 }
 
-function assertArtifact(record) {
-  const artifactBytes = bytes(record.artifact);
-  const artifact = JSON.parse(artifactBytes.toString("utf8"));
-  const creation = String(artifact?.bytecode?.object || "");
-  const runtime = String(artifact?.deployedBytecode?.object || "");
-  if (!/^0x[0-9a-f]+$/i.test(creation) || !/^0x[0-9a-f]+$/i.test(runtime)) {
-    fail(`${record.contract} has invalid bytecode`);
+function compareRecords(expected, actual, label) {
+  const fields = [
+    "sourceSha256",
+    "wholeArtifactSha256",
+    "canonicalArtifactSha256",
+    "abiSha256",
+    "constructorSchemaSha256",
+    "creationBytecodeHash",
+    "runtimeBytecodeHash",
+    "storageLayoutSha256",
+    "linkReferencesSha256",
+    "immutableReferencesSha256",
+  ];
+  for (const field of fields) {
+    if (String(expected[field]).toLowerCase() !== String(actual[field]).toLowerCase()) {
+      fail(`${label} ${field} differs from the reproducible freeze`);
+    }
   }
-  const actualArtifact = sha256(artifactBytes).toLowerCase();
-  if (actualArtifact !== String(record.rebuiltArtifactSha256).toLowerCase()) {
-    fail(`${record.contract} rebuilt artifact SHA changed again`);
+  if (hashJson(expected.constructorSchema) !== expected.constructorSchemaSha256) {
+    fail(`${label} constructor schema hash is internally inconsistent`);
   }
-  if (keccak256(creation).toLowerCase() !== String(record.creationCodeHash).toLowerCase()) {
-    fail(`${record.contract} creation bytecode changed`);
-  }
-  if (keccak256(runtime).toLowerCase() !== String(record.runtimeTemplateHash).toLowerCase()) {
-    fail(`${record.contract} runtime template changed`);
-  }
-  const artifactMatched = String(record.frozenArtifactSha256).toLowerCase() === actualArtifact;
-  if (artifactMatched !== record.artifactFreezeMatched) {
-    fail(`${record.contract} artifactFreezeMatched is inaccurate`);
-  }
-  if (record.ownerApproved !== false || record.maxAuthorizedGas !== null) {
-    fail(`${record.contract} contains transaction authorization`);
-  }
-  return artifactMatched;
 }
 
 function parseEnvironmentExample() {
-  const result = new Map();
-  for (const rawLine of bytes(".env.example").toString("utf8").split(/\r?\n/)) {
-    const line = rawLine.trim();
+  const values = new Map();
+  for (const raw of bytes(".env.example").toString("utf8").split(/\r?\n/)) {
+    const line = raw.trim();
     if (!line || line.startsWith("#")) continue;
-    const separator = line.indexOf("=");
-    if (separator < 0) continue;
-    result.set(line.slice(0, separator), line.slice(separator + 1));
+    const index = line.indexOf("=");
+    if (index >= 0) values.set(line.slice(0, index), line.slice(index + 1));
   }
-  return result;
+  return values;
 }
 
 function main() {
-  for (const variable of FORBIDDEN_SWITCHES) {
-    if (truthy(process.env[variable])) fail(`${variable} cannot be enabled in package mode`);
+  assertReadOnlyReleaseEnvironment();
+  for (const variable of FORBIDDEN_EXECUTION_SWITCHES) {
+    if (truthy(process.env[variable])) fail(`${variable} cannot be enabled in verification mode`);
   }
 
   const release = json(FILES.release);
   const source = json(FILES.source);
-  const monad = json(FILES.monad);
-  const robinhood = json(FILES.robinhood);
-
+  const monadTransactions = json(FILES.monadTransactions);
+  const robinhoodTransactions = json(FILES.robinhoodTransactions);
+  const monad = json(FILES.monadRelease);
+  const robinhood = json(FILES.robinhoodRelease);
+  const artifactFreeze = json(FILES.artifacts);
+  const reproducibility = json(FILES.reproducibility);
+  const cleanRoom = json(FILES.cleanRoom);
   for (const document of REQUIRED_DOCS) bytes(document);
 
-  if (release.packageStatus !== "BLOCKED" || release.releaseGate !== "ARTIFACT_FREEZE_BROKEN") {
-    fail("release must remain blocked on the broken artifact freeze");
+  if (release.packageStatus !== "AUDIT_REQUIRED") fail("package status is not AUDIT_REQUIRED");
+  if (release.releaseGate !== "INDEPENDENT_AUDIT_NOT_STARTED") {
+    fail("independent-audit gate is not active");
   }
-  if (source.cleanSourceSnapshot !== false || source.productionAuthorizationEligible !== false) {
-    fail("dirty source snapshot was incorrectly approved");
+  if (release.independentAudit?.overallStatus !== "NOT_STARTED") {
+    fail("independent audit must remain NOT_STARTED without external evidence");
   }
-  if (source.privateKeyRead !== true || !source.privateKeyReadIncident) {
-    fail("the legacy preflight key-read incident is not recorded");
+  if ((release.independentAudit?.contracts || []).some((entry) => entry.status !== "NOT_STARTED")) {
+    fail("a contract was incorrectly marked externally audited");
   }
-  if (release.broadcastCapability !== false || release.broadcastAttempted !== false) {
-    fail("release package exposes or records broadcast capability");
+  if (!source.cleanSourceSnapshot || !source.cleanCheckoutVerified) {
+    fail("clean source snapshot is not proven");
   }
-  if (release.fundsMoved !== false) fail("release package records moved funds");
-  if (monad.chain?.chainId !== 143 || robinhood.chain?.chainId !== 4663) {
-    fail("chain ID changed");
+  if (source.privateKeyRead !== false || source.verificationMode !== "KEYLESS_READ_ONLY") {
+    fail("source verification is not keyless");
+  }
+  if (!source.historicalSecretAccessIncident?.occurredInPriorBlockedPass) {
+    fail("historical secret-loading incident is not preserved in the audit record");
+  }
+  if (source.productionAuthorizationEligible !== false) {
+    fail("audit-required snapshot was incorrectly marked production eligible");
   }
   if (
-    monad.chain?.collection?.toLowerCase()
-      !== "0x349d8eb480c92cf75371fba5c6344a4d11b9103a"
-    || robinhood.chain?.collection?.toLowerCase()
-      !== "0x8277f8126722b11d7b44c5c453bcf62a78aafa25"
+    release.deploymentAuthorized !== false
+    || release.economicConfigurationAuthorized !== false
+    || release.featureActivationAuthorized !== false
+    || release.broadcastCapability !== false
+    || release.broadcastAttempted !== false
+    || release.fundsMoved !== false
+  ) {
+    fail("package exposes deployment, activation, broadcast, or fund movement authority");
+  }
+  assertFalseApprovals(release);
+  assertFalseApprovals(monadTransactions);
+  assertFalseApprovals(robinhoodTransactions);
+
+  const sourceCommit = artifactFreeze.sourceCommit;
+  for (const record of artifactFreeze.candidates || []) {
+    if (record.sourceCommit !== sourceCommit) fail(`${record.contract} source commit differs`);
+    if (sha256(bytes(record.source)) !== record.sourceSha256) {
+      fail(`${record.contract} source hash changed`);
+    }
+    if (record.auditStatus !== "NOT_STARTED") fail(`${record.contract} audit status changed`);
+  }
+  if ((artifactFreeze.candidates || []).length !== 8) fail("expected eight compiled candidates");
+  if (
+    artifactFreeze.previousFreeze?.status !== "INVALIDATED"
+    || artifactFreeze.reproducibility?.fullArtifactJsonReproducibleUnderReleaseScope !== true
+  ) {
+    fail("new reproducible freeze did not explicitly invalidate the old freeze");
+  }
+  if (
+    reproducibility.result !== "PASS"
+    || !reproducibility.canonicalOutputsIdentical
+    || !reproducibility.wholeArtifactJsonIdentical
+    || cleanRoom.result !== "PASS"
+    || !cleanRoom.cleanRoomThirdMatches
+    || reproducibility.sourceCommit !== sourceCommit
+    || cleanRoom.sourceCommit !== sourceCommit
+  ) {
+    fail("reproducibility evidence is incomplete or does not bind the source commit");
+  }
+  for (const candidate of artifactFreeze.candidates) {
+    const runA = reproducibility.runA.records.find((record) => record.contract === candidate.contract);
+    const runB = reproducibility.runB.records.find((record) => record.contract === candidate.contract);
+    const third = cleanRoom.records.find((record) => record.contract === candidate.contract);
+    if (!runA || !runB || !third) fail(`${candidate.contract} lacks three-build evidence`);
+    compareRecords(candidate, runA, candidate.contract);
+    compareRecords(candidate, runB, candidate.contract);
+    compareRecords(candidate, third, candidate.contract);
+  }
+
+  if (monad.chain?.chainId !== 143 || robinhood.chain?.chainId !== 4663) fail("chain changed");
+  if (
+    monad.collection?.address?.toLowerCase() !== "0x349d8eb480c92cf75371fba5c6344a4d11b9103a"
+    || robinhood.collection?.address?.toLowerCase() !== "0x8277f8126722b11d7b44c5c453bcf62a78aafa25"
   ) {
     fail("collection address changed");
   }
-  if (monad.safeCommands?.productionDeploymentCommand !== null) {
-    fail("Monad production deployment command must be withheld");
+  if (robinhood.collection.lifecycle !== "deployed-pre-mint" || robinhood.collection.totalSupplyAtFreeze !== 0) {
+    fail("Robinhood collection is not frozen pre-mint at zero supply");
   }
-  if (robinhood.safeCommands?.productionDeploymentCommand !== null) {
-    fail("Robinhood production deployment command must be withheld");
+  if (monad.independentAuditStatus !== "NOT_STARTED" || robinhood.independentAuditStatus !== "NOT_STARTED") {
+    fail("chain release incorrectly passed independent audit");
   }
-
-  assertFalseApprovals(release);
-  assertFalseApprovals(monad);
-  assertFalseApprovals(robinhood);
-
-  const artifactMatches = [];
-  for (const record of monad.proposedTransactions.filter((entry) => entry.artifact)) {
-    artifactMatches.push([record.contract, assertArtifact(record)]);
+  if (
+    monadTransactions.safeCommands?.productionDeploymentCommand !== null
+    || robinhoodTransactions.safeCommands?.productionDeploymentCommand !== null
+  ) {
+    fail("production deployment command must remain withheld");
   }
-  for (const record of robinhood.proposedTransactions) {
-    artifactMatches.push([record.contract, assertArtifact(record)]);
+  for (const candidate of [
+    ...monad.releaseCandidates.filter((entry) => entry.canonicalArtifactSha256),
+    ...robinhood.plannedEconomicDeployments,
+  ]) {
+    const frozen = artifactFreeze.candidates.find((entry) => entry.contract === candidate.contract);
+    if (!frozen) fail(`${candidate.contract} is absent from the artifact freeze`);
+    compareRecords(frozen, candidate, candidate.contract);
   }
-  const mismatchCount = artifactMatches.filter(([, matched]) => !matched).length;
-  if (mismatchCount !== 6 || source.artifactDrift?.length !== 6) {
-    fail(`expected six recorded artifact-file mismatches, found ${mismatchCount}`);
+  if (
+    robinhood.revenueVault?.requiredTotalBps !== 10_000
+    || robinhood.revenueVault?.allocationBuckets?.join("|")
+      !== "PROJECT_TREASURY|DROID_REWARDS|OTHER_APPROVED"
+  ) {
+    fail("Revenue Vault three-way 10,000-bps invariant is absent");
+  }
+  if (!robinhood.currentEoaConcentrationRisk?.sameAddressControlsCollectionTreasuryAndRoyalties) {
+    fail("Robinhood EOA concentration risk is not recorded");
+  }
+  if (
+    robinhood.governanceConfiguration.mainGovernanceSafe !== null
+    || robinhood.governanceConfiguration.treasurySafe !== null
+    || Object.keys(robinhood.governanceConfiguration.roleAssignments).length !== 0
+  ) {
+    fail("unapproved Robinhood governance values are populated");
   }
 
   const environment = parseEnvironmentExample();
-  for (const flag of Object.keys(release.codeFeatureFlagsRequiredFalse)) {
-    if (environment.get(flag) !== "false") fail(`${flag} must be false in .env.example`);
-  }
-  for (const [name, address] of Object.entries(release.governance?.safeAddresses || {})) {
-    if (address !== null) fail(`${name} must remain UNSET`);
-  }
-  if (release.treasuryPolicy?.launchRecommendation?.totalBps !== 10_000) {
-    fail("launch treasury proposal does not total 10,000 bps");
-  }
-  if (
-    release.treasuryPolicy.launchRecommendation.projectTreasuryBps
-      + release.treasuryPolicy.launchRecommendation.droidRewardsBps
-      + release.treasuryPolicy.launchRecommendation.otherApprovedBps
-      !== 10_000
-  ) {
-    fail("launch treasury components do not total 10,000 bps");
-  }
-  if ((release.approvedRevenueSources || []).length !== 0) {
-    fail("revenue sources must remain empty");
-  }
-  if ((release.strategyCandidates || []).some((strategy) => strategy.active)) {
-    fail("a strategy is active");
-  }
-  if ((release.assetCandidates?.monad || []).some((asset) => asset.approved)) {
-    fail("a Monad asset is approved");
-  }
-  if ((release.assetCandidates?.robinhood || []).some((asset) => asset.approved)) {
-    fail("a Robinhood asset is approved");
-  }
-
-  const keylessRobinhoodPreflight = bytes("scripts/preflight-hoodyoor-economic-droids.js")
-    .toString("utf8");
-  const keylessSeaDropPreflight = bytes("scripts/preflight-robinhood-seadrop-v2.js")
-    .toString("utf8");
-  for (const forbidden of [
-    "HOODYOOR_DEPLOYER_PRIVATE_KEY",
-    "DEPLOYER_PRIVATE_KEY",
-    "loadHoodyoorLocalEnvironment",
-    "new Wallet",
+  for (const flag of [
+    "DROID_REWARDS_ENABLED",
+    "DROID_STRATEGIES_ENABLED",
+    "CROSS_CHAIN_BRIDGE_ENABLED",
+    "DROID_AGENT_ENABLED",
   ]) {
-    if (keylessRobinhoodPreflight.includes(forbidden)) {
-      fail(`keyless Robinhood preflight contains ${forbidden}`);
-    }
-    if (keylessSeaDropPreflight.includes(forbidden)) {
-      fail(`keyless SeaDrop preflight contains ${forbidden}`);
-    }
+    if (environment.get(flag) !== "false") fail(`${flag} must remain false`);
   }
-  if (keylessSeaDropPreflight.includes("verifyRevealSecretBackup")) {
-    fail("keyless SeaDrop preflight reads the private reveal backup");
+  if (environment.get("BROADCAST") !== "false") fail("BROADCAST must default false");
+
+  const hardhatConfig = bytes("hardhat.config.js").toString("utf8");
+  if (/dotenv\/config|dotenv\.config|loadEnvConfig/.test(hardhatConfig)) {
+    fail("Hardhat config auto-loads root environment files");
+  }
+  for (const preflight of [
+    "scripts/preflight-monad-droid-accounts.js",
+    "scripts/preflight-hoodyoor-economic-droids.js",
+    "scripts/preflight-robinhood-mainnet.js",
+    "scripts/preflight-robinhood-seadrop-v2.js",
+  ]) {
+    const sourceCode = bytes(preflight).toString("utf8");
+    if (/loadHoodyoorLocalEnvironment|verifyRevealSecretBackup|new Wallet\s*\(/.test(sourceCode)) {
+      fail(`${preflight} contains a forbidden secret-dependent verification path`);
+    }
   }
 
   const result = {
-    mode: "offline-blocked-authorization-package",
+    mode: "offline-keyless-audit-gated-release-verification",
     packageStatus: release.packageStatus,
     releaseGate: release.releaseGate,
-    cleanSourceSnapshot: source.cleanSourceSnapshot,
-    independentAudit: release.independentAudit.overallStatus,
-    artifactsChecked: artifactMatches.map(([contract, matched]) => ({
-      contract,
-      wholeArtifactFreezeMatched: matched,
-    })),
-    artifactFileMismatches: mismatchCount,
+    sourceCommit,
+    cleanSourceSnapshot: true,
+    reproducibleBuilds: 3,
+    artifactsChecked: artifactFreeze.candidates.length,
+    independentAudit: "NOT_STARTED",
     deploymentAuthorized: false,
     broadcastCapability: false,
-    privateKeyIncidentRecorded: true,
-    result: "PASS_BLOCKED",
+    privateKeyRead: false,
+    result: "PASS_AUDIT_REQUIRED",
     nextAction: release.exactNextAction,
   };
   process.stdout.write(`${JSON.stringify(result, null, 2)}\n`);

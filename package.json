@@ -14,6 +14,8 @@
     "lint:release": "node scripts/run-keyless-release-command.js -- npm run lint",
     "contracts:release:build": "node scripts/build-release-contracts.js",
     "contracts:release:reproduce": "node scripts/verify-release-reproducibility.js",
+    "contracts:release:clean-room": "node scripts/verify-third-clean-room-build.js",
+    "release:freeze:generate": "node scripts/generate-release-freeze-package.js",
     "release:secret-sentinel": "node --test test/release-secret-isolation.test.js",
     "start": "next start -p 3000",
     "start:next": "next start -p 3000",
