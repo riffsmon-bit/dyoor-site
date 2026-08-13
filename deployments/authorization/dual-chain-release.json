@@ -1,69 +1,136 @@
 {
-  "schema": "hoodyoor-dual-chain-release-authorization-v1",
-  "generatedAt": "2026-08-12T15:00:53Z",
-  "packageStatus": "BLOCKED",
-  "releaseGate": "ARTIFACT_FREEZE_BROKEN",
-  "purpose": "Owner-facing release control only; this manifest does not authorize deployment, configuration, funding, or feature activation.",
+  "schema": "hoodyoor-dual-chain-authorization-package-v2",
+  "generatedAt": "2026-08-13T10:48:27.947Z",
+  "packageStatus": "AUDIT_REQUIRED",
+  "releaseGate": "INDEPENDENT_AUDIT_NOT_STARTED",
+  "sourceCommit": "b7c22ce11a9da833c2900c68937d20c547bf5f8a",
   "deploymentAuthorized": false,
+  "economicConfigurationAuthorized": false,
+  "featureActivationAuthorized": false,
   "broadcastCapability": false,
   "broadcastAttempted": false,
-  "privateKeyRead": true,
-  "privateKeyReadIncident": "The legacy SeaDrop preflight loaded local environment key material and instantiated an unconnected ethers Wallet to derive the configured deployer address. It did not print the key, sign, or broadcast. The preflight was then made keyless; the historical incident remains a blocker and audit record.",
   "fundsMoved": false,
-  "sourceSnapshot": {
-    "manifest": "deployments/authorization/release-source-snapshot.json",
-    "status": "BLOCKED_DIRTY_WORKTREE",
-    "clean": false,
-    "gitCommit": "e498144f033ef3c302a2bab73225552d290fd033"
-  },
+  "privateKeyRead": false,
   "artifactFreeze": {
-    "status": "ARTIFACT_FREEZE_BROKEN",
-    "deployableBytecodeChanged": false,
-    "wholeArtifactFilesChanged": true,
-    "changedArtifactCount": 6,
-    "authorizationImpact": "All prior artifact approvals are invalid until a clean-snapshot rebuild is independently reviewed and newly frozen."
+    "status": "REISSUED_REPRODUCIBLE",
+    "manifest": "deployments/release-freeze/contract-artifacts.json",
+    "priorApprovalsInvalidated": true
   },
   "independentAudit": {
     "overallStatus": "NOT_STARTED",
-    "allowedStatuses": [
-      "NOT_STARTED",
-      "IN_PROGRESS",
-      "PASSED",
-      "PASSED_WITH_FINDINGS",
-      "FAILED"
+    "contracts": [
+      {
+        "contract": "Canonical ERC-6551 Registry payload",
+        "chainId": 143,
+        "immutable": true,
+        "status": "NOT_STARTED",
+        "findings": [],
+        "productionBlocking": true
+      },
+      {
+        "contract": "DroidAccountV1",
+        "chainId": 143,
+        "immutable": true,
+        "status": "NOT_STARTED",
+        "findings": [],
+        "productionBlocking": true
+      },
+      {
+        "contract": "DroidAccountRegistry",
+        "chainId": 143,
+        "immutable": true,
+        "status": "NOT_STARTED",
+        "findings": [],
+        "productionBlocking": true
+      },
+      {
+        "contract": "HoodYoorDroidRegistry",
+        "chainId": 4663,
+        "immutable": false,
+        "status": "NOT_STARTED",
+        "findings": [],
+        "productionBlocking": true
+      },
+      {
+        "contract": "HoodYoorAssetRegistry",
+        "chainId": 4663,
+        "immutable": false,
+        "status": "NOT_STARTED",
+        "findings": [],
+        "productionBlocking": true
+      },
+      {
+        "contract": "HoodYoorRewardsDistributor",
+        "chainId": 4663,
+        "immutable": false,
+        "status": "NOT_STARTED",
+        "findings": [],
+        "productionBlocking": true
+      },
+      {
+        "contract": "HoodYoorRevenueVault",
+        "chainId": 4663,
+        "immutable": false,
+        "status": "NOT_STARTED",
+        "findings": [],
+        "productionBlocking": true
+      },
+      {
+        "contract": "HoodYoorStrategyRegistry",
+        "chainId": 4663,
+        "immutable": false,
+        "status": "NOT_STARTED",
+        "findings": [],
+        "productionBlocking": true
+      },
+      {
+        "contract": "HoodYoorAchievementRegistry",
+        "chainId": 4663,
+        "immutable": false,
+        "status": "NOT_STARTED",
+        "findings": [],
+        "productionBlocking": true
+      }
     ],
-    "findings": [],
-    "findingSchema": [
-      "id",
-      "severity",
-      "affectedContract",
-      "description",
-      "fixStatus",
-      "artifactChanged",
-      "retestComplete"
-    ],
-    "criticalOrHighBlocksProduction": true,
-    "bytecodeChangeRequiresNewHashAndApproval": true
+    "criticalOrHighOpen": null
   },
-  "fourIndependentApprovalStages": {
-    "A_CODE_APPROVAL": {
-      "approved": false,
-      "status": "BLOCKED_ARTIFACT_FREEZE_AND_CLEAN_SOURCE"
+  "governance": {
+    "safeAddresses": {
+      "mainGovernanceSafe": null,
+      "treasurySafe": null,
+      "operationsSafe": null,
+      "emergencySafe": null
     },
-    "B_CONTRACT_DEPLOYMENT": {
-      "approved": false,
-      "status": "BLOCKED_BY_AUDIT_AND_OWNER_AUTHORIZATION"
-    },
-    "C_ECONOMIC_CONFIGURATION": {
-      "approved": false,
-      "status": "BLOCKED_UNSET_GOVERNANCE_AND_CATALOGS"
-    },
-    "D_FEATURE_ACTIVATION": {
-      "approved": false,
-      "status": "BLOCKED_AND_DISABLED"
-    },
-    "nonCascading": true
+    "recommendations": {
+      "mainGovernanceSafe": "3-of-5",
+      "treasurySafe": "3-of-5",
+      "restrictedOperationsSafe": "2-of-3",
+      "oneOfOneTreasury": "NOT_RECOMMENDED"
+    }
   },
+  "treasuryPolicy": {
+    "launchRecommendation": {
+      "projectTreasuryBps": 6000,
+      "droidRewardsBps": 3000,
+      "otherApprovedBps": 1000,
+      "totalBps": 10000,
+      "ownerApproved": false
+    },
+    "laterTarget": {
+      "projectTreasuryBps": 5500,
+      "droidRewardsBps": 3500,
+      "otherApprovedBps": 1000,
+      "totalBps": 10000,
+      "automatic": false
+    },
+    "governanceRangesArePolicyOnly": true
+  },
+  "approvedRevenueSources": [],
+  "assetCandidates": {
+    "monad": [],
+    "robinhood": []
+  },
+  "strategyCandidates": [],
   "featureActivationAuthorizations": {
     "MONAD_DROID_ACCOUNT_DEPLOYMENT_APPROVED": false,
     "MONAD_CANARY_APPROVED": false,
@@ -77,473 +144,5 @@
     "BRIDGE_APPROVED": false,
     "AGENT_APPROVED": false
   },
-  "codeFeatureFlagsRequiredFalse": {
-    "MONAD_DROIDS_ENABLED": false,
-    "NEXT_PUBLIC_MONAD_DROIDS_ENABLED": false,
-    "ROBINHOOD_DROIDS_ENABLED": false,
-    "NEXT_PUBLIC_ROBINHOOD_DROIDS_ENABLED": false,
-    "DROID_REWARDS_ENABLED": false,
-    "NEXT_PUBLIC_DROID_REWARDS_ENABLED": false,
-    "DROID_STRATEGIES_ENABLED": false,
-    "NEXT_PUBLIC_DROID_STRATEGIES_ENABLED": false,
-    "SHARED_TREASURY_ENABLED": false,
-    "NEXT_PUBLIC_SHARED_TREASURY_ENABLED": false,
-    "CROSS_CHAIN_BRIDGE_ENABLED": false,
-    "NEXT_PUBLIC_CROSS_CHAIN_BRIDGE_ENABLED": false,
-    "DROID_AGENT_ENABLED": false,
-    "NEXT_PUBLIC_DROID_AGENT_ENABLED": false
-  },
-  "governance": {
-    "safeAddresses": {
-      "monadGovernanceSafe": null,
-      "monadTreasurySafe": null,
-      "monadOperationsSafe": null,
-      "monadEmergencySafe": null,
-      "robinhoodGovernanceSafe": null,
-      "robinhoodTreasurySafe": null,
-      "robinhoodOperationsSafe": null,
-      "robinhoodEmergencySafe": null,
-      "otherApprovedAllocationSafe": null
-    },
-    "preferredThreshold": "3-of-5",
-    "earlyOperationsAlternative": "2-of-3",
-    "forbiddenModel": "1-of-1 unrestricted treasury administration",
-    "roles": {
-      "DEFAULT_ADMIN": "main governance Safe; never a backend hot wallet",
-      "TREASURY_ADMIN": "treasury Safe; never an ordinary hot wallet",
-      "REWARD_ADMIN": "governance Safe or restricted operations Safe",
-      "STRATEGY_ADMIN": "governance/configuration Safe; timelocked for sensitive changes",
-      "ASSET_ADMIN": "governance/configuration Safe; timelocked for automatic-execution assets",
-      "ACHIEVEMENT_ADMIN": "restricted operations Safe may issue approved low-risk achievements",
-      "PAUSER": "emergency Safe; an optional restricted emergency signer requires separate approval and receives no withdrawal authority"
-    },
-    "contractRoleAssignments": {
-      "DEFAULT_ADMIN_ROLE": {
-        "holder": null,
-        "recommendedController": "main governance Safe"
-      },
-      "COLLECTION_MANAGER_ROLE": {
-        "holder": null,
-        "recommendedController": "governance/configuration Safe"
-      },
-      "ASSET_MANAGER_ROLE": {
-        "holder": null,
-        "recommendedController": "governance/configuration Safe"
-      },
-      "EPOCH_MANAGER_ROLE": {
-        "holder": null,
-        "recommendedController": "restricted rewards operations Safe"
-      },
-      "SOURCE_MANAGER_ROLE": {
-        "holder": null,
-        "recommendedController": "governance/configuration Safe"
-      },
-      "ALLOCATION_MANAGER_ROLE": {
-        "holder": null,
-        "recommendedController": "timelocked governance Safe"
-      },
-      "RELEASE_MANAGER_ROLE": {
-        "holder": null,
-        "recommendedController": "Treasury Safe or restricted release Safe"
-      },
-      "DESTINATION_MANAGER_ROLE": {
-        "holder": null,
-        "recommendedController": "timelocked governance Safe"
-      },
-      "STRATEGY_MANAGER_ROLE": {
-        "holder": null,
-        "recommendedController": "timelocked configuration Safe"
-      },
-      "ACHIEVEMENT_MANAGER_ROLE": {
-        "holder": null,
-        "recommendedController": "governance/configuration Safe"
-      },
-      "ACHIEVEMENT_ISSUER_ROLE": {
-        "holder": null,
-        "recommendedController": "restricted achievement operations Safe"
-      },
-      "PAUSER_ROLE": {
-        "holder": null,
-        "recommendedController": "emergency Safe"
-      }
-    },
-    "roleAssignmentsApproved": false,
-    "signerRecoveryProcedureApproved": false
-  },
-  "timelockPolicy": {
-    "normalTargetHours": {
-      "minimum": 24,
-      "maximum": 72
-    },
-    "immediateEmergencyPause": true,
-    "pauseGrantsWithdrawalAuthority": false,
-    "sensitiveActions": [
-      "treasury allocation changes",
-      "asset router replacement",
-      "automatic-execution asset additions",
-      "major reward-weight changes",
-      "strategy implementation replacement",
-      "treasury destination changes",
-      "financial contract upgrades"
-    ],
-    "frozenContractFacts": {
-      "defaultAdminTransferDelayHours": 48,
-      "revenueDestinationChangeDelayHours": 48,
-      "allocationChangeTimelockEnforcedByVault": false
-    },
-    "additionalDelayUntilNewBytecodeApproval": "GOVERNANCE_POLICY_ONLY"
-  },
-  "treasuryPolicy": {
-    "launchRecommendation": {
-      "projectTreasuryBps": 6000,
-      "droidRewardsBps": 3000,
-      "otherApprovedBps": 1000,
-      "totalBps": 10000,
-      "ownerApproved": false
-    },
-    "steadyStateConsiderationAfterMeaningfulHistory": {
-      "earliestReviewWindowDays": 60,
-      "latestInitialReviewWindowDays": 90,
-      "projectTreasuryBps": 5500,
-      "droidRewardsBps": 3500,
-      "otherApprovedBps": 1000,
-      "automatic": false,
-      "ownerApproved": false
-    },
-    "recommendedBounds": {
-      "projectTreasuryBps": {
-        "min": 4500,
-        "max": 7000
-      },
-      "droidRewardsBps": {
-        "min": 2000,
-        "max": 4500
-      },
-      "otherApprovedBps": {
-        "min": 0,
-        "max": 1500
-      },
-      "requiredTotalBps": 10000,
-      "enforcement": "GOVERNANCE_POLICY_ONLY",
-      "vaultEnforcesOnlyExactTotal": true
-    },
-    "projectTreasuryOffChainPlanningPercent": {
-      "developmentInfrastructureOperations": 40,
-      "securityAuditsLegalCompliance": 25,
-      "longTermReserveRunway": 20,
-      "growthPartnershipsCommunityProduct": 15
-    },
-    "otherApprovedAllocation": {
-      "unrestrictedDiscretionaryWallet": false,
-      "founderOrTeamWithdrawalsAutomaticallyApproved": false,
-      "allowedUseClassesSubjectToApproval": [
-        "ecosystem partnerships",
-        "grants",
-        "community programs",
-        "canary and release operations",
-        "strategic integrations",
-        "approved growth experiments",
-        "future protocol incentives"
-      ]
-    }
-  },
-  "rewardPolicy": {
-    "fundedOnly": true,
-    "claimableMustNotExceedAvailable": true,
-    "syntheticPromise": false,
-    "guaranteedApy": false,
-    "energyConversionToMoney": false,
-    "v1Cadence": "weekly or biweekly, manually approved per epoch",
-    "realTimeDistribution": false,
-    "reserveTargetAfterHistoryExists": "approximately 1-3 future epochs",
-    "reserveEstimateNow": null,
-    "reserveReason": "No meaningful production revenue history exists."
-  },
-  "activationPolicy": {
-    "monad": {
-      "accountActivation": "LAZY",
-      "gasSponsorship": "HYBRID",
-      "normalHolderPays": true,
-      "sponsorshipRequires": [
-        "per-wallet caps",
-        "per-campaign caps",
-        "budget ceiling",
-        "practical anti-Sybil controls",
-        "separate approval"
-      ],
-      "massActivation": false
-    },
-    "economicRolloutStages": [
-      "Droid account infrastructure",
-      "Canary Droid",
-      "General Droid activation",
-      "Portfolio display",
-      "Reward Vault funding",
-      "Rewards enabled",
-      "Small strategy pilot",
-      "Broader strategy availability",
-      "Future bounded agent experiments"
-    ],
-    "bridgeIndependentGate": true
-  },
-  "assetApprovalSchema": [
-    "chainId",
-    "contractOrNative",
-    "symbol",
-    "decimals",
-    "canonicalSource",
-    "executionRoute",
-    "pricingSource",
-    "strategyEligibility",
-    "riskNotes",
-    "approved"
-  ],
-  "assetCandidates": {
-    "monad": [
-      {
-        "chainId": 143,
-        "contractOrNative": "NATIVE",
-        "symbol": "MON",
-        "decimals": 18,
-        "canonicalSource": "Monad chain-native asset",
-        "executionRoute": "direct native transfer only",
-        "pricingSource": null,
-        "strategyEligibility": false,
-        "riskNotes": "Pricing and automatic strategy policy remain unreviewed.",
-        "approved": false
-      },
-      {
-        "chainId": 143,
-        "contractOrNative": "0x3bd359C1119dA7Da1D913D1C4D2B7c461115433A",
-        "symbol": "WMON",
-        "decimals": 18,
-        "canonicalSource": "Live metadata verified; canonical issuer confirmation still required",
-        "executionRoute": null,
-        "pricingSource": null,
-        "strategyEligibility": false,
-        "riskNotes": "Candidate only; no router, liquidity, or price source approved.",
-        "approved": false
-      },
-      {
-        "chainId": 143,
-        "contractOrNative": "0x754704Bc059F8C67012fEd69BC8A327a5aafb603",
-        "symbol": "USDC",
-        "decimals": 6,
-        "canonicalSource": "Live metadata verified; issuer/canonical deployment confirmation still required",
-        "executionRoute": null,
-        "pricingSource": null,
-        "strategyEligibility": false,
-        "riskNotes": "Candidate only; stablecoin, compliance, routing, and depeg risks require review.",
-        "approved": false
-      }
-    ],
-    "robinhood": [
-      {
-        "chainId": 4663,
-        "contractOrNative": "NATIVE",
-        "symbol": "ETH",
-        "decimals": 18,
-        "canonicalSource": "Robinhood Chain native gas asset",
-        "executionRoute": "direct native transfer only",
-        "pricingSource": null,
-        "strategyEligibility": false,
-        "riskNotes": "Candidate only; economic use is not approved.",
-        "approved": false
-      }
-    ],
-    "robinhoodHoodCandidate": null,
-    "robinhoodSettlementCandidate": null,
-    "reasonUnlisted": "No canonical contract, routing, pricing, transferability, and compliance package has been owner-approved."
-  },
-  "revenueSourceApprovalSchema": [
-    "sourceId",
-    "chain",
-    "contractOrAccount",
-    "description",
-    "verificationMethod",
-    "expectedAsset",
-    "active",
-    "ownerApproved"
-  ],
-  "approvedRevenueSources": [],
-  "revenueSourceDefaults": {
-    "active": false,
-    "ownerApproved": false
-  },
-  "strategyApprovalSchema": [
-    "strategyId",
-    "chain",
-    "name",
-    "assets",
-    "targetWeights",
-    "routerOrAdapter",
-    "maxSlippage",
-    "fallback",
-    "riskLabel",
-    "active",
-    "ownerApproved"
-  ],
-  "strategyCandidates": [
-    {
-      "strategyId": null,
-      "chain": 143,
-      "name": "Native MON candidate",
-      "assets": ["NATIVE:143"],
-      "targetWeights": [10000],
-      "routerOrAdapter": "DirectTransferAdapter candidate",
-      "maxSlippage": "N/A for direct transfer",
-      "fallback": "claim approved settlement asset without conversion",
-      "riskLabel": "UNREVIEWED",
-      "active": false,
-      "ownerApproved": false
-    },
-    {
-      "strategyId": null,
-      "chain": 143,
-      "name": "Stable/settlement candidate",
-      "assets": [],
-      "targetWeights": [],
-      "routerOrAdapter": null,
-      "maxSlippage": null,
-      "fallback": "claim or retain approved settlement asset",
-      "riskLabel": "UNREVIEWED",
-      "active": false,
-      "ownerApproved": false
-    },
-    {
-      "strategyId": null,
-      "chain": 4663,
-      "name": "Settlement/stable candidate",
-      "assets": [],
-      "targetWeights": [],
-      "routerOrAdapter": null,
-      "maxSlippage": null,
-      "fallback": "claim or retain approved settlement asset",
-      "riskLabel": "UNREVIEWED",
-      "active": false,
-      "ownerApproved": false
-    },
-    {
-      "strategyId": null,
-      "chain": 4663,
-      "name": "HOOD-focused candidate",
-      "assets": [],
-      "targetWeights": [],
-      "routerOrAdapter": null,
-      "maxSlippage": null,
-      "fallback": "disabled until canonical availability, routing, pricing, and compliance are approved",
-      "riskLabel": "BLOCKED",
-      "active": false,
-      "ownerApproved": false
-    },
-    {
-      "strategyId": null,
-      "chain": 4663,
-      "name": "Broad-market-type candidate",
-      "assets": [],
-      "targetWeights": [],
-      "routerOrAdapter": null,
-      "maxSlippage": null,
-      "fallback": "disabled",
-      "riskLabel": "BLOCKED",
-      "active": false,
-      "ownerApproved": false
-    }
-  ],
-  "monitoringSpecification": [
-    "failed authorization attempts",
-    "unexpected account deployments",
-    "reward claim anomalies and unusually large claims",
-    "vault balance and liability changes",
-    "role and default-admin changes",
-    "strategy and asset-registry changes",
-    "pause and unpause events",
-    "treasury allocation and destination changes",
-    "abnormal router behavior",
-    "indexing mismatches",
-    "RPC divergence"
-  ],
-  "validation": {
-    "forcedFoundryBuild": {
-      "result": "PASS_WITH_LINT_NOTES",
-      "filesCompiled": 86,
-      "artifactFreezeResult": "FAIL_EXPECTED_ARTIFACT_FILE_DRIFT"
-    },
-    "rootNodeTests": {
-      "passed": 201,
-      "failed": 2,
-      "total": 203,
-      "failureClassification": "RELEASE_BLOCKING_ARTIFACT_FREEZE_SENTINELS",
-      "failedTests": [
-        "HoodYØØR manifest hashes every production source and compiled artifact",
-        "SeaDrop v2 manifest freezes the exact source, bytecode, payloads, and onchain metadata"
-      ]
-    },
-    "foundryOffline": {
-      "passed": 94,
-      "failed": 0,
-      "skippedLiveForks": 2
-    },
-    "monadLiveFork": {
-      "passed": 1,
-      "failed": 0,
-      "note": "First attempt encountered public RPC DNS failure; retry passed."
-    },
-    "robinhoodLiveFork": {
-      "passed": 1,
-      "failed": 0
-    },
-    "rootTypecheck": "PASS",
-    "rootLint": "PASS",
-    "rootProductionBuild": "PASS",
-    "game": {
-      "testsPassed": 45,
-      "typecheck": "PASS",
-      "lint": "PASS",
-      "build": "PASS_WITH_CHUNK_SIZE_WARNING"
-    },
-    "discord": {
-      "testsPassed": 50,
-      "typecheck": "PASS",
-      "lint": "PASS",
-      "build": "PASS"
-    },
-    "authorizationPackageTests": {
-      "passed": 3,
-      "failed": 0
-    },
-    "authorizationPackageVerifier": "PASS_BLOCKED",
-    "keylessMonadPreflight": "PASS",
-    "keylessRobinhoodEconomicPreflight": "PASS",
-    "keylessSeaDropOfflinePreflight": "PASS_BLOCKED"
-  },
-  "componentStates": {
-    "MONAD_ERC6551_REGISTRY": "AUDIT_REQUIRED",
-    "MONAD_DROIDACCOUNT_V1": "AUDIT_REQUIRED",
-    "MONAD_COLLECTION_REGISTRY": "AUDIT_REQUIRED",
-    "MONAD_CANARY": "OWNER_DECISION_REQUIRED",
-    "MONAD_REWARDS": "BLOCKED",
-    "MONAD_STRATEGIES": "BLOCKED",
-    "ROBINHOOD_NFT": "DEPLOYED_NOT_MINTED",
-    "ROBINHOOD_DROID_REGISTRY": "AUDIT_REQUIRED",
-    "ROBINHOOD_ASSET_REGISTRY": "AUDIT_REQUIRED",
-    "ROBINHOOD_REWARD_DISTRIBUTOR": "AUDIT_REQUIRED",
-    "ROBINHOOD_REVENUE_VAULT": "AUDIT_REQUIRED",
-    "ROBINHOOD_STRATEGY_REGISTRY": "AUDIT_REQUIRED",
-    "ROBINHOOD_ACHIEVEMENT_REGISTRY": "AUDIT_REQUIRED",
-    "ROBINHOOD_REWARDS": "BLOCKED",
-    "ROBINHOOD_STRATEGIES": "BLOCKED",
-    "AGENT": "BLOCKED",
-    "BRIDGE": "BLOCKED"
-  },
-  "ownerDecisionsRequired": [
-    "Approve a clean release commit and the exact replacement artifact freeze.",
-    "Commission and accept independent audits for every immutable/candidate artifact, especially the updated Revenue Vault.",
-    "Approve Monad deployer, gas ceiling, canary token, controlled wallets, funding cap, and activation model.",
-    "Approve chain-specific Safes, signer thresholds, role holders, timelock policy, and recovery procedure.",
-    "Approve the Robinhood treasury split and all three destinations.",
-    "Approve each asset, revenue source, strategy, route, pricing source, and compliance/risk review separately.",
-    "Authorize contract deployment, configuration, and feature activation as separate later actions."
-  ],
-  "exactNextAction": "Review and commit a clean release source snapshot, rebuild twice, explain the six artifact-container hash changes, issue a new freeze manifest, and send those exact hashes for independent audit. Do not deploy."
+  "exactNextAction": "Send the frozen source commit, artifact manifest, reproducibility evidence, threat model, and test report to an independent smart-contract auditor. Do not deploy."
 }

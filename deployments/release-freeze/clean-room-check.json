@@ -1,0 +1,280 @@
+{
+  "schema": "hoodyoor-third-clean-room-check-v1",
+  "sourceCommit": "b7c22ce11a9da833c2900c68937d20c547bf5f8a",
+  "buildAEqualsBuildB": true,
+  "cleanRoomThirdMatches": true,
+  "existingBuildCacheUsed": false,
+  "localGeneratedArtifactsUsed": false,
+  "productionEnvironmentFilesPresent": false,
+  "signingVariablesPresent": false,
+  "contractsChecked": 8,
+  "records": [
+    {
+      "contract": "DroidAccountV1",
+      "sourceSha256": "0x9fd1b2aff8c71502e19090ab93ef55fa2451f96db769640a2898e5359e2e64c2",
+      "wholeArtifactSha256": "0xa4e48d2185c4ab52da55bd4c67e7635324d3d4563c19d0844a0cffff0855733e",
+      "canonicalArtifactSha256": "0x4eba037f280e898398606e6bc1d87716efdb0c12fe71bc0ac29c015a64cbeefe",
+      "abiSha256": "0x0f28805b6957db8e11774fff51878099f018333c6a197d25154697bdaad7803b",
+      "constructorSchema": {
+        "type": "constructor",
+        "inputs": [],
+        "stateMutability": "nonpayable"
+      },
+      "constructorSchemaSha256": "0x0e1953d92ccc70cdc3d4aa70a08691f1b140f4f5c6218ff811039661d307a472",
+      "creationBytecodeHash": "0x2a34579dfc6df3b5d6b2e305974c8c6eddecf2e4a93d643ff575ed2de3941ae1",
+      "runtimeBytecodeHash": "0xb94e6bca188572015060c77b916cb21b28906ad88b62eeac8cddeb55ec6199b0",
+      "storageLayoutSha256": "0x186a2efb7acacb625a24c701a77e3116979f7b33d679eacc57500881c4e3b8ba",
+      "linkReferencesSha256": "0xd22d2812502b445f7f39babe6912a4f45a6d659d54b40190e90167b07b27dc86",
+      "immutableReferencesSha256": "0x9fc817415a2be0aba94fcfcb7522ccb9eb9b8fe450ca3103fe8fbf3b220bcebf"
+    },
+    {
+      "contract": "DroidAccountRegistry",
+      "sourceSha256": "0x0e04105fadcf3b0811e93120c921a94fa8e92e636a5678eed87ee75ff92d46ae",
+      "wholeArtifactSha256": "0x60a311dcf6c026c06fc2070bcba5db69cfba84279492bc2aeca470532ab2eb1a",
+      "canonicalArtifactSha256": "0xf8bdc2fe235dff19f14e42d0b436992bf246c373aafa87743eb7c7369cd0eeb9",
+      "abiSha256": "0x2ae51f844d128ac2793e62a5a2232401703347b5480fac2f534e1a9ad7de60b6",
+      "constructorSchema": {
+        "type": "constructor",
+        "inputs": [
+          {
+            "name": "canonicalRegistry_",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "tokenContract_",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "implementation_",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "tokenChainId_",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "accountSalt_",
+            "type": "bytes32",
+            "internalType": "bytes32"
+          }
+        ],
+        "stateMutability": "nonpayable"
+      },
+      "constructorSchemaSha256": "0x67d36c4f60e1bbcd51f29cc81d2e27377718b1016c55dea8cd6191b3dd78b7b9",
+      "creationBytecodeHash": "0x925073987b0491bf8f3a2adbba10776fcfac2fafb783bc29139b6913df8b0215",
+      "runtimeBytecodeHash": "0x80c3d64099222fe1d1975a1b7f606949d55268fdbd287a608f2a02f9665c6070",
+      "storageLayoutSha256": "0x913ff69d6bb92c2fcb8def2a2070fae7ea4bb6d000f71396953ecda144261fb9",
+      "linkReferencesSha256": "0xd22d2812502b445f7f39babe6912a4f45a6d659d54b40190e90167b07b27dc86",
+      "immutableReferencesSha256": "0x9c713dc2d12769d7f404178519c4c14373cef13e0b031c8f2b0c7efaf9390fca"
+    },
+    {
+      "contract": "HoodYoorDroidRegistry",
+      "sourceSha256": "0x7f2b111c5ee8ce98447a10ced160ab7d78e0d82bec8f9fc87eedc2da0f93e8d6",
+      "wholeArtifactSha256": "0x9dbb60e41b4448dcdabf5879b47ab416c722421a1e2970bed68bcf55e1977e3b",
+      "canonicalArtifactSha256": "0xc7afc9cc62967e78bb7e8fe7a2e7b25b55de6055d0b795454cfd93f79a861b84",
+      "abiSha256": "0x770f46efe2e7c0ece881f8bc705677c39e80cb44385ec8f0548b2f94b8d89ec9",
+      "constructorSchema": {
+        "type": "constructor",
+        "inputs": [
+          {
+            "name": "initialAdmin",
+            "type": "address",
+            "internalType": "address"
+          }
+        ],
+        "stateMutability": "nonpayable"
+      },
+      "constructorSchemaSha256": "0xe148b9ea7383d973f406bf531ccc8378be691b835ad5e094ceb359ca2b0053b1",
+      "creationBytecodeHash": "0x95a023ee34b6d3884f3ab15d2fdd7b35c10b75d06872bf2481aa7ff9bfb6a924",
+      "runtimeBytecodeHash": "0x0fbaaa973cc4f6f78e226beccc71bf11406376a25e9efe32eb7877f5de97e9e6",
+      "storageLayoutSha256": "0x6b260730645746eda7f6dc00879c6055c0fc1bab3a9ce68262530fc65f13841e",
+      "linkReferencesSha256": "0xd22d2812502b445f7f39babe6912a4f45a6d659d54b40190e90167b07b27dc86",
+      "immutableReferencesSha256": "0x4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    },
+    {
+      "contract": "HoodYoorAssetRegistry",
+      "sourceSha256": "0x58ef1d64589aa49351450d68278ed978fc32dec7ae88fa7ba0fc6b152239a588",
+      "wholeArtifactSha256": "0xedf40d70433f59c4024566b1de1151e07b5dfc99a5b48848615f3b94703d651f",
+      "canonicalArtifactSha256": "0xc3bc8a00d98e6d6a2b5fa2c116b545c43270c891ecbcf577455e34590358e32a",
+      "abiSha256": "0x7d9f40916ad7bd9eebf4fe8a5a2ec7e2f220f9f11200e5753ddbe2ed0602ecf5",
+      "constructorSchema": {
+        "type": "constructor",
+        "inputs": [
+          {
+            "name": "initialAdmin",
+            "type": "address",
+            "internalType": "address"
+          }
+        ],
+        "stateMutability": "nonpayable"
+      },
+      "constructorSchemaSha256": "0xe148b9ea7383d973f406bf531ccc8378be691b835ad5e094ceb359ca2b0053b1",
+      "creationBytecodeHash": "0x97bcb5d329437756089e72c42d0bf05f1862183c3471fea8fdd35b1bb968df7f",
+      "runtimeBytecodeHash": "0x0ca3ab50658dbc135259107c7bd5ff4bbd2eee92ab13b6c539cec3ca9de9596e",
+      "storageLayoutSha256": "0x1bdb1072bdbbb25730c4e5e68b29c9bea721b65b315db0a10d11c2627fd6d023",
+      "linkReferencesSha256": "0xd22d2812502b445f7f39babe6912a4f45a6d659d54b40190e90167b07b27dc86",
+      "immutableReferencesSha256": "0x4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    },
+    {
+      "contract": "HoodYoorRewardsDistributor",
+      "sourceSha256": "0xde87d4a58cdfe49e0ebb886bff7ac4844a703059b31043a4a781034822c77a27",
+      "wholeArtifactSha256": "0x0ddf8c512b2c76125eae7231ae9c152a9e67a791f6ae2ec28b6f5367d2b9ebfa",
+      "canonicalArtifactSha256": "0xfa5e1eae5cfd9322b550afa18a262b96a1a65a7c0f3c87805f89211bfa974455",
+      "abiSha256": "0x74e68f3488610d71af0175beb5b3c5b055163737d68e9f690c2f22a14757a62a",
+      "constructorSchema": {
+        "type": "constructor",
+        "inputs": [
+          {
+            "name": "initialAdmin",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "droidRegistry_",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "assetRegistry_",
+            "type": "address",
+            "internalType": "address"
+          }
+        ],
+        "stateMutability": "nonpayable"
+      },
+      "constructorSchemaSha256": "0xfff94fca9f33d625ed10fccd2b5caefd1baee088addf4e8e5928823f4aa88399",
+      "creationBytecodeHash": "0x5f1d55f77b38c4af10ca4eb1097bfb0af5d19a1bb48edca3f7baa13bad017697",
+      "runtimeBytecodeHash": "0x04af2b8595073237e605ac440033bb72a9db54c81851501ad99a024a5a637f8d",
+      "storageLayoutSha256": "0xc57e47a2c2021f806b297b7c34182091d65a40432e1b9dc0c2fe8d655f773de9",
+      "linkReferencesSha256": "0xd22d2812502b445f7f39babe6912a4f45a6d659d54b40190e90167b07b27dc86",
+      "immutableReferencesSha256": "0xc105b483be1746ef0d29455a973835b749d1c86049bd5cda567ecfad21eaadcb"
+    },
+    {
+      "contract": "HoodYoorRevenueVault",
+      "sourceSha256": "0xeb359b427127c29c45dfc81609dc064d6d1bd021fe120ddea0123e86767b999f",
+      "wholeArtifactSha256": "0x9a82258c55c1f05eebb6a76762e8d58de0b0035011bbf4c1ba38eed1d9467ab0",
+      "canonicalArtifactSha256": "0x2a4969124e9f6a0afdd25c401554e627e9db31022e9c53656778aac2badc248d",
+      "abiSha256": "0x7c15f20571f20ebaaabfac2de31833758e00d62375b04c58d9ed9bf4a1c298f7",
+      "constructorSchema": {
+        "type": "constructor",
+        "inputs": [
+          {
+            "name": "initialAdmin",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "assetRegistry_",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "treasury_",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "rewardDistributor_",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "otherDestination_",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "treasuryBps_",
+            "type": "uint16",
+            "internalType": "uint16"
+          },
+          {
+            "name": "rewardBps_",
+            "type": "uint16",
+            "internalType": "uint16"
+          },
+          {
+            "name": "otherBps_",
+            "type": "uint16",
+            "internalType": "uint16"
+          }
+        ],
+        "stateMutability": "nonpayable"
+      },
+      "constructorSchemaSha256": "0x8baf7b18f40ce7b7d5ab5a3c7a309dd9932bb2f2ac29e3e643ca0e9f44141b1d",
+      "creationBytecodeHash": "0xc5ff05ca738ee6c6356e899f158d17b59e7348f7261a600c87251aa5b83ae431",
+      "runtimeBytecodeHash": "0x5142e1488d8e3ac797183d345ef541c6bcf48520fd2e159342b50bce24156c8f",
+      "storageLayoutSha256": "0x56d87c69d026e407cd89aeedbcd44e28c789c440a680b4215904cb9fb5fd9761",
+      "linkReferencesSha256": "0xd22d2812502b445f7f39babe6912a4f45a6d659d54b40190e90167b07b27dc86",
+      "immutableReferencesSha256": "0xc35f57ae6cc90139c111b73dc7ea2b56681d8a4f59b2e481e6a26a629a9b38a8"
+    },
+    {
+      "contract": "HoodYoorStrategyRegistry",
+      "sourceSha256": "0xb82a6a61e677375d07b2d2cabeb5750f2732a2fde55af75e22a10dc3aab121e9",
+      "wholeArtifactSha256": "0xb6dc6a2202d9efc25f489e06c9915d26db54e479e655a8881476218eb2e226c5",
+      "canonicalArtifactSha256": "0x1ea27dce24bd725b66e0fb2b40e99f965613baac444f2f35cb6c0a12581132c3",
+      "abiSha256": "0x4ccb5c0875a652ca1c406943b1884798ac700086ce8f28291723e295490505a0",
+      "constructorSchema": {
+        "type": "constructor",
+        "inputs": [
+          {
+            "name": "initialAdmin",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "droidRegistry_",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "assetRegistry_",
+            "type": "address",
+            "internalType": "address"
+          }
+        ],
+        "stateMutability": "nonpayable"
+      },
+      "constructorSchemaSha256": "0xfff94fca9f33d625ed10fccd2b5caefd1baee088addf4e8e5928823f4aa88399",
+      "creationBytecodeHash": "0x6d49ec96ccdff2eb43b3ef9f68d66a300f9e7f61623e96220e567c6dabee4ce5",
+      "runtimeBytecodeHash": "0x393a7bf6ada8a62392bc1b7f6f9e31d9b991486b15f331917086fc891ad9b261",
+      "storageLayoutSha256": "0xba23f2f5c2e55d4fc5756e2ee7a4f97cecf5b01a5ee0df831684ed1677af85c9",
+      "linkReferencesSha256": "0xd22d2812502b445f7f39babe6912a4f45a6d659d54b40190e90167b07b27dc86",
+      "immutableReferencesSha256": "0xacb29801ae235c9c9846a64d533d417e57477d72f97ce6a7645b9853c3e37727"
+    },
+    {
+      "contract": "HoodYoorAchievementRegistry",
+      "sourceSha256": "0xe3832729e3ea59ca6c177c2b8121c84006e5cc3e8282ac77f6525bb81f846085",
+      "wholeArtifactSha256": "0x17f4c0acf70e05f9589ff5ccab89d1cbbca74d227387df0d59e4378b226cd918",
+      "canonicalArtifactSha256": "0xd82fa2170fb888dff0d2679cee55be60704d0c41dcb0abfcbfb536ddb8ef6b75",
+      "abiSha256": "0xfc0176a1073653a984db84c0a7d9f0515186dd6005bf48dcef120abe44053b0e",
+      "constructorSchema": {
+        "type": "constructor",
+        "inputs": [
+          {
+            "name": "initialAdmin",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "droidRegistry_",
+            "type": "address",
+            "internalType": "address"
+          }
+        ],
+        "stateMutability": "nonpayable"
+      },
+      "constructorSchemaSha256": "0xeabd56776baa0534476642bb04d49d8f7122d0eb48ae6df0963f9827a5c0d404",
+      "creationBytecodeHash": "0x1c0f870a1e463ee7b098c4bd10ca19e886065e03cadaa0b14c12434ca9e6ca2b",
+      "runtimeBytecodeHash": "0xa1ffcf88e66297ac2067eeb87400a4a6b802bfbfdfbbc3d2bc27b70239265036",
+      "storageLayoutSha256": "0xb816cdb6cf6a168050a53e7b423e2191a85a5b2085721224ee74c88d9682e194",
+      "linkReferencesSha256": "0xd22d2812502b445f7f39babe6912a4f45a6d659d54b40190e90167b07b27dc86",
+      "immutableReferencesSha256": "0xeaacb54c3d728de26cc48ae0c87d8d42c188b25ce994aa3afc4529a359a7dbbf"
+    }
+  ],
+  "result": "PASS"
+}

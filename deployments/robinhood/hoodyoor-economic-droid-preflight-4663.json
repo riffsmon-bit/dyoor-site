@@ -1,15 +1,20 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-08-12T14:32:32.440Z",
+  "generatedAt": "2026-08-13T10:48:11.241Z",
   "mode": "read-only-preflight",
   "chainId": 4663,
-  "latestBlock": 34602847,
+  "latestBlock": 35330473,
   "feeData": {
-    "gasPriceWei": "51052000",
-    "maxFeePerGasWei": "101264000",
+    "gasPriceWei": "46368000",
+    "maxFeePerGasWei": "92368000",
     "maxPriorityFeePerGasWei": "0"
   },
   "existingContractsUntouched": {
+    "canonicalSeaDrop": {
+      "address": "0x00005EA00Ac477B1030CE78506496e8C2dE24bf5",
+      "hasCode": true,
+      "runtimeCodeHash": "0x53e4b9339cf624803c9a7d0195576cca5b917920813508d86b3eb93dcbabeb5c"
+    },
     "collection": {
       "address": "0x8277F8126722B11D7b44C5C453bcF62A78AAFa25",
       "hasCode": true,
@@ -43,10 +48,19 @@
   },
   "collectionState": {
     "address": "0x8277F8126722B11D7b44C5C453bcF62A78AAFa25",
+    "owner": "0xC7f55cE6A7dF9A79cc4A643a5081230F890c7AA6",
+    "treasury": "0xC7f55cE6A7dF9A79cc4A643a5081230F890c7AA6",
+    "royaltyReceiver": "0xC7f55cE6A7dF9A79cc4A643a5081230F890c7AA6",
     "totalSupply": 0,
     "ownerReserveMinted": false,
     "revealed": false,
     "secondaryTradingEnabled": false,
+    "allowedSeaDropFrozen": true,
+    "mintingFinalized": false,
+    "publicDropConfigured": false,
+    "allowListRoot": "0x0000000000000000000000000000000000000000000000000000000000000000",
+    "creatorPayout": "0xC7f55cE6A7dF9A79cc4A643a5081230F890c7AA6",
+    "saleClosed": true,
     "lifecycle": "deployed-pre-mint"
   },
   "droidAccountWiring": {
@@ -60,54 +74,114 @@
     {
       "contractName": "HoodYoorDroidRegistry",
       "sourceName": "src/economic/HoodYoorDroidRegistry.sol",
+      "artifactPath": "contracts/hoodyoor/out/HoodYoorDroidRegistry.sol/HoodYoorDroidRegistry.json",
+      "artifactSha256": "0xbb35013b58e5f5955fb71c05ed86e7c1b395e45acb3e926ec45f9d8c88c564d2",
+      "sourceSha256": "0x7f2b111c5ee8ce98447a10ced160ab7d78e0d82bec8f9fc87eedc2da0f93e8d6",
       "compilerVersion": "0.8.24+commit.e11b9ed9",
+      "optimizer": {
+        "enabled": true,
+        "runs": 200
+      },
+      "viaIR": true,
+      "evmVersion": "paris",
       "creationBytes": 9145,
       "runtimeBytes": 8572,
+      "creationCodeHash": "0x95a023ee34b6d3884f3ab15d2fdd7b35c10b75d06872bf2481aa7ff9bfb6a924",
       "runtimeCodeHash": "0x0fbaaa973cc4f6f78e226beccc71bf11406376a25e9efe32eb7877f5de97e9e6",
       "eip170WithinLimit": true
     },
     {
       "contractName": "HoodYoorAssetRegistry",
       "sourceName": "src/economic/HoodYoorAssetRegistry.sol",
+      "artifactPath": "contracts/hoodyoor/out/HoodYoorAssetRegistry.sol/HoodYoorAssetRegistry.json",
+      "artifactSha256": "0xf7a9effe1ecefa668394c424a6bce251274af32b25f1ebf672a535addec1775c",
+      "sourceSha256": "0x58ef1d64589aa49351450d68278ed978fc32dec7ae88fa7ba0fc6b152239a588",
       "compilerVersion": "0.8.24+commit.e11b9ed9",
+      "optimizer": {
+        "enabled": true,
+        "runs": 200
+      },
+      "viaIR": true,
+      "evmVersion": "paris",
       "creationBytes": 8254,
       "runtimeBytes": 7512,
+      "creationCodeHash": "0x97bcb5d329437756089e72c42d0bf05f1862183c3471fea8fdd35b1bb968df7f",
       "runtimeCodeHash": "0x0ca3ab50658dbc135259107c7bd5ff4bbd2eee92ab13b6c539cec3ca9de9596e",
       "eip170WithinLimit": true
     },
     {
       "contractName": "HoodYoorRewardsDistributor",
       "sourceName": "src/economic/HoodYoorRewardsDistributor.sol",
+      "artifactPath": "contracts/hoodyoor/out/HoodYoorRewardsDistributor.sol/HoodYoorRewardsDistributor.json",
+      "artifactSha256": "0xa2b95aa1bc6e12b9552983240a5740f5f4dac7f280c4a4e151a0493f6823ce56",
+      "sourceSha256": "0xde87d4a58cdfe49e0ebb886bff7ac4844a703059b31043a4a781034822c77a27",
       "compilerVersion": "0.8.24+commit.e11b9ed9",
+      "optimizer": {
+        "enabled": true,
+        "runs": 200
+      },
+      "viaIR": true,
+      "evmVersion": "paris",
       "creationBytes": 11225,
       "runtimeBytes": 10232,
+      "creationCodeHash": "0x5f1d55f77b38c4af10ca4eb1097bfb0af5d19a1bb48edca3f7baa13bad017697",
       "runtimeCodeHash": "0x04af2b8595073237e605ac440033bb72a9db54c81851501ad99a024a5a637f8d",
       "eip170WithinLimit": true
     },
     {
       "contractName": "HoodYoorRevenueVault",
       "sourceName": "src/economic/HoodYoorRevenueVault.sol",
+      "artifactPath": "contracts/hoodyoor/out/HoodYoorRevenueVault.sol/HoodYoorRevenueVault.json",
+      "artifactSha256": "0x082a80d93f607647cdfc780aff2043e6d2a07b455e5f1692b7209da3a33ecab7",
+      "sourceSha256": "0xeb359b427127c29c45dfc81609dc064d6d1bd021fe120ddea0123e86767b999f",
       "compilerVersion": "0.8.24+commit.e11b9ed9",
+      "optimizer": {
+        "enabled": true,
+        "runs": 200
+      },
+      "viaIR": true,
+      "evmVersion": "paris",
       "creationBytes": 12077,
       "runtimeBytes": 10140,
+      "creationCodeHash": "0xc5ff05ca738ee6c6356e899f158d17b59e7348f7261a600c87251aa5b83ae431",
       "runtimeCodeHash": "0x5142e1488d8e3ac797183d345ef541c6bcf48520fd2e159342b50bce24156c8f",
       "eip170WithinLimit": true
     },
     {
       "contractName": "HoodYoorStrategyRegistry",
       "sourceName": "src/economic/HoodYoorStrategyRegistry.sol",
+      "artifactPath": "contracts/hoodyoor/out/HoodYoorStrategyRegistry.sol/HoodYoorStrategyRegistry.json",
+      "artifactSha256": "0x32da66a777047b4cc8206970096d77e14b74690911f12222f24a0d4c6e81d45c",
+      "sourceSha256": "0xb82a6a61e677375d07b2d2cabeb5750f2732a2fde55af75e22a10dc3aab121e9",
       "compilerVersion": "0.8.24+commit.e11b9ed9",
+      "optimizer": {
+        "enabled": true,
+        "runs": 200
+      },
+      "viaIR": true,
+      "evmVersion": "paris",
       "creationBytes": 10124,
       "runtimeBytes": 9174,
+      "creationCodeHash": "0x6d49ec96ccdff2eb43b3ef9f68d66a300f9e7f61623e96220e567c6dabee4ce5",
       "runtimeCodeHash": "0x393a7bf6ada8a62392bc1b7f6f9e31d9b991486b15f331917086fc891ad9b261",
       "eip170WithinLimit": true
     },
     {
       "contractName": "HoodYoorAchievementRegistry",
       "sourceName": "src/economic/HoodYoorAchievementRegistry.sol",
+      "artifactPath": "contracts/hoodyoor/out/HoodYoorAchievementRegistry.sol/HoodYoorAchievementRegistry.json",
+      "artifactSha256": "0x0a2d2b760fc08949f823bfbc5637097c871dfff5488413b35472cdbf5e1cf805",
+      "sourceSha256": "0xe3832729e3ea59ca6c177c2b8121c84006e5cc3e8282ac77f6525bb81f846085",
       "compilerVersion": "0.8.24+commit.e11b9ed9",
+      "optimizer": {
+        "enabled": true,
+        "runs": 200
+      },
+      "viaIR": true,
+      "evmVersion": "paris",
       "creationBytes": 7877,
       "runtimeBytes": 6855,
+      "creationCodeHash": "0x1c0f870a1e463ee7b098c4bd10ca19e886065e03cadaa0b14c12434ca9e6ca2b",
       "runtimeCodeHash": "0xa1ffcf88e66297ac2067eeb87400a4a6b802bfbfdfbbc3d2bc27b70239265036",
       "eip170WithinLimit": true
     }
@@ -151,8 +225,21 @@
     "crossChainBridge": true,
     "droidAgent": true
   },
+  "deploymentSequence": [
+    "HoodYoorDroidRegistry(initialAdminSafe)",
+    "HoodYoorAssetRegistry(initialAdminSafe)",
+    "HoodYoorRewardsDistributor(initialAdminSafe, droidRegistry, assetRegistry)",
+    "HoodYoorRevenueVault(initialAdminSafe, assetRegistry, treasurySafe, rewardsDistributor, otherAllocationSafe, treasuryBps, rewardBps, otherBps)",
+    "Safe: rewardsDistributor.configureFundingVault(revenueVault)",
+    "HoodYoorStrategyRegistry(initialAdminSafe, droidRegistry, assetRegistry)",
+    "HoodYoorAchievementRegistry(initialAdminSafe, droidRegistry)",
+    "Safe: register native collection and immutable account resolver V1",
+    "Safe: allowlist reviewed settlement assets and revenue sources",
+    "Independent verification and funded test epoch",
+    "Enable rewards/strategies flags only after explicit approval"
+  ],
   "broadcastCapability": false,
   "broadcastAttempted": false,
   "privateKeyRead": false,
-  "result": "pass"
+  "nextAction": "Review docs/hoodyoor-economic-droid-deployment-report.md. No deployment is authorized."
 }

@@ -66,3 +66,20 @@ Whole-file artifact SHA-256 remains useful as a build-output checksum, but it is
 All exclusions are compiler debug identities. No instruction, ABI entry, constructor input, storage slot, link location, immutable patch location, compiler setting, or source hash is excluded.
 
 The previous artifact approvals are invalidated. The new release freeze requires reproducible whole artifacts under one explicit release compilation scope plus the canonical release-critical hashes.
+
+## Replacement freeze result
+
+The replacement `release` profile compiles only `src/droid` and `src/economic` and explicitly emits storage layout. Its complete JSON hashes therefore intentionally differ from both historical/default artifact sets. Builds A, B, and the third clean-room build all reproduced these exact whole-file hashes:
+
+| Contract | New release whole-artifact SHA-256 |
+| --- | --- |
+| `DroidAccountV1` | `a4e48d2185c4ab52da55bd4c67e7635324d3d4563c19d0844a0cffff0855733e` |
+| `DroidAccountRegistry` | `60a311dcf6c026c06fc2070bcba5db69cfba84279492bc2aeca470532ab2eb1a` |
+| `HoodYoorDroidRegistry` | `9dbb60e41b4448dcdabf5879b47ab416c722421a1e2970bed68bcf55e1977e3b` |
+| `HoodYoorAssetRegistry` | `edf40d70433f59c4024566b1de1151e07b5dfc99a5b48848615f3b94703d651f` |
+| `HoodYoorRewardsDistributor` | `0ddf8c512b2c76125eae7231ae9c152a9e67a791f6ae2ec28b6f5367d2b9ebfa` |
+| `HoodYoorRevenueVault` | `9a82258c55c1f05eebb6a76762e8d58de0b0035011bbf4c1ba38eed1d9467ab0` |
+| `HoodYoorStrategyRegistry` | `b6dc6a2202d9efc25f489e06c9915d26db54e479e655a8881476218eb2e226c5` |
+| `HoodYoorAchievementRegistry` | `17f4c0acf70e05f9589ff5ccab89d1cbbca74d227387df0d59e4378b226cd918` |
+
+The machine manifest binds these whole files and the canonical hashes to source commit `b7c22ce11a9da833c2900c68937d20c547bf5f8a`.

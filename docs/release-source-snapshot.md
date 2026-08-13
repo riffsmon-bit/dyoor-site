@@ -1,88 +1,91 @@
 # Release source snapshot
 
-Status: **BLOCKED — no clean release snapshot**
-Artifact status: **ARTIFACT FREEZE BROKEN**
-Captured: 2026-08-12 15:00:53 UTC
+Status: **CLEAN / REPRODUCIBLE / AUDIT REQUIRED**
 
-This document records the candidate that was inspected for the dual-chain deployment-authorization package. It is not a production release tag, code approval, deployment approval, or permission to read a key. The machine-readable record is `deployments/authorization/release-source-snapshot.json`.
+Source commit: `b7c22ce11a9da833c2900c68937d20c547bf5f8a`
+
+Branch: `release/hoodyoor-audit-rc-20260812`
+
+This snapshot is suitable for independent audit. It is not code approval, deployment authorization, economic configuration authorization, or feature activation authorization. The machine record is `deployments/authorization/release-source-snapshot.json`.
 
 ## Source-control result
 
-| Field | Recorded value |
+The release tree contains 4,047 tracked files and no tracked or untracked changes in the isolated checkout used for release builds. There are no Git submodules. The original authoring worktree’s excluded local/generated/unrelated files were preserved and never hidden inside the release commit; their classification is in `docs/release-change-classification.md` and `deployments/release-freeze/worktree-classification.json`.
+
+The release was prepared in two commits:
+
+- `054a1bdafff8532917b5c097cf7e1cf650009889` — reviewed release contents and secret-free tooling;
+- `b7c22ce11a9da833c2900c68937d20c547bf5f8a` — final reproducibility-package correction and frozen source snapshot.
+
+Relevant lock hashes:
+
+| Lock | SHA-256 |
 | --- | --- |
-| Branch | `agent/s2-trait-marketplace` |
-| HEAD | `e498144f033ef3c302a2bab73225552d290fd033` |
-| Worktree | dirty |
-| Modified tracked entries | 22 |
-| Deleted tracked entries | 8 |
-| Untracked entries | 113 |
-| Submodules | none reported |
-| Clean-source gate | failed |
+| Root `package-lock.json` | `6e2c0d42a5d0d82672c81e6132423ba875c1d3f7893d97ef2029cb1db396b743` |
+| Game lock | `c828246957f051143dd565535aa91618a71e9fafa586ae3e22d9377175b29b6c` |
+| Discord lock | `d6207a32f6f35ca32caecba43dee2a4bfe0ff9e0bee37ada08ab1d262fa7756d` |
 
-Release-relevant Solidity, Droid frontend/backend, deployment, documentation, test, package, and environment-template files are uncommitted. The worktree also contains unrelated user work. This pass did not discard, stage, or commit any of it. A commit SHA by itself therefore does not identify the candidate under review.
+## Pinned release toolchain
 
-The status, tracked diff, untracked path list, and tracked index were separately SHA-256 fingerprinted in the machine manifest. Those fingerprints were captured before adding this authorization package and are evidence of the blocked input state, not a releasable tree hash.
-
-## Toolchain
-
-| Tool | Version |
+| Tool | Version/settings |
 | --- | --- |
 | Node | `v24.14.1` |
 | npm | `11.11.0` |
 | Hardhat | `3.11.1` |
-| Forge / Cast | `1.5.1-stable` (`b0a9dd9…`) |
-| Git | `2.37.1 (Apple Git-137.1)` |
-| Release Solidity compiler | `0.8.24+commit.e11b9ed9` |
+| Forge/Cast | `1.5.1-stable`, commit `b0a9dd9ceda36f63e2326ce530c10e6916f4b8a2` |
+| Solidity release compiler | `0.8.24+commit.e11b9ed9` |
+| Optimizer | enabled, 200 runs |
+| Via IR | enabled |
+| EVM | `paris` |
+| Metadata bytecode hash | `ipfs` |
+| Release scope | `src/droid` and `src/economic` |
 
-The release Solidity profile is `contracts/hoodyoor/foundry.toml`: optimizer enabled, 200 runs, via-IR enabled, EVM target `paris`, no linked libraries. The root Hardhat configuration contains additional compiler profiles; it is not the frozen artifact pipeline for these candidates.
+The root Hardhat compiler profiles are used for the wider repository suite; they are not the artifact-authority pipeline for these candidates.
 
-Lock and configuration checksums are recorded in the JSON manifest. The principal package-lock SHA-256 is `6e2c0d42…96b743`; the HoodYØØR Foundry configuration SHA-256 is `0eaaf382…ca097`.
+## Reproducibility
 
-The initial inventory enumerated only environment file names. Afterward, the legacy `preflight:robinhood:seadrop-v2` command was run to confirm sale state. Inspection immediately afterward showed that this nominally read-only script called `loadHoodyoorLocalEnvironment()`, loaded `.env`, and instantiated an unconnected ethers `Wallet` from `HOODYOOR_DEPLOYER_PRIVATE_KEY` to derive an address. It did not print the key, connect that wallet to a provider, sign a transaction, broadcast, or modify credential files. It nevertheless violated this task's no-private-key-read boundary.
+Build A and Build B each began from the exact source commit with no build cache. Output and cache directories were deleted between runs. A third build used a separate sparse checkout of the same commit, a fresh output/cache location, no generated artifact reuse, no root environment files, and only locked runtime/compiler dependencies.
 
-The preflight was then patched to remove local environment loading and private reveal-backup inspection, use an empty keyless environment for launch-gate reporting, and explicitly report both secret reads as false. The package verifier enforces this. The historical access remains recorded as `privateKeyRead: true` and is an additional release blocker pending review.
+All three builds matched for every candidate across:
 
-Two other standard validation paths also auto-load root environment files: `hardhat.config.js` imports `dotenv/config` during `npm test`, and Next reported loading `.env.local` and `.env` during `npm run build`. No secret was printed, used to sign, or broadcast. Because a deployer credential is known to be present in the local launch environment, these general commands are not classified as keyless. The release-safe command list is restricted to scripts statically checked not to import the key loader, or they must be run later in an independently prepared secret-free environment.
+- source hash;
+- complete artifact JSON hash;
+- canonical artifact hash;
+- ABI and constructor schema;
+- creation and runtime bytecode;
+- storage layout;
+- link references;
+- immutable reference locations.
 
-The documented template is `.env.example`; expected runtime contexts are local/development, Netlify deploy preview, branch deploy, and production.
+Evidence:
 
-## Forced rebuild result
+- `deployments/release-freeze/reproducibility.json`
+- `deployments/release-freeze/clean-room-check.json`
+- `deployments/release-freeze/contract-artifacts.json`
 
-The full contract set was rebuilt without network access:
+## Prior artifact drift
 
-```sh
-cd contracts/hoodyoor
-forge build --force --offline
-```
+The six old whole-artifact failures are fully explained in `docs/artifact-drift-analysis.md`. Compiler AST/source identifiers changed with compilation scope while source, ABI, constructor, creation/runtime bytecode, storage semantics, link references, and immutable patch locations remained unchanged. The old files were reconstructed exactly to their prior hashes, proving the changed fields.
 
-Solc compiled 86 files successfully in 526.36 seconds. All eight candidate source hashes, creation-bytecode hashes, and runtime-template hashes stayed identical. The whole JSON artifact checksums did not:
+The old freeze and every approval against it are explicitly invalidated. The replacement release profile produces deterministic full JSON artifacts, and the canonical hash independently binds all deployment/security-critical fields while excluding only proven debug/AST identifiers.
 
-| Contract | Frozen artifact SHA-256 | Rebuilt artifact SHA-256 | Creation/runtime bytes |
-| --- | --- | --- | --- |
-| `DroidAccountV1` | `09328148…693e` | `ee1a9394…890` | unchanged |
-| `DroidAccountRegistry` | `50876db0…5e6e` | `9bf0de52…619b` | unchanged |
-| `HoodYoorRewardsDistributor` | `a5b33717…76bc` | `a2b95aa1…ce56` | unchanged |
-| `HoodYoorRevenueVault` | `9a947708…21fa` | `082a80d9…cab7` | unchanged |
-| `HoodYoorStrategyRegistry` | `ac3ca48f…e4f0` | `32da66a7…d45c` | unchanged |
-| `HoodYoorAchievementRegistry` | `53f1ccb7…cec2` | `0a2d2b76…805b` | unchanged |
+## Secret isolation
 
-`HoodYoorDroidRegistry` and `HoodYoorAssetRegistry` retained their whole-artifact hashes. The mismatch may be artifact-container/build-metadata drift, but that explanation has not been independently established. The release rule freezes the artifact files as well as executable bytes, so the correct result is:
+The prior blocked pass’s legacy Robinhood preflight loaded local deployer key material merely to derive a public address. It did not print the key, sign, connect a signer, or broadcast, but the read violated the release boundary.
 
-> **ARTIFACT FREEZE BROKEN**
+Remediation is complete:
 
-No old review or approval may be attached to the rebuilt files. The prior manifests remain unchanged as evidence; this pass does not silently replace their hashes.
+- release preflights do not load `.env`, `.env.local`, production env files, or private reveal data;
+- Hardhat no longer imports dotenv implicitly;
+- address-only simulations use explicit public `HOODYOOR_DEPLOYER_ADDRESS` configuration;
+- signing-variable names are rejected without dereferencing their values;
+- keyless child processes receive only allowlisted public variables;
+- `BROADCAST=false` and financial/autonomy feature flags are forced off;
+- a preload sentinel blocks secret-file content reads;
+- automated isolation tests pass.
 
-## Audit status
+See `docs/release-environment-separation.md`.
 
-Independent audit status for all three Monad candidates and all six Robinhood economic modules is `NOT STARTED`. The updated three-allocation `HoodYoorRevenueVault` specifically requires independent review. Any critical or high finding blocks authorization; any bytecode-changing fix requires a new artifact hash, clean rebuild, retest, and new approval.
+## Gate
 
-## Required remediation
-
-1. Review and deliberately stage the complete production scope without absorbing unrelated user work.
-2. Create a clean release commit.
-3. Rebuild twice from that exact commit with the pinned toolchain.
-4. explain or eliminate the whole-artifact JSON drift.
-5. Freeze new source, ABI, creation, runtime, and artifact-file hashes.
-6. Send those exact hashes for independent review.
-
-Until all six steps pass, code approval and deployment authorization remain unavailable.
+Independent audit status remains `NOT STARTED`. The clean/reproducible engineering blockers are resolved, but production remains blocked at `PASS_AUDIT_REQUIRED`.

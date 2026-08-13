@@ -1,11 +1,13 @@
 {
-  "schema": "hoodyoor-droid-account-release-candidate-v1",
-  "frozenAt": "2026-08-12T14:35:56Z",
-  "status": "DEPLOYMENT_HOLD",
+  "schema": "hoodyoor-monad-droid-release-candidate-v2",
+  "frozenAt": "2026-08-13T10:48:27.947Z",
+  "status": "AUDIT_REQUIRED",
+  "sourceCommit": "b7c22ce11a9da833c2900c68937d20c547bf5f8a",
   "deploymentAuthorized": false,
   "broadcastCapability": false,
   "broadcastAttempted": false,
   "privateKeyRead": false,
+  "independentAuditStatus": "NOT_STARTED",
   "chain": {
     "name": "Monad Mainnet",
     "chainId": 143,
@@ -15,86 +17,142 @@
     "name": "D.Y.O.O.R",
     "address": "0x349D8eb480c92cF75371fbA5C6344A4d11b9103A",
     "runtimeCodeHash": "0x2baa62e8fad053a2b59e10eb8dbfc9bbb8ef98c93a55a1114ff7776226ae15fd",
-    "action": "untouched",
-    "controllerPolicy": "DIRECT_ERC721_OWNER"
+    "totalSupplyAtCheckpoint": 1038,
+    "controllerPolicy": "DIRECT_ERC721_OWNER",
+    "season2AscensionCustodyBalance": 0,
+    "existingContractUntouched": true
   },
-  "sourceControl": {
-    "gitCommit": "e498144f033ef3c302a2bab73225552d290fd033",
-    "worktreeDirty": true,
-    "freezeRule": "Release approval must bind the checksums below and a subsequently approved clean source snapshot; the commit alone is insufficient."
-  },
-  "compiler": {
-    "version": "0.8.24+commit.e11b9ed9",
-    "optimizerEnabled": true,
-    "optimizerRuns": 200,
-    "viaIR": true,
-    "evmVersion": "paris",
-    "artifactPipeline": "Foundry contracts/hoodyoor/foundry.toml"
-  },
-  "accountConfiguration": {
-    "implementationVersion": 1,
-    "accountSalt": "0x0000000000000000000000000000000000000000000000000000000000000000",
-    "lazyActivation": true,
-    "accountAddressInputs": [
-      "canonicalRegistry",
-      "implementation",
-      "accountSalt",
-      "chainId",
-      "collectionAddress",
-      "tokenId"
-    ]
-  },
-  "deployments": [
+  "releaseCandidates": [
     {
       "order": 1,
-      "artifactName": "Canonical ERC-6551 Registry",
-      "contractName": "ERC6551Registry",
-      "deploymentMethod": "reviewed deterministic factory payload",
-      "factory": "0x4e59b44847b379578588920cA78FbF26c0B4956C",
-      "expectedAddress": "0x000000006551c19487814612e58FE06813775758",
-      "addressDeterministicallyKnown": true,
-      "constructorArguments": [],
+      "contract": "Canonical ERC-6551 Registry",
+      "artifactType": "reviewed-deterministic-payload",
       "reviewedDeploymentDataHash": "0xe3d6a2f96a1664247da7003f047a21fb2dfccd984ac985fbf4d1cae6ed0ad41a",
       "expectedRuntimeCodeHash": "0xda1d5b06e579f9e42e59b00fbc22939896ecb38dc8830d40de0a2508fecd6735",
+      "deploymentFactory": "0x4e59b44847b379578588920cA78FbF26c0B4956C",
+      "expectedAddress": "0x000000006551c19487814612e58FE06813775758",
+      "currentlyDeployed": false,
+      "constructorArguments": [],
       "estimatedGas": "179650",
-      "deployerRequirements": "Any funded sender may submit the exact reviewed payload to the deterministic factory; the registry has no owner or admin.",
-      "verification": "Require code at the expected address and exact runtimeCodeHash before continuing."
+      "deployer": null,
+      "ownerAdmin": "NONE",
+      "immutableDeployment": true,
+      "deploymentApproved": false
     },
     {
       "order": 2,
-      "artifactName": "DroidAccountV1",
-      "contractName": "DroidAccountV1",
-      "source": "contracts/hoodyoor/src/droid/DroidAccountV1.sol",
-      "artifact": "contracts/hoodyoor/out/DroidAccountV1.sol/DroidAccountV1.json",
-      "artifactSha256": "0x09328148e911aa9293953fbd25f5df66d704483e88991a7dc67c321a3804693e",
+      "contract": "DroidAccountV1",
       "sourceSha256": "0x9fd1b2aff8c71502e19090ab93ef55fa2451f96db769640a2898e5359e2e64c2",
-      "creationCodeHash": "0x2a34579dfc6df3b5d6b2e305974c8c6eddecf2e4a93d643ff575ed2de3941ae1",
-      "runtimeTemplateArtifactHash": "0xb94e6bca188572015060c77b916cb21b28906ad88b62eeac8cddeb55ec6199b0",
-      "creationExecutableHash": "0x4c38f02a77dd8118223132168113d668fe237d8e49c7637e5d39d8aec6687740",
-      "runtimeExecutableTemplateHash": "0x8a2bfc57a2bbb21d855650c13e70bfdb3e14cc2fb528f8578a070ae5d8b669fe",
-      "creationBytes": 5323,
-      "runtimeBytes": 5214,
+      "wholeArtifactSha256": "0xa4e48d2185c4ab52da55bd4c67e7635324d3d4563c19d0844a0cffff0855733e",
+      "canonicalArtifactSha256": "0x4eba037f280e898398606e6bc1d87716efdb0c12fe71bc0ac29c015a64cbeefe",
+      "abiSha256": "0x0f28805b6957db8e11774fff51878099f018333c6a197d25154697bdaad7803b",
+      "constructorSchema": {
+        "type": "constructor",
+        "inputs": [],
+        "stateMutability": "nonpayable"
+      },
+      "constructorSchemaSha256": "0x0e1953d92ccc70cdc3d4aa70a08691f1b140f4f5c6218ff811039661d307a472",
+      "creationBytecodeHash": "0x2a34579dfc6df3b5d6b2e305974c8c6eddecf2e4a93d643ff575ed2de3941ae1",
+      "runtimeBytecodeHash": "0xb94e6bca188572015060c77b916cb21b28906ad88b62eeac8cddeb55ec6199b0",
+      "storageLayoutSha256": "0x186a2efb7acacb625a24c701a77e3116979f7b33d679eacc57500881c4e3b8ba",
+      "linkReferencesSha256": "0xd22d2812502b445f7f39babe6912a4f45a6d659d54b40190e90167b07b27dc86",
+      "immutableReferencesSha256": "0x9fc817415a2be0aba94fcfcb7522ccb9eb9b8fe450ca3103fe8fbf3b220bcebf",
+      "source": "contracts/hoodyoor/src/droid/DroidAccountV1.sol",
+      "chainTargets": [
+        143
+      ],
+      "sourceCommit": "b7c22ce11a9da833c2900c68937d20c547bf5f8a",
+      "compiler": "0.8.24+commit.e11b9ed9",
+      "compilerSettings": {
+        "optimizerEnabled": true,
+        "optimizerRuns": 200,
+        "viaIR": true,
+        "evmVersion": "paris",
+        "metadataBytecodeHash": "ipfs",
+        "foundryProfile": "release",
+        "releaseScope": [
+          "src/droid",
+          "src/economic"
+        ]
+      },
+      "libraries": [],
+      "linkedAddresses": [],
+      "createBehavior": "CREATE",
+      "auditStatus": "NOT_STARTED",
       "constructorArguments": [],
-      "deploymentMethod": "CREATE from an owner-approved deployer",
       "expectedAddress": null,
-      "addressDeterministicallyKnown": false,
-      "addressReason": "The deployer and deployment nonce are owner decisions; no CREATE2 implementation deployment is frozen.",
+      "deployer": null,
+      "ownerAdmin": "NONE",
       "estimatedGas": "1188142",
-      "persistentRoles": [],
-      "verificationArguments": []
+      "immutableDeployment": true,
+      "deploymentApproved": false
     },
     {
       "order": 3,
-      "artifactName": "DroidAccountRegistry",
-      "contractName": "DroidAccountRegistry",
-      "source": "contracts/hoodyoor/src/droid/DroidAccountRegistry.sol",
-      "artifact": "contracts/hoodyoor/out/DroidAccountRegistry.sol/DroidAccountRegistry.json",
-      "artifactSha256": "0x50876db00cd5b7f9a7e10f6a3ad6a5c42bee4d74343ab80e7e15557258cc5e6e",
+      "contract": "DroidAccountRegistry",
       "sourceSha256": "0x0e04105fadcf3b0811e93120c921a94fa8e92e636a5678eed87ee75ff92d46ae",
-      "creationCodeHash": "0x925073987b0491bf8f3a2adbba10776fcfac2fafb783bc29139b6913df8b0215",
-      "runtimeTemplateArtifactHash": "0x80c3d64099222fe1d1975a1b7f606949d55268fdbd287a608f2a02f9665c6070",
-      "creationBytes": 2663,
-      "runtimeBytes": 2133,
+      "wholeArtifactSha256": "0x60a311dcf6c026c06fc2070bcba5db69cfba84279492bc2aeca470532ab2eb1a",
+      "canonicalArtifactSha256": "0xf8bdc2fe235dff19f14e42d0b436992bf246c373aafa87743eb7c7369cd0eeb9",
+      "abiSha256": "0x2ae51f844d128ac2793e62a5a2232401703347b5480fac2f534e1a9ad7de60b6",
+      "constructorSchema": {
+        "type": "constructor",
+        "inputs": [
+          {
+            "name": "canonicalRegistry_",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "tokenContract_",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "implementation_",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "tokenChainId_",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "accountSalt_",
+            "type": "bytes32",
+            "internalType": "bytes32"
+          }
+        ],
+        "stateMutability": "nonpayable"
+      },
+      "constructorSchemaSha256": "0x67d36c4f60e1bbcd51f29cc81d2e27377718b1016c55dea8cd6191b3dd78b7b9",
+      "creationBytecodeHash": "0x925073987b0491bf8f3a2adbba10776fcfac2fafb783bc29139b6913df8b0215",
+      "runtimeBytecodeHash": "0x80c3d64099222fe1d1975a1b7f606949d55268fdbd287a608f2a02f9665c6070",
+      "storageLayoutSha256": "0x913ff69d6bb92c2fcb8def2a2070fae7ea4bb6d000f71396953ecda144261fb9",
+      "linkReferencesSha256": "0xd22d2812502b445f7f39babe6912a4f45a6d659d54b40190e90167b07b27dc86",
+      "immutableReferencesSha256": "0x9c713dc2d12769d7f404178519c4c14373cef13e0b031c8f2b0c7efaf9390fca",
+      "source": "contracts/hoodyoor/src/droid/DroidAccountRegistry.sol",
+      "chainTargets": [
+        143
+      ],
+      "sourceCommit": "b7c22ce11a9da833c2900c68937d20c547bf5f8a",
+      "compiler": "0.8.24+commit.e11b9ed9",
+      "compilerSettings": {
+        "optimizerEnabled": true,
+        "optimizerRuns": 200,
+        "viaIR": true,
+        "evmVersion": "paris",
+        "metadataBytecodeHash": "ipfs",
+        "foundryProfile": "release",
+        "releaseScope": [
+          "src/droid",
+          "src/economic"
+        ]
+      },
+      "libraries": [],
+      "linkedAddresses": [],
+      "createBehavior": "CREATE",
+      "auditStatus": "NOT_STARTED",
       "constructorArguments": [
         "0x000000006551c19487814612e58FE06813775758",
         "0x349D8eb480c92cF75371fbA5C6344A4d11b9103A",
@@ -109,65 +167,50 @@
         "tokenChainId",
         "accountSalt"
       ],
-      "deploymentMethod": "CREATE after the implementation address is fixed",
       "expectedAddress": null,
-      "addressDeterministicallyKnown": false,
-      "addressReason": "The implementation address, deployer, and nonce are not approved yet.",
+      "deployer": null,
+      "ownerAdmin": "NONE",
       "estimatedGas": "542514",
-      "estimateSource": "Monad eth_estimateGas with reviewed code state overrides",
-      "persistentRoles": [],
-      "verificationArguments": "Use the exact constructorArguments above after replacing the null implementation with deployment 2."
+      "immutableDeployment": true,
+      "deploymentApproved": false
     }
   ],
   "gasCheckpoint": {
-    "readOnlyPreflightGeneratedAt": "2026-08-12T13:52:45.375Z",
-    "observedBlock": 95362095,
+    "generatedAt": "2026-08-13T10:48:12.689Z",
+    "observedBlock": 95611307,
     "gasPriceWei": "202000000000",
     "totalEstimatedGas": "1910306",
-    "estimatedDeploymentMON": "0.385881812",
-    "recommendedThreeTimesReserveMON": "1.157645436",
-    "refreshRequiredImmediatelyBeforeApproval": true,
-    "canaryFundingExcluded": true
+    "estimatedDeploymentMon": "0.385881812",
+    "recommendedThreeTimesReserveMon": "1.157645436",
+    "refreshRequiredBeforeAuthorization": true
   },
-  "postDeploymentAssertions": [
-    "chainId equals 143",
-    "canonical registry runtime hash matches",
-    "implementation has code and direct implementation owner is zero",
-    "facade canonicalRegistry, tokenContract, implementation, tokenChainId, and accountSalt match this manifest",
-    "IMPLEMENTATION_VERSION equals 1",
-    "facade account(tokenId) equals canonical registry account for token 1 and the approved canary token",
-    "non-owner activation reverts",
-    "both Monad activation flags remain false until canary approval"
-  ],
-  "existingContractsUntouched": [
-    "0x349D8eb480c92cF75371fbA5C6344A4d11b9103A",
-    "0x291a8cC0FCa08EBd64a0e4d67B4455d24e9E6767",
-    "0x2C79c9E233fEa4b4DcFE6561D9209dc292cD932f",
-    "0xf9611226c1CcCcCa37951938d6f358D3d5106549"
-  ],
+  "governance": {
+    "deployerAddress": null,
+    "safeAddress": null,
+    "canaryTokenId": null,
+    "canaryOwnerA": null,
+    "canaryOwnerB": null,
+    "canaryFundingCapMon": null,
+    "canaryTestAsset": null
+  },
+  "activation": {
+    "modelRecommendation": "LAZY_HYBRID",
+    "massActivation": false,
+    "approved": false
+  },
   "featureFlagsAtFreeze": {
     "MONAD_DROIDS_ENABLED": false,
-    "NEXT_PUBLIC_MONAD_DROIDS_ENABLED": false,
     "DROID_REWARDS_ENABLED": false,
     "DROID_STRATEGIES_ENABLED": false,
-    "SHARED_TREASURY_ENABLED": false,
     "CROSS_CHAIN_BRIDGE_ENABLED": false,
     "DROID_AGENT_ENABLED": false
   },
   "blockers": [
-    "independent security audit is outstanding",
-    "clean reviewed source snapshot is not approved",
-    "deployer and deployment nonce are not approved",
-    "Safe and operational review process are not approved",
-    "canary NFT and controlled transfer wallets are not approved",
-    "fresh fee estimate and MON budget are not approved",
-    "explicit mainnet deployment authorization has not been given"
-  ],
-  "ownerDecisions": [
-    "approve immutable bytecode checksums",
-    "approve deployer and operational Safe",
-    "approve holder-paid versus hybrid activation policy",
-    "approve gas budget and canary NFT",
-    "approve deployment only in a later instruction"
+    "independent audit",
+    "owner artifact approval",
+    "deployer/Safe decision",
+    "gas budget",
+    "canary selection",
+    "separate deployment authorization"
   ]
 }

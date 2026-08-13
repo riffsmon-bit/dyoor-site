@@ -1,12 +1,12 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-08-12T13:52:45.375Z",
+  "generatedAt": "2026-08-13T10:48:12.689Z",
   "mode": "read-only-mainnet-preflight",
   "broadcastCapability": false,
   "broadcastAttempted": false,
   "privateKeyRead": false,
   "chainId": 143,
-  "latestBlock": 95362095,
+  "latestBlock": 95611307,
   "collection": {
     "address": "0x349D8eb480c92cF75371fbA5C6344A4d11b9103A",
     "runtimeCodeHash": "0x2baa62e8fad053a2b59e10eb8dbfc9bbb8ef98c93a55a1114ff7776226ae15fd",

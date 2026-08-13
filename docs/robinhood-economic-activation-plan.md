@@ -1,110 +1,77 @@
 # Robinhood economic activation plan
 
-Status: **PRE-MINT / ARTIFACT FREEZE BROKEN / NOT APPROVED**
+Status: **PRE-MINT / AUDIT REQUIRED / NOT AUTHORIZED**
 
-HoodYØØR is already deployed on Robinhood Chain 4663 at the full address `0x8277F8126722B11D7b44C5C453bcF62A78AAFa25`. The August 12 read-only checkpoint found zero supply, no owner reserve, reveal off, secondary trading off, the canonical SeaDrop configuration sale-closed, and the expected collection runtime hash `0xb0fdec09…e405e`.
+Robinhood Chain is chain 4663. The deployed HoodYØØR collection is `0x8277F8126722B11D7b44C5C453bcF62A78AAFa25`. The refreshed read-only checkpoint confirms zero supply, mint not started, the expected collection bytecode, and existing Account V1 wiring. This plan does not mint, deploy, configure, fund, or activate anything.
 
-The live collection owner, treasury, and royalty receiver are currently the same EOA, `0xC7f55cE6A7dF9A79cc4A643a5081230F890c7AA6`. That is a known governance risk and not the proposed Safe architecture. This task did not mint, open a sale, move ownership, change a receiver, or alter any collection configuration.
+## Frozen modules
 
-The canonical ERC-6551 registry, immutable Account V1, and collection resolver V1 already exist and their wiring matches chain 4663 and the collection. They are not redeployed.
+The reproducible freeze at commit `b7c22ce11a9da833c2900c68937d20c547bf5f8a` contains:
 
-## Six staged economic modules
+1. `HoodYoorDroidRegistry`
+2. `HoodYoorAssetRegistry`
+3. `HoodYoorRewardsDistributor`
+4. `HoodYoorRevenueVault`
+5. `HoodYoorStrategyRegistry`
+6. `HoodYoorAchievementRegistry`
 
-| Module | Creation hash | Runtime template hash | Whole-artifact rebuild | State |
-| --- | --- | --- | --- | --- |
-| `HoodYoorDroidRegistry` | `95a023ee…a924` | `0fbaaa97…e9e6` | matched | Audit required |
-| `HoodYoorAssetRegistry` | `97bcb5d3…f7f` | `0ca3ab50…596e` | matched | Audit required |
-| `HoodYoorRewardsDistributor` | `5f1d55f7…17697` | `04af2b85…37f8d` | changed JSON SHA; bytecode stable | Audit required |
-| `HoodYoorRevenueVault` | `c5ff05ca…e431` | `5142e148…c8f` | changed JSON SHA; bytecode stable | Audit required |
-| `HoodYoorStrategyRegistry` | `6d49ec96…4ce5` | `393a7bf6…b261` | changed JSON SHA; bytecode stable | Audit required |
-| `HoodYoorAchievementRegistry` | `1c0f870a…ca2b` | `a1ffcf88…5036` | changed JSON SHA; bytecode stable | Audit required |
+Every module is undeployed, unconfigured, unaudited by an independent party, and not owner-approved. Exact source/ABI/constructor/bytecode/storage/link/immutable hashes are in `deployments/release-freeze/contract-artifacts.json`.
 
-The updated Revenue Vault supports Project Treasury, Droid Rewards, and Other Approved Allocation with an exact 10,000-bps total. It has not passed independent review. The artifact-container mismatch breaks the prior freeze even though creation/runtime bytes are unchanged. No production authorization transaction is prepared.
+The Revenue Vault separates Project Treasury, Droid Rewards, and Other Approved Allocation. Its constructor and every later allocation update must total exactly 10,000 bps. Its canonical artifact hash is `0x2a4969124e9f6a0afdd25c401554e627e9db31022e9c53656778aac2badc248d`; it requires priority independent review.
 
-The non-actionable transaction plan, constructor dependencies, hashes, gas benchmarks, verification templates, and assertions are in `deployments/authorization/robinhood-transactions.json`.
+## Current authority risk
+
+Collection owner, treasury, and royalty receiver are the same EOA: `0xC7f55cE6A7dF9A79cc4A643a5081230F890c7AA6`. No transfer or fund movement occurred. Before material mint/revenue operations, evaluate the separate Safe migrations in `docs/robinhood-eoa-safe-migration.md`.
+
+Recommended, not approved:
+
+- Governance Safe: 3-of-5;
+- Treasury Safe: 3-of-5;
+- optional restricted Operations Safe: 2-of-3;
+- narrow pauser with no withdrawal/seizure authority.
 
 ## Before NFT mint
 
-- Resolve the clean-source and artifact-freeze failures.
-- Independently audit the deployed collection/account integration and all six economic candidates; the prior owner waiver is not an audit for this package.
-- Decide whether and how to transfer collection ownership/treasury authority from the current EOA to approved Safes.
-- Approve governance, treasury, operations, and emergency Safes and signer recovery procedures.
-- Keep the six economic contracts undeployed unless there is a concrete operational reason to deploy before mint.
-- Keep the collection supply at zero, owner reserve unminted, and SeaDrop sale configuration closed until its separate mint authorization.
-- Keep rewards, strategies, shared treasury, agent, and bridge flags false.
+- complete independent audit and resolve/retest every critical/high finding;
+- approve the collection administration, treasury, royalty, and economic role model;
+- approve Safe signers, thresholds, backups, and recovery;
+- keep the six economic modules undeployed unless separately justified and authorized;
+- keep rewards, strategies, shared treasury, agents, and bridges off;
+- keep approved assets, sources, and strategies empty;
+- authorize mint through its own release process only.
 
-## At NFT deployment
+## At mint
 
-Already complete. Do not deploy another collection. Reverify the full address, runtime hash, owner, treasury, royalty receiver, SeaDrop configuration, resolver wiring, and zero-supply pre-mint state immediately before any mint authorization.
-
-## After first mint
-
-- Verify token ownership, token URI, on-chain artwork, Energy credit, transfer, reroll, and Droid account derivation.
-- Confirm the first token is identified by `4663:0x8277…Fa25:tokenId` and never collides with Monad.
-- Use a separately approved small account canary before general Droid activation.
-- Ensure burn or destructive Trait Lab operations fail closed when an account is active, funded, or incompletely discovered.
+- reverify full collection address, bytecode, owner, treasury, royalties, SeaDrop/sale state, and Account V1 wiring;
+- verify first token ownership, metadata/artwork, Energy, transfer, reroll, and account derivation;
+- confirm identity uses `4663 + collection + tokenId` and cannot collide with Monad;
+- do not automatically deploy or fund economic modules.
 
 ## Before economic deployment
 
-All must be owner-approved:
+Owner must separately approve:
 
-| Input | Current state |
-| --- | --- |
-| Governance Safe | UNSET |
-| Treasury Safe | UNSET |
-| Restricted operations Safe | UNSET |
-| Emergency Safe / pauser | UNSET |
-| Other Approved Allocation Safe | UNSET |
-| Role holders | UNSET |
-| Signer thresholds and recovery | UNSET |
-| Timelock policy | proposed, not approved |
-| Launch split | proposed 6,000 / 3,000 / 1,000 bps; not approved |
-| Assets | none approved |
-| Revenue sources | none approved |
-| Reward weights / first epoch | UNSET |
-| Strategies / adapters / routes | none approved |
-| Gas maximum | UNSET |
+- exact six artifact hashes and independent audit report;
+- constructor values and dependency addresses;
+- Governance/Treasury/Operations/Emergency Safes and least-privilege roles;
+- gas ceilings and funding source;
+- treasury split and destinations;
+- assets, revenue sources, reward policy, strategies, routers/adapters, and canary caps;
+- post-deploy verification and pause procedures;
+- explicit deployment authorization.
 
-The intended initial Safe model is 3-of-5 for governance/treasury, with a 2-of-3 restricted operations alternative if necessary. No ordinary backend hot wallet receives unrestricted treasury authority. Default-admin transfer and vault destination changes have 48-hour on-chain delays; other sensitive actions should use a 24–72-hour Safe/timelock policy.
+The recommended launch split is 6,000 / 3,000 / 1,000 bps, but all three values and destinations remain UNSET. Assets, sources, strategies, and Safe addresses remain empty/UNSET.
 
-## Owner approval tables
+## Separately gated rollout
 
-No revenue source is proposed as active. For each future source, record source ID, chain, exact contract/account, description, on-chain verification, expected asset, `ACTIVE = false`, and `OWNER APPROVED = false` before review.
+1. Deploy and verify account/economic infrastructure under a distinct approval.
+2. Run one controlled Droid canary.
+3. Enable general Droid activation separately.
+4. Enable portfolio display.
+5. Fund a capped reward pool.
+6. Enable a weekly/biweekly reward epoch.
+7. Pilot one reviewed strategy.
+8. Expand strategies only after observation/reconciliation.
+9. Consider bounded agents only in a future audited release.
 
-The only current Robinhood asset candidate recorded by the package is native ETH represented as `NATIVE` on chain 4663, and it is not approved for economic use. A settlement/stable asset, HOOD-focused asset, or market-linked asset must not be listed until its exact canonical contract, transferability, acquisition route, liquidity, pricing, and compliance/risk package are verified. Tickers alone are never sufficient.
-
-Initial strategy concepts remain inactive:
-
-| Concept | Assets/routes | Risk | Active | Approved |
-| --- | --- | --- | --- | --- |
-| Settlement/stable | UNSET | unreviewed | No | No |
-| HOOD-focused | UNSET | blocked pending canonical/routing/compliance proof | No | No |
-| Broad-market-type | UNSET | blocked pending every underlying asset and route | No | No |
-
-Every final strategy must record a chain-qualified ID, assets, target weights, adapter, maximum slippage, fallback, risk label, and owner approval. A preference change applies only to future rewards; it never sells historical Droid assets.
-
-## Deployment and configuration separation
-
-Contract deployment does not authorize configuration. Configuration does not authorize funding. Funding does not authorize claims or strategies.
-
-After a future six-contract deployment and exact source/bytecode verification, prepare separately decoded Safe transactions to bind the funding vault once, register the collection and resolver, assign least-privilege roles, and register only reviewed assets/sources. Keep all production strategy adapters zero and all feature flags false.
-
-For launch economics, the proposal is 60% Project Treasury, 30% Droid Rewards, and 10% Other Approved Allocation. Individual operating bounds are governance policy only; the candidate vault enforces the exact total but not those ranges.
-
-## Economic activation sequence
-
-1. Droid account infrastructure.
-2. Controlled Droid canary.
-3. General Droid activation.
-4. Portfolio display.
-5. Explicitly fund the Reward Vault/pool.
-6. Enable a small weekly or biweekly reward epoch.
-7. Pilot one small reviewed strategy.
-8. Expand strategy availability only after observation and reconciliation.
-9. Consider bounded agents in a separate future security release.
-
-Bridge activation is independent and remains off. The cross-chain treasury is an accounting view only.
-
-## Current hold
-
-The safe commands are the keyless economic preflight, the now-keyless SeaDrop state preflight, offline tests, fork simulation, and package verifier. The SeaDrop preflight deliberately does not inspect deployment credentials or the private reveal backup, so those launch gates remain false outside the separately authorized execution workflow. No production deployment command is emitted while the artifact freeze, audit, governance, and configuration gates remain unresolved.
+Deployment does not authorize role configuration, funding, claims, strategies, mint, agents, or bridges. Production deployment commands remain absent from the authorization manifests.
