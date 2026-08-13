@@ -4,6 +4,7 @@ import os from "node:os";
 import path from "node:path";
 import { spawnSync } from "node:child_process";
 import test from "node:test";
+import { pathToFileURL } from "node:url";
 import {
   SIGNING_ENVIRONMENT_VARIABLES,
   assertReadOnlyReleaseEnvironment,
@@ -40,11 +41,17 @@ test("keyless child environment excludes every signing variable", () => {
 test("sentinel blocks secret-file contents", () => {
   const directory = fs.mkdtempSync(path.join(os.tmpdir(), "hoodyoor-secret-sentinel-"));
   const secretPath = path.join(directory, ".env");
-  fs.writeFileSync(secretPath, "DO_NOT_READ=this-is-a-test-fixture\n", { mode: 0o600 });
   const sentinel = path.resolve("scripts/secret-access-sentinel.js");
+  const probeSource = [
+    "import fs from 'node:fs';",
+    `const secretPath = ${JSON.stringify(secretPath)};`,
+    "fs.writeFileSync(secretPath, 'DO_NOT_READ=this-is-a-test-fixture\\n', { mode: 0o600 });",
+    `await import(${JSON.stringify(pathToFileURL(sentinel).href)});`,
+    "fs.readFileSync(secretPath, 'utf8');",
+  ].join("\n");
   const probe = spawnSync(
     process.execPath,
-    ["--import", sentinel, "--input-type=module", "--eval", `import fs from 'node:fs'; fs.readFileSync(${JSON.stringify(secretPath)}, 'utf8')`],
+    ["--input-type=module", "--eval", probeSource],
     { encoding: "utf8", env: keylessChildEnvironment({ PATH: process.env.PATH }) },
   );
   assert.notEqual(probe.status, 0);

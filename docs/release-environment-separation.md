@@ -35,6 +35,8 @@ Signing material is intentionally excluded from this release package. Variables 
 
 The future deployment process must be separately approved and must not reuse the keyless verifier as a broadcast tool.
 
+Historical launch artifacts are rebuilt by `scripts/build-legacy-launch-contracts.js`. It runs both required Foundry compiler contexts in keyless child environments, writes no transaction payload, and has no broadcast path. The older six-contract launch uses the `legacy-launch` profile with an empty remapping list; SeaDrop v2 uses the complete default source context. This preserves the original whole-artifact freezes without exposing signing material.
+
 ## Prior incident and remediation
 
 During the blocked authorization pass, the legacy Robinhood preflight called `loadHoodyoorLocalEnvironment()`. It read the local environment and instantiated an unconnected wallet solely to derive an address. No key was printed, no provider was attached, and no transaction was signed or broadcast. Nevertheless, reading signing material for a read-only check violated the release boundary.

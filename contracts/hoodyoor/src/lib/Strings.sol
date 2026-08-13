@@ -25,3 +25,4 @@ library Strings {
         return string(buffer);
     }
 }
+

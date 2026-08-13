@@ -67,6 +67,24 @@ All exclusions are compiler debug identities. No instruction, ABI entry, constru
 
 The previous artifact approvals are invalidated. The new release freeze requires reproducible whole artifacts under one explicit release compilation scope plus the canonical release-critical hashes.
 
+## Historical launch-artifact compatibility
+
+The complete validation suite exposed a second, separate metadata-only issue in the already-deployed Robinhood launch artifacts. Adding the OpenZeppelin remapping required by the new economic contracts changed `settings.remappings` in Solidity metadata from `[]` to:
+
+`["@openzeppelin/contracts/=../../node_modules/@openzeppelin/contracts/"]`
+
+For all six historical launch contracts, direct comparison with the archived review artifacts proved:
+
+- ABI equality;
+- equal creation/runtime lengths;
+- identical creation executable bytes after removing the 53-byte Solidity CBOR suffix;
+- identical runtime executable bytes after removing the 53-byte Solidity CBOR suffix;
+- the only parsed metadata difference was `settings.remappings`.
+
+Five legacy source files had also lost one terminal newline. Restoring that byte restored their exact frozen SHA-256/Keccak-256 values; no Solidity token or executable instruction changed.
+
+The fix does not relax either launch sentinel. The `legacy-launch` profile uses the historical empty-remapping compiler context for the original six contracts. SeaDrop v2 is rebuilt from its original complete remapped source context. `scripts/build-legacy-launch-contracts.js` composes the exact resulting artifacts, and the existing tests continue to require the original whole-file, creation-bytecode, runtime-bytecode, ABI, and source-tree hashes.
+
 ## Replacement freeze result
 
 The replacement `release` profile compiles only `src/droid` and `src/economic` and explicitly emits storage layout. Its complete JSON hashes therefore intentionally differ from both historical/default artifact sets. Builds A, B, and the third clean-room build all reproduced these exact whole-file hashes:

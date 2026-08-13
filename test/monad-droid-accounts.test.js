@@ -102,7 +102,10 @@ test("Monad account preflight is intentionally incapable of broadcasting", () =>
     encoding: "utf8",
   });
   assert.notEqual(result.status, 0);
-  assert.match(result.stderr, /read-only and has no broadcast mode/);
+  assert.match(
+    result.stderr,
+    /(?:read-only and has no broadcast mode|cannot be enabled in read-only mode)/,
+  );
 });
 
 test("Monad feature gates preserve Energy and keep bridge and agents disabled", () => {

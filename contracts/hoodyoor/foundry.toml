@@ -23,3 +23,9 @@ bracket_spacing = true
 # source/AST IDs are treated as debug metadata by canonical hashing.
 [profile.release]
 extra_output = ["storageLayout"]
+
+# Rebuilds only the already-deployed Robinhood launch contracts. Keeping this
+# historical profile free of remappings reproduces their original Solidity
+# metadata exactly; new Droid/economic candidates continue to use `release`.
+[profile.legacy-launch]
+remappings = []

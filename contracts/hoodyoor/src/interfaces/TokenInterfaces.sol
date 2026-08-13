@@ -40,3 +40,4 @@ interface IERC2981 is IERC165 {
         view
         returns (address receiver, uint256 royaltyAmount);
 }
+
