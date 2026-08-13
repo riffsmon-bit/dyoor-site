@@ -6,7 +6,7 @@ Robinhood Chain is chain 4663. The deployed HoodYØØR collection is `0x8277F812
 
 ## Frozen modules
 
-The reproducible freeze at commit `b7c22ce11a9da833c2900c68937d20c547bf5f8a` contains:
+The reproducible freeze at commit `d272a55e78219e993015a2df31facc0f153af827` contains:
 
 1. `HoodYoorDroidRegistry`
 2. `HoodYoorAssetRegistry`

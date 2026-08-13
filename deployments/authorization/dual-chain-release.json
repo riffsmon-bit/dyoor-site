@@ -1,9 +1,9 @@
 {
   "schema": "hoodyoor-dual-chain-authorization-package-v2",
-  "generatedAt": "2026-08-13T10:48:27.947Z",
+  "generatedAt": "2026-08-13T11:34:59.838Z",
   "packageStatus": "AUDIT_REQUIRED",
   "releaseGate": "INDEPENDENT_AUDIT_NOT_STARTED",
-  "sourceCommit": "b7c22ce11a9da833c2900c68937d20c547bf5f8a",
+  "sourceCommit": "d272a55e78219e993015a2df31facc0f153af827",
   "deploymentAuthorized": false,
   "economicConfigurationAuthorized": false,
   "featureActivationAuthorized": false,

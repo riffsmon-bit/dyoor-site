@@ -2,7 +2,7 @@
 
 Audit status: **NOT STARTED**
 
-Frozen source: `b7c22ce11a9da833c2900c68937d20c547bf5f8a`
+Frozen source: `d272a55e78219e993015a2df31facc0f153af827`
 
 Deployment targets: Monad Mainnet (143) and Robinhood Chain (4663)
 
@@ -57,6 +57,8 @@ Solidity `0.8.24+commit.e11b9ed9`, optimizer 200, via-IR, EVM `paris`, IPFS meta
 - `deployments/release-freeze/reproducibility.json`;
 - `deployments/release-freeze/clean-room-check.json`.
 
+Final internal validation passed: root Hardhat/Node 207/207; aggregate Foundry 94 passed with two fork-only skips; dedicated Monad and Robinhood live forks 1/1 each; game 45/45; Discord 50/50; TypeScript, ESLint, and all three production builds. Both offline release verifiers returned `PASS_AUDIT_REQUIRED`. These results are evidence for audit, not a substitute for independent review; full details are in `docs/release-validation-report.md`.
+
 ## Architecture and authority
 
 Monad Account V1 is immutable and resolves authority from current ERC-721 `ownerOf`. It has no project-admin withdrawal path and no agent/session-key path. The collection-specific immutable registry binds canonical registry, implementation, chain 143, collection, and zero salt. Review arbitrary owner execution, ERC-1271, receiver callbacks, reentrancy, nested/circular ownership rejection, replay/state nonce behavior, and transfer-time authority.
@@ -82,7 +84,8 @@ Known release facts:
 - independent audit has not started;
 - no critical/high findings are currently claimed resolved by an independent party;
 - the old artifact freeze is invalidated;
-- prior artifact drift was debug/AST metadata only and is exactly reconstructed;
+- prior release-candidate artifact drift was debug/AST metadata only and is exactly reconstructed;
+- historical launch metadata drift from an added remapping is isolated by exact compiler profiles, with unchanged executable sections and exact whole-artifact reproduction;
 - a prior preflight secret-loading incident was remediated and regression-tested;
 - Robinhood Safe/role/assets/sources/strategies/split remain undecided;
 - Monad deployer/canary/gas authorization remain undecided.

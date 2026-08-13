@@ -1,8 +1,8 @@
 {
   "schema": "hoodyoor-monad-droid-release-candidate-v2",
-  "frozenAt": "2026-08-13T10:48:27.947Z",
+  "frozenAt": "2026-08-13T11:34:59.838Z",
   "status": "AUDIT_REQUIRED",
-  "sourceCommit": "b7c22ce11a9da833c2900c68937d20c547bf5f8a",
+  "sourceCommit": "d272a55e78219e993015a2df31facc0f153af827",
   "deploymentAuthorized": false,
   "broadcastCapability": false,
   "broadcastAttempted": false,
@@ -61,7 +61,7 @@
       "chainTargets": [
         143
       ],
-      "sourceCommit": "b7c22ce11a9da833c2900c68937d20c547bf5f8a",
+      "sourceCommit": "d272a55e78219e993015a2df31facc0f153af827",
       "compiler": "0.8.24+commit.e11b9ed9",
       "compilerSettings": {
         "optimizerEnabled": true,
@@ -135,7 +135,7 @@
       "chainTargets": [
         143
       ],
-      "sourceCommit": "b7c22ce11a9da833c2900c68937d20c547bf5f8a",
+      "sourceCommit": "d272a55e78219e993015a2df31facc0f153af827",
       "compiler": "0.8.24+commit.e11b9ed9",
       "compilerSettings": {
         "optimizerEnabled": true,

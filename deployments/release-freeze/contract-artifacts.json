@@ -1,7 +1,7 @@
 {
   "schema": "hoodyoor-contract-artifact-freeze-v2",
-  "frozenAt": "2026-08-13T10:48:27.947Z",
-  "sourceCommit": "b7c22ce11a9da833c2900c68937d20c547bf5f8a",
+  "frozenAt": "2026-08-13T11:34:59.838Z",
+  "sourceCommit": "d272a55e78219e993015a2df31facc0f153af827",
   "previousFreeze": {
     "status": "INVALIDATED",
     "reason": "Whole Foundry JSON hashes changed with compiler source/AST indexing; no previous approval carries forward."
@@ -62,7 +62,7 @@
       "chainTargets": [
         143
       ],
-      "sourceCommit": "b7c22ce11a9da833c2900c68937d20c547bf5f8a",
+      "sourceCommit": "d272a55e78219e993015a2df31facc0f153af827",
       "compiler": "0.8.24+commit.e11b9ed9",
       "compilerSettings": {
         "optimizerEnabled": true,
@@ -128,7 +128,7 @@
       "chainTargets": [
         143
       ],
-      "sourceCommit": "b7c22ce11a9da833c2900c68937d20c547bf5f8a",
+      "sourceCommit": "d272a55e78219e993015a2df31facc0f153af827",
       "compiler": "0.8.24+commit.e11b9ed9",
       "compilerSettings": {
         "optimizerEnabled": true,
@@ -174,7 +174,7 @@
       "chainTargets": [
         4663
       ],
-      "sourceCommit": "b7c22ce11a9da833c2900c68937d20c547bf5f8a",
+      "sourceCommit": "d272a55e78219e993015a2df31facc0f153af827",
       "compiler": "0.8.24+commit.e11b9ed9",
       "compilerSettings": {
         "optimizerEnabled": true,
@@ -220,7 +220,7 @@
       "chainTargets": [
         4663
       ],
-      "sourceCommit": "b7c22ce11a9da833c2900c68937d20c547bf5f8a",
+      "sourceCommit": "d272a55e78219e993015a2df31facc0f153af827",
       "compiler": "0.8.24+commit.e11b9ed9",
       "compilerSettings": {
         "optimizerEnabled": true,
@@ -276,7 +276,7 @@
       "chainTargets": [
         4663
       ],
-      "sourceCommit": "b7c22ce11a9da833c2900c68937d20c547bf5f8a",
+      "sourceCommit": "d272a55e78219e993015a2df31facc0f153af827",
       "compiler": "0.8.24+commit.e11b9ed9",
       "compilerSettings": {
         "optimizerEnabled": true,
@@ -357,7 +357,7 @@
       "chainTargets": [
         4663
       ],
-      "sourceCommit": "b7c22ce11a9da833c2900c68937d20c547bf5f8a",
+      "sourceCommit": "d272a55e78219e993015a2df31facc0f153af827",
       "compiler": "0.8.24+commit.e11b9ed9",
       "compilerSettings": {
         "optimizerEnabled": true,
@@ -413,7 +413,7 @@
       "chainTargets": [
         4663
       ],
-      "sourceCommit": "b7c22ce11a9da833c2900c68937d20c547bf5f8a",
+      "sourceCommit": "d272a55e78219e993015a2df31facc0f153af827",
       "compiler": "0.8.24+commit.e11b9ed9",
       "compilerSettings": {
         "optimizerEnabled": true,
@@ -464,7 +464,7 @@
       "chainTargets": [
         4663
       ],
-      "sourceCommit": "b7c22ce11a9da833c2900c68937d20c547bf5f8a",
+      "sourceCommit": "d272a55e78219e993015a2df31facc0f153af827",
       "compiler": "0.8.24+commit.e11b9ed9",
       "compilerSettings": {
         "optimizerEnabled": true,

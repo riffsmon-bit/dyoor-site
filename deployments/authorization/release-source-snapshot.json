@@ -1,13 +1,13 @@
 {
   "schema": "hoodyoor-release-source-snapshot-v2",
-  "capturedAt": "2026-08-13T10:48:27.947Z",
-  "branch": "release/hoodyoor-audit-rc-20260812",
-  "sourceCommit": "b7c22ce11a9da833c2900c68937d20c547bf5f8a",
+  "capturedAt": "2026-08-13T11:34:59.838Z",
+  "branch": "",
+  "sourceCommit": "d272a55e78219e993015a2df31facc0f153af827",
   "cleanSourceSnapshot": true,
   "cleanCheckoutVerified": true,
   "trackedSourceChangesAtFreeze": false,
   "originalAuthoringWorktreeExcludedFilesPreserved": true,
-  "trackedFileCount": 4047,
+  "trackedFileCount": 4053,
   "submodules": "NONE",
   "dependencyLocks": {
     "rootPackageLockSha256": "0x6e2c0d42a5d0d82672c81e6132423ba875c1d3f7893d97ef2029cb1db396b743",

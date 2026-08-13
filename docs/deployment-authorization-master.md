@@ -8,7 +8,7 @@ Independent audit: **NOT STARTED**
 
 Deployment/configuration/activation: **NOT AUTHORIZED**
 
-The release source is commit `b7c22ce11a9da833c2900c68937d20c547bf5f8a`. It reproduced across three clean builds. This package ends at the independent-audit gate and contains no production broadcast command.
+The release source is commit `d272a55e78219e993015a2df31facc0f153af827`. It reproduced across three clean builds. This package ends at the independent-audit gate and contains no production broadcast command.
 
 ## Independent gates
 

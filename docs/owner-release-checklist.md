@@ -7,7 +7,7 @@ Checked engineering-evidence items are complete. Every authorization item remain
 ## Engineering evidence
 
 - [x] Release scope classified without discarding user files
-- [x] Clean source commit created: `b7c22ce11a9da833c2900c68937d20c547bf5f8a`
+- [x] Clean source commit created: `d272a55e78219e993015a2df31facc0f153af827`
 - [x] Artifact drift explained field-by-field
 - [x] Build A equals Build B
 - [x] Third clean-room build equals A/B

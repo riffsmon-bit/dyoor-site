@@ -100,4 +100,4 @@ The replacement `release` profile compiles only `src/droid` and `src/economic` a
 | `HoodYoorStrategyRegistry` | `b6dc6a2202d9efc25f489e06c9915d26db54e479e655a8881476218eb2e226c5` |
 | `HoodYoorAchievementRegistry` | `17f4c0acf70e05f9589ff5ccab89d1cbbca74d227387df0d59e4378b226cd918` |
 
-The machine manifest binds these whole files and the canonical hashes to source commit `b7c22ce11a9da833c2900c68937d20c547bf5f8a`.
+The machine manifest binds these whole files and the canonical hashes to source commit `d272a55e78219e993015a2df31facc0f153af827`.
