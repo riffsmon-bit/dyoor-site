@@ -34,6 +34,7 @@ fi
 ipfs config --json Gateway.NoFetch true
 ipfs config --json Gateway.ExposeRoutingAPI false
 ipfs config --json Gateway.NoDNSLink true
+ipfs config --json Datastore.HashOnRead true
 ipfs config Datastore.StorageMax "${IPFS_STORAGE_MAX:-20GB}"
 ipfs config Datastore.GCPeriod 12h
 ipfs config --json Swarm.ConnMgr.LowWater 40

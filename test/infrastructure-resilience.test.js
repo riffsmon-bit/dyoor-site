@@ -110,6 +110,11 @@ test("hosted IPFS administration is private and backing-store credentials are no
   assert.match(start, /accessKey:"",secretKey:""/);
   assert.doesNotMatch(caddy, /reverse_proxy.*5001/);
   assert.match(caddy, /DYOOR assets only/);
+  assert.match(start, /Datastore.HashOnRead true/);
+  assert.match(start, /Addresses.Announce/);
+  for (const cid of fs.readFileSync("infra/ipfs/dyoor-cids.txt", "utf8").split(/\r?\n/).map(line => line.replace(/#.*/, "").trim()).filter(Boolean)) {
+    assert.ok(caddy.includes(`/ipfs/${cid}/*`), `Missing gateway allowlist for ${cid}`);
+  }
 });
 
 test("hosted block storage bounds connection reuse and request duration", () => {

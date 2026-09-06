@@ -26,6 +26,8 @@ downloaded at startup.
 connections per host, with request timeouts. This avoids exhausting outbound
 ports during bulk imports. Keep import concurrency at four files; checkpoints
 can resume interrupted jobs, but recursive pin verification is still mandatory.
+Block hashes are checked on reads, including after a restart, to detect backing
+storage corruption instead of serving bytes that do not match their CID.
 
 Secrets are Railway reference variables and are never copied into Git, the
 image, public URLs, or Kubo's config. Required service variables:
