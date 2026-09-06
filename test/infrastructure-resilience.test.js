@@ -53,7 +53,7 @@ test("Monad reads have multiple keyless providers and keep Alchemy last", () => 
 test("Energy display reads use the keyless fallback pool and preserve authoritative accounting", () => {
   const route = fs.readFileSync("app/api/energy/[wallet]/route.ts", "utf8");
   assert.match(route, /const provider = createMonadReadProvider\(\)/);
-  assert.match(route, /readPendingEnergyRaw\(wallet, provider\)/);
+  assert.match(route, /readPendingEnergyRawStrict\(wallet, provider\)/);
   assert.match(route, /withReadTimeout\(readEnergyBankBalance\(wallet, provider\), 8_000\)/);
   assert.doesNotMatch(route, /energyRpcProvider/);
   assert.match(route, /if \(!bankBalance\)\s*\{\s*return json\(503/);

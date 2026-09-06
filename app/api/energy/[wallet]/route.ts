@@ -2,7 +2,8 @@ import { ethers } from "ethers";
 import { DEFAULT_ENERGY_BANK_CONTRACT } from "@/lib/contracts/addresses";
 import { effectiveEnergyBalance } from "@/lib/trait-lab-energy-accounting";
 import { getEnergyBalance } from "@/src/lib/storage/energyStore";
-import { readPendingEnergyRaw } from "@/src/lib/energy/chain";
+import { readPendingEnergyRawStrict } from "@/src/lib/energy/chain";
+import { readPendingEnergySnapshot } from "@/lib/pending-energy";
 import { createMonadReadProvider } from "@/lib/monad-rpc";
 import { withReadTimeout } from "@/lib/read-timeout";
 import { getTraitLabEnergyDebitSummary } from "@/src/lib/storage/s2TraitLabStore";
@@ -70,19 +71,19 @@ export async function GET(_request: Request, context: EnergyRouteContext) {
   // This display endpoint must not depend on the legacy single-provider RPC
   // used by indexing/settlement. Keep those workflows and accounting unchanged.
   const provider = createMonadReadProvider();
-  const [pendingRaw, bankBalance, traitLabDebits] = await Promise.all([
-    withReadTimeout(readPendingEnergyRaw(wallet, provider), 4_000).catch(() => 0n),
+  const [pending, bankBalance, traitLabDebits] = await Promise.all([
+    readPendingEnergySnapshot(() => readPendingEnergyRawStrict(wallet, provider)),
     withReadTimeout(readEnergyBankBalance(wallet, provider), 8_000).catch(() => null),
     getTraitLabEnergyDebitSummary(wallet),
   ]);
-  const balance = await getEnergyBalance(wallet, pendingRaw.toString());
+  // Pending is not part of bank accounting. Unknown remains null in the response.
+  const balance = await getEnergyBalance(wallet, pending.pendingRaw ?? "0");
   if (!bankBalance) {
     return json(503, {
       ok: false,
       wallet,
       error: "Energy Bank balance is temporarily unavailable.",
-      pendingRaw: balance.pendingRaw,
-      pendingEnergy: format(balance.pendingRaw),
+      ...pending,
       ledgerSpendableRaw: balance.spendableRaw,
       ledgerSpendableEnergy: format(balance.spendableRaw),
       dataSource: "ledger-diagnostic-only",
@@ -100,8 +101,7 @@ export async function GET(_request: Request, context: EnergyRouteContext) {
   return json(200, {
     ok: true,
     wallet,
-    pendingRaw: balance.pendingRaw,
-    pendingEnergy: format(balance.pendingRaw),
+    ...pending,
     harvestedRaw: balance.harvestedRaw,
     harvestedEnergy: format(balance.harvestedRaw),
     airdroppedRaw: balance.airdroppedRaw,

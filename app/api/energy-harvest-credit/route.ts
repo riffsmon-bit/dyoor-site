@@ -1,11 +1,11 @@
 import { ethers } from "ethers";
 import { MONAD_CHAIN_ID } from "@/lib/monad";
+import { createEnergyRpcProvider } from "@/lib/energy-rpc";
 import { DEFAULT_ASCENSION_STAKING_CONTRACT, DEFAULT_ENERGY_BANK_CONTRACT } from "@/lib/contracts/addresses";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-const DEFAULT_RPC = "https://rpc.monad.xyz";
 const ENERGY_CREDIT_GAS_LIMIT = 160_000n;
 
 const ENERGY_BANK_ABI = [
@@ -99,7 +99,7 @@ export async function POST(request: Request) {
     const signerKey = normalizePrivateKey(readEnv("ENERGY_BANK_OPERATOR_PRIVATE_KEY", "DEPLOYER_PRIVATE_KEY"));
     if (!signerKey) return json(500, { ok: false, error: "Missing ENERGY_BANK_OPERATOR_PRIVATE_KEY." });
 
-    const provider = new ethers.JsonRpcProvider(readEnv("MONAD_RPC_URL", "NEXT_PUBLIC_MONAD_RPC_URL") || DEFAULT_RPC);
+    const provider = createEnergyRpcProvider();
     const network = await provider.getNetwork();
     if (network.chainId !== BigInt(MONAD_CHAIN_ID)) {
       throw new Error(`Wrong RPC network. Expected chain ${MONAD_CHAIN_ID}, got ${network.chainId.toString()}.`);
