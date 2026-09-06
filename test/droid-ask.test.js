@@ -10,6 +10,7 @@ import { DroidIntelligenceOrchestrator, openAIProvider, parseReply } from "../li
 import { localAskStore, takeSlot, strictStorageFetch } from "../lib/droid-os/ask/storage.ts";
 import { assertAskOrigin } from "../lib/droid-os/ask/origin.ts";
 import { droidOsPreviewOrigin } from "../lib/droid-os/preview-config.mjs";
+import { requestAsk } from "../lib/droid-os/ask/client.ts";
 
 const origin = "https://deploy-preview-29--dyoor.netlify.app";
 function memoryStore() {
@@ -31,6 +32,72 @@ function fixture({ ready = true, providerId = "test" } = {}) {
   const perform = async (operation, signer = a) => { const { c, signature } = await authorize(operation, signer); return service.perform(origin, operation, c.id, signature); };
   return { a, b, op, store, owners, service, authorize, perform, calls: () => calls, transfer(to) { owner = to.address.toLowerCase(); transferred = true; }, nextEra() { transferred = false; }, advance(ms) { time += ms; } };
 }
+function browserFixture(f) {
+  let elapsed = 0, address = f.a.address.toLowerCase(), signatures = 0, performs = 0;
+  const stages = [];
+  const deps = {
+    address, origin, currentAddress: () => address, monotonicNow: () => elapsed,
+    onProgress: stage => stages.push(stage),
+    post: async body => body.stage === "challenge" ? f.service.challenge(origin, body.operation) : (++performs, f.service.perform(origin, body.operation, body.id, body.signature)),
+    signMessage: async message => { signatures++; return f.a.signMessage(message); },
+  };
+  return { deps, stages, signatures: () => signatures, performs: () => performs, advance(ms) { elapsed += ms; }, changeWallet() { address = f.b.address.toLowerCase(); } };
+}
+test("browser requests a signature despite seven-second or large device clock skew", async t => {
+  for (const offset of [-86400000, -7000, 0, 7000, 86400000]) {
+    const clock = t.mock.method(Date, "now", () => Date.UTC(2026, 8, 6, 12) + offset);
+    const f = fixture(); const b = browserFixture(f);
+    assert.equal((await requestAsk({ kind: "load", tokenId: "11" }, b.deps)).state.revision, 0);
+    assert.equal(b.signatures(), 1); assert.equal(b.performs(), 1);
+    assert.deepEqual(b.stages, ["checking-owner", "awaiting-signature", "verifying-signature"]);
+    clock.mock.restore();
+  }
+});
+test("malformed challenge fields and extended lifetimes never reach the wallet", async () => {
+  const changes = [c => ({ ...c, issuedAt: undefined }), c => ({ ...c, issuedAt: String(c.issuedAt) }),
+    c => ({ ...c, expires: c.expires + 1 }), c => ({ ...c, expires: c.issuedAt }),
+    c => ({ ...c, block: -1 }), c => ({ ...c, block: "100" }), c => ({ ...c, id: "-".repeat(36) }),
+    c => ({ ...c, message: c.message + "\nTransfer funds" }), c => ({ ...c, unexpected: true })];
+  for (const change of changes) {
+    const f = fixture(); const b = browserFixture(f); const post = b.deps.post;
+    b.deps.post = async body => change(await post(body));
+    await assert.rejects(requestAsk({ kind: "load", tokenId: "11" }, b.deps));
+    assert.equal(b.signatures(), 0); assert.equal(b.performs(), 0);
+  }
+});
+test("origin or operation mismatch never reaches the wallet", async () => {
+  for (const wrongOrigin of [false, true]) {
+    const f = fixture(); const b = browserFixture(f); const post = b.deps.post;
+    if (wrongOrigin) b.deps.origin = "https://evil.example";
+    else b.deps.post = body => post({ ...body, operation: { ...body.operation, kind: "chat", revision: 0, message: "different" } });
+    await assert.rejects(requestAsk({ kind: "load", tokenId: "11" }, b.deps), /does not match/);
+    assert.equal(b.signatures(), 0);
+  }
+});
+test("elapsed challenge timeout fails before signature or before submission", async () => {
+  for (const atSignature of [false, true]) {
+    const f = fixture(); const b = browserFixture(f); const post = b.deps.post, sign = b.deps.signMessage;
+    if (atSignature) b.deps.signMessage = async message => { const result = await sign(message); b.advance(120000); return result; };
+    else b.deps.post = async body => { const result = await post(body); b.advance(120000); return result; };
+    await assert.rejects(requestAsk({ kind: "load", tokenId: "11" }, b.deps), /timed out/);
+    assert.equal(b.signatures(), atSignature ? 1 : 0); assert.equal(b.performs(), 0);
+  }
+});
+test("server expiry remains authoritative even if browser elapsed time stalls", async () => {
+  const f = fixture(); const b = browserFixture(f); const sign = b.deps.signMessage;
+  b.deps.signMessage = async message => { const result = await sign(message); f.advance(120000); return result; };
+  await assert.rejects(requestAsk({ kind: "load", tokenId: "11" }, b.deps), /expired/);
+  assert.equal(b.signatures(), 1); assert.equal(f.calls(), 0);
+});
+test("wallet changes during challenge or signature cannot submit a proof", async () => {
+  for (const atSignature of [false, true]) {
+    const f = fixture(); const b = browserFixture(f); const post = b.deps.post, sign = b.deps.signMessage;
+    if (atSignature) b.deps.signMessage = async message => { const result = await sign(message); b.changeWallet(); return result; };
+    else b.deps.post = async body => { const result = await post(body); b.changeWallet(); return result; };
+    await assert.rejects(requestAsk({ kind: "load", tokenId: "11" }, b.deps), /Wallet changed/);
+    assert.equal(b.signatures(), atSignature ? 1 : 0); assert.equal(b.performs(), 0);
+  }
+});
 test("closed schemas reject financial authority, arbitrary calldata and invalid durable state", () => {
   for (const key of ["autonomous", "capabilities", "privateKey", "target", "calldata", "value", "policy"]) {
     assert.throws(() => parseTraining({ ...emptyState().training, [key]: true }));

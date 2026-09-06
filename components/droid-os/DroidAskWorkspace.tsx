@@ -27,10 +27,13 @@ export function DroidAskWorkspace({ droid, view, client }: { droid: PreviewDroid
   }, []);
   async function run(kind: "load" | "save" | "chat") {
     if (inFlight.current) return;
-    inFlight.current = true; setBusy(true); setError(""); setNotice("Check your wallet for a gas-free, one-request signature.");
+    inFlight.current = true; setBusy(true); setError(""); setNotice("Checking current Droid ownership and preparing a signature request…");
     try {
       const input = { kind, tokenId: droid.id, ...(kind !== "load" ? { revision: saved?.revision ?? 0 } : {}), ...(kind === "save" ? { training: { ...training, missions: training.missions.map(m => m.trim()).filter(Boolean) } } : {}), ...(kind === "chat" ? { message: draft } : {}) };
-      const result = await client(input);
+      const result = await client(input, stage => {
+        if (!active.current) return;
+        setNotice(stage === "checking-owner" ? "Checking current Droid ownership and preparing a signature request…" : stage === "awaiting-signature" ? "Open your connected wallet for a gas-free, one-request signature." : "Verifying your signature and current ownership. Please wait…");
+      });
       if (!active.current) return;
       setSaved(result.state); setTraining(result.state.training); setAiReady(result.aiReady);
       setNotice(kind === "save" ? "Training saved to this Droid’s owner-scoped profile. No wallet permissions changed." : kind === "load" ? "Saved training loaded. ASK only; no financial permissions." : "Reply saved. No financial action occurred.");

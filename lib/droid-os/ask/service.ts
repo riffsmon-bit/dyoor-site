@@ -4,7 +4,7 @@ import { AskError, COLLECTION, emptyState, parseState, type Operation } from "./
 import { takeSlot, type AskStore } from "./storage.ts";
 import type { OwnerReader, OwnerEvidence } from "./ownership.ts";
 import type { DroidIntelligenceOrchestrator } from "./intelligence.ts";
-import { challengeMessage } from "./protocol.ts";
+import { ASK_CHALLENGE_TTL_MS, challengeMessage } from "./protocol.ts";
 type Challenge = { version: 1; id: string; digest: string; origin: string; expires: number; owner: OwnerEvidence; message: string; consumed: boolean };
 const digest = (v: unknown) => createHash("sha256").update(JSON.stringify(v)).digest("hex");
 export function createAskService(deps: { store: AskStore; owners: OwnerReader; intelligence: DroidIntelligenceOrchestrator; aiReady: boolean; now?: () => number }) {
@@ -18,16 +18,17 @@ export function createAskService(deps: { store: AskStore; owners: OwnerReader; i
       await takeSlot(store, `challenge-owner/${op.wallet}/${minute}`, 6);
       const owner = await owners.current(op.tokenId);
       if (owner.owner !== op.wallet) throw new AskError("Only the current owner of this Droid can access its training.", 403);
-      const c: Challenge = { version: 1, id: randomUUID(), digest: digest(op), origin, expires: now() + 120000, owner, message: "", consumed: false };
+      const issuedAt = now();
+      const c: Challenge = { version: 1, id: randomUUID(), digest: digest(op), origin, expires: issuedAt + ASK_CHALLENGE_TTL_MS, owner, message: "", consumed: false };
       c.message = challengeMessage(c, op);
       if (!await store.put(`challenge/${c.id}`, c, null)) throw new AskError("Could not create a one-use challenge.", 503);
-      return { id: c.id, message: c.message, expires: c.expires, block: owner.block };
+      return { id: c.id, message: c.message, issuedAt, expires: c.expires, block: owner.block };
     },
     async perform(origin: string, op: Operation, id: string, signature: string) {
       if (!/^[0-9a-f-]{36}$/.test(id) || !/^0x[0-9a-fA-F]{130}$/.test(signature)) throw new AskError("Invalid owner proof.", 401);
       const entry = await store.get(`challenge/${id}`);
       const c = entry?.data as Challenge | undefined;
-      if (!c || c.version !== 1 || c.consumed || c.id !== id || c.origin !== origin || c.digest !== digest(op) || c.expires <= now() || c.expires > now() + 120000 || c.owner.owner !== op.wallet || c.message !== challengeMessage(c, op)) throw new AskError("Proof expired, was used, or does not match this request.", 401);
+      if (!c || c.version !== 1 || c.consumed || c.id !== id || c.origin !== origin || c.digest !== digest(op) || c.expires <= now() || c.expires > now() + ASK_CHALLENGE_TTL_MS || c.owner.owner !== op.wallet || c.message !== challengeMessage(c, op)) throw new AskError("Proof expired, was used, or does not match this request.", 401);
       let signer = "";
       try { signer = verifyMessage(c.message, signature).toLowerCase(); } catch { /* deny */ }
       if (signer !== op.wallet) throw new AskError("Signature does not match the owner wallet. This canary supports EOA signatures only.", 401);
