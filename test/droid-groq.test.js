@@ -4,9 +4,21 @@ import { readFileSync } from "node:fs";
 import { emptyState } from "../lib/droid-os/ask/schema.ts";
 import { configuredIntelligence, DroidIntelligenceOrchestrator } from "../lib/droid-os/ask/intelligence.ts";
 import { GROQ_MODEL, GROQ_REQUEST_BYTES, groqProvider, groqRequest } from "../lib/droid-os/ask/groq.ts";
+import { getRemoteBaseMetadata } from "../lib/dyoor-s2-metadata.js";
+import { traitLabLeaderboardEnabled } from "../lib/s2-trait-lab-leaderboard.ts";
 
 const input = () => ({ tokenId: "11", state: emptyState(), message: "Help me research free mints" });
 const valid = () => ({ model: GROQ_MODEL, choices: [{ finish_reason: "stop", message: { role: "assistant", content: JSON.stringify({ version: 1, intent: "RESEARCH_DRAFT", text: "Start by checking the mint contract." }) } }], usage: { prompt_tokens: 600, completion_tokens: 100 } });
+
+test("removing shadowed preview aliases preserves metadata source and leaderboard behavior", async (t) => {
+  t.mock.method(globalThis, "fetch", async () => Response.json({ name: "Fixture", image: "ipfs://fixture", attributes: [] }));
+  const before = { IPFS_GATEWAY_URL: "https://ipfs.example.test", DYOOR_S2_METADATA_GATEWAY: "https://ipfs.example.test", DYOOR_TRAIT_LAB_ENABLE_LEADERBOARD: "true", NEXT_PUBLIC_DYOOR_TRAIT_LAB_ENABLE_LEADERBOARD: "true" };
+  const after = { ...before }; delete after.DYOOR_S2_METADATA_GATEWAY; delete after.NEXT_PUBLIC_DYOOR_TRAIT_LAB_ENABLE_LEADERBOARD;
+  const original = await getRemoteBaseMetadata("11", before), reduced = await getRemoteBaseMetadata("11", after);
+  assert.ok(original?.source.startsWith("https://ipfs.example.test/ipfs/"));
+  assert.deepEqual(reduced, original);
+  assert.equal(traitLabLeaderboardEnabled(before), true); assert.equal(traitLabLeaderboardEnabled(after), true);
+});
 
 test("only non-secret AI selection is build-inlined; production cannot enable it", async () => {
   const config = readFileSync(new URL("../next.config.mjs", import.meta.url), "utf8");
