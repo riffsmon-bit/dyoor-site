@@ -23,7 +23,8 @@ export async function GET() {
 export async function POST(request: Request) {
   try {
     gate();
-    const origin = assertAskOrigin(request, process.env.DROID_OS_PREVIEW_ORIGIN || "");
+    const localMode = process.env.DROID_OS_LOCAL_MODE === "true";
+    const origin = assertAskOrigin(request, process.env.DROID_OS_PREVIEW_ORIGIN || "", localMode);
     // Streaming limit applies even if Content-Length is absent or misleading.
     const reader = request.body?.getReader();
     if (!reader) throw new AskError("Missing request.");
@@ -32,7 +33,9 @@ export async function POST(request: Request) {
     const raw = JSON.parse(Buffer.concat(chunks).toString("utf8"));
     const input = object(raw, raw.stage === "challenge" ? ["stage", "operation"] : ["stage", "operation", "id", "signature"]);
     const op = parseOperation(input.operation);
-    const store = process.env.NETLIFY || process.env.DEPLOY_ID ? blobAskStore() : localAskStore(path.join(process.cwd(), "data/runtime/droid-os-ask"));
+    // Runtime Netlify markers are not reliably passed into Next SSR. This
+    // non-secret build-context constant prevents writes to Lambda's filesystem.
+    const store = localMode ? localAskStore(path.join(process.cwd(), "data/runtime/droid-os-ask")) : blobAskStore();
     const ai = configuredIntelligence();
     const service = createAskService({ store, owners: createOwnerReader(), intelligence: ai.orchestrator, aiReady: ai.ready });
     const result = input.stage === "challenge" ? await service.challenge(origin, op) : input.stage === "perform" ? await service.perform(origin, op, String(input.id), String(input.signature)) : null;

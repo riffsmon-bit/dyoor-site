@@ -162,7 +162,9 @@ test("Netlify internal request hosts cannot reject the pinned preview origin or 
   assert.equal(assertAskOrigin(request(origin), origin), origin);
   assert.throws(() => assertAskOrigin(request("https://evil.example", { "x-forwarded-host": "evil.example" }), origin));
   assert.throws(() => assertAskOrigin(request("http://localhost:3000"), origin));
-  assert.equal(assertAskOrigin(request("http://localhost:3000"), ""), "http://localhost:3000");
+  assert.equal(assertAskOrigin(request("http://localhost:3000"), "", true), "http://localhost:3000");
+  assert.equal(assertAskOrigin(request("http://127.0.0.1:3000"), "", true), "http://127.0.0.1:3000");
+  assert.throws(() => assertAskOrigin(request("http://localhost:3000"), ""));
   assert.throws(() => assertAskOrigin(new Request(origin, { headers: { origin, "content-type": "application/json" } }), ""));
   const env = { DROID_OS_UI_PREVIEW: "true", CONTEXT: "deploy-preview", DEPLOY_PRIME_URL: origin };
   assert.equal(droidOsPreviewOrigin(env), origin);

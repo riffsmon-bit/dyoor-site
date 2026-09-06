@@ -60,6 +60,7 @@ const nextConfig = {
   env: {
     DROID_OS_UI_PREVIEW: droidOsPreviewEnabled(process.env) ? "true" : "false",
     DROID_OS_PREVIEW_ORIGIN: droidOsPreviewOrigin(process.env),
+    DROID_OS_LOCAL_MODE: droidOsPreviewEnabled(process.env) && !process.env.CONTEXT ? "true" : "false",
   },
   reactStrictMode: true,
   poweredByHeader: false,
