@@ -1,9 +1,9 @@
 import { ethers } from "ethers";
 import { MONAD_CHAIN_ID } from "@/lib/monad";
 import { DEFAULT_ASCENSION_STAKING_CONTRACT } from "@/lib/contracts/addresses";
+import { createEnergyRpcProvider } from "@/lib/energy-rpc";
 import type { HarvestEvent } from "@/src/lib/storage/types";
 
-const DEFAULT_RPC = "https://rpc.monad.xyz";
 const DEFAULT_START_BLOCK = 54_985_442;
 const DEFAULT_CHUNK_SIZE = 2_500;
 const POINTS_CLAIMED_TOPIC = ethers.id("PointsClaimed(address,uint256)");
@@ -47,7 +47,7 @@ export function ascensionStakingAddress() {
 }
 
 export function energyRpcProvider() {
-  return new ethers.JsonRpcProvider(readEnv("MONAD_RPC_URL", "NEXT_PUBLIC_MONAD_RPC_URL") || DEFAULT_RPC);
+  return createEnergyRpcProvider();
 }
 
 export async function assertMonadMainnet(provider: ethers.JsonRpcProvider) {
@@ -96,6 +96,7 @@ export async function harvestEventsFromReceipt(txHash: string, wallet?: string) 
   }
   const normalizedWallet = wallet ? normalizeAddress(wallet) : "";
   const provider = energyRpcProvider();
+  await assertMonadMainnet(provider);
   let receipt = await provider.getTransactionReceipt(txHash);
   if (!receipt) {
     await new Promise((resolve) => setTimeout(resolve, 2500));

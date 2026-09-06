@@ -874,7 +874,9 @@ export default function AscensionPage() {
       } else {
         setActionStatus("Energy harvest confirmed. Refreshing state...");
       }
-      await ascension.refresh({ scanLogs: true });
+      // The exact receipt was synchronized above. Do not trigger a historical
+      // rescan/credit workflow merely to refresh the displayed balances.
+      await ascension.refresh();
     } catch (error) {
       setActionStatus(formatWalletError(error, "Harvest failed."));
     } finally {
