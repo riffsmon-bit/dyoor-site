@@ -5,11 +5,13 @@ import { useWalletService } from "@/providers/WalletServiceProvider";
 import { parseWalletRoster } from "@/lib/droid-os/roster.mjs";
 import { type PreviewDroid } from "@/lib/droid-os/preview";
 import { DroidOsPreview } from "./DroidOsPreview";
+import { useDroidAskClient } from "@/hooks/useDroidAskClient";
 
 type RosterResult = { wallet: string; tokenIds: string[]; error: string };
 
 export function DroidOsConnectedPreview() {
   const wallet = useWalletService();
+  const askClient = useDroidAskClient();
   const address = /^0x[a-fA-F0-9]{40}$/.test(wallet.address) ? wallet.address.toLowerCase() : "";
   const [refreshKey, setRefreshKey] = useState(0);
   const [connectionError, setConnectionError] = useState("");
@@ -56,6 +58,6 @@ export function DroidOsConnectedPreview() {
     </div>
     {!address ? <DroidOsPreview key="disconnected-demo" /> : !loaded || result.error || !droids.length ?
       <div className="droid-os os-roster-state" role="status"><h1>{!loaded ? "Loading your Droids…" : result.error ? "Your roster is unavailable." : "No Season 2 Droids found."}</h1><p>{result.error || (!loaded ? "Checking your wallet holdings. No sample Droids are being substituted." : "Check that the connected wallet holds Season 2 on Monad.")}</p></div> :
-      <DroidOsPreview key={address} roster={droids} />}
+      <DroidOsPreview key={address} roster={droids} askClient={askClient} />}
   </>;
 }

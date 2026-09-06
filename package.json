@@ -3,6 +3,7 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "test:droid-ask": "node --test test/droid-ask.test.js",
     "test:droid-assist": "node --test test/droid-assist-canary.test.js test/droid-assist-session.test.js",
     "test:droid-assist-flow": "forge build --root contracts/droid-os-v2 && node scripts/test-droid-assist-flow.mjs",
     "preflight:droid-assist": "forge build --root contracts/droid-os-v2 && node scripts/preflight-droid-assist.mjs",
@@ -89,6 +90,7 @@
     "@netlify/blobs": "^7.4.0",
     "@privy-io/react-auth": "^3.35.2",
     "@tanstack/react-query": "^5.101.0",
+    "droid-os-blobs": "npm:@netlify/blobs@10.7.4",
     "ethers": "^6.13.0",
     "next": "^16.2.9",
     "react": "^19.2.7",
