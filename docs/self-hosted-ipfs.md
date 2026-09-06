@@ -4,6 +4,11 @@ This stack runs a persistent Kubo node plus an HTTPS Caddy gateway. The Kubo
 admin API stays inside the Docker network; only the read-only gateway and IPFS
 swarm port are public.
 
+The Railway-specific implementation, private object-store backing, current
+account limits, and recovery procedures are documented in
+[`infra/ipfs/railway/README.md`](../infra/ipfs/railway/README.md). The Compose
+instructions below remain an alternative for a conventional VPS.
+
 The contract base URI must be `https://dyoor.fun/api/metadata/`. That API is
 the dynamic metadata layer used by rerolls. Moving image CIDs between gateways
 does not require an on-chain update because `ipfs://` CIDs are independent of

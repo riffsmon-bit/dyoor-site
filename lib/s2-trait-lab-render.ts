@@ -4,6 +4,7 @@ import crypto from "node:crypto";
 import fs from "node:fs/promises";
 import path from "node:path";
 import sharp from "sharp";
+import { fetchIpfsImageBuffer } from "@/lib/ipfs-image-fetch";
 
 type MetadataJson = {
   image?: string;
@@ -171,12 +172,7 @@ function ipfsGatewayUrl(uri: string) {
 }
 
 async function fetchBuffer(url: string) {
-  const response = await fetch(url, {
-    cache: "no-store",
-    headers: { accept: "image/png,image/*" },
-  });
-  if (!response.ok) return null;
-  return Buffer.from(await response.arrayBuffer());
+  return fetchIpfsImageBuffer(url);
 }
 
 async function imageBuffer(value: unknown) {

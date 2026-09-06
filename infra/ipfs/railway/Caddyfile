@@ -1,0 +1,30 @@
+{
+	admin off
+	auto_https off
+}
+:{$PORT:8080} {
+	header X-Content-Type-Options nosniff
+	header Access-Control-Allow-Origin *
+	handle /healthz {
+		respond "DYOOR IPFS gateway online" 200
+	}
+	@baseLayers path /ipfs/bafybeiareb6zxaatwobhwca46uadexwrwlnp7sm4awnccp3lcdwulkz6ri/*
+	handle @baseLayers {
+		@readLayers method GET HEAD OPTIONS
+		handle @readLayers {
+			reverse_proxy 127.0.0.1:8081
+		}
+		respond "Method not allowed" 405
+	}
+	@collection path /ipfs/bafybeidz7htb3digthznwvl4ytdpckq2q3d2ytgxtsie5bcp7a4lgtb2sq/* /ipfs/bafybeifz4gwsvqbypeki3wwwmmvng2z2lusqjndevfqemzibisk266vepq/* /ipfs/bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu/* /ipfs/bafybeidbaema3cr6n7sc3rglryevbtxziqrz3sk2d6equehsssziobcrru/*
+	handle @collection {
+		@read method GET HEAD OPTIONS
+		handle @read {
+			reverse_proxy 127.0.0.1:8081
+		}
+		respond "Method not allowed" 405
+	}
+	handle {
+		respond "DYOOR assets only" 404
+	}
+}

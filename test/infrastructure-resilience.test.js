@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import test from "node:test";
+import { fetchIpfsImageBuffer } from "../lib/ipfs-image-fetch.ts";
 import {
   configuredIpfsGateways,
   ipfsGatewayUrls,
@@ -66,4 +67,47 @@ test("reroll documentation keeps the contract on dynamic dyoor.fun metadata", ()
   const docs = fs.readFileSync("docs/self-hosted-ipfs.md", "utf8");
   assert.match(docs, /contract base URI must be `https:\/\/dyoor\.fun\/api\/metadata\/`/);
   assert.match(docs, /does not require an on-chain update/);
+});
+
+test("server-side reroll layers retry failed gateways and bound each request", async () => {
+  const originalFetch = globalThis.fetch;
+  const originalGateway = process.env.NEXT_PUBLIC_IPFS_GATEWAY_URL;
+  const calls = [];
+  process.env.NEXT_PUBLIC_IPFS_GATEWAY_URL = "https://ipfs.dyoor.fun";
+  globalThis.fetch = async (url, options) => {
+    calls.push(url);
+    assert.ok(options.signal instanceof AbortSignal);
+    if (calls.length === 1) throw new Error("Gateway unavailable");
+    return new Response(new Uint8Array([1, 2, 3]));
+  };
+  try {
+    assert.deepEqual(await fetchIpfsImageBuffer("ipfs://bafytest/layer.png"), Buffer.from([1, 2, 3]));
+    assert.equal(calls[0], "https://ipfs.dyoor.fun/ipfs/bafytest/layer.png");
+    assert.equal(calls.length, 2);
+  } finally {
+    globalThis.fetch = originalFetch;
+    if (originalGateway === undefined) delete process.env.NEXT_PUBLIC_IPFS_GATEWAY_URL;
+    else process.env.NEXT_PUBLIC_IPFS_GATEWAY_URL = originalGateway;
+  }
+});
+
+test("saved reroll image URLs are never replaced by version-one IPFS artwork", async () => {
+  const originalFetch = globalThis.fetch;
+  const calls = [];
+  globalThis.fetch = async (url) => { calls.push(url); return new Response(null, { status: 404 }); };
+  try {
+    const saved = "https://dyoor.fun/api/s2/trait-lab/render/16-v6-existing";
+    assert.equal(await fetchIpfsImageBuffer(saved), null);
+    assert.deepEqual(calls, [saved]);
+  } finally { globalThis.fetch = originalFetch; }
+});
+
+test("hosted IPFS administration is private and backing-store credentials are not in config", () => {
+  const start = fs.readFileSync("infra/ipfs/railway/start.sh", "utf8");
+  const caddy = fs.readFileSync("infra/ipfs/railway/Caddyfile", "utf8");
+  assert.match(start, /Addresses.API \/ip4\/127\.0\.0\.1\/tcp\/5001/);
+  assert.match(start, /Gateway.NoFetch true/);
+  assert.match(start, /accessKey:"",secretKey:""/);
+  assert.doesNotMatch(caddy, /reverse_proxy.*5001/);
+  assert.match(caddy, /DYOOR assets only/);
 });
