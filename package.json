@@ -4,7 +4,7 @@
   "type": "module",
   "scripts": {
     "preview:droid-os": "node scripts/preview-droid-os-ui.mjs",
-    "test:droid-os-ui": "node --test test/droid-os-ui.test.js",
+    "test:droid-os-ui": "node --test test/droid-os-ui.test.js test/droid-os-artwork.test.js",
     "dev": "next dev -p 3000",
     "dev:static": "PORT=5173 node local-dev-server.js",
     "dev:next": "next dev -p 3000",

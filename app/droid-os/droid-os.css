@@ -57,3 +57,4 @@
   .os-workspace { min-height: 625px; max-height: 680px; }.os-talk-scroll { padding-top: 19px; }.os-bot-mark { width: 32px; height: 32px; margin-bottom: 13px; }.os-droid-greeting h3 { font-size: 36px; }.os-droid-greeting p { margin-top: 11px; }.os-brief-preview { margin-top: 17px; padding: 13px; }
 }
 @media (prefers-reduced-motion: reduce) { .droid-os *, .droid-os *::before, .droid-os *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; } }
+.os-artwork-status{display:flex;align-items:center;justify-content:space-between;gap:1rem;margin:0 0 1rem;font-size:.62rem;letter-spacing:.1em;color:#91a2b3;flex-wrap:wrap}.os-artwork-status button{border:1px solid #29413f;background:#0b1718;color:#71f4df;padding:.6rem .8rem;border-radius:5px;min-height:44px;letter-spacing:normal}.os-roster-placeholder{height:74px;display:grid;place-items:center;color:#8d9ca9;background:#10141a}

@@ -12,6 +12,7 @@ const pending = new Map();
 const exceptions = [];
 const apiCalls = [];
 const providerBootstrap = [];
+const artworkReads = [];
 const reviewUrl = process.env.DROID_OS_REVIEW_URL || "http://localhost:3202/droid-os";
 assert.match(new URL(reviewUrl).hostname, /^(localhost|127\.0\.0\.1|deploy-preview-\d+--dyoor\.netlify\.app)$/);
 socket.addEventListener("message", ({ data }) => {
@@ -24,6 +25,9 @@ socket.addEventListener("message", ({ data }) => {
   else if (item.method === "Network.requestWillBeSent" && /\/api\//.test(item.params.request.url)) {
     const request = item.params.request;
     const url = new URL(request.url);
+    const artwork = (url.origin === new URL(reviewUrl).origin && /^\/api\/droid-os\/artwork\/(11|16|7|3)$/.test(url.pathname)) ||
+      (url.origin === "https://dyoor.netlify.app" && /^\/api\/s2\/trait-lab\/render\/(11|16|7|3)-v[0-9]+-[a-zA-Z0-9-]+$/.test(url.pathname));
+    if (artwork && request.method === "GET") { artworkReads.push(url.pathname); return; }
     const bootstrap =
       (url.origin === "https://auth.privy.io" && request.method === "GET" && /^\/api\/v1\/apps\/[^/]+$/.test(url.pathname)) ||
       (url.origin === "https://auth.privy.io" && request.method === "POST" && url.pathname === "/api/v1/analytics_events") ||
@@ -44,7 +48,7 @@ async function evaluate(expression) {
   return result.result.value;
 }
 async function until(expression) {
-  for (let index = 0; index < 100; index += 1) {
+  for (let index = 0; index < 250; index += 1) {
     if (await evaluate(expression)) return;
     await new Promise((resolve) => setTimeout(resolve, 100));
   }
@@ -62,12 +66,14 @@ try {
   await send("Emulation.setDeviceMetricsOverride", { width: 1440, height: 900, deviceScaleFactor: 1, mobile: false });
   await send("Page.navigate", { url: reviewUrl });
   await until('document.querySelector(".os-hero-image")?.naturalWidth > 0');
-  await until('[...document.querySelectorAll(".os-roster img")].every(image => image.complete && image.naturalWidth > 0)');
+  await until('document.querySelectorAll(".os-roster img").length === 4 && [...document.querySelectorAll(".os-roster img")].every(image => image.complete && image.naturalWidth > 0)');
   assert.equal(await evaluate("document.documentElement.scrollWidth > innerWidth"), false);
   await screenshot("droid-os-review-desktop");
   assert.equal(await evaluate('document.querySelector("#os-chat-input").placeholder'), "Talk to D.Y.O.O.R #11…");
   await click('[aria-label="Select D.Y.O.O.R #16"]');
   await until('document.querySelector("#os-chat-input")?.placeholder === "Talk to D.Y.O.O.R #16…"');
+  await until('document.querySelector(".os-hero-image")?.alt.includes("#16 — live metadata version") && document.querySelector(".os-hero-image").naturalWidth > 0');
+  await screenshot("droid-os-review-live-16");
   await click(".os-prompt-list button:last-child");
   await until('document.querySelector(".os-chat-log")?.textContent.includes("SCRIPTED PREVIEW")');
   assert.match(await evaluate('document.querySelector(".os-chat-log").textContent'), /ASK mode/);
@@ -106,6 +112,7 @@ try {
     await screenshot(`droid-os-review-${label}`);
   }
   assert.deepEqual(exceptions, []); assert.deepEqual(apiCalls, []);
-  console.log("PASS: roster, scripted chat, strategy draft, modal Escape, mobile navigation, local mission draft, no overflow, no runtime errors, no application or unexpected API calls.");
+  console.log("PASS: live artwork, roster, scripted chat, strategy draft, modal Escape, mobile navigation, local mission draft, no overflow, no runtime errors, no mutation or unexpected API calls.");
   console.log("Existing public provider bootstrap/telemetry requests:", providerBootstrap.length);
+  console.log("Public production artwork reads:", artworkReads.length);
 } finally { socket.close(); }

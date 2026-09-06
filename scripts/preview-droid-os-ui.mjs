@@ -1,9 +1,10 @@
-// Local-only UI harness. Uses actual React components; exposes no API or signing.
+// Local UI harness: public artwork GETs only; no wallet, signing or mutation API.
 import http from "node:http";
 import fs from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { createRequire } from "node:module";
+import { ARTWORK_TOKEN_IDS, readLiveArtwork } from "../lib/droid-os/live-artwork.mjs";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const require = createRequire(path.join(root, "package.json"));
@@ -41,10 +42,18 @@ const html = '<!doctype html><html lang="en"><head><meta charset="utf-8"><meta n
 const server = http.createServer(async (request, response) => {
   response.setHeader("Cache-Control", "no-store");
   response.setHeader("X-Content-Type-Options", "nosniff");
-  response.setHeader("Content-Security-Policy", "default-src 'self'; connect-src 'none'; img-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self'; frame-ancestors 'none'; form-action 'none'");
+  response.setHeader("Content-Security-Policy", "default-src 'self'; connect-src 'self'; img-src 'self' https://dyoor.netlify.app https://ipfs.dyoor.fun; style-src 'self' 'unsafe-inline'; script-src 'self'; frame-ancestors 'none'; form-action 'none'");
   if (request.method !== "GET") { response.writeHead(405); response.end("Wallet and API actions are disabled in this local UI review."); return; }
   const url = new URL(request.url || "/", "http://localhost");
   try {
+    if (url.pathname.startsWith("/api/droid-os/artwork/")) {
+      const id = url.pathname.slice("/api/droid-os/artwork/".length);
+      if (!ARTWORK_TOKEN_IDS.includes(id)) { response.writeHead(404); response.end("Unsupported token"); return; }
+      response.setHeader("Content-Type", "application/json");
+      try { response.end(JSON.stringify(await readLiveArtwork(id))); }
+      catch { response.writeHead(502); response.end(JSON.stringify({ error: "Live artwork unavailable" })); }
+      return;
+    }
     if (url.pathname === "/rebuild") { await compile(); response.end("rebuilt"); return; }
     if (url.pathname === "/ui.js") { response.setHeader("Content-Type", "text/javascript"); response.end(bundle); return; }
     if (url.pathname === "/ui.css") { response.setHeader("Content-Type", "text/css"); response.end(css); return; }
@@ -53,4 +62,4 @@ const server = http.createServer(async (request, response) => {
     response.writeHead(404); response.end("No live API or route is exposed by this UI harness.");
   } catch (error) { response.writeHead(500); response.end("Local preview failed. See terminal output."); console.error(error.message); }
 });
-server.listen(port, "127.0.0.1", () => console.log(`Droid OS UI review: http://localhost:${port}/droid-os\nSample data only. No wallet, API or AI connection.`));
+server.listen(port, "127.0.0.1", () => console.log(`Droid OS UI review: http://localhost:${port}/droid-os\nLive public artwork; sample balances. No wallet, mutation API or AI connection.`));

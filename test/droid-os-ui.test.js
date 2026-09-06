@@ -67,9 +67,11 @@ test("mobile exposes every section and uses native modal focus boundaries", () =
   assert.match(css, /safe-area-inset-bottom/);
 });
 
-test("local harness is loopback-only and refuses live requests", () => {
+test("local harness is loopback-only and permits only public artwork reads", () => {
   const server = fs.readFileSync("scripts/preview-droid-os-ui.mjs", "utf8");
-  assert.match(server, /connect-src 'none'/);
+  assert.match(server, /connect-src 'self'/);
+  assert.match(server, /ARTWORK_TOKEN_IDS.includes\(id\)/);
+  assert.match(server, /readLiveArtwork\(id\)/);
   assert.match(server, /request\.method !== "GET"/);
   assert.match(server, /server\.listen\(port, "127\.0\.0\.1"/);
   assert.doesNotMatch(server.replace('"process.env.NODE_ENV"', ""), /dotenv|privateKey|process\.env/);
