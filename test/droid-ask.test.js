@@ -19,12 +19,12 @@ function memoryStore() {
     entries.set(k, { data: structuredClone(data), etag: String(++sequence) }); return true;
   } };
 }
-function fixture({ ready = true } = {}) {
+function fixture({ ready = true, providerId = "test" } = {}) {
   const a = Wallet.createRandom(), b = Wallet.createRandom();
-  const store = memoryStore(); let owner = a.address.toLowerCase(), transferred = false, calls = 0, time = Date.now();
+  const store = memoryStore(); let owner = a.address.toLowerCase(), transferred = false, calls = 0, time = Date.UTC(2026, 8, 6, 12);
   const evidence = () => ({ owner, block: 100, hash: "0xblock" });
   const owners = { async current() { return evidence(); }, async unchanged(_id, previous) { if (owner !== previous.owner || transferred) throw new AskError("Ownership changed", 403); } };
-  const ai = new DroidIntelligenceOrchestrator([{ id: "test", getCapabilities: () => ["DROID_CHAT"], async chat() { calls++; return { reply: { version: 1, intent: "DISCUSS", text: "Test provider reply" }, usage: { provider: "test", inputTokens: 10, outputTokens: 10 } }; } }]);
+  const ai = new DroidIntelligenceOrchestrator([{ id: providerId, getCapabilities: () => ["DROID_CHAT"], async chat() { calls++; return { reply: { version: 1, intent: "DISCUSS", text: "Test provider reply" }, usage: { provider: providerId, inputTokens: 10, outputTokens: 10 } }; } }]);
   const service = createAskService({ store, owners, intelligence: ai, aiReady: ready, now: () => time });
   const op = (extra = {}, signer = a) => parseOperation({ version: 1, wallet: signer.address, tokenId: "11", kind: "load", ...extra });
   const authorize = async (operation, signer = a) => { const c = await service.challenge(origin, operation); return { c, signature: await signer.signMessage(c.message) }; };
@@ -103,6 +103,27 @@ test("admission slots are atomic and a full quota denies", async () => {
   const store = memoryStore();
   const results = await Promise.allSettled(Array.from({ length: 12 }, () => takeSlot(store, "one", 3)));
   assert.equal(results.filter(r => r.status === "fulfilled").length, 3);
+});
+test("Groq shared minute and daily limits deny before inference across owners", async () => {
+  const f = fixture({ providerId: "groq" });
+  await f.perform(f.op({ kind: "chat", revision: 0, message: "hello" }));
+  await assert.rejects(f.perform(f.op({ kind: "chat", revision: 1, message: "too soon" })), /Free AI preview limit/);
+  assert.equal(f.calls(), 1);
+  // Change owner to prove this is shared, not one allowance per wallet/Droid.
+  f.transfer(f.b); f.nextEra();
+  await assert.rejects(f.perform(f.op({ kind: "chat", revision: 0, message: "also too soon" }, f.b), f.b), /Free AI preview limit/);
+  for (let i = 0; i < 18; i++) {
+    f.advance(60000);
+    await f.perform(f.op({ kind: "chat", revision: i, message: "research" }, f.b), f.b);
+  }
+  f.transfer(f.a); f.nextEra();
+  for (let i = 1; i <= 6; i++) {
+    f.advance(60000);
+    await f.perform(f.op({ kind: "chat", revision: i, message: "research" }));
+  }
+  assert.equal(f.calls(), 25); f.advance(60000);
+  await assert.rejects(f.perform(f.op({ kind: "chat", revision: 7, message: "over shared daily limit" })), /Free AI preview limit/);
+  assert.equal(f.calls(), 25);
 });
 test("local durable store survives recreation and rejects stale CAS", async () => {
   const root = await mkdtemp(path.join(os.tmpdir(), "droid-ask-test-"));

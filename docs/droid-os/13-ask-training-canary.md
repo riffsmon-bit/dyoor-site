@@ -10,19 +10,31 @@ Training here means preferences and research-objective drafts, not fine-tuning w
 
 The ASK provider adapter can pass this saved context and the last six conversational exchanges into a real model. There is no browser/scraper, live opportunity feed, pricing, portfolio enrichment, simulation or transaction tool in that request. Replies are labelled AI analysis, never chain evidence. No scripted reply is substituted if provider setup is absent or a call fails.
 
-## Current activation blocker
+## Provider activation
 
-Inspection found no OpenAI/Anthropic/xAI/Bankr API credential in the project's local environment files or Netlify configuration. No paid API request was made, and no model was selected by guesswork. Training persistence works without an AI provider. Real replies remain disabled.
+Initial inspection found no AI provider credential. The operator subsequently created a Groq key and saved `DROID_AI_GROQ_API_KEY` as a Netlify secret, Functions-only with a value only for Deploy Previews. The API masks its value, so local tests cannot use it. Readiness indicates valid configuration, not a successful live provider response. Training persistence works without an AI provider.
 
 Server-only configuration, when the operator chooses to enable a provider test:
 
 | Variable | Purpose |
 | --- | --- |
+| `DROID_AI_PROVIDER` | Explicit `groq` for this canary; omitted retains legacy OpenAI selection, never automatic fallback |
+| `DROID_AI_GROQ_API_KEY` | Groq credential, Functions-only Deploy Previews secret |
 | `DROID_AI_OPENAI_API_KEY` | Dedicated restricted API-project credential, never `NEXT_PUBLIC_*` |
-| `DROID_AI_MODEL` | Explicit Responses/structured-output-compatible model available to that project |
+| `DROID_AI_MODEL` | `openai/gpt-oss-20b` for Groq; other Groq models deny until separately reviewed |
 | `DROID_AI_ENABLED` | Must be exactly `true`; default disabled |
 
-Scope these to deploy-preview functions, not production/build/client scopes, and use an API-project budget. Do not paste credentials into chat or source control. No provider settings or secrets were changed during implementation. Normal UX stays provider-neutral. The abstraction currently has one implemented adapter, not a claim that Claude/Grok/Bankr are already integrated.
+Scope these to deploy-preview functions, not production/build/client scopes. Do not paste credentials into chat or source control. Normal UX stays provider-neutral. The abstraction now has OpenAI and Groq adapters; Claude/xAI Grok/Bankr are not integrated. Groq (hosting) is not xAI Grok (model). Remain on Groq's Free plan; app code cannot ensure the operator has not upgraded the provider account. Do not enable paid fallback. Enable Zero Data Retention in Groq's dashboard before sharing private conversations; this setting cannot be inferred from a working API key and has not been verified here.
+
+### Groq free-tier boundary
+
+The separate `groq.ts` adapter uses one fixed HTTPS Chat Completions endpoint, rejects redirects, and pins GPT-OSS 20B. Low reasoning effort, no returned reasoning, no tools, non-streaming strict JSON schema, 1,000 maximum completion tokens, 20-second timeout and 64KB response ceiling. Runtime validation rejects wrong models, multiple choices, truncation, refusals, tool calls, invalid usage and unknown reply fields. Errors expose no provider response body or key. There are no retries or fallback calls.
+
+Serialized request size is capped at 6,000 UTF-8 bytes, removing oldest conversation pairs from provider context only. Saved history, training and current message are not truncated. Oversized training/current input denies with a shortening instruction. This is a conservative byte budget, not an exact tokenizer. Groq's actual token quotas can still reject calls, especially near minute boundaries or when this API organization is used elsewhere.
+
+Additional durable, create-only admission slots cap Groq at **one attempt per UTC minute and 25 attempts per UTC day, shared across the preview application**. Existing owner daily caps remain. Failed calls consume reservations; no uncertain attempt is refunded. This conservative initial allowance is below the provider's published request cap to leave headroom for token usage. No production billing or secret is changed. Real owner-signed end-to-end chat still requires owner testing; no synthetic signature substitutes for a user's proof.
+
+Sources checked for this adapter: [OpenAI GPT-OSS 20B](https://developers.openai.com/api/docs/models/gpt-oss-20b), [Groq structured outputs](https://console.groq.com/docs/structured-outputs), [Groq API](https://console.groq.com/docs/api-reference), [free-plan quotas](https://console.groq.com/docs/rate-limits), [data controls](https://console.groq.com/docs/your-data). Structured JSON is not financial authority or factual verification.
 
 Before enabling beyond operator testing, isolate the AI workload's deployment credentials from the existing site's Energy/admin signer environment. The new modules import no signer/admin/Energy services, and send only explicit conversation data to the provider, but sharing a serverless deployment is not process-level credential isolation.
 
@@ -33,7 +45,7 @@ Before enabling beyond operator testing, isolate the AI workload's deployment cr
 - `protocol.ts`: shared exact signing-message construction; browser independently checks origin, identity, request digest and expiry before asking the wallet.
 - `service.ts`: one-use proof consumption, owner checks, profile isolation, optimistic state revisions, fixed admission slots and usage records.
 - `storage.ts`: separate `droid-os-ask-preview-v1` Netlify store, strong reads and conditional writes. A pinned `droid-os-blobs` SDK alias leaves the legacy metadata/Energy SDK untouched. Local Next uses `data/runtime/droid-os-ask` (ignored by Git), mode-0700 directory/mode-0600 files, exclusive locks and atomic rename. A crashed local lock denies until inspected; it is not silently stolen.
-- `intelligence.ts`: `DroidAIProvider`, `DroidIntelligenceOrchestrator`, OpenAI Responses adapter, versioned prompt, strict response schema, no tools, `store:false`, bounded response body and timeout. No automatic retry of potentially billable timed-out calls.
+- `provider-contract.ts`, `intelligence.ts`, `groq.ts`: shared `DroidAIProvider` boundary, `DroidIntelligenceOrchestrator`, separate OpenAI Responses and Groq Chat Completions adapters, versioned prompts, strict response schema, no tools, bounded response bodies and timeout. No automatic retry of potentially billable timed-out calls.
 - `POST /api/droid-os/ask`: `challenge` or `perform`, exact operation (`load`, `save`, `chat`), same-origin JSON, bounded streamed request body, no-store/private responses. `GET` reveals only mode/readiness, no private data.
 - `DroidAskWorkspace` and `useDroidAskClient`: loaded/saving/error/missing-provider states, explicit signing actions and mobile-accessible form. The disconnected sample UI stays labelled as a demo.
 
@@ -55,6 +67,8 @@ An immutable STARTED attempt is recorded before a provider call and redacted usa
 
 ## Verification
 
+- Groq addition: 22 ASK/provider tests passed, including shared cross-owner minute/day caps, bounded Unicode input, wrong-model/tool-call/refusal/truncation rejection and zero fallback calls. TypeScript and ESLint passed. Existing roster/UI (19), ASSIST (52), website (71) and Trait Lab (7) tests passed. Rendered fixture load/save/reload/chat passed at 1440/390/360px with no horizontal overflow; the 390px screen was visually inspected. These are mocked provider/UI checks, not a successful live Groq reply.
+- Local optimized webpack production build passed with existing optional Privy Stripe/Farcaster module warnings. No Groq endpoint or Groq secret environment-variable reference appeared in the browser JavaScript. The actual Groq secret is unavailable locally and was not part of that build or a value-based local secret scan.
 - ASK unit tests: closed schemas, owner save/reload with provider absent, wrong signature/origin/identity, expiry, concurrent replay, stale revisions, owner transfer/private-state separation, mocked A→B→A proof rejection, quotas, durable local store, strict provider config, malformed/refused/tool-call/incomplete output, oversized output, storage HTTP errors, no fake fallback or automatic paid retry.
 - Live read-only check: Droid 11, chain 143, owner `0xc7f55ce6a7df9a79cc4a643a5081230f890c7aa6`, block 102561073 / hash `0xc5f3cc3cf0615bbc47004ab587929a76347cf0ccd16199967cb3512bc0172f1f`; unchanged check passed. This is a timestamped observation, not ongoing authority.
 - `scripts/test-droid-ask-ui.mjs`: actual rendered components at 1440, 390 and 360 pixels; fixture load/save/reload/chat, hit-tested buttons, no horizontal overflow. Screenshots visually reviewed. Browser tests use explicit UI fixtures and perform **zero real wallet signatures, AI calls or production writes**; Backpack end-to-end testing still requires the owner.

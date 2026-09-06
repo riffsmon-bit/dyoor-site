@@ -45,6 +45,16 @@ export function createAskService(deps: { store: AskStore; owners: OwnerReader; i
         // Fixed immutable admissions cap all Droids together, not one process per Droid.
         await takeSlot(store, `chat-owner/${op.wallet}/${Math.floor(now() / 86400000)}`, 20);
         await takeSlot(store, `chat-global/${Math.floor(now() / 86400000)}`, 100);
+        const limits = deps.intelligence.getAdmissionLimits();
+        if (limits) {
+          try {
+            await takeSlot(store, `ai-budget/${limits.key}/minute/${Math.floor(now() / 60000)}`, limits.perMinute);
+            await takeSlot(store, `ai-budget/${limits.key}/day/${Math.floor(now() / 86400000)}`, limits.perDay);
+          } catch (error) {
+            if (error instanceof AskError && error.status === 429) throw new AskError("Free AI preview limit reached (1 request/minute, 25/day shared). Please try later. No action occurred.", 429);
+            throw error;
+          }
+        }
         const auditKey = `attempt/${id}`;
         if (!await store.put(auditKey, { version: 1, status: "STARTED", tokenId: op.tokenId, owner: op.wallet, at: now(), requestHash: c.digest }, null)) throw new AskError("AI attempt already exists.", 409);
         const result = await deps.intelligence.chat({ tokenId: op.tokenId, state, message: op.message });
