@@ -51,13 +51,19 @@ cleanup() {
   wait "$daemon_pid" "${proxy_pid:-}" 2>/dev/null || true
 }
 trap cleanup EXIT INT TERM
-until ipfs id >/dev/null 2>&1; do
-  kill -0 "$daemon_pid"
+is_running() {
+  # kill -0 alone also succeeds for an exited, unreaped child (a zombie).
+  kill -0 "$1" 2>/dev/null && [ "$(cut -d ' ' -f 3 "/proc/$1/stat" 2>/dev/null)" != Z ]
+}
+# `ipfs id` can succeed by reading an offline repository. Require the actual
+# daemon's loopback API before publishing the HTTP gateway.
+until curl -fsS --max-time 3 -X POST http://127.0.0.1:5001/api/v0/id >/dev/null 2>&1; do
+  is_running "$daemon_pid" || exit 1
   sleep 1
 done
 caddy run --config /opt/dyoor/Caddyfile --adapter caddyfile &
 proxy_pid=$!
-while kill -0 "$daemon_pid" 2>/dev/null && kill -0 "$proxy_pid" 2>/dev/null; do
+while is_running "$daemon_pid" && is_running "$proxy_pid"; do
   sleep 5
 done
 exit 1

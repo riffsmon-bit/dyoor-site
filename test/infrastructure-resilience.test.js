@@ -114,6 +114,9 @@ test("hosted IPFS administration is private and backing-store credentials are no
   assert.match(start, /Addresses.Announce/);
   assert.match(start, /Swarm.AddrFilters/);
   assert.match(start, /100\.64\.0\.0\/ipcidr\/10/);
+  assert.match(start, /until curl.*127\.0\.0\.1:5001\/api\/v0\/id/);
+  assert.match(start, /\/proc\/\$1\/stat/);
+  assert.doesNotMatch(caddy, /respond "DYOOR IPFS gateway online" 200/);
   for (const cid of fs.readFileSync("infra/ipfs/dyoor-cids.txt", "utf8").split(/\r?\n/).map(line => line.replace(/#.*/, "").trim()).filter(Boolean)) {
     assert.ok(caddy.includes(`/ipfs/${cid}/*`), `Missing gateway allowlist for ${cid}`);
   }

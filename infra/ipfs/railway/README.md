@@ -62,6 +62,12 @@ Deploy only this directory using `railway up --path-as-root`, selecting the
 `dyoor-ipfs` service explicitly. Never deploy it to `dyoor-discord`. Railway's
 legacy `railway.toml` configuration is deprecated; service settings are stored
 in Railway. Inspect deployment logs and wait for a successful health check.
+Readiness requires the live loopback API; the public health check reads a
+canonical metadata file from the backing store. A dead daemon or an empty
+gateway must not be reported healthy. On a first deployment into an empty
+bucket, import the metadata CAR via private SSH before expecting readiness.
+Only one daemon may own the repository. Never delete a held repo lock: allow
+the prior deployment to shut down, or stop that exact old daemon gracefully.
 
 Import CAR archives via SSH and the private API. CAR files retain the original
 CIDs. The public gateway cannot upload, pin, unpin, or administer content.
