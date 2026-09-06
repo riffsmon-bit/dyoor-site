@@ -395,8 +395,7 @@ export function DyoorWorldNotifications() {
   const subscribed = browserState === "subscribed";
 
   return (
-    <section className="relative mt-4 overflow-hidden rounded-xl border border-dyoor-cyan/25 bg-[radial-gradient(circle_at_12%_0%,rgba(57,255,226,.13),transparent_36%),radial-gradient(circle_at_100%_0%,rgba(255,79,227,.12),transparent_35%),linear-gradient(145deg,#0a1623,#09091c_62%,#17102d)] p-4 shadow-[0_16px_45px_rgba(0,0,0,.32),0_0_28px_rgba(57,255,226,.08)]">
-      <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(rgba(255,255,255,.018)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,.018)_1px,transparent_1px)] bg-[size:16px_16px]" />
+    <section className="world-panel world-notifications-panel relative mt-4 overflow-hidden p-4">
       <div className="relative flex items-center gap-3">
         <div className={`grid h-10 w-10 place-items-center rounded-xl border text-lg ${
           subscribed

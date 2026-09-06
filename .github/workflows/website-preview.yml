@@ -26,4 +26,5 @@ jobs:
       - run: npm run typecheck
       - run: npm run lint
       - run: npm run test:website
+      - run: node --test test/dyoor-world-security.test.js test/trait-lab-reroll-regression.test.js
       - run: npm run build

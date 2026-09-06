@@ -310,7 +310,7 @@ export function DyoorWorldDirectMessages({
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-[160] bg-[#04040d]/92 p-0 backdrop-blur-xl sm:p-5">
+    <div className="world-inbox fixed inset-0 z-[160] bg-[#04040d]/92 p-0 backdrop-blur-xl sm:p-5">
       <section
         aria-label="dYOOR World direct messages"
         aria-modal="true"
