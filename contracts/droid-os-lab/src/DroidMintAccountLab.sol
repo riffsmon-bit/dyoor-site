@@ -48,6 +48,7 @@ contract DroidMintAccountLab {
     event SimulationAttested(bytes32 indexed actionHash, address indexed reviewer, uint64 expiresAt);
     event MintExecuted(bytes32 indexed actionHash, uint256 indexed nonce, uint256 mintedTokenId, uint256 valueWei);
     event OwnerWithdrawal(address indexed owner, address indexed recipient, uint256 valueWei);
+    event OwnerNftWithdrawal(address indexed owner, address indexed recipient, uint256 indexed mintedTokenId);
 
     modifier guarded() {
         if (entered) revert Denied();
@@ -166,5 +167,16 @@ contract DroidMintAccountLab {
         (bool success,) = recipient.call{value: valueWei}("");
         if (!success) revert UnexpectedOutcome();
         emit OwnerWithdrawal(msg.sender, recipient, valueWei);
+    }
+
+    /// @notice Withdraws only this lab's minted NFT. No generic transfer authority for the executor.
+    function withdrawMintedNft(address recipient, uint256 mintedTokenId) external guarded {
+        if (msg.sender != currentOwner() || recipient == address(0) || recipient == address(this)) revert Denied();
+        if (address(mintTarget).codehash != mintCodeHash) revert Denied();
+        if (mintTarget.ownerOf(mintedTokenId) != address(this)) revert UnexpectedOutcome();
+        delete reviewedAction;
+        mintTarget.transfer(recipient, mintedTokenId);
+        if (mintTarget.ownerOf(mintedTokenId) != recipient) revert UnexpectedOutcome();
+        emit OwnerNftWithdrawal(msg.sender, recipient, mintedTokenId);
     }
 }

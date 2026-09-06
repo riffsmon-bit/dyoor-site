@@ -3,6 +3,10 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "test:droid-contracts": "forge test --root contracts/droid-os-lab -vv",
+    "test:droid-contract-flow": "forge build --root contracts/droid-os-lab && node scripts/test-droid-contract-lab.mjs",
+    "test:droid-lab-server": "node --test test/droid-contract-lab-server.test.js",
+    "lab:droid-contracts": "forge build --root contracts/droid-os-lab && node scripts/serve-droid-contract-lab.mjs",
     "preview:droid-os": "node scripts/preview-droid-os-ui.mjs",
     "test:droid-os-ui": "node --test test/droid-os-ui.test.js test/droid-os-artwork.test.js test/droid-os-roster.test.js",
     "dev": "next dev -p 3000",

@@ -4,6 +4,7 @@ pragma solidity ^0.8.24;
 import {DroidMintAccountLab} from "../src/DroidMintAccountLab.sol";
 import {LabCollection} from "../src/LabCollection.sol";
 import {LabMint} from "../src/LabMint.sol";
+import {WithdrawalActor} from "./WithdrawalActor.sol";
 
 interface Vm {
     function prank(address) external;
@@ -264,5 +265,78 @@ contract DroidMintAccountLabTest {
             approveReview(); execute();
             require(address(account).balance >= reserve, "RESERVE_BREACH");
         }
+    }
+
+    function testCurrentOwnerCanWithdrawMintedNft() public {
+        grant(A, 0, 0.01 ether, 0.02 ether, 2); approveReview(); execute();
+        vm.prank(A); account.withdrawMintedNft(B, 1);
+        require(mint.ownerOf(1) == B && mint.balanceOf(address(account)) == 0, "NFT_NOT_WITHDRAWN");
+    }
+
+    function testExecutorCannotWithdrawNft() public {
+        grant(A, 0, 0.01 ether, 0.02 ether, 2); approveReview(); execute();
+        vm.prank(EXECUTOR);
+        vm.expectRevert(DroidMintAccountLab.Denied.selector);
+        account.withdrawMintedNft(EXECUTOR, 1);
+    }
+
+    function testTransferRevokesOldOwnerNftWithdrawal() public {
+        grant(A, 0, 0.01 ether, 0.02 ether, 2); approveReview(); execute();
+        vm.prank(A); parent.transfer(11, B);
+        vm.prank(A);
+        vm.expectRevert(DroidMintAccountLab.Denied.selector);
+        account.withdrawMintedNft(A, 1);
+        vm.prank(B); account.withdrawMintedNft(B, 1);
+        require(mint.ownerOf(1) == B, "NEW_OWNER_NO_CUSTODY");
+    }
+
+    function testNftWithdrawalInvalidatesSimulation() public {
+        grant(A, 0, 0.01 ether, 0.02 ether, 2); approveReview(); execute(); approveReview();
+        vm.prank(A); account.withdrawMintedNft(A, 1);
+        vm.expectRevert(DroidMintAccountLab.SimulationRequired.selector); execute();
+    }
+
+    function testOwnerWithdrawalReentrancyDenied() public {
+        WithdrawalActor actor = new WithdrawalActor();
+        vm.prank(A); parent.transfer(11, address(actor));
+        actor.withdraw(account);
+        require(actor.attempted() && !actor.nestedSucceeded(), "REENTRY_ALLOWED");
+        require(address(account).balance == 0.99 ether, "DOUBLE_WITHDRAWAL");
+    }
+
+    function testSimulationCannotReplayAcrossAccounts() public {
+        grant(A, 0, 0.01 ether, 0.02 ether, 2);
+        bytes32 first = account.nextActionHash();
+        account = new DroidMintAccountLab(parent, 11, mint, EXECUTOR, REVIEWER);
+        vm.deal(address(account), 1 ether);
+        grant(A, 0, 0.01 ether, 0.02 ether, 2);
+        require(first != account.nextActionHash(), "ACCOUNT_NOT_BOUND");
+        vm.prank(REVIEWER);
+        vm.expectRevert(DroidMintAccountLab.SimulationRequired.selector);
+        account.attestSimulation(first, uint64(block.timestamp + 60));
+    }
+
+    function testUnknownCollectionCodeFailsClosed() public {
+        vm.etch(address(parent), hex"00");
+        vm.expectRevert(DroidMintAccountLab.Denied.selector);
+        account.currentOwner();
+    }
+
+    function testPublicTestnetStillBlocked() public {
+        vm.chainId(10143);
+        vm.expectRevert(bytes("LOCAL_ONLY"));
+        new DroidMintAccountLab(parent, 11, mint, EXECUTOR, REVIEWER);
+    }
+
+    function testUtcDayBoundaryResetsDailyCountersOnly() public {
+        uint256 start = (block.timestamp / 1 days) * 1 days;
+        vm.warp(start + 1 days - 30);
+        grant(A, 0, 0.01 ether, 0.01 ether, 1); approveReview(); execute();
+        vm.expectRevert(DroidMintAccountLab.LimitExceeded.selector); account.nextActionHash();
+        vm.warp(start + 1 days + 1);
+        approveReview(); execute();
+        require(account.actionNonce() == 2, "NONCE_RESET");
+        require(account.spentPerDay(start / 1 days) == 0.01 ether, "OLD_DAY_ERASED");
+        require(account.spentPerDay(start / 1 days + 1) == 0.01 ether, "NEW_DAY_WRONG");
     }
 }

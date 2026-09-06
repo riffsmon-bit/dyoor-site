@@ -17,6 +17,11 @@ child.on("error", error => { launchError = error; });
 const provider = new JsonRpcProvider(`http://127.0.0.1:${port}`, 31337, { staticNetwork: true, batchMaxCount: 1 });
 provider.pollingInterval = 100;
 const receipts = [];
+function terminate() { provider.destroy(); child.kill("SIGTERM"); process.exit(130); }
+process.once("SIGTERM", terminate);
+process.once("SIGINT", terminate);
+const deadline = setTimeout(terminate, 55000);
+deadline.unref();
 try {
   let started = false;
   for (let attempt = 0; attempt < 60; attempt++) {
@@ -45,8 +50,15 @@ try {
   const mint = await deploy("LabMint", [parseEther("0.01")]);
   const account = await deploy("DroidMintAccountLab", [await parent.getAddress(), 11, await mint.getAddress(), await executor.getAddress(), await reviewer.getAddress()]);
   const accountAddress = await account.getAddress();
+  async function denied(operation, expectedError) {
+    try { await operation(); assert.fail(`Expected ${expectedError}`); }
+    catch (error) {
+      assert.equal(error.code, "CALL_EXCEPTION", "A network failure is not evidence of policy rejection");
+      assert.equal(account.interface.parseError(error.data)?.name, expectedError);
+    }
+  }
   await receipt("owner directly funds test Droid", owner.sendTransaction({ to: accountAddress, value: parseEther("0.05") }));
-  let now = (await provider.getBlock("latest")).timestamp;
+  const now = (await provider.getBlock("latest")).timestamp;
   await receipt("owner grants bounded mint", account.setMintGrant(parseEther("0.03"), parseEther("0.01"), parseEther("0.02"), 2, now, now + 3600));
   const action = await account.nextActionHash();
   // Fixture inspection followed by an exact-account eth_call below; not production simulation certification.
@@ -56,22 +68,32 @@ try {
   await receipt("executor mints within grant", account.connect(executor).executeMint(0));
   assert.equal(await mint.ownerOf(1), accountAddress);
   assert.equal(BigInt(await provider.send("eth_getBalance", [accountAddress, "latest"])), parseEther("0.04"));
-  await assert.rejects(account.connect(executor).executeMint.staticCall(0));
+  await denied(() => account.connect(executor).executeMint.staticCall(0), "Denied");
+  await receipt("owner revokes mint permission", account.revokeMintGrant());
+  await denied(() => account.connect(executor).executeMint.staticCall(1), "GrantInactive");
+  await receipt("owner explicitly reauthorizes mint", account.setMintGrant(parseEther("0.03"), parseEther("0.01"), parseEther("0.02"), 2, now, now + 3600));
   await receipt("Droid transfers to owner B", parent.transfer(11, await nextOwner.getAddress()));
-  await assert.rejects(account.withdrawNative.staticCall(ownerAddress, 1));
-  await assert.rejects(account.connect(executor).executeMint.staticCall(1));
-  await receipt("Droid returns to owner A", parent.connect(nextOwner).transfer(11, ownerAddress));
-  await assert.rejects(account.connect(executor).executeMint.staticCall(1));
+  await denied(() => account.withdrawNative.staticCall(ownerAddress, 1), "Denied");
+  await denied(() => account.withdrawMintedNft.staticCall(ownerAddress, 1), "Denied");
+  await denied(() => account.connect(executor).executeMint.staticCall(1), "StaleAuthority");
   assert.equal(await mint.ownerOf(1), accountAddress);
+  await receipt("new owner withdraws test NFT", account.connect(nextOwner).withdrawMintedNft(await nextOwner.getAddress(), 1));
+  await receipt("new owner withdraws test native funds", account.connect(nextOwner).withdrawNative(await nextOwner.getAddress(), parseEther("0.005")));
+  await receipt("Droid returns to owner A", parent.connect(nextOwner).transfer(11, ownerAddress));
+  await denied(() => account.connect(executor).executeMint.staticCall(1), "StaleAuthority");
+  assert.equal(await mint.ownerOf(1), await nextOwner.getAddress());
   assert.equal(await account.actionNonce(), 1n);
   console.log(JSON.stringify({
-    status: "PASS", chainId: 31337, environment: "EPHEMERAL_LOCAL_ANVIL", publicDeployment: false,
+    version: 1, status: "PASS", completedAt: new Date().toISOString(), chainId: 31337, environment: "EPHEMERAL_LOCAL_ANVIL", publicDeployment: false,
     walletKeysUsed: "Anvil unlocked test accounts only; no stored owner key",
     account: accountAddress,
-    verified: ["direct funding", "bounded mint grant", "account-context eth_call", "executor mint", "reserve retained", "replay denied", "former-owner withdrawal denied", "A-B-A grant invalidation", "assets and nonce persist"],
+    verified: ["direct funding", "bounded mint grant", "account-context eth_call", "executor mint", "reserve retained", "replay denied", "revocation enforced", "former-owner native/NFT withdrawal denied", "new owner native/NFT withdrawal", "A-B-A grant invalidation", "assets remain until owner withdrawal; nonce persists"],
     receipts,
   }, null, 2));
 } finally {
+  clearTimeout(deadline);
+  process.removeListener("SIGTERM", terminate);
+  process.removeListener("SIGINT", terminate);
   provider.destroy();
   if (child.exitCode === null) child.kill("SIGTERM");
 }

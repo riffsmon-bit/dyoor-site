@@ -27,5 +27,12 @@ jobs:
       - run: npm run lint
       - run: npm run test:website
       - run: npm run test:droid-os-ui
+      - run: npm run test:droid-lab-server
       - run: node --test test/dyoor-world-security.test.js test/trait-lab-reroll-regression.test.js
+      - name: Install pinned local contract toolchain
+        uses: foundry-rs/foundry-toolchain@908c540300062bd5a7e473851cdb4282204cee09 # v1 resolved 2026-09-06
+        with:
+          version: v1.5.1
+      - run: npm run test:droid-contracts
+      - run: npm run test:droid-contract-flow
       - run: npm run build
