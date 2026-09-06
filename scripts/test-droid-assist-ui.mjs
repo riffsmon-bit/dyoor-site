@@ -27,7 +27,7 @@ const send = (method, params = {}) => new Promise((resolve, reject) => {
 });
 const evaluate = async expression => {
   const result = await send("Runtime.evaluate", { expression, returnByValue: true, awaitPromise: true });
-  if (result.exceptionDetails) throw Error(result.exceptionDetails.text);
+  if (result.exceptionDetails) throw Error(result.exceptionDetails.exception?.description ?? result.exceptionDetails.text);
   return result.result.value;
 };
 async function mock({ method, params = [] }) {
@@ -90,7 +90,7 @@ ws.addEventListener("message", async event => {
 });
 const delay = ms => new Promise(resolve => setTimeout(resolve, ms));
 async function waitFor(expression) {
-  for (let i = 0; i < 80; i++) { if (await evaluate(expression)) return; await delay(250); }
+  for (let i = 0; i < 80; i++) { if (await evaluate(`document.body && (${expression})`)) return; await delay(250); }
   throw Error(`UI timeout: ${expression}. ${await evaluate("document.body.innerText.slice(-1200)")}`);
 }
 const click = text => evaluate(`(() => { const b=[...document.querySelectorAll('button')].find(b=>b.textContent.includes(${JSON.stringify(text)})); if(!b||b.disabled)throw Error('Unavailable button');b.click(); })()`);
@@ -105,6 +105,8 @@ const deadline = setTimeout(() => { ws.close(); process.exitCode = 1; }, 90000);
 let injection;
 try {
   await send("Runtime.enable"); await send("Page.enable");
+  // This dedicated loopback origin contains only this harness's mock requests.
+  await send("Storage.clearDataForOrigin", { origin, storageTypes: "local_storage" });
   await send("Runtime.addBinding", { name: "dyoorMockWallet" });
   injection = await send("Page.addScriptToEvaluateOnNewDocument", { source: `
     let serial=0;const waiting=new Map();
@@ -130,6 +132,7 @@ try {
   chain = "0x8f";
   await evaluate("window.dispatchEvent(new Event('focus'))");
   await waitFor("document.body.innerText.includes('verified on-chain')");
+  await waitFor("[...document.querySelectorAll('button')].some(b=>b.textContent.includes('Review activation')&&!b.disabled)");
   await click("Review activation");
   await waitFor("document.body.innerText.includes('SIMULATION PASSED')");
   assert.equal(sends, 0, "Preparation must never ask to send");
