@@ -68,6 +68,9 @@ gateway must not be reported healthy. On a first deployment into an empty
 bucket, import the metadata CAR via private SSH before expecting readiness.
 Only one daemon may own the repository. Never delete a held repo lock: allow
 the prior deployment to shut down, or stop that exact old daemon gracefully.
+The supervisor also checks the live API after startup and uses a bounded
+shutdown. A process that stays alive with closed listeners is not healthy;
+Railway's on-failure policy must be able to restart the whole service.
 
 Import CAR archives via SSH and the private API. CAR files retain the original
 CIDs. The public gateway cannot upload, pin, unpin, or administer content.

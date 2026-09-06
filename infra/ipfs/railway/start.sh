@@ -44,10 +44,19 @@ ipfs config Datastore.GCPeriod 12h
 ipfs config --json Swarm.ConnMgr.LowWater 40
 ipfs config --json Swarm.ConnMgr.HighWater 100
 ipfs config Plugins.Plugins.telemetry.Config.Mode off
+ipfs config Internal.ShutdownTimeout 10s
 ipfs daemon --enable-gc &
 daemon_pid=$!
 cleanup() {
+  trap - EXIT INT TERM
   kill "$daemon_pid" "${proxy_pid:-}" 2>/dev/null || true
+  remaining=10
+  while [ "$remaining" -gt 0 ] && { is_running "$daemon_pid" || { [ -n "${proxy_pid:-}" ] && is_running "$proxy_pid"; }; }; do
+    sleep 1
+    remaining=$((remaining - 1))
+  done
+  is_running "$daemon_pid" && kill -KILL "$daemon_pid" 2>/dev/null || true
+  if [ -n "${proxy_pid:-}" ]; then is_running "$proxy_pid" && kill -KILL "$proxy_pid" 2>/dev/null || true; fi
   wait "$daemon_pid" "${proxy_pid:-}" 2>/dev/null || true
 }
 trap cleanup EXIT INT TERM
@@ -63,7 +72,14 @@ until curl -fsS --max-time 3 -X POST http://127.0.0.1:5001/api/v0/id >/dev/null 
 done
 caddy run --config /opt/dyoor/Caddyfile --adapter caddyfile &
 proxy_pid=$!
+unhealthy=0
 while is_running "$daemon_pid" && is_running "$proxy_pid"; do
+  if curl -fsS --max-time 3 -X POST http://127.0.0.1:5001/api/v0/id >/dev/null 2>&1; then
+    unhealthy=0
+  else
+    unhealthy=$((unhealthy + 1))
+    [ "$unhealthy" -lt 2 ] || break
+  fi
   sleep 5
 done
 exit 1
