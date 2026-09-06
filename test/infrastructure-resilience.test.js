@@ -74,6 +74,7 @@ test("Energy display surfaces failures with retry and rejects stale wallet respo
   assert.match(source, /energy\?\.spentEnergy \?\? "-"/);
   assert.match(source, /signal: AbortSignal.timeout\(15_000\)/);
   assert.match(source, /requestId === energyRequestRef.current/);
+  assert.match(source, /if \(walletAddress !== energyWalletRef.current\) return/);
   assert.match(source, /typeof data.spendableEnergy !== "string"/);
 });
 

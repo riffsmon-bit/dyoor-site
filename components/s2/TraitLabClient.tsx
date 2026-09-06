@@ -756,6 +756,7 @@ export function TraitLabClient() {
   const selectedTokenIdRef = useRef("");
   const metadataRequestRef = useRef(0);
   const energyRequestRef = useRef(0);
+  const energyWalletRef = useRef(walletAddress);
   const activeRestoreRequestRef = useRef(0);
 
   const selectedTraits = useMemo(() => traitMap(metadata), [metadata]);
@@ -889,6 +890,8 @@ export function TraitLabClient() {
   }, []);
 
   const loadEnergy = useCallback(async () => {
+    // A completed action may still hold the previous wallet's callback.
+    if (walletAddress !== energyWalletRef.current) return;
     const requestId = ++energyRequestRef.current;
     setEnergy(null);
     if (!walletAddress) {
@@ -915,7 +918,10 @@ export function TraitLabClient() {
     }
   }, [walletAddress]);
 
-  useEffect(() => () => { energyRequestRef.current += 1; }, [walletAddress]);
+  useEffect(() => {
+    energyWalletRef.current = walletAddress;
+    return () => { energyRequestRef.current += 1; };
+  }, [walletAddress]);
 
   const loadBurnedGallery = useCallback(async () => {
     setBurnedGalleryLoading(true);
