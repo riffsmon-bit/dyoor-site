@@ -49,6 +49,7 @@ export function DroidOsConnectedPreview() {
   return <>
     <div className="os-wallet-roster-bar">
       <a href="/droid-os/lab">Contract test bench ↗</a>
+      <a href="/droid-os/assist">Owner-approved mainnet test ↗</a>
       <div><strong>{address ? `${address.slice(0, 6)}…${address.slice(-4)}` : "Connect to load all your Season 2 Droids"}</strong><span>Read-only holdings and live artwork. No signature, approval or network switch required.</span></div>
       {address ? <><button type="button" onClick={() => { setResult({ wallet: "", tokenIds: [], error: "" }); setRefreshKey(value => value + 1); }}>Refresh holdings</button><button type="button" onClick={() => void wallet.disconnect()}>Disconnect</button></> : <button type="button" disabled={!wallet.ready || wallet.status === "connecting"} onClick={() => void connect()}>{wallet.status === "connecting" ? "Connecting…" : "Connect wallet"}</button>}
       {connectionError || wallet.error ? <p role="alert">{connectionError || wallet.error}</p> : null}

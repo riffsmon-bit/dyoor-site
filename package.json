@@ -3,6 +3,11 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "test:droid-assist": "node --test test/droid-assist-canary.test.js test/droid-assist-session.test.js",
+    "test:droid-assist-flow": "forge build --root contracts/droid-os-v2 && node scripts/test-droid-assist-flow.mjs",
+    "preflight:droid-assist": "forge build --root contracts/droid-os-v2 && node scripts/preflight-droid-assist.mjs",
+    "test:droid-v2": "forge test --root contracts/droid-os-v2 -vv",
+    "test:droid-v2:fork": "FOUNDRY_PROFILE=monad_fork forge test --root contracts/droid-os-v2 --fork-url https://rpc.monad.xyz -vv",
     "test:droid-contracts": "forge test --root contracts/droid-os-lab -vv",
     "test:droid-contract-flow": "forge build --root contracts/droid-os-lab && node scripts/test-droid-contract-lab.mjs",
     "test:droid-lab-server": "node --test test/droid-contract-lab-server.test.js",

@@ -2,6 +2,8 @@
 
 Status: Phase 0 engineering assessment, 6 September 2026. Not an independent smart-contract security audit or permission to activate financial execution.
 
+Follow-up evidence: [verified live Season 2 source and transfer-authority findings](10-transfer-authority-decision.md) now supplements this initial audit. The deployed runtime matches Sourcify's exact-match artifact; the worktree's same-named Season 2 source is a different revision. No collection upgrade or source replacement was performed.
+
 ## Executive decision
 
 Preserve the existing Season 2 collection and deployed owner-controlled Droid Account V1. Build an additive, read-only Droid OS first. The project already has real NFT-bound wallets, but does **not** have a verified, deployed capability-based autonomous execution system. An off-chain `autonomous` flag cannot add that authority to the existing account.

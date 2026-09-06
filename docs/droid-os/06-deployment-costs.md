@@ -1,8 +1,8 @@
 # Deployment scope and MON budget
 
-Observed 6 September 2026. No transactions were signed or broadcast for these checks.
+Original read-only observations: 6 September 2026. Later, separately authorized ASSIST registry + test badge deployment cost **0.49270896 MON**: [receipt and scope](11-assist-canary.md). Account activation and mint are separate owner-approved transactions, quoted afresh in the preview. This is not the cost of a complete autonomous Droid OS stack.
 
-## Current PR preview: 0 MON
+## Original read-only UI preview: 0 MON
 
 The UI review requires no contract deployment, wallet activation or funding. Season 2, the canonical ERC-6551 registry, Account V1 implementation and collection registry already exist; see the current-state audit for fixed-block verification. Existing account 11 is already deployed.
 

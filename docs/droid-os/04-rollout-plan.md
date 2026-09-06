@@ -1,6 +1,6 @@
 # Droid OS — incremental rollout and release gates
 
-Status: plan after Phase 0 assessment. No contracts deployed, production secrets changed, mainnet transactions broadcast or autonomous execution enabled by this work.
+Original status: plan after Phase 0 assessment. Subsequent separately authorized deployment: the isolated owner-approved ASSIST canary is documented in [11-assist-canary.md](11-assist-canary.md). No production secrets, existing collection roles or V1 assets were changed; autonomy remains disabled. This narrow test is not completion of Phase 6 or an independently audited production release.
 
 ## Build order
 

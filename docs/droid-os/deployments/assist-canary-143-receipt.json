@@ -1,0 +1,16 @@
+{
+  "version": 1,
+  "chainId": 143,
+  "transactionHash": "0xf18fd5910b5e3fae53fd8bb414eefa71dd1419aca4838e2546b65d75980fb5e5",
+  "blockNumber": 102522091,
+  "registry": "0x7918438f0E03C759cc3898543958a844FB63ce43",
+  "badge": "0x5eEb50Fa8C2bD1bAeAB53CAf82A56d952be2f681",
+  "registryRuntimeHash": "0x96ec4a1056f4fe0da97564000160b8752c77b2f8afac773ced69b115cd15815b",
+  "badgeRuntimeHash": "0x023e2d18c24e19c668e3dc8fa560c0cb74d81991ca6b118f5b1472cf50f16958",
+  "gasCharged": "4830480",
+  "feeWei": "492708960000000000",
+  "accountCreatedAtDeployment": false,
+  "autonomousExecution": false,
+  "existingAssetsMoved": false,
+  "independentSecurityAudit": false
+}

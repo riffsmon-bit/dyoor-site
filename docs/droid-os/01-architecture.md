@@ -53,6 +53,8 @@ Portfolio returns exact token amounts and discovery completeness. Prices are opt
 
 V1 cannot execute as a service merely because an off-chain policy allows it. An eventual delegated account version requires separate review, explicit opt-in and an honest address/custody migration design. Never silently repoint the canonical wallet while funds remain in an older account. Reference the [ERC-6551 specification](https://eips.ethereum.org/EIPS/eip-6551) for registry/account distinctions and ownership-cycle concerns.
 
+September 6 decision: the user approved opt-in V2 accounts at new addresses, preserving existing wallets/assets. See [the custody candidate and remaining transfer-revocation gates](09-opt-in-v2-wallet.md). This approves the migration direction, not an unreviewed account implementation or wrapping/escrow architecture.
+
 ## Intelligence abstraction
 
 `DroidAIProvider` offers `chat`, `interpretIntent`, `extractStructuredIntent`, `researchProject`, `summarizeToken`, `summarizePortfolio`, `classifyOpportunity`, `explainTransaction`, `explainSimulation`, `summarizeRisk`, `healthCheck` and `getCapabilities` through typed requests/results. Unsupported operations return a typed unsupported result, not invented data.
