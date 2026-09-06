@@ -25,11 +25,11 @@ socket.addEventListener("message", ({ data }) => {
   else if (item.method === "Network.requestWillBeSent" && /\/api\//.test(item.params.request.url)) {
     const request = item.params.request;
     const url = new URL(request.url);
-    const artwork = (url.origin === new URL(reviewUrl).origin && /^\/api\/droid-os\/artwork\/(11|16|7|3)$/.test(url.pathname)) ||
-      (url.origin === "https://dyoor.netlify.app" && /^\/api\/s2\/trait-lab\/render\/(11|16|7|3)-v[0-9]+-[a-zA-Z0-9-]+$/.test(url.pathname));
+    const artwork = (url.origin === new URL(reviewUrl).origin && /^\/api\/droid-os\/artwork\/[1-9][0-9]{0,3}$/.test(url.pathname)) ||
+      (url.origin === "https://dyoor.netlify.app" && /^\/api\/s2\/trait-lab\/render\/[1-9][0-9]{0,3}-v[0-9]+-[a-zA-Z0-9-]+$/.test(url.pathname));
     if (artwork && request.method === "GET") { artworkReads.push(url.pathname); return; }
     const bootstrap =
-      (url.origin === "https://auth.privy.io" && request.method === "GET" && /^\/api\/v1\/apps\/[^/]+$/.test(url.pathname)) ||
+      (url.origin === "https://auth.privy.io" && ["GET", "OPTIONS"].includes(request.method) && /^\/api\/v1\/apps\/[^/]+$/.test(url.pathname)) ||
       (url.origin === "https://auth.privy.io" && request.method === "POST" && url.pathname === "/api/v1/analytics_events") ||
       (url.origin === "https://csp-report.browser-intake-datadoghq.com" && request.method === "POST" && url.pathname === "/api/v2/logs");
     (bootstrap ? providerBootstrap : apiCalls).push(`${request.method} ${url.origin}${url.pathname}`);
