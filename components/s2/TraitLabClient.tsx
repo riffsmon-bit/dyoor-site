@@ -32,6 +32,7 @@ import {
 import type { DroidAccountApiResponse } from "@/lib/droid-accounts/types";
 import { getStorageItem, removeStorageItem, setStorageJson } from "@/lib/browser-storage";
 import { ipfsGatewayUrl } from "@/lib/ipfs-gateway";
+import { formatEnergyDisplay } from "@/lib/energy-display";
 import { IpfsImage } from "@/components/ui/IpfsImage";
 import { useWalletService } from "@/providers/WalletServiceProvider";
 
@@ -1717,8 +1718,8 @@ export function TraitLabClient() {
 
       <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
         <StatCard label="Wallet Connect Status" value={walletAddress ? shortAddress(walletAddress) : "Disconnected"} />
-        <StatCard label="Energy Balance" value={energyLoading ? "Loading" : energy?.ok === false ? "Unavailable" : energy?.spendableEnergy ?? "-"} />
-        <StatCard label="Spent Energy" value={energyLoading ? "Loading" : energy?.ok === false ? "Unavailable" : energy?.spentEnergy ?? "-"} />
+        <StatCard label="Energy Balance" value={energyLoading ? "Loading" : energy?.ok === false ? "Unavailable" : <span title={energy?.spendableEnergy}>{formatEnergyDisplay(energy?.spendableEnergy)}</span>} />
+        <StatCard label="Spent Energy" value={energyLoading ? "Loading" : energy?.ok === false ? "Unavailable" : <span title={energy?.spentEnergy}>{formatEnergyDisplay(energy?.spentEnergy)}</span>} />
         <StatCard label="Owned Droids" value={ownedLoading ? "Loading" : ownedTokenIds.length.toString()} />
         <StatCard label="Metadata Version" value={metadataLoading ? "Loading" : metadata ? metadataVersion(metadata) : "-"} />
       </section>

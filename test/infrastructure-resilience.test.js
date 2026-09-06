@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 import test from "node:test";
 import { withReadTimeout } from "../lib/read-timeout.ts";
+import { formatEnergyDisplay } from "../lib/energy-display.ts";
 import { fetchIpfsImageBuffer } from "../lib/ipfs-image-fetch.ts";
 import {
   configuredIpfsGateways,
@@ -70,12 +71,22 @@ test("Energy display surfaces failures with retry and rejects stale wallet respo
   const source = fs.readFileSync("components/s2/TraitLabClient.tsx", "utf8");
   assert.match(source, /Retry Energy balance/);
   assert.match(source, /energy\?\.ok === false \? "Unavailable"/);
-  assert.match(source, /energy\?\.spendableEnergy \?\? "-"/);
-  assert.match(source, /energy\?\.spentEnergy \?\? "-"/);
+  assert.match(source, /formatEnergyDisplay\(energy\?\.spendableEnergy\)/);
+  assert.match(source, /formatEnergyDisplay\(energy\?\.spentEnergy\)/);
   assert.match(source, /signal: AbortSignal.timeout\(15_000\)/);
   assert.match(source, /requestId === energyRequestRef.current/);
   assert.match(source, /if \(walletAddress !== energyWalletRef.current\) return/);
   assert.match(source, /typeof data.spendableEnergy !== "string"/);
+});
+
+test("Energy cards format exact decimal strings without rounding spendable amounts up", () => {
+  assert.equal(formatEnergyDisplay("25099.050729166666666656"), "25,099.05");
+  assert.equal(formatEnergyDisplay("216100"), "216,100");
+  assert.equal(formatEnergyDisplay("0"), "0");
+  assert.equal(formatEnergyDisplay("1.999999999999999999"), "1.99");
+  assert.equal(formatEnergyDisplay("9007199254740993.01"), "9,007,199,254,740,993.01");
+  assert.equal(formatEnergyDisplay(undefined), "-");
+  assert.equal(formatEnergyDisplay("NaN"), "Unavailable");
 });
 
 test("World holder reads are bounded and IPFS admin is not publicly mapped", () => {
