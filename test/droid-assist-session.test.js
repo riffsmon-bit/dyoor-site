@@ -45,6 +45,14 @@ function fixture(o = {}) {
 }
 const prepare = (kind = "ACTIVATE") => prepareAssistStep(fixture({ active: kind === "MINT" }).rpc, owner, kind);
 
+test("ASSIST route uses the build-context-filtered preview constant, not runtime environment enumeration", () => {
+  const page = readFileSync(new URL("../app/droid-os/assist/page.tsx", import.meta.url), "utf8");
+  const config = readFileSync(new URL("../next.config.mjs", import.meta.url), "utf8");
+  assert.match(page, /process\.env\.DROID_OS_UI_PREVIEW !== "true"/);
+  assert.doesNotMatch(page, /droidOsPreviewEnabled\(process\.env\)/);
+  assert.match(config, /DROID_OS_UI_PREVIEW: droidOsPreviewEnabled\(process\.env\)/);
+});
+
 test("pinned public runtime fixtures match deployed canary manifest", () => {
   for (const key of ["registry", "account", "badge"]) assert.equal(keccak256(codes[key]), m[`${key}RuntimeHash`]);
 });
