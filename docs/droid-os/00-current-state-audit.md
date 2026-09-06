@@ -122,6 +122,8 @@ World's wallet session and fresh holder checks are appropriate social access pri
 
 User-reported follow-up at 09:26 local: Trade desk stays on a loading skeleton. Investigate after this audit; do not infer the root cause from the screenshot. The push panel also truthfully reports missing VAPID server configuration; no secrets should be generated or changed under this audit.
 
+World escrow takes custody of the offered Season 2 NFT while an offer is open. Under canonical `ownerOf`, the escrow contract therefore temporarily controls that NFT's Droid account; the maker must not retain synthetic off-chain authority over it. Successful trade transfers the Droid account's control/assets along with the parent NFT. Cancellation returns control. Droid OS needs explicit account-asset/approval disclosure before offering a funded Droid; this audit and the loading fix do not change escrow semantics.
+
 ## 13–16. Classification and findings
 
 | Classification | Components / disposition |
@@ -147,6 +149,7 @@ Tests were run in an isolated source copy without production environment files o
 | Dedicated account/economy/trading Foundry profile | **52 passed**, including immediate transfer authority and old-signature invalidation |
 | Root Foundry profile | Failed compilation: stack-too-deep at `HoodYoorStrategyRegistry.sol:131`; dedicated contract profile uses appropriate compilation settings and passed |
 | Hardhat compilation | Passed: 1 Solidity file with 0.8.17; 56 with 0.8.28 |
+| Monad fork integration | Attempted; default Paris EVM profile fails at deployed Energy `energyBalance` with `EvmError: NotActivated`, before account transfer checks. Requires a fork profile supporting the deployed bytecode's opcodes; not evidence of a live Energy failure |
 | Initial broad Node source-snapshot run | 251 tests: 190 passed, 61 failed. Not 61 established product defects: missing binary/CSV/art fixtures, missing Git context and initially unavailable compiled artifacts affected results |
 | Focused older-branch JS integration assertions | Three stale route/copy assertions failed; preserved rather than changing unrelated UI to satisfy historical strings |
 | Fresh production build / focused contract integration rerun | See validation addendum below; not assumed successful from compilation alone |
@@ -157,7 +160,7 @@ The previous production revision's [CI run](https://github.com/riffsmon-bit/dyoo
 
 After Hardhat compilation, the focused Season 2 / Energy / World Names / World Trade Escrow / Trait Bounty integration run passed **34/34** tests in the keyless local snapshot. These tests deploy local fixtures, not mainnet contracts; legacy Season 2 fixture tests are not a claim of exact deployed SeaDrop equivalence.
 
-Fresh default `npm run build` failed because Turbopack rejects this audit worktree's `node_modules` symlink outside its filesystem root. This is an isolated-worktree build-environment limitation, not an established production regression. A `--webpack` build is being checked separately; the normal production pipeline has not been changed to work around the local issue.
+Fresh default `npm run build` failed because Turbopack rejects this audit worktree's `node_modules` symlink outside its filesystem root. This is an isolated-worktree build-environment limitation, not an established production regression. A `--webpack` attempt compiled and typechecked but failed page collection because the external-drive `.next` symlink could not resolve Next's runtime dependency. The retry with explicit local `NODE_PATH` **passed the full production build**, including the subsequent World loading fix. The normal production build configuration was not changed. Optional Privy dependencies `@stripe/crypto` and `@farcaster/mini-app-solana` produced compiler warnings in this environment.
 
 ## 17–23. Proposed architecture and production blockers
 
