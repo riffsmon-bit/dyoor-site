@@ -32,3 +32,9 @@ Eight UI-boundary tests and 61 existing website tests passed, including canonica
 The full Next production build passed using the audit worktree's local `NODE_PATH` / `--webpack` workaround, and TypeScript passed. Existing optional Privy Stripe/Farcaster dependency warnings remain unchanged. The production build command/configuration was not altered. The review server returned HTTP 200 for the UI, 404 for an API request and 405 for a POST request.
 
 Next gate: user visual review before canonical identity/backend integration or new contracts. Do not describe sample data as operational Droid OS functionality.
+
+## Hosted PR review
+
+Draft [PR #29](https://github.com/riffsmon-bit/dyoor-site/pull/29) provides [the hosted UI preview](https://deploy-preview-29--dyoor.netlify.app/droid-os). GitHub's website checks and the Netlify deploy passed for UI commit `80b1a16`. The browser flows above also passed against the hosted preview on desktop, mobile, tablet and laptop, and desktop/mobile screenshots were inspected.
+
+Unlike the isolated local harness, the hosted Next layout initializes the existing Privy provider. The initial browser test's blanket no-API assertion therefore failed on public Privy app configuration/analytics and CSP reporting, after all interaction checks passed. The test now explicitly permits only those endpoints/methods and separately counts them; application APIs and unexpected API calls still fail the test. The hosted rerun passed with no uncaught runtime errors or application API calls. This is presentation verification, not a connected-wallet, trading, minting or authorization test.

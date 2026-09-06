@@ -1,5 +1,5 @@
 // Run after starting the loopback UI harness and an isolated Chrome CDP on 9224.
-// Exercises presentation only; no browser wallet or production API is involved.
+// Exercises presentation only. Hosted app providers may initialize public auth/telemetry.
 import assert from "node:assert/strict";
 import fs from "node:fs/promises";
 const tabs = await (await fetch("http://127.0.0.1:9224/json/list")).json();
@@ -11,6 +11,7 @@ let sequence = 0;
 const pending = new Map();
 const exceptions = [];
 const apiCalls = [];
+const providerBootstrap = [];
 const reviewUrl = process.env.DROID_OS_REVIEW_URL || "http://localhost:3202/droid-os";
 assert.match(new URL(reviewUrl).hostname, /^(localhost|127\.0\.0\.1|deploy-preview-\d+--dyoor\.netlify\.app)$/);
 socket.addEventListener("message", ({ data }) => {
@@ -20,7 +21,15 @@ socket.addEventListener("message", ({ data }) => {
     clearTimeout(task.timer); pending.delete(item.id);
     if (item.error) task.reject(Error(item.error.message)); else task.resolve(item.result);
   } else if (item.method === "Runtime.exceptionThrown") exceptions.push(item.params.exceptionDetails.text);
-  else if (item.method === "Network.requestWillBeSent" && /\/api\//.test(item.params.request.url)) apiCalls.push(item.params.request.url);
+  else if (item.method === "Network.requestWillBeSent" && /\/api\//.test(item.params.request.url)) {
+    const request = item.params.request;
+    const url = new URL(request.url);
+    const bootstrap =
+      (url.origin === "https://auth.privy.io" && request.method === "GET" && /^\/api\/v1\/apps\/[^/]+$/.test(url.pathname)) ||
+      (url.origin === "https://auth.privy.io" && request.method === "POST" && url.pathname === "/api/v1/analytics_events") ||
+      (url.origin === "https://csp-report.browser-intake-datadoghq.com" && request.method === "POST" && url.pathname === "/api/v2/logs");
+    (bootstrap ? providerBootstrap : apiCalls).push(`${request.method} ${url.origin}${url.pathname}`);
+  }
 });
 function send(method, params = {}) {
   return new Promise((resolve, reject) => {
@@ -97,5 +106,6 @@ try {
     await screenshot(`droid-os-review-${label}`);
   }
   assert.deepEqual(exceptions, []); assert.deepEqual(apiCalls, []);
-  console.log("PASS: roster, scripted chat, strategy draft, modal Escape, mobile navigation, local mission draft, no overflow, no runtime errors, no API calls.");
+  console.log("PASS: roster, scripted chat, strategy draft, modal Escape, mobile navigation, local mission draft, no overflow, no runtime errors, no application or unexpected API calls.");
+  console.log("Existing public provider bootstrap/telemetry requests:", providerBootstrap.length);
 } finally { socket.close(); }
