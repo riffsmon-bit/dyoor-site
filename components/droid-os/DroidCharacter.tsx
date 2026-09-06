@@ -4,17 +4,17 @@ import { PREVIEW_DROIDS, droidDisplayName, type PreviewDroid } from "@/lib/droid
 import { OsIcon } from "./OsIcon";
 import { useLiveArtwork } from "./useLiveArtwork";
 
-export function DroidCharacter({ droid, select }: { droid: PreviewDroid; select: (id: string) => void }) {
+export function DroidCharacter({ droid, select, roster = PREVIEW_DROIDS }: { droid: PreviewDroid; select: (id: string) => void; roster?: readonly PreviewDroid[] }) {
   const [missing, setMissing] = useState<Record<string, boolean>>({});
-  const { artwork, refresh } = useLiveArtwork();
+  const { artwork, refresh } = useLiveArtwork(roster.map(item => item.id));
   const selected = artwork[droid.id];
   const imageUrl = selected?.data?.imageUrl;
   function move(event: KeyboardEvent<HTMLButtonElement>, index: number) {
     const offset = event.key === "ArrowRight" ? 1 : event.key === "ArrowLeft" ? -1 : 0;
     if (!offset) return;
     event.preventDefault();
-    const next = (index + offset + PREVIEW_DROIDS.length) % PREVIEW_DROIDS.length;
-    select(PREVIEW_DROIDS[next].id);
+    const next = (index + offset + roster.length) % roster.length;
+    select(roster[next].id);
     event.currentTarget.parentElement?.querySelectorAll("button")[next]?.focus();
   }
   return <section className="os-character" aria-label="Selected Droid" style={{ "--droid-color": droid.color } as CSSProperties}>
@@ -34,13 +34,13 @@ export function DroidCharacter({ droid, select }: { droid: PreviewDroid; select:
     <div className="os-character-title"><div><span className="os-eyebrow">{droid.role} CLASS · SAMPLE PERSONA</span><h2>D.Y.O.O.R<span>#{droid.id}</span></h2></div><span className="os-mode-pill"><OsIcon name="shield" /> ASK MODE</span></div>
     <p className="os-character-line">A little curiosity. A clear directive. Entirely yours.</p>
     <div className="os-character-traits">{droid.interests.map((interest) => <span key={interest}>{interest}</span>)}</div>
-    <div className="os-roster-heading"><span className="os-eyebrow">SELECT YOUR DROID</span><span>04 <span>/ SAMPLE ROSTER</span></span></div>
-    <div className="os-roster" aria-label="Sample Droid roster">
-      {PREVIEW_DROIDS.map((item, index) => {
+    <div className="os-roster-heading"><span className="os-eyebrow">SELECT YOUR DROID</span><span>{roster.length} <span>/ {droid.liveRoster ? "WALLET ROSTER" : "SAMPLE ROSTER"}</span></span></div>
+    <div className={`os-roster ${roster.length > 4 ? "os-roster-scroll" : ""}`} aria-label={droid.liveRoster ? "Wallet Droid roster" : "Sample Droid roster"}>
+      {roster.map((item, index) => {
         const image = artwork[item.id]?.data?.imageUrl;
         return <button key={item.id} type="button" aria-pressed={item.id === droid.id} aria-label={`Select ${droidDisplayName(item)}`} className={`os-roster-slot ${item.id === droid.id ? "os-slot-selected" : ""}`} onClick={() => select(item.id)} onKeyDown={(event) => move(event, index)}>{image && !missing[image] ? <img src={image} alt="" loading="lazy" onError={() => setMissing(previous => ({ ...previous, [image]: true }))} /> : <div className="os-roster-placeholder"><OsIcon name="grid" /></div>}<span>#{item.id}<i /></span></button>;
       })}
     </div>
-    <p className="os-roster-note">Live production artwork · sample roster, not your connected holdings</p>
+    <p className="os-roster-note">{droid.liveRoster ? "Live artwork · ownership roster is a read snapshot, never execution authority" : "Live production artwork · sample roster, not your connected holdings"}</p>
   </section>;
 }

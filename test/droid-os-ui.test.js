@@ -49,7 +49,11 @@ test("review route is opt-in and components have no wallet, provider or API exec
   const page = fs.readFileSync("app/droid-os/page.tsx", "utf8");
   assert.match(page, /process\.env\.DROID_OS_UI_PREVIEW !== "true"\) notFound\(\)/);
   const source = fs.readdirSync("components/droid-os").filter((name) => name.endsWith(".tsx")).map((name) => fs.readFileSync(`components/droid-os/${name}`, "utf8")).join("\n");
-  assert.doesNotMatch(source, /useWalletService|usePrivy|sendTransaction|writeContract|signMessage|eth_sendTransaction|fetch\(/);
+  assert.doesNotMatch(source, /usePrivy|sendTransaction|writeContract|signMessage|eth_sendTransaction|getSigner/);
+  const connected = fs.readFileSync("components/droid-os/DroidOsConnectedPreview.tsx", "utf8");
+  assert.match(connected, /method: "GET"/);
+  assert.match(connected, /parseWalletRoster\(payload, address\)/);
+  assert.match(connected, /result.wallet === address/);
   assert.match(source, /Sample roster & balances/);
   assert.match(source, /SCRIPTED PREVIEW/);
 });
@@ -70,7 +74,7 @@ test("mobile exposes every section and uses native modal focus boundaries", () =
 test("local harness is loopback-only and permits only public artwork reads", () => {
   const server = fs.readFileSync("scripts/preview-droid-os-ui.mjs", "utf8");
   assert.match(server, /connect-src 'self'/);
-  assert.match(server, /ARTWORK_TOKEN_IDS.includes\(id\)/);
+  assert.match(server, /validArtworkTokenId\(id\)/);
   assert.match(server, /readLiveArtwork\(id\)/);
   assert.match(server, /request\.method !== "GET"/);
   assert.match(server, /server\.listen\(port, "127\.0\.0\.1"/);

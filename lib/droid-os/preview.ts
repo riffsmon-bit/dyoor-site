@@ -9,6 +9,7 @@ export type PreviewDroid = {
   energy: string;
   achievements: number;
   interests: string[];
+  liveRoster?: boolean;
 };
 
 export const PREVIEW_DROIDS: readonly PreviewDroid[] = [
@@ -31,6 +32,7 @@ export function previewReply(input: string, droid: PreviewDroid) {
     return "I can help you think through a move, but I haven’t moved anything. This is a UI preview: there’s no wallet connection, live quote, simulation, or execution. In the finished system, we’ll check your rules and prepare an exact action for your approval.";
   }
   if (/balance|portfolio|fund|mon|reserve/.test(question)) {
+    if (droid.liveRoster) return "Your roster and artwork are live, but portfolio balances are not connected yet. I won’t present sample amounts as your funds. No financial action has occurred.";
     return `In this sample layout, my balance is ${droid.mon} MON. The portfolio view shows how native funds, tokens and a protected reserve will fit together. These are demonstration amounts—not a live account reading. Want to explore the layout?`;
   }
   if (/rule|strategy|permission|mode/.test(question)) {

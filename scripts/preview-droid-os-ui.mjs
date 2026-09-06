@@ -4,7 +4,7 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { createRequire } from "node:module";
-import { ARTWORK_TOKEN_IDS, readLiveArtwork } from "../lib/droid-os/live-artwork.mjs";
+import { validArtworkTokenId, readLiveArtwork } from "../lib/droid-os/live-artwork.mjs";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const require = createRequire(path.join(root, "package.json"));
@@ -48,7 +48,7 @@ const server = http.createServer(async (request, response) => {
   try {
     if (url.pathname.startsWith("/api/droid-os/artwork/")) {
       const id = url.pathname.slice("/api/droid-os/artwork/".length);
-      if (!ARTWORK_TOKEN_IDS.includes(id)) { response.writeHead(404); response.end("Unsupported token"); return; }
+      if (!validArtworkTokenId(id)) { response.writeHead(404); response.end("Unsupported token"); return; }
       response.setHeader("Content-Type", "application/json");
       try { response.end(JSON.stringify(await readLiveArtwork(id))); }
       catch { response.writeHead(502); response.end(JSON.stringify({ error: "Live artwork unavailable" })); }
