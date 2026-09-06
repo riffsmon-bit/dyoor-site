@@ -8,10 +8,15 @@ import { ethers } from "ethers";
 import {
   DYOOR_WORLD_CHALLENGE_TTL_MS,
   DYOOR_WORLD_CHANNELS,
+  DYOOR_WORLD_COLLECTIONS,
   DYOOR_WORLD_SESSION_COOKIE,
   DYOOR_WORLD_SESSION_TTL_SECONDS,
+  canAccessDyoorWorldChannel,
+  dyoorWorldChannelsForEntitlements,
   type DyoorWorldAvatar,
   type DyoorWorldChannelId,
+  type DyoorWorldEntitlementKey,
+  type DyoorWorldEntitlements,
   type DyoorWorldMessage,
   type DyoorWorldMessageView,
   type DyoorWorldNameClaim,
@@ -67,6 +72,7 @@ import {
   type DyoorWorldChallenge,
   type DyoorWorldSession,
 } from "@/lib/dyoor-world-auth";
+import { dyoorWorldRequestAudience } from "@/lib/dyoor-world-origin";
 import {
   dyoorS2Contract,
   energyBankContract,
@@ -74,9 +80,13 @@ import {
 } from "@/lib/contracts/addresses";
 import { S2_ISSUED_SUPPLY_FALLBACK } from "@/lib/s2-supply";
 import { createJsonStore } from "@/src/lib/storage/fileStore";
+import { createMonadReadProvider } from "@/lib/monad-rpc";
 
 const worldStore = createJsonStore("dyoor-world");
 const ERC721_BALANCE_ABI = ["function balanceOf(address owner) view returns (uint256)"];
+const ASCENSION_BALANCE_ABI = [
+  "function tokensOfStaker(address user) view returns (uint256[])",
+];
 const ERC721_OWNER_ABI = ["function ownerOf(uint256 tokenId) view returns (address)"];
 const OWNABLE_ABI = ["function owner() view returns (address)"];
 const ENERGY_BANK_ABI = [
@@ -103,7 +113,20 @@ const WORLD_NAMES_ABI = [
   "function isHolder(address wallet) view returns (bool)",
   "function S2_COLLECTION() view returns (address)",
 ];
-const holderCache = new Map<string, { allowed: boolean; expiresAt: number }>();
+export type DyoorWorldAccessSnapshot = {
+  wallet: string;
+  eligible: boolean;
+  entitlements: DyoorWorldEntitlements;
+  balances: Record<DyoorWorldEntitlementKey, string | null>;
+  unavailable: DyoorWorldEntitlementKey[];
+  checkedAt: string;
+};
+
+const holderCache = new Map<string, {
+  access: DyoorWorldAccessSnapshot;
+  expiresAt: number;
+}>();
+const challengeConsumeLocks = new Map<string, Promise<void>>();
 const rateLimitBuckets = new Map<string, { count: number; resetAt: number }>();
 let worldOwnerCache: { wallet: string; expiresAt: number } | null = null;
 let rewardClaimQueue = Promise.resolve();
@@ -194,10 +217,10 @@ function normalizePrivateKey(value: string) {
 
 function worldRpcUrl() {
   const rpcUrl = readEnv(
-    "ALCHEMY_MONAD_RPC_URL",
     "DYOOR_S2_RPC_URL",
     "MONAD_RPC_URL",
     "NEXT_PUBLIC_MONAD_RPC_URL",
+    "ALCHEMY_MONAD_RPC_URL",
   ) || "https://rpc.monad.xyz";
   if (/testnet/i.test(rpcUrl)) {
     throw dyoorWorldError("dYOOR World requires a Monad mainnet RPC endpoint.", 503);
@@ -205,11 +228,33 @@ function worldRpcUrl() {
   return rpcUrl;
 }
 
-let worldProvider: ethers.JsonRpcProvider | null = null;
+let worldProvider: ethers.FallbackProvider | null = null;
+let robinhoodWorldProvider: ethers.JsonRpcProvider | null = null;
 
 function provider() {
-  if (!worldProvider) worldProvider = new ethers.JsonRpcProvider(worldRpcUrl(), 143);
+  // Validate explicit configuration, then use bounded multi-provider reads.
+  worldRpcUrl();
+  if (!worldProvider) worldProvider = createMonadReadProvider();
   return worldProvider;
+}
+
+function robinhoodWorldRpcUrl() {
+  const rpcUrl = readEnv(
+    "HOODYOOR_RPC_URL",
+    "ROBINHOOD_RPC_URL",
+    "NEXT_PUBLIC_ROBINHOOD_RPC_URL",
+  ) || "https://rpc.mainnet.chain.robinhood.com";
+  if (/testnet/i.test(rpcUrl)) {
+    throw dyoorWorldError("HoodYØØR access requires a Robinhood Chain mainnet RPC endpoint.", 503);
+  }
+  return rpcUrl;
+}
+
+function robinhoodProvider() {
+  if (!robinhoodWorldProvider) {
+    robinhoodWorldProvider = new ethers.JsonRpcProvider(robinhoodWorldRpcUrl(), 4_663);
+  }
+  return robinhoodWorldProvider;
 }
 
 async function dyoorWorldOwnerWallet() {
@@ -325,28 +370,208 @@ export function dyoorWorldClientIp(request: Request) {
   ).split(",")[0].trim();
 }
 
-export async function hasDyoorWorldAccess(walletValue: unknown, fresh = false) {
+function assertDyoorWorldOrigin(request: Request) {
+  const audience = dyoorWorldRequestAudience(request);
+  if (!audience) {
+    throw dyoorWorldError("This holder-authentication request came from an untrusted origin.", 403);
+  }
+  return audience;
+}
+
+async function withDyoorWorldChallengeLock<T>(key: string, task: () => Promise<T>) {
+  const previous = challengeConsumeLocks.get(key) ?? Promise.resolve();
+  let release!: () => void;
+  const latch = new Promise<void>((resolve) => { release = resolve; });
+  const queued = previous.then(() => latch);
+  challengeConsumeLocks.set(key, queued);
+  await previous;
+  try {
+    return await task();
+  } finally {
+    release();
+    if (challengeConsumeLocks.get(key) === queued) challengeConsumeLocks.delete(key);
+  }
+}
+
+type DyoorWorldCollectionCheck = {
+  key: DyoorWorldEntitlementKey;
+  status: "holder" | "not-holder" | "unavailable";
+  balance: string | null;
+};
+
+function worldReadTimeoutMs() {
+  const configured = Number.parseInt(readEnv("DYOOR_WORLD_RPC_TIMEOUT_MS"), 10);
+  return Number.isSafeInteger(configured) && configured >= 1_000
+    ? Math.min(configured, 10_000)
+    : 4_000;
+}
+
+async function withWorldReadTimeout<T>(read: Promise<T>): Promise<T> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  try {
+    return await Promise.race([
+      read,
+      new Promise<T>((_, reject) => {
+        timer = setTimeout(
+          () => reject(new Error("holder RPC read timed out")),
+          worldReadTimeoutMs(),
+        );
+      }),
+    ]);
+  } finally {
+    if (timer) clearTimeout(timer);
+  }
+}
+
+async function checkDyoorWorldCollection(
+  collection: (typeof DYOOR_WORLD_COLLECTIONS)[number],
+  wallet: string,
+): Promise<DyoorWorldCollectionCheck> {
+  let lastError: unknown = null;
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    try {
+      const collectionProvider = collection.chainId === 4_663
+        ? robinhoodProvider()
+        : provider();
+      const contract = new ethers.Contract(
+        collection.address,
+        collection.ownershipMethod === "tokensOfStaker"
+          ? ASCENSION_BALANCE_ABI
+          : ERC721_BALANCE_ABI,
+        collectionProvider,
+      );
+      const balance = collection.ownershipMethod === "tokensOfStaker"
+        ? BigInt((await withWorldReadTimeout(contract.tokensOfStaker(wallet))).length)
+        : BigInt(await withWorldReadTimeout(contract.balanceOf(wallet)));
+      return {
+        key: collection.key,
+        status: balance > 0n ? "holder" : "not-holder",
+        balance: balance.toString(),
+      };
+    } catch (error) {
+      lastError = error;
+      if (attempt < 2) {
+        await new Promise((resolve) => setTimeout(resolve, 175 * (attempt + 1)));
+      }
+    }
+  }
+  console.error(`dYOOR World ${collection.key} holder check failed`, lastError);
+  return {
+    key: collection.key,
+    status: "unavailable",
+    balance: null,
+  };
+}
+
+export async function getDyoorWorldAccess(
+  walletValue: unknown,
+  fresh = false,
+): Promise<DyoorWorldAccessSnapshot> {
   const wallet = normalizeWorldWallet(walletValue);
   if (!wallet) throw dyoorWorldError("wallet must be a valid address.", 400);
 
   const cached = holderCache.get(wallet);
-  if (!fresh && cached && cached.expiresAt > Date.now()) return cached.allowed;
+  if (!fresh && cached && cached.expiresAt > Date.now()) return cached.access;
 
-  const contract = new ethers.Contract(dyoorS2Contract, ERC721_BALANCE_ABI, provider());
-  let lastError: unknown = null;
-  for (let attempt = 0; attempt < 3; attempt += 1) {
-    try {
-      const allowed = BigInt(await contract.balanceOf(wallet)) > 0n;
-      holderCache.set(wallet, { allowed, expiresAt: Date.now() + 15_000 });
-      return allowed;
-    } catch (error) {
-      lastError = error;
-      if (attempt < 2) await new Promise((resolve) => setTimeout(resolve, 175 * (attempt + 1)));
-    }
+  const checks = await Promise.all(
+    DYOOR_WORLD_COLLECTIONS.map((collection) => (
+      checkDyoorWorldCollection(collection, wallet)
+    )),
+  );
+  const entitlements: DyoorWorldEntitlements = {
+    season1: false,
+    ascended: false,
+    season2: false,
+    hoodyoor: false,
+  };
+  const balances: Record<DyoorWorldEntitlementKey, string | null> = {
+    season1: null,
+    ascended: null,
+    season2: null,
+    hoodyoor: null,
+  };
+  const unavailable: DyoorWorldEntitlementKey[] = [];
+  for (const check of checks) {
+    entitlements[check.key] = check.status === "holder";
+    balances[check.key] = check.balance;
+    if (check.status === "unavailable") unavailable.push(check.key);
+  }
+  const eligible = Object.values(entitlements).some(Boolean);
+
+  if (!eligible && unavailable.length > 0) {
+    throw dyoorWorldError(
+      "Could not verify all DYØØR holder contracts. Try again in a moment.",
+      503,
+    );
   }
 
-  console.error("dYOOR World holder check failed", lastError);
-  throw dyoorWorldError("Could not verify S2 ownership on Monad. Try again in a moment.", 503);
+  const access: DyoorWorldAccessSnapshot = {
+    wallet,
+    eligible,
+    entitlements,
+    balances,
+    unavailable,
+    checkedAt: new Date().toISOString(),
+  };
+  holderCache.set(wallet, { access, expiresAt: Date.now() + 15_000 });
+  return access;
+}
+
+export async function hasDyoorWorldAccess(walletValue: unknown, fresh = false) {
+  return (await getDyoorWorldAccess(walletValue, fresh)).eligible;
+}
+
+export async function requireDyoorWorldEntitlement(
+  walletValue: unknown,
+  entitlement: DyoorWorldEntitlementKey,
+) {
+  const access = await getDyoorWorldAccess(walletValue);
+  if (access.entitlements[entitlement]) return access;
+  const collection = DYOOR_WORLD_COLLECTIONS.find((item) => item.key === entitlement);
+  if (access.unavailable.includes(entitlement)) {
+    throw dyoorWorldError(
+      `${collection?.label || "Collection"} ownership is temporarily unavailable. Try again shortly.`,
+      503,
+    );
+  }
+  throw dyoorWorldError(
+    `${collection?.label || "Collection"} ownership is required for this World feature.`,
+    403,
+  );
+}
+
+export async function requireDyoorWorldChannelAccess(
+  walletValue: unknown,
+  channelValue: unknown,
+) {
+  const channelId = String(channelValue || "");
+  const channel = DYOOR_WORLD_CHANNELS.find((item) => item.id === channelId);
+  if (!channel) {
+    throw dyoorWorldError("channel must identify a dYOOR World stream.", 400);
+  }
+  const access = await getDyoorWorldAccess(walletValue);
+  if (!access.eligible) {
+    throw dyoorWorldError("Current DYØØR holder access is required.", 403);
+  }
+  if (canAccessDyoorWorldChannel(channelId, access.entitlements)) return access;
+  const requiredEntitlements = channel.access === "any"
+    ? []
+    : Array.isArray(channel.access)
+      ? channel.access
+      : [channel.access];
+  if (
+    requiredEntitlements.length > 0
+    && requiredEntitlements.every((entitlement) => access.unavailable.includes(entitlement))
+  ) {
+    throw dyoorWorldError(
+      "This collection gate is temporarily unavailable. Try again shortly.",
+      503,
+    );
+  }
+  throw dyoorWorldError(
+    `Current ${requiredEntitlements.length ? requiredEntitlements.join(" or ") : "DYØØR"} holder access is required for #${channel.label}.`,
+    403,
+  );
 }
 
 function challengeKey(wallet: string, nonce: string) {
@@ -384,6 +609,7 @@ async function pruneDyoorWorldChallenges(wallet: string) {
 }
 
 export async function createDyoorWorldChallenge(request: Request, walletValue: unknown) {
+  const audience = assertDyoorWorldOrigin(request);
   const wallet = normalizeWorldWallet(walletValue);
   if (!wallet) throw dyoorWorldError("wallet must be a valid address.", 400);
   assertDyoorWorldRateLimit(
@@ -392,7 +618,10 @@ export async function createDyoorWorldChallenge(request: Request, walletValue: u
     60_000,
   );
   if (!(await hasDyoorWorldAccess(wallet, true))) {
-    throw dyoorWorldError("This wallet does not currently hold a D.Y.O.O.R S2 Droid.", 403);
+    throw dyoorWorldError(
+      "This wallet does not currently qualify through Season 1, Ascension, Season 2, or HoodYØØR.",
+      403,
+    );
   }
   await pruneDyoorWorldChallenges(wallet);
 
@@ -403,7 +632,7 @@ export async function createDyoorWorldChallenge(request: Request, walletValue: u
   const challengeInput = {
     wallet,
     nonce,
-    audience: new URL(request.url).host.toLowerCase(),
+    audience,
     issuedAt,
     expiresAt,
   };
@@ -424,6 +653,7 @@ export async function completeDyoorWorldChallenge(
     signature?: unknown;
   },
 ) {
+  const audience = assertDyoorWorldOrigin(request);
   const wallet = normalizeWorldWallet(input.wallet);
   const nonce = String(input.nonce || "").trim();
   const signature = String(input.signature || "").trim();
@@ -441,41 +671,48 @@ export async function completeDyoorWorldChallenge(
   }
 
   const key = challengeKey(wallet, nonce);
-  const challenge = await worldStore.getJsonStrict<DyoorWorldChallenge>(key);
-  if (!challenge || challenge.version !== 1 || challenge.wallet !== wallet || challenge.nonce !== nonce) {
-    throw dyoorWorldError("This holder challenge was not found or was already used.", 401);
-  }
-  if (challenge.audience !== new URL(request.url).host.toLowerCase()) {
-    throw dyoorWorldError("This holder challenge belongs to a different site.", 401);
-  }
-  if (Date.parse(challenge.expiresAt) <= Date.now()) {
-    await worldStore.deleteJson(key);
-    throw dyoorWorldError("This holder challenge expired. Request a new one.", 401);
-  }
+  return withDyoorWorldChallengeLock(key, async () => {
+    const challenge = await worldStore.getJsonStrict<DyoorWorldChallenge>(key);
+    if (!challenge || challenge.version !== 1 || challenge.wallet !== wallet || challenge.nonce !== nonce) {
+      throw dyoorWorldError("This holder challenge was not found or was already used.", 401);
+    }
+    if (challenge.audience !== audience) {
+      throw dyoorWorldError("This holder challenge belongs to a different site.", 401);
+    }
+    if (Date.parse(challenge.expiresAt) <= Date.now()) {
+      await worldStore.deleteJson(key);
+      throw dyoorWorldError("This holder challenge expired. Request a new one.", 401);
+    }
 
-  const expectedMessage = dyoorWorldChallengeMessage({
-    wallet: challenge.wallet,
-    nonce: challenge.nonce,
-    audience: challenge.audience,
-    issuedAt: challenge.issuedAt,
-    expiresAt: challenge.expiresAt,
+    const expectedMessage = dyoorWorldChallengeMessage({
+      wallet: challenge.wallet,
+      nonce: challenge.nonce,
+      audience: challenge.audience,
+      issuedAt: challenge.issuedAt,
+      expiresAt: challenge.expiresAt,
+    });
+    if (challenge.message !== expectedMessage) {
+      await worldStore.deleteJson(key);
+      throw dyoorWorldError("The stored holder challenge failed validation.", 401);
+    }
+    if (recoverDyoorWorldChallengeWallet(challenge, signature) !== wallet) {
+      throw dyoorWorldError("The wallet signature did not match this holder challenge.", 401);
+    }
+    // Consume immediately after cryptographic validation. A valid signature can
+    // never be replayed even if a downstream RPC request subsequently fails.
+    await worldStore.deleteJson(key);
+    if (!(await hasDyoorWorldAccess(wallet, true))) {
+      throw dyoorWorldError(
+        "This wallet no longer qualifies through Season 1, Ascension, Season 2, or HoodYØØR.",
+        403,
+      );
+    }
+
+    return {
+      wallet,
+      token: createDyoorWorldSessionToken(wallet),
+    };
   });
-  if (challenge.message !== expectedMessage) {
-    await worldStore.deleteJson(key);
-    throw dyoorWorldError("The stored holder challenge failed validation.", 401);
-  }
-  if (recoverDyoorWorldChallengeWallet(challenge, signature) !== wallet) {
-    throw dyoorWorldError("The wallet signature did not match this holder challenge.", 401);
-  }
-  if (!(await hasDyoorWorldAccess(wallet, true))) {
-    throw dyoorWorldError("This wallet no longer holds a D.Y.O.O.R S2 Droid.", 403);
-  }
-
-  await worldStore.deleteJson(key);
-  return {
-    wallet,
-    token: createDyoorWorldSessionToken(wallet),
-  };
 }
 
 export function dyoorWorldSessionCookie(token: string) {
@@ -520,7 +757,7 @@ export async function authenticateDyoorWorldRequest(request: Request): Promise<R
 export async function requireDyoorWorldRequest(request: Request) {
   const authenticated = await authenticateDyoorWorldRequest(request);
   if (!authenticated) {
-    throw dyoorWorldError("A current S2 holder session is required.", 401);
+    throw dyoorWorldError("A current DYØØR holder session is required.", 401);
   }
   return authenticated;
 }
@@ -595,7 +832,10 @@ export async function getDyoorWorldNameToken(tokenIdValue: unknown) {
 export async function getDyoorWorldProfile(walletValue: unknown) {
   const wallet = normalizeWorldWallet(walletValue);
   if (!wallet) throw dyoorWorldError("wallet must be a valid address.", 400);
-  const onchain = await onchainWorldProfile(wallet);
+  const onchain = await onchainWorldProfile(wallet).catch((error) => {
+    console.error("dYOOR World profile registry lookup failed", error);
+    return null;
+  });
   if (onchain) return onchain;
   if (dyoorWorldNamesContractAddress()) return null;
 
@@ -880,11 +1120,15 @@ function validStoredWorldMessage(
   );
 }
 
-export async function listDyoorWorldMessages(channelValue: unknown) {
+export async function listDyoorWorldMessages(
+  walletValue: unknown,
+  channelValue: unknown,
+) {
   const channelId = String(channelValue || "");
   if (!isWorldChannel(channelId)) {
     throw dyoorWorldError("channel must identify a dYOOR World stream.", 400);
   }
+  await requireDyoorWorldChannelAccess(walletValue, channelId);
   const messages = await loadRawWorldMessages(channelId);
   const [profiles, avatars] = await Promise.all([
     worldProfilesForWallets(messages.map((message) => message.wallet)),
@@ -940,6 +1184,7 @@ export async function createDyoorWorldMessage(input: {
   const wallet = normalizeWorldWallet(input.wallet);
   const channelId = String(input.channelId || "");
   if (!wallet) throw dyoorWorldError("wallet must be a valid address.", 400);
+  const worldAccess = await requireDyoorWorldChannelAccess(wallet, channelId);
   const ownerChannel = isWorldOwnerChannel(channelId);
   if (ownerChannel) {
     if (!await canPostDyoorWorldAnnouncements(wallet)) {
@@ -1026,7 +1271,7 @@ export async function createDyoorWorldMessage(input: {
   const [profile, avatar, reward] = await Promise.all([
     getDyoorWorldProfile(wallet),
     getDyoorWorldAvatar(wallet),
-    ownerChannel
+    ownerChannel || !worldAccess.entitlements.season2
       ? Promise.resolve(null)
       : createDyoorWorldChatReward(wallet, message).catch((error) => {
         console.error("dYOOR World chat reward creation failed", error);
@@ -1708,7 +1953,10 @@ export async function verifyDyoorWorldTip(input: {
     throw dyoorWorldError("Tip sender and recipient must be valid wallet addresses.", 400);
   }
   if (wallet === recipient) throw dyoorWorldError("Choose another holder to tip.", 400);
-  if (!(await hasDyoorWorldAccess(recipient))) {
+  try {
+    await requireDyoorWorldEntitlement(recipient, "season2");
+  } catch (error) {
+    if (dyoorWorldErrorStatus(error) >= 500) throw error;
     throw dyoorWorldError("MON tips in dYOOR World can only target a current S2 holder.", 403);
   }
 
@@ -2368,12 +2616,14 @@ export async function verifyDyoorWorldTradeTransaction(input: {
 export async function dyoorWorldPublicConfig() {
   const registryAddress = dyoorWorldNamesContractAddress();
   let claimsOpen = false;
+  let registryAvailable = !registryAddress;
   if (registryAddress) {
-    const contract = await validatedNamesContract();
     try {
+      const contract = await validatedNamesContract();
       claimsOpen = Boolean(await contract?.claimsOpen());
-    } catch {
-      throw dyoorWorldError("The Monad dYOOR name registry is unavailable.", 503);
+      registryAvailable = true;
+    } catch (error) {
+      console.error("dYOOR World public name-registry check failed", error);
     }
   }
   return {
@@ -2381,16 +2631,21 @@ export async function dyoorWorldPublicConfig() {
     s2ContractAddress: dyoorS2Contract,
     registryAddress,
     registryMode: registryAddress ? "monad" : "preview-reservation",
+    registryAvailable,
     claimsOpen,
     tradeEscrowAddress: dyoorWorldTradeEscrowAddress(),
     rewardsEnabled: dyoorWorldRewardsEnabled(),
     salesBotEnabled: dyoorWorldSalesBotEnabled(),
+    collections: DYOOR_WORLD_COLLECTIONS,
     channels: DYOOR_WORLD_CHANNELS,
   };
 }
 
 export async function dyoorWorldConfigForWallet(walletValue: unknown) {
-  const config = await dyoorWorldPublicConfig();
+  const [config, access] = await Promise.all([
+    dyoorWorldPublicConfig(),
+    getDyoorWorldAccess(walletValue),
+  ]);
   let canPostAnnouncements = false;
   try {
     canPostAnnouncements = await canPostDyoorWorldAnnouncements(walletValue);
@@ -2399,6 +2654,16 @@ export async function dyoorWorldConfigForWallet(walletValue: unknown) {
   }
   return {
     ...config,
+    channels: dyoorWorldChannelsForEntitlements(access.entitlements),
+    access: {
+      eligible: access.eligible,
+      entitlements: access.entitlements,
+      balances: access.balances,
+      unavailable: access.unavailable,
+      checkedAt: access.checkedAt,
+    },
+    s2FeaturesEnabled: access.entitlements.season2,
+    rewardsEnabled: config.rewardsEnabled && access.entitlements.season2,
     canPostAnnouncements,
   };
 }

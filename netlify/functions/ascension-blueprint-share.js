@@ -36,7 +36,7 @@ function siteOrigin(event) {
     || "";
 
   const proto = event.headers?.["x-forwarded-proto"] || event.headers?.["X-Forwarded-Proto"] || "https";
-  return host ? `${proto}://${host}` : "https://dyoor.netlify.app";
+  return host ? `${proto}://${host}` : "https://dyoor.fun";
 }
 
 function htmlEscape(value) {

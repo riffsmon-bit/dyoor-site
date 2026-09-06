@@ -1,0 +1,29 @@
+name: Website preview checks
+
+on:
+  pull_request:
+  push:
+    branches: [preview/dyoor-fun-refresh]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: website-${{ github.head_ref || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  website:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - run: npm run typecheck
+      - run: npm run lint
+      - run: npm run test:website
+      - run: npm run build

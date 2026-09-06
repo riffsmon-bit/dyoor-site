@@ -3,6 +3,7 @@ import "./globals.css";
 import { AppProviders } from "@/providers/AppProviders";
 import { SiteFooter } from "@/components/footer/SiteFooter";
 import { SiteNav } from "@/components/layout/SiteNav";
+import { AmbientCursor } from "@/components/layout/AmbientCursor";
 
 export const metadata: Metadata = {
   title: "DYOOR",
@@ -13,6 +14,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
   return (
     <html lang="en">
       <body>
+        <AmbientCursor />
         <AppProviders>
           <SiteNav />
           {children}

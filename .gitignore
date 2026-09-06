@@ -3,7 +3,14 @@
 .DS_Store
 *.icloud
 node_modules/
+node_modules
 .next/
+.next
+.env.*
+!.env.example
+infra/ipfs/.env
+infra/ipfs/data/
+infra/ipfs/staging/
 dyoor-builder/layers/_disabled/
 *backup*.html
 *backup*.js

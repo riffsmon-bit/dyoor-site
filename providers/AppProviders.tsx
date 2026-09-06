@@ -1,16 +1,13 @@
 "use client";
 
-import { PrivyProvider, type WalletListEntry } from "@privy-io/react-auth";
+import { PrivyProvider } from "@privy-io/react-auth";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ReactNode, useState } from "react";
 import dyoorLogo from "@/assets/dyoor-logo.png";
 import { monadMainnet } from "@/lib/monad";
+import { robinhoodMainnet, robinhoodTestnet } from "@/lib/robinhood-chain";
+import { PRIVY_WALLET_LIST } from "@/lib/wallet-options";
 import { WalletServiceProvider } from "@/providers/WalletServiceProvider";
-
-const PRIVY_WALLET_LIST: WalletListEntry[] = [
-  "detected_ethereum_wallets",
-  "wallet_connect",
-];
 
 export function AppProviders({ children }: { children: ReactNode }) {
   const [queryClient] = useState(() => new QueryClient({
@@ -48,7 +45,7 @@ export function AppProviders({ children }: { children: ReactNode }) {
           disableAllExternalWallets: false,
         },
         loginMethods: ["wallet"],
-        supportedChains: [monadMainnet],
+        supportedChains: [monadMainnet, robinhoodMainnet, robinhoodTestnet],
       }}
     >
       {app}

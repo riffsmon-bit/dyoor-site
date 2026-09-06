@@ -1,0 +1,13 @@
+{$IPFS_GATEWAY_HOST} {
+  encode zstd gzip
+
+  @ipfs path /ipfs/*
+  header @ipfs {
+    Access-Control-Allow-Origin "*"
+    Access-Control-Allow-Methods "GET, HEAD, OPTIONS"
+    Cache-Control "public, max-age=29030400, immutable"
+    X-Content-Type-Options "nosniff"
+  }
+
+  reverse_proxy ipfs:8080
+}

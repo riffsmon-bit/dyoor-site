@@ -545,7 +545,7 @@ export default function AdminMetadataPage() {
             <p>Uploaded range: {status?.index?.firstTokenId || "-"} to {status?.index?.lastTokenId || "-"}</p>
             <p>Missing sample: {status?.index?.missingSample?.length ? status.index.missingSample.join(", ") : "none detected"}</p>
             <p>Last update: {status?.index?.updatedAt ? new Date(status.index.updatedAt).toLocaleString() : "-"}</p>
-            <p>Current baseURI: https://dyoor.xyz/api/metadata/</p>
+            <p>Canonical metadata endpoint: https://dyoor.fun/api/metadata/</p>
           </div>
           <label className="mt-4 flex items-start gap-3 rounded border border-yellow-300/25 bg-yellow-300/10 p-3 text-sm font-bold leading-6 text-yellow-100">
             <input className="mt-1 h-4 w-4 accent-dyoor-cyan" checked={allowFallbackPublish} type="checkbox" onChange={(event) => setAllowFallbackPublish(event.target.checked)} />

@@ -4,25 +4,32 @@
 
 :root {
   color-scheme: dark;
-  background: #03030a;
-  color: #f7f5ff;
+  background: #07070b;
+  color: #f4f3f7;
+  --pointer-x: 50vw;
+  --pointer-y: 30vh;
+  --surface: rgba(17, 17, 24, 0.78);
+  --surface-strong: rgba(13, 13, 19, 0.94);
+  --line: rgba(255, 255, 255, 0.09);
 }
 
 html {
   min-height: 100%;
-  background: #03030a;
+  background: #07070b;
   overflow-x: hidden;
 }
 
 body {
   margin: 0;
   overflow-x: hidden;
+  font-family: Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
   background:
-    radial-gradient(circle at 12% 8%, rgba(57, 255, 226, 0.20), transparent 26rem),
-    radial-gradient(circle at 86% 0%, rgba(131, 110, 249, 0.28), transparent 34rem),
-    radial-gradient(circle at 72% 42%, rgba(255, 79, 227, 0.12), transparent 28rem),
-    linear-gradient(180deg, rgba(3, 3, 10, 0.80), #03030a 44rem),
-    #03030a;
+    radial-gradient(circle at 18% -8%, rgba(57, 255, 226, 0.09), transparent 34rem),
+    radial-gradient(circle at 88% 2%, rgba(131, 110, 249, 0.12), transparent 38rem),
+    linear-gradient(180deg, #0a0a10 0, #07070b 40rem),
+    #07070b;
   min-height: 100vh;
 }
 
@@ -32,23 +39,134 @@ body::before {
   inset: 0;
   z-index: -2;
   pointer-events: none;
-  background-image:
-    linear-gradient(rgba(131, 110, 249, 0.11) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(57, 255, 226, 0.07) 1px, transparent 1px);
-  background-size: 56px 56px;
-  mask-image: linear-gradient(180deg, rgba(0, 0, 0, 0.70), transparent 76%);
+  background-image: radial-gradient(rgba(255, 255, 255, 0.12) 0.65px, transparent 0.65px);
+  background-size: 18px 18px;
+  opacity: 0.18;
+  mask-image: linear-gradient(180deg, rgba(0, 0, 0, 0.86), transparent 82%);
 }
 
-body::after {
-  content: "";
+.pointer-fx {
   position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 999;
+  pointer-events: none;
+}
+
+.site-wordmark {
+  font-size: 1.6rem;
+  font-weight: 750;
+  letter-spacing: -0.075em;
+  color: #f4f3f7;
+}
+
+.home-atmosphere {
+  position: relative;
+  isolation: isolate;
+}
+
+.orbital-backdrop {
+  position: absolute;
+  inset: 0 0 auto;
+  height: 1050px;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: -1;
+  background:
+    radial-gradient(ellipse at 85% 30%, rgba(74, 103, 180, .17), transparent 48%),
+    radial-gradient(ellipse at 60% 50%, rgba(40, 129, 120, .12), transparent 52%);
+  mask-image: linear-gradient(#000 65%, transparent);
+}
+
+.orbital-horizon {
+  position: absolute;
+  width: max(1000px, 110vw);
+  height: 650px;
+  top: 230px;
+  left: 32%;
+  border-radius: 50%;
+  transform: rotate(-28deg);
+  background: linear-gradient(180deg, #111e26, #080b12 28%, #07070b 68%);
+  border-top: 1px solid rgba(157, 255, 232, .75);
+  box-shadow: 0 -12px 65px rgba(73, 203, 180, .14), 0 -1px 10px rgba(160, 255, 235, .3);
+}
+
+.orbital-arc {
+  position: absolute;
+  width: max(1000px, 118vw);
+  height: 600px;
+  left: 25%;
+  top: 155px;
+  border: 1px solid rgba(130, 183, 203, .17);
+  border-radius: 50%;
+  transform: rotate(-28deg);
+  animation: orbit-drift 20s ease-in-out infinite alternate;
+}
+
+.orbital-arc-two {
+  top: 80px;
+  left: 21%;
+  width: max(1100px, 130vw);
+  border-color: rgba(156, 154, 220, .1);
+  animation-delay: -10s;
+}
+
+.orbital-grain {
+  position: absolute;
+  inset: 0;
+  opacity: .28;
+  background-image: radial-gradient(rgba(196, 216, 235, .6) .65px, transparent .9px);
+  background-size: 47px 43px;
+  mask-image: linear-gradient(90deg, transparent 35%, #000);
+}
+
+@keyframes orbit-drift {
+  to { transform: translate3d(0, 20px, 0) rotate(-25deg); }
+}
+
+@media (max-width: 640px) {
+  .orbital-backdrop { opacity: .6; }
+  .orbital-horizon { left: 5%; top: 390px; }
+  .orbital-arc { left: 0; top: 290px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .orbital-arc, .page-enter, .page-shell { animation: none; }
+}
+
+.site-header {
+  box-shadow: 0 12px 42px rgba(0, 0, 0, 0.22);
+}
+
+/* A filter on the header itself confines its fixed mobile menu to the
+   header's height. Keep the glass effect on a non-interactive sibling layer. */
+.site-header::before {
+  content: "";
+  position: absolute;
   inset: 0;
   z-index: -1;
   pointer-events: none;
-  background:
-    linear-gradient(90deg, rgba(57, 255, 226, 0.04), transparent 24%, rgba(131, 110, 249, 0.05) 76%, transparent),
-    repeating-linear-gradient(180deg, transparent 0 9px, rgba(255, 255, 255, 0.018) 10px);
-  mix-blend-mode: screen;
+  background: rgba(7, 7, 11, 0.82);
+  -webkit-backdrop-filter: blur(18px) saturate(125%);
+  backdrop-filter: blur(18px) saturate(125%);
+}
+
+.site-nav-link {
+  position: relative;
+  border-radius: 999px;
+  padding: 0.62rem 0.85rem;
+  transition: color 180ms ease, background-color 180ms ease;
+}
+
+.site-nav-link:hover {
+  background: rgba(255, 255, 255, 0.045);
+  color: rgba(255, 255, 255, 0.92);
+}
+
+.site-nav-link-active {
+  background: rgba(57, 255, 226, 0.08);
+  color: #9affef;
 }
 
 html:has(.dyoor-world-app),
@@ -107,19 +225,22 @@ a {
   }
 
   .glass-panel {
-    @apply max-w-full rounded border border-dyoor-purple/25 bg-white/[0.045] shadow-[0_0_34px_rgba(131,110,249,.10)] backdrop-blur-xl;
+    @apply max-w-full border border-white/[0.09] bg-[#111118]/75 shadow-[0_18px_60px_rgba(0,0,0,.20)] backdrop-blur-xl;
+    border-radius: 1rem;
   }
 
   .glass-panel-strong {
-    @apply max-w-full rounded border border-dyoor-purple/30 bg-[radial-gradient(720px_260px_at_90%_0%,rgba(131,110,249,.20),transparent_58%),linear-gradient(135deg,rgba(7,7,22,.82),rgba(5,5,18,.68))] shadow-[0_0_52px_rgba(131,110,249,.14)] backdrop-blur-xl;
+    @apply max-w-full border border-white/[0.10] bg-[#0f0f16]/90 shadow-[0_26px_80px_rgba(0,0,0,.28)] backdrop-blur-xl;
+    border-radius: 1.25rem;
   }
 
   .terminal-panel {
-    @apply max-w-full rounded border border-dyoor-cyan/20 bg-black/35 shadow-[inset_0_1px_0_rgba(255,255,255,.05),0_0_28px_rgba(57,255,226,.07)];
+    @apply max-w-full border border-white/[0.09] bg-black/25 shadow-[inset_0_1px_0_rgba(255,255,255,.04)];
+    border-radius: 0.9rem;
   }
 
   .hover-lift {
-    @apply transition duration-200 ease-out hover:-translate-y-0.5 hover:border-dyoor-cyan/40 hover:shadow-[0_16px_42px_rgba(57,255,226,.10)];
+    @apply transition duration-300 ease-out hover:-translate-y-1 hover:border-white/20 hover:shadow-[0_24px_70px_rgba(0,0,0,.32)];
   }
 
   .btn-base {
@@ -127,32 +248,32 @@ a {
   }
 
   .btn-primary {
-    @apply inline-flex min-h-11 items-center justify-center rounded border border-dyoor-cyan bg-dyoor-cyan px-4 py-3 text-center text-sm font-black uppercase tracking-[0.08em] text-black shadow-[0_0_24px_rgba(57,255,226,.24)] transition duration-200 hover:brightness-110 active:translate-y-px disabled:cursor-not-allowed disabled:opacity-50;
+    @apply inline-flex min-h-11 items-center justify-center rounded-full border border-dyoor-cyan bg-dyoor-cyan px-5 py-3 text-center text-sm font-semibold text-[#06100f] shadow-[0_10px_30px_rgba(57,255,226,.12)] transition duration-200 hover:-translate-y-0.5 hover:bg-[#7affec] active:translate-y-0 disabled:cursor-not-allowed disabled:opacity-50;
   }
 
   .btn-secondary {
-    @apply inline-flex min-h-11 items-center justify-center rounded border border-dyoor-purple/30 bg-dyoor-purple/10 px-4 py-3 text-center text-sm font-black uppercase tracking-[0.08em] text-white/80 transition duration-200 hover:border-dyoor-cyan/40 hover:bg-dyoor-cyan/10 hover:text-dyoor-cyan active:translate-y-px disabled:cursor-not-allowed disabled:opacity-50;
+    @apply inline-flex min-h-11 items-center justify-center rounded-full border border-white/[0.12] bg-white/[0.045] px-5 py-3 text-center text-sm font-semibold text-white/[0.78] transition duration-200 hover:-translate-y-0.5 hover:border-white/25 hover:bg-white/[0.08] hover:text-white active:translate-y-0 disabled:cursor-not-allowed disabled:opacity-50;
   }
 
   .btn-ghost {
-    @apply inline-flex min-h-11 items-center justify-center rounded border border-white/10 bg-white/[0.035] px-4 py-3 text-center text-sm font-black uppercase tracking-[0.08em] text-white/70 transition duration-200 hover:border-dyoor-purple/40 hover:bg-dyoor-purple/10 hover:text-white active:translate-y-px disabled:cursor-not-allowed disabled:opacity-50;
+    @apply inline-flex min-h-11 items-center justify-center rounded-full border border-transparent bg-transparent px-4 py-3 text-center text-sm font-medium text-white/[0.62] transition duration-200 hover:bg-white/[0.05] hover:text-white active:translate-y-px disabled:cursor-not-allowed disabled:opacity-50;
   }
 
   .field-control {
-    @apply w-full rounded border border-dyoor-purple/25 bg-black/40 px-4 py-3 font-bold text-white outline-none transition placeholder:text-white/30 focus:border-dyoor-cyan focus:bg-black/50;
+    @apply w-full rounded-xl border border-white/10 bg-black/30 px-4 py-3 font-medium text-white outline-none transition placeholder:text-white/[0.28] focus:border-dyoor-cyan/[0.55] focus:bg-black/[0.45];
   }
 
   .eyebrow {
-    @apply text-xs font-black uppercase tracking-[0.22em] text-dyoor-cyan;
+    @apply text-[0.68rem] font-semibold uppercase tracking-[0.2em] text-dyoor-cyan/80;
   }
 
   .heading-gradient {
-    @apply break-words bg-gradient-to-r from-white via-dyoor-cyan to-dyoor-monad bg-clip-text font-black uppercase leading-none text-transparent;
+    @apply break-words font-semibold leading-[0.98] tracking-[-0.045em] text-white;
     overflow-wrap: anywhere;
   }
 
   .status-signal {
-    @apply rounded border p-4 text-sm font-bold leading-6;
+    @apply rounded-xl border p-4 text-sm font-medium leading-6;
   }
 
   .skeleton-line {
@@ -502,6 +623,95 @@ a {
   }
 }
 
+/*
+ * Monad Droid OS uses the site's established cyan/purple control-room palette.
+ * The shared Robinhood Droid components intentionally keep their collection-specific
+ * lime treatment unless they are rendered inside this chain-scoped wrapper.
+ */
+.dyoor-site-droid-theme {
+  color-scheme: dark;
+  background:
+    radial-gradient(circle at 10% 6%, rgba(57, 255, 226, 0.15), transparent 28rem),
+    radial-gradient(circle at 88% 2%, rgba(131, 110, 249, 0.24), transparent 34rem),
+    radial-gradient(circle at 72% 48%, rgba(255, 79, 227, 0.08), transparent 30rem),
+    linear-gradient(180deg, rgba(3, 3, 10, 0.9), #03030a 48rem),
+    #03030a !important;
+}
+
+.dyoor-site-droid-theme .droid-os-grid {
+  opacity: 0.34;
+  background-image:
+    linear-gradient(rgba(131, 110, 249, 0.1) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(57, 255, 226, 0.08) 1px, transparent 1px) !important;
+  background-size: 48px 48px !important;
+  mask-image: linear-gradient(180deg, black, rgba(0, 0, 0, 0.48) 74%, transparent);
+}
+
+.dyoor-site-droid-theme header[class*="bg-[#070a06]"] {
+  border-color: rgba(57, 255, 226, 0.18) !important;
+  background-color: rgba(3, 3, 10, 0.88) !important;
+  box-shadow: 0 12px 38px rgba(3, 3, 10, 0.42);
+}
+
+.dyoor-site-droid-theme [class*="bg-[#0c110b]"] {
+  background:
+    radial-gradient(circle at 96% 0%, rgba(131, 110, 249, 0.12), transparent 22rem),
+    linear-gradient(135deg, rgba(12, 16, 38, 0.96), rgba(5, 5, 18, 0.96)) !important;
+}
+
+.dyoor-site-droid-theme [class*="bg-[#11180d]"] {
+  background-color: #0c1026 !important;
+}
+
+.dyoor-site-droid-theme [class*="text-[#c7ff00]"] {
+  color: #39ffe2 !important;
+}
+
+.dyoor-site-droid-theme [class~="bg-[#c7ff00]"] {
+  background-color: #39ffe2 !important;
+  color: #03030a !important;
+  box-shadow: 0 0 28px rgba(57, 255, 226, 0.16);
+}
+
+.dyoor-site-droid-theme [class*="bg-[#c7ff00]/"] {
+  background-color: rgba(57, 255, 226, 0.08) !important;
+}
+
+.dyoor-site-droid-theme [class*="border-[#c7ff00]"] {
+  border-color: rgba(57, 255, 226, 0.3) !important;
+}
+
+.dyoor-site-droid-theme section:not([class*="border-red"]):not([class*="border-sky"]) {
+  border-color: rgba(131, 110, 249, 0.24);
+}
+
+.dyoor-site-droid-theme #core {
+  border-color: rgba(57, 255, 226, 0.25) !important;
+  box-shadow:
+    0 35px 120px rgba(0, 0, 0, 0.56),
+    0 0 74px rgba(57, 255, 226, 0.07),
+    0 0 110px rgba(131, 110, 249, 0.06) !important;
+}
+
+.dyoor-site-droid-theme [class*="shadow-[0_0_10px_#c7ff00]"] {
+  box-shadow: 0 0 12px rgba(57, 255, 226, 0.92) !important;
+}
+
+.dyoor-site-droid-theme [class*="hover:border-[#c7ff00]"]:hover,
+.dyoor-site-droid-theme [class*="focus:border-[#c7ff00]"]:focus {
+  border-color: rgba(57, 255, 226, 0.48) !important;
+}
+
+.dyoor-site-droid-theme [class*="hover:text-[#c7ff00]"]:hover {
+  color: #39ffe2 !important;
+}
+
+.dyoor-site-droid-theme::selection,
+.dyoor-site-droid-theme *::selection {
+  background: rgba(57, 255, 226, 0.28);
+  color: #ffffff;
+}
+
 @keyframes page-rise {
   from {
     opacity: 0;
@@ -688,6 +898,10 @@ a {
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .pointer-fx {
+    display: none;
+  }
+
   .bounty-signal-shell::before,
   .bounty-signal-card,
   .bounty-signal-card::after,
@@ -706,5 +920,11 @@ a {
 
   .world-message-stream {
     scroll-behavior: auto;
+  }
+}
+
+@media (pointer: coarse) {
+  .pointer-fx {
+    display: none;
   }
 }

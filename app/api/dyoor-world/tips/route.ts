@@ -2,6 +2,7 @@ import {
   assertDyoorWorldRateLimit,
   dyoorWorldClientIp,
   dyoorWorldErrorStatus,
+  requireDyoorWorldEntitlement,
   requireDyoorWorldRequest,
   verifyDyoorWorldTip,
 } from "@/lib/dyoor-world-server";
@@ -12,6 +13,7 @@ export const dynamic = "force-dynamic";
 export async function POST(request: Request) {
   try {
     const { wallet } = await requireDyoorWorldRequest(request);
+    await requireDyoorWorldEntitlement(wallet, "season2");
     assertDyoorWorldRateLimit(
       `world-tip:${wallet}:${dyoorWorldClientIp(request)}`,
       12,

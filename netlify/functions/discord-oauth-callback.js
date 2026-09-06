@@ -1,145 +1,52 @@
-exports.handler = async function (event) {
+import { ensureUser } from "./_verify/linking.js";
+import { consumeOAuthState } from "./_verify/oauth-state.js";
+import {
+  assertMethod,
+  buildSessionCookie,
+  clearOAuthStateCookie,
+  readOAuthStateCookie,
+  redirect,
+  safeReturnTo,
+} from "./_verify/http.js";
+import { createSession } from "./_verify/session.js";
+import { ensureDyoorified, fetchDiscordOAuthUser } from "./_verify/discord.js";
+import { recordVerificationAudit } from "./_verify/audit.js";
+
+function destination(returnTo, key, value) {
+  const url = new URL(safeReturnTo(returnTo), "https://dyoor.fun");
+  url.searchParams.set(key, value);
+  return `${url.pathname}${url.search}`;
+}
+
+export const handler = async (event) => {
+  let returnTo = "/discord/verify";
   try {
-    const COOKIE_NAME = process.env.VERIFY_SESSION_COOKIE || 'dyoor_verify_session';
-
-    const discordClientId = process.env.DISCORD_CLIENT_ID;
-    const discordClientSecret = process.env.DISCORD_CLIENT_SECRET;
-    const discordRedirectUri = process.env.DISCORD_REDIRECT_URI;
-
-    if (!discordClientId) {
-      return {
-        statusCode: 500,
-        headers: { 'Content-Type': 'application/json; charset=utf-8' },
-        body: JSON.stringify({ ok: false, error: 'Missing DISCORD_CLIENT_ID' })
-      };
+    assertMethod(event, "GET");
+    const suppliedState = String(event?.queryStringParameters?.state || "");
+    const browserState = readOAuthStateCookie(event);
+    if (!browserState || browserState !== suppliedState) {
+      throw Object.assign(new Error("The Discord sign-in browser binding is invalid or expired."), { status: 401 });
     }
-
-    if (!discordClientSecret) {
-      return {
-        statusCode: 500,
-        headers: { 'Content-Type': 'application/json; charset=utf-8' },
-        body: JSON.stringify({ ok: false, error: 'Missing DISCORD_CLIENT_SECRET' })
-      };
-    }
-
-    if (!discordRedirectUri) {
-      return {
-        statusCode: 500,
-        headers: { 'Content-Type': 'application/json; charset=utf-8' },
-        body: JSON.stringify({ ok: false, error: 'Missing DISCORD_REDIRECT_URI' })
-      };
-    }
-
-    const code =
-      (event && event.queryStringParameters && event.queryStringParameters.code) || '';
-
-    const state =
-      (event && event.queryStringParameters && event.queryStringParameters.state) || '';
-
-    if (!code) {
-      return {
-        statusCode: 400,
-        headers: { 'Content-Type': 'application/json; charset=utf-8' },
-        body: JSON.stringify({ ok: false, error: 'Missing OAuth code' })
-      };
-    }
-
-    let returnTo = process.env.URL || 'https://dyoor.netlify.app/';
-
-    if (state) {
-      try {
-        const parsed = JSON.parse(Buffer.from(state, 'base64url').toString('utf8'));
-        if (parsed && parsed.returnTo) returnTo = parsed.returnTo;
-      } catch (e) {
-        // ignore bad state
-      }
-    }
-
-    const tokenRes = await fetch('https://discord.com/api/oauth2/token', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded'
-      },
-      body: new URLSearchParams({
-        client_id: discordClientId,
-        client_secret: discordClientSecret,
-        grant_type: 'authorization_code',
-        code,
-        redirect_uri: discordRedirectUri
-      }).toString()
-    });
-
-    const tokenJson = await tokenRes.json();
-
-    if (!tokenRes.ok || !tokenJson.access_token) {
-      return {
-        statusCode: 500,
-        headers: { 'Content-Type': 'application/json; charset=utf-8' },
-        body: JSON.stringify({
-          ok: false,
-          error: 'Failed to exchange Discord OAuth code',
-          details: tokenJson
-        })
-      };
-    }
-
-    const meRes = await fetch('https://discord.com/api/users/@me', {
-      headers: {
-        Authorization: `Bearer ${tokenJson.access_token}`
-      }
-    });
-
-    const meJson = await meRes.json();
-
-    if (!meRes.ok || !meJson.id) {
-      return {
-        statusCode: 500,
-        headers: { 'Content-Type': 'application/json; charset=utf-8' },
-        body: JSON.stringify({
-          ok: false,
-          error: 'Failed to fetch Discord user profile',
-          details: meJson
-        })
-      };
-    }
-
-    const sessionPayload = {
-      discordUserId: meJson.id,
-      username: meJson.username || '',
-      globalName: meJson.global_name || '',
-      avatar: meJson.avatar || '',
-      linkedAt: Date.now()
-    };
-
-    const sessionValue = Buffer.from(
-      JSON.stringify(sessionPayload)
-    ).toString('base64url');
-
-    const cookie = `${COOKIE_NAME}=${encodeURIComponent(sessionValue)}; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=2592000`;
-
+    const state = await consumeOAuthState(suppliedState);
+    if (!state) throw Object.assign(new Error("The Discord sign-in request expired or was already used."), { status: 401 });
+    returnTo = state.returnTo;
+    const code = String(event?.queryStringParameters?.code || "");
+    if (!code) throw Object.assign(new Error("Discord did not return an authorization code."), { status: 401 });
+    const discordUser = await fetchDiscordOAuthUser(code);
+    await ensureDyoorified(discordUser.id);
+    await ensureUser(discordUser);
+    const sessionId = await createSession(discordUser);
+    await recordVerificationAudit("DYOORIFIED", discordUser.id, { source: "discord-oauth" });
     return {
-      statusCode: 302,
-      headers: {
-        Location: returnTo,
-        'Cache-Control': 'no-store',
-        'Set-Cookie': cookie
-      },
+      ...redirect(destination(returnTo, "discord", "verified")),
       multiValueHeaders: {
-        'Set-Cookie': [cookie]
+        "set-cookie": [clearOAuthStateCookie(), buildSessionCookie(sessionId)],
       },
-      body: ''
     };
   } catch (error) {
-    return {
-      statusCode: 500,
-      headers: {
-        'Content-Type': 'application/json; charset=utf-8',
-        'Cache-Control': 'no-store'
-      },
-      body: JSON.stringify({
-        ok: false,
-        error: error && error.message ? error.message : 'discord-oauth-callback failed'
-      })
-    };
+    return redirect(
+      destination(returnTo, "discord_error", String(error?.message || "Discord verification failed.").slice(0, 160)),
+      { "set-cookie": clearOAuthStateCookie() },
+    );
   }
 };

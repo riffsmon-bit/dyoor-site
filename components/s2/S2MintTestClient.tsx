@@ -580,7 +580,7 @@ export function S2MintTestClient() {
       <SectionHeader
         eyebrow="Internal Test Route"
         title="Season 2 Mint Test"
-        copy="Hidden test console for dyoor.xyz direct mints on Monad mainnet."
+        copy="Hidden test console for dyoor.fun direct mints on Monad mainnet."
         actions={(
           <div className="flex flex-wrap gap-3">
             {!wallet.connected ? (
@@ -631,7 +631,7 @@ export function S2MintTestClient() {
           <div className="flex flex-col gap-1">
             <p className="eyebrow">Mint Console</p>
             <h2 className="text-2xl font-black uppercase text-white">Direct Contract Mint</h2>
-            <p className="text-sm font-semibold leading-6 text-white/58">Tests the dyoor.xyz path. SeaDrop/OpenSea should be tested separately through OpenSea Primary Drops.</p>
+            <p className="text-sm font-semibold leading-6 text-white/58">Tests the dyoor.fun path. SeaDrop/OpenSea should be tested separately through OpenSea Primary Drops.</p>
           </div>
 
           <div className="mt-5 grid gap-4">

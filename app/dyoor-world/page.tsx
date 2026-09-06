@@ -8,8 +8,17 @@ import { authenticateDyoorWorldToken } from "@/lib/dyoor-world-server";
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
-  title: "dYOOR World",
-  description: "The private Monad social world for verified D.Y.O.O.R S2 holders.",
+  title: "dYØØR Wørld",
+  description: "The token-gated home of the D.Y.Ø.Ø.R ecosystem.",
+  alternates: { canonical: "https://dyoor.fun/dyoor-world" },
+  openGraph: {
+    title: "dYØØR Wørld",
+    description: "The token-gated home of the D.Y.Ø.Ø.R ecosystem.",
+    url: "https://dyoor.fun/dyoor-world",
+    siteName: "D.Y.Ø.Ø.R",
+    type: "website",
+    images: [{ url: "/dyoor-world-icon-512.png", width: 512, height: 512, alt: "dYØØR Wørld" }],
+  },
   applicationName: "dYOOR World",
   manifest: "/manifest.webmanifest",
   appleWebApp: {

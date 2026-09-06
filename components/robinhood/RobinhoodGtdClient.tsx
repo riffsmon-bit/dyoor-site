@@ -57,7 +57,14 @@ function displayDate(value?: string) {
 export function RobinhoodGtdClient() {
   const wallet = useWalletService();
   const walletAddress = normalizeRobinhoodGtdWallet(wallet.address);
-  const [flow, setFlow] = useState<FlowState>("idle");
+  return <RobinhoodGtdSession key={walletAddress || "disconnected"} wallet={wallet} walletAddress={walletAddress} />;
+}
+
+function RobinhoodGtdSession({ wallet, walletAddress }: {
+  wallet: ReturnType<typeof useWalletService>;
+  walletAddress: string;
+}) {
+  const [flow, setFlow] = useState<FlowState>("checking");
   const [confirmed, setConfirmed] = useState(false);
   const [registrationOpen, setRegistrationOpen] = useState(true);
   const [acceptedCount, setAcceptedCount] = useState<number | null>(null);
@@ -66,10 +73,6 @@ export function RobinhoodGtdClient() {
 
   useEffect(() => {
     const controller = new AbortController();
-    setConfirmed(false);
-    setSubmission(null);
-    setError("");
-    setFlow("checking");
 
     const query = walletAddress ? `?wallet=${encodeURIComponent(walletAddress)}` : "";
     fetch(`/api/robinhood-gtd${query}`, {
@@ -202,7 +205,6 @@ export function RobinhoodGtdClient() {
         <picture className="absolute inset-0 block h-full w-full">
           <source media="(max-width: 639px)" srcSet="/assets/robinhood/hoodyoor-gtd-hero-mobile.png" />
           {/* The campaign handoff supplies distinct art-direction crops, so a native picture is intentional here. */}
-          {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src="/assets/robinhood/hoodyoor-gtd-hero-desktop.png"
             alt="HoodYØØR collection artwork"

@@ -1,9 +1,9 @@
 import { ethers } from "ethers";
 
-export type AdminAction = "snapshot" | "energy-airdrop" | "energy-reconciliation" | "energy-index" | "metadata";
+export type AdminAction = "snapshot" | "energy-airdrop" | "energy-reconciliation" | "energy-index" | "metadata" | "droid-economy";
 
 export const ADMIN_AUTH_VERSION = "2";
-export const ADMIN_AUTH_DOMAIN = "dyoor.netlify.app";
+export const ADMIN_AUTH_DOMAIN = "dyoor.fun";
 export const ADMIN_AUTH_CHAIN_ID = 143;
 
 const AUTH_FIELDS = new Set([
@@ -59,6 +59,7 @@ export function adminMessage({
   action,
   route,
   payloadHash,
+  chainId = ADMIN_AUTH_CHAIN_ID,
 }: {
   wallet: string;
   timestamp: string;
@@ -66,12 +67,13 @@ export function adminMessage({
   action: AdminAction;
   route: string;
   payloadHash: string;
+  chainId?: number;
 }) {
   return [
     "DYOOR Admin Command",
     `Version: ${ADMIN_AUTH_VERSION}`,
     `Domain: ${ADMIN_AUTH_DOMAIN}`,
-    `Chain ID: ${ADMIN_AUTH_CHAIN_ID}`,
+    `Chain ID: ${chainId}`,
     `Route: ${route}`,
     `Action: ${action}`,
     `Wallet: ${wallet.toLowerCase()}`,
@@ -88,6 +90,7 @@ export function createAdminAuthorization({
   action,
   route,
   payload,
+  chainId = ADMIN_AUTH_CHAIN_ID,
 }: {
   wallet: string;
   timestamp: string;
@@ -95,11 +98,12 @@ export function createAdminAuthorization({
   action: AdminAction;
   route: string;
   payload: unknown;
+  chainId?: number;
 }) {
   const payloadHash = adminPayloadHash(payload);
   return {
     authVersion: ADMIN_AUTH_VERSION,
-    chainId: ADMIN_AUTH_CHAIN_ID,
+    chainId,
     route,
     payloadHash,
     message: adminMessage({
@@ -109,6 +113,7 @@ export function createAdminAuthorization({
       action,
       route,
       payloadHash,
+      chainId,
     }),
   };
 }

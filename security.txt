@@ -1,6 +1,6 @@
-Contact: mailto:security@dyoor.xyz
+Contact: mailto:security@dyoor.fun
 Preferred-Languages: en
-Canonical: https://dyoor.xyz/.well-known/security.txt
+Canonical: https://dyoor.fun/.well-known/security.txt
 
 # Report issues or phishing mirrors.
 # Never share seed phrases or private keys.

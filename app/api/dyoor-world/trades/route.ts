@@ -3,6 +3,7 @@ import {
   dyoorWorldClientIp,
   dyoorWorldErrorStatus,
   getDyoorWorldTrade,
+  requireDyoorWorldEntitlement,
   requireDyoorWorldRequest,
   verifyDyoorWorldTradeTransaction,
 } from "@/lib/dyoor-world-server";
@@ -13,6 +14,7 @@ export const dynamic = "force-dynamic";
 export async function GET(request: Request) {
   try {
     const { wallet } = await requireDyoorWorldRequest(request);
+    await requireDyoorWorldEntitlement(wallet, "season2");
     assertDyoorWorldRateLimit(
       `world-trade-read:${wallet}:${dyoorWorldClientIp(request)}`,
       30,
@@ -37,6 +39,7 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   try {
     const { wallet } = await requireDyoorWorldRequest(request);
+    await requireDyoorWorldEntitlement(wallet, "season2");
     assertDyoorWorldRateLimit(
       `world-trade:${wallet}:${dyoorWorldClientIp(request)}`,
       16,

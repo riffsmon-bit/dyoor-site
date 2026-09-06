@@ -1,71 +1,46 @@
-const { getStore } = require('@netlify/blobs');
+import { getStore } from "@netlify/blobs";
+import { getVerifyConfig } from "./config.js";
 
-function readEnv(...names) {
-  for (const name of names) {
-    const value = process.env[name];
-    if (value && String(value).trim()) return String(value).trim();
+let cachedStore;
+
+function store() {
+  if (globalThis.__DYOOR_VERIFY_STORE__) return globalThis.__DYOOR_VERIFY_STORE__;
+  if (!cachedStore) {
+    const { storage } = getVerifyConfig();
+    cachedStore = getStore({
+      name: "dyoor-discord-verification-v2",
+      siteID: storage.siteId,
+      token: storage.token,
+      consistency: "strong",
+    });
   }
-  return '';
+  return cachedStore;
 }
 
-const siteID = readEnv(
-  'NETLIFY_BLOBS_SITE_ID',
-  'NETLIFY_SITE_ID',
-  'SITE_ID'
-);
-
-const token = readEnv(
-  'NETLIFY_BLOBS_TOKEN',
-  'NETLIFY_ACCESS_TOKEN',
-  'NETLIFY_AUTH_TOKEN'
-);
-
-if (!siteID || !token) {
-  throw new Error(
-    `Netlify Blobs is not configured. Missing siteID/token. ` +
-    `Got siteID=${siteID ? 'yes' : 'no'} token=${token ? 'yes' : 'no'}. ` +
-    `Set NETLIFY_BLOBS_SITE_ID and NETLIFY_BLOBS_TOKEN in Netlify env vars.`
-  );
-}
-
-const store = getStore({
-  name: 'dyoor-verify',
-  siteID,
-  token,
-  consistency: 'strong'
-});
-
-async function getJson(key, fallback = null) {
-  const value = await store.get(key, { type: 'json', consistency: 'strong' });
+export async function getJson(key, fallback = null) {
+  const value = await store().get(key, { type: "json", consistency: "strong" });
   return value ?? fallback;
 }
 
-async function setJson(key, value) {
-  await store.setJSON(key, value);
+export async function setJson(key, value) {
+  await store().setJSON(key, value);
 }
 
-async function deleteKey(key) {
-  await store.delete(key);
+export async function deleteKey(key) {
+  await store().delete(key);
 }
 
-async function listByPrefix(prefix) {
-  const results = [];
-  let cursor;
-
-  do {
-    const page = await store.list({ prefix, cursor });
-    for (const blob of page.blobs || []) {
-      results.push(blob.key);
-    }
-    cursor = page.cursor;
-  } while (cursor);
-
-  return results;
+export async function listByPrefix(prefix) {
+  const result = await store().list({ prefix });
+  return (result.blobs || []).map((blob) => blob.key);
 }
 
-module.exports = {
-  getJson,
-  setJson,
-  deleteKey,
-  listByPrefix,
-};
+export async function listJson(prefix) {
+  const keys = await listByPrefix(prefix);
+  const values = await Promise.all(keys.map((key) => getJson(key, null)));
+  return values.filter(Boolean);
+}
+
+export function resetVerifyStoreForTests() {
+  cachedStore = undefined;
+}

@@ -5,7 +5,7 @@ function siteOrigin() {
     process.env.DEPLOY_PRIME_URL
     || process.env.URL
     || process.env.NEXT_PUBLIC_SITE_URL
-    || "https://dyoor.netlify.app"
+    || "https://dyoor.fun"
   ).replace(/\/+$/, "");
 }
 

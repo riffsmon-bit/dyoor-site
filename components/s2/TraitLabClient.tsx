@@ -29,7 +29,10 @@ import {
   traitLabForfeitAuthorizationMessage,
   traitLabPreviewAuthorizationMessage,
 } from "@/lib/s2-trait-lab-auth";
+import type { DroidAccountApiResponse } from "@/lib/droid-accounts/types";
 import { getStorageItem, removeStorageItem, setStorageJson } from "@/lib/browser-storage";
+import { ipfsGatewayUrl } from "@/lib/ipfs-gateway";
+import { IpfsImage } from "@/components/ui/IpfsImage";
 import { useWalletService } from "@/providers/WalletServiceProvider";
 
 type MetadataAttribute = {
@@ -399,10 +402,7 @@ function shortAddress(address?: string) {
 function mediaUrl(uri?: string) {
   const value = String(uri || "").trim();
   if (!value) return "";
-  if (value.startsWith("ipfs://")) {
-    const gateway = (process.env.NEXT_PUBLIC_PINATA_GATEWAY_URL || "https://jade-efficient-beaver-697.mypinata.cloud").replace(/\/+$/, "");
-    return `${gateway}/ipfs/${value.slice(7)}`;
-  }
+  if (value.startsWith("ipfs://")) return ipfsGatewayUrl(value);
   if (value.startsWith("ar://")) return `https://arweave.net/${value.slice(5)}`;
   return value;
 }
@@ -630,8 +630,7 @@ function LayerPreview({ fallbackImage, metadata, title }: { fallbackImage?: stri
       {useFallbackImage || useLayerStack ? (
         <div className="relative h-full w-full overflow-hidden bg-black/35">
           {useFallbackImage ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
+            <IpfsImage
               alt={title}
               className="absolute inset-0 h-full w-full object-cover"
               onError={() => setFailedFallbackImage(fallbackImage || "")}
@@ -1597,6 +1596,33 @@ export function TraitLabClient() {
     setPreview(null);
     setError("");
     try {
+      const droidResponse = await fetch(
+        `/api/droid-accounts?chainId=143&tokenId=${encodeURIComponent(tokenIdBeingBurned)}&owner=${encodeURIComponent(walletAddress)}`,
+        { cache: "no-store" },
+      );
+      const droidData = await droidResponse.json().catch(() => null) as DroidAccountApiResponse | null;
+      if (!droidResponse.ok || !droidData?.ok || !droidData.droid) {
+        throw new Error("Droid Wallet safety could not be verified. Burn is blocked; retry after on-chain reads recover.");
+      }
+      if (droidData.droid.partialErrors.length > 0) {
+        throw new Error(
+          "Droid Wallet asset discovery was incomplete. Burn is blocked until every configured balance and inventory read succeeds.",
+        );
+      }
+      const hasDetectedAssets = BigInt(droidData.droid.nativeBalance || "0") > 0n
+        || droidData.droid.tokens.some((token) => {
+          try {
+            return BigInt(token.rawBalance) > 0n;
+          } catch {
+            return true;
+          }
+        })
+        || droidData.droid.nfts.length > 0;
+      if (droidData.droid.active || hasDetectedAssets) {
+        throw new Error(
+          `D.Y.O.O.R #${tokenIdBeingBurned} has an activated or funded Droid Wallet. Burning would permanently remove its controller, so the official Trait Lab will not broadcast this burn.`,
+        );
+      }
       await switchToTraitLabChain();
       const activeWallet = await activeProviderWallet();
       if (!activeWallet) {
@@ -1779,8 +1805,7 @@ export function TraitLabClient() {
                     >
                       <div className="aspect-square bg-black/45">
                         {token.image ? (
-                          // eslint-disable-next-line @next/next/no-img-element
-                          <img alt={token.name} className="h-full w-full object-cover" src={token.image} />
+                          <IpfsImage alt={token.name} className="h-full w-full object-cover" src={token.image} />
                         ) : (
                           <div className="grid h-full place-items-center text-xs font-black uppercase tracking-[0.16em] text-white/35">No Image</div>
                         )}
@@ -1807,8 +1832,7 @@ export function TraitLabClient() {
                   {metadataLoading ? (
                     <div className="grid h-full place-items-center p-4"><LoadingSkeleton lines={4} /></div>
                   ) : selectedImage ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img alt={metadata?.name || "D.Y.O.O.R Droid"} className="h-full w-full object-cover" src={selectedImage} />
+                    <IpfsImage alt={metadata?.name || "D.Y.O.O.R Droid"} className="h-full w-full object-cover" src={selectedImage} />
                   ) : (
                     <div className="grid h-full place-items-center text-sm font-black uppercase tracking-[0.18em] text-white/35">No Droid Selected</div>
                   )}
@@ -1962,6 +1986,9 @@ export function TraitLabClient() {
                         <h3 className="mt-2 text-xl font-black uppercase text-white">Burn Droid for Energy</h3>
                         <p className="mt-2 text-sm font-semibold leading-6 text-white/62">
                           Burning sends the selected NFT to the zero address, removes it from your wallet, and cannot be undone. OpenSea supply and media refresh can take a few minutes after confirmation.
+                        </p>
+                        <p className="mt-3 rounded border border-red-300/25 bg-black/25 p-3 text-xs font-bold leading-5 text-red-100">
+                          Droid Wallet safety: the official Trait Lab blocks burns for activated or detectably funded Droid Wallets because burning the parent NFT would permanently remove account control. Trait rerolls and layer changes are unaffected.
                         </p>
                         <div className="mt-3 inline-flex rounded border border-dyoor-cyan/30 bg-dyoor-cyan/10 px-3 py-2 text-xs font-black uppercase tracking-[0.14em] text-dyoor-cyan">
                           Reward: {droidBurnRewardEnergy.toLocaleString()} Energy
@@ -2514,8 +2541,7 @@ export function TraitLabClient() {
                 >
                   <div className="relative aspect-square bg-black/50">
                     {item.image ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img alt={item.name || `Burned D.Y.O.O.R #${item.tokenId}`} className="h-full w-full object-cover grayscale" src={mediaUrl(item.image)} />
+                      <IpfsImage alt={item.name || `Burned D.Y.O.O.R #${item.tokenId}`} className="h-full w-full object-cover grayscale" src={mediaUrl(item.image)} />
                     ) : (
                       <div className="grid h-full place-items-center text-xs font-black uppercase tracking-[0.16em] text-white/35">No Image</div>
                     )}

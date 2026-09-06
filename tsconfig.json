@@ -7,6 +7,7 @@
       "es2022"
     ],
     "allowJs": true,
+    "allowImportingTsExtensions": true,
     "skipLibCheck": true,
     "strict": true,
     "noEmit": true,
@@ -39,6 +40,9 @@
   "exclude": [
     "node_modules",
     "lib/seadrop",
+    "apps/game",
+    "apps/discord",
+    "data/robinhood/security-review",
     "out",
     "broadcast",
     "artifacts",

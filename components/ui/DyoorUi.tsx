@@ -12,7 +12,7 @@ export function PageShell({
   size = "default",
 }: HTMLAttributes<HTMLElement> & { size?: "narrow" | "default" | "wide" }) {
   const width = size === "wide" ? "max-w-[90rem]" : size === "narrow" ? "max-w-6xl" : "max-w-7xl";
-  return <main className={joinClasses("mx-auto px-5 py-10", width, "page-enter", className)}>{children}</main>;
+  return <main className={joinClasses("mx-auto px-5 py-12 sm:px-6 md:py-16", width, "page-enter", className)}>{children}</main>;
 }
 
 export function Card({ children, className = "", strong = false, hover = false, ...props }: HTMLAttributes<HTMLDivElement> & { strong?: boolean; hover?: boolean }) {
@@ -37,11 +37,11 @@ export function SectionHeader({
   className?: string;
 }) {
   return (
-    <div className={joinClasses("mb-5 flex flex-col justify-between gap-4 md:flex-row md:items-end", className)}>
+    <div className={joinClasses("mb-8 flex flex-col justify-between gap-5 md:flex-row md:items-end", className)}>
       <div>
         {eyebrow && <p className="eyebrow">{eyebrow}</p>}
-        <h1 className="heading-gradient mt-3 text-3xl sm:text-4xl md:text-6xl">{title}</h1>
-        {copy && <p className="mt-4 max-w-3xl text-sm font-semibold leading-7 text-white/66 md:text-base">{copy}</p>}
+        <h1 className="heading-gradient mt-3 text-4xl sm:text-5xl md:text-6xl">{title}</h1>
+        {copy && <p className="mt-5 max-w-3xl text-sm leading-7 text-white/[0.62] md:text-base">{copy}</p>}
       </div>
       {actions}
     </div>
@@ -65,15 +65,15 @@ export function Button({
 export function StatCard({ label, value, className = "" }: { label: string; value: ReactNode; className?: string }) {
   return (
     <div className={joinClasses("glass-panel hover-lift min-w-0 overflow-hidden p-4", className)}>
-      <p className="text-xs font-black uppercase tracking-[0.16em] text-white/45">{label}</p>
-      <p className="mt-2 max-w-full overflow-hidden text-2xl font-black leading-tight text-white md:text-3xl">{value}</p>
+      <p className="text-[0.68rem] font-semibold uppercase tracking-[0.18em] text-white/[0.42]">{label}</p>
+      <p className="mt-3 max-w-full overflow-hidden text-2xl font-semibold leading-tight text-white md:text-3xl">{value}</p>
     </div>
   );
 }
 
 export function Alert({ children, tone = "idle", className = "" }: HTMLAttributes<HTMLDivElement> & { tone?: Tone }) {
   const toneClass = {
-    idle: "border-white/14 bg-white/[0.035] text-white/66",
+    idle: "border-white/[0.14] bg-white/[0.035] text-white/[0.66]",
     success: "border-emerald-300/35 bg-emerald-300/10 text-emerald-100 energy-pulse",
     warning: "border-yellow-300/35 bg-yellow-300/10 text-yellow-100",
     danger: "border-red-400/40 bg-red-400/10 text-red-100",
@@ -108,7 +108,7 @@ export function EmptyState({
       <div>
         <p className="eyebrow">Signal Empty</p>
         <h3 className="mt-2 text-2xl font-black uppercase text-white">{title}</h3>
-        <p className="mx-auto mt-3 max-w-md text-sm font-semibold leading-6 text-white/58">{copy}</p>
+        <p className="mx-auto mt-3 max-w-md text-sm font-semibold leading-6 text-white/[0.58]">{copy}</p>
         {action && <div className="mt-4">{action}</div>}
       </div>
     </div>

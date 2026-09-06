@@ -2,9 +2,9 @@
   "name": "D.Y.O.O.R Season 2",
   "description": "Directive: Yield Opportunity Optimization Robots",
   "image": "ipfs://bafybeifz4gwsvqbypeki3wwwmmvng2z2lusqjndevfqemzibisk266vepq/1.png",
-  "external_link": "https://dyoor.xyz",
-  "base_uri": "https://dyoor.xyz/api/metadata/",
-  "metadata_api": "https://dyoor.xyz/api/metadata/{tokenId}",
+  "external_link": "https://dyoor.fun",
+  "base_uri": "https://dyoor.fun/api/metadata/",
+  "metadata_api": "https://dyoor.fun/api/metadata/{tokenId}",
   "metadata_backup": {
     "cid": "bafybeidz7htb3digthznwvl4ytdpckq2q3d2ytgxtsie5bcp7a4lgtb2sq",
     "uri": "ipfs://bafybeidz7htb3digthznwvl4ytdpckq2q3d2ytgxtsie5bcp7a4lgtb2sq",

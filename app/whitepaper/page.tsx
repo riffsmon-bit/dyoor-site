@@ -236,9 +236,6 @@ export default function WhitepaperPage() {
               <Link className="btn-secondary" href="/ascension">
                 Open Ascension
               </Link>
-              <Link className="btn-secondary" href="/#swap">
-                Swap On Monad
-              </Link>
             </div>
           </div>
           <div className="grid content-end gap-3">
@@ -383,20 +380,21 @@ export default function WhitepaperPage() {
           <div className="pointer-events-none absolute -bottom-24 left-1/3 h-64 w-64 rounded-full bg-dyoor-purple/20 blur-3xl" />
           <div className="relative">
             <div className="mb-5 inline-flex rounded-full border border-emerald-300/25 bg-emerald-300/10 px-3 py-1.5 text-[0.62rem] font-black uppercase tracking-[0.16em] text-emerald-200">
-              S2 holder gate active
+              S1 + Ascended + S2 gates active
             </div>
             <SectionHeading
               eyebrow="dYOOR World"
               title="Holder-Exclusive Community Layer"
-              copy="dYOOR World is the primary private community for active Season 2 holders. It anchors access and identity to verified ownership while Discord and Telegram remain public onboarding channels for newcomers."
+              copy="dYOOR World is the primary private community for active Season 1, Ascended, and Season 2 holders. It anchors access to verified ownership while Discord and Telegram remain public onboarding channels for newcomers."
             />
             <div className="mb-5 rounded border border-dyoor-monad/25 bg-dyoor-monad/[0.07] p-4">
               <p className="text-xs font-black uppercase tracking-[0.18em] text-dyoor-monad">Why The Community Model Changed</p>
               <p className="mt-3 text-sm font-semibold leading-7 text-white/64">
                 General-purpose public servers separate conversation from asset ownership and create familiar attack
                 surfaces: impersonated staff, fake support accounts, malicious links, unsolicited DMs, bot spam, and
-                unverifiable holder roles. dYOOR World narrows that surface with a live S2 ownership gate, wallet
-                signatures, owner-wallet announcements, and activity relays tied to confirmed public events.
+                unverifiable holder roles. dYOOR World narrows that surface with live multi-chain ownership gates,
+                wallet signatures, collection-specific chats, owner-wallet announcements, and activity relays tied
+                to confirmed public events.
               </p>
             </div>
             <div className="grid gap-5 lg:grid-cols-[1.2fr_0.8fr]">
