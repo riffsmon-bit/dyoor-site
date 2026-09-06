@@ -80,3 +80,11 @@ test("local harness is loopback-only and permits only public artwork reads", () 
   assert.match(server, /server\.listen\(port, "127\.0\.0\.1"/);
   assert.doesNotMatch(server.replace('"process.env.NODE_ENV"', ""), /dotenv|privateKey|process\.env/);
 });
+
+test("mobile sections remain reachable above the roster and outside bottom browser overlays", () => {
+  const source = fs.readFileSync("components/droid-os/DroidOsPreview.tsx", "utf8");
+  const css = fs.readFileSync("app/droid-os/droid-os.css", "utf8");
+  assert.ok(source.indexOf('className="os-mobile-nav"') < source.indexOf('className="os-body"'));
+  assert.match(css, /\.os-mobile-nav \{ position: sticky; top: 0; bottom: auto/);
+  assert.match(css, /\.os-workspace-tabs \{ overflow-x: auto; flex-shrink: 0/);
+});
