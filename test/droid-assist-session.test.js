@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { Interface, keccak256 } from "ethers";
 import { ASSIST_ABI } from "../lib/droid-os/assist-canary.mjs";
+import { describeAssistNetwork, requireAssistMonad } from "../lib/droid-os/assist-network.mjs";
 import { ASSIST_DEPLOYMENT as m, boundedAssistRpc, readAssistState, prepareAssistStep, validateAssistSubmission, reconcileAssistReceipt } from "../lib/droid-os/assist-session.mjs";
 
 const owner = `0x${"a".repeat(40)}`, other = `0x${"b".repeat(40)}`, zero = `0x${"0".repeat(40)}`;
@@ -44,6 +45,31 @@ function fixture(o = {}) {
   return { rpc, calls };
 }
 const prepare = (kind = "ACTIVATE") => prepareAssistStep(fixture({ active: kind === "MINT" }).rpc, owner, kind);
+
+test("network display recognizes hex/decimal Monad without requesting a switch", async () => {
+  for (const raw of ["0x8f", "0x8F", "143", 143, 143n]) {
+    assert.equal(describeAssistNetwork(raw).status, "MONAD");
+    const calls = [];
+    assert.equal((await requireAssistMonad(async method => { calls.push(method); return raw; })).chainId, "143");
+    assert.deepEqual(calls, ["eth_chainId"]);
+  }
+});
+test("unknown and non-Monad provider networks fail closed with accurate diagnostics", async () => {
+  for (const raw of [null, undefined, "", "garbage", {}, 1.5, "1e2", "0x0", "-143", true]) {
+    assert.equal(describeAssistNetwork(raw).status, "UNKNOWN");
+    await assert.rejects(requireAssistMonad(async () => raw), /valid network/);
+  }
+  assert.equal(describeAssistNetwork("0x279f").label, "Monad testnet · 10143");
+  await assert.rejects(requireAssistMonad(async () => "0x1"), /provider reports Chain 1/);
+  await assert.rejects(requireAssistMonad(async () => "0x279f"), /Monad testnet/);
+});
+test("switch UI is conditional and mobile return/provider events recheck state", () => {
+  const page = readFileSync(new URL("../app/droid-os/assist/AssistCanaryClient.tsx", import.meta.url), "utf8");
+  assert.match(page, /network\?\.status === "OTHER" \? <button/);
+  assert.match(page, /No network switch needed/);
+  for (const event of ["chainChanged", "accountsChanged", "visibilitychange", "focus"]) assert(page.includes(`"${event}"`));
+  assert.match(page, /setLive\(null\); setNetwork\(null\); setPlan\(null\); setAccepted\(false\)/);
+});
 
 test("ASSIST route uses the build-context-filtered preview constant, not runtime environment enumeration", () => {
   const page = readFileSync(new URL("../app/droid-os/assist/page.tsx", import.meta.url), "utf8");

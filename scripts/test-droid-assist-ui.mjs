@@ -16,6 +16,7 @@ const owner = "0xc7f55ce6a7df9a79cc4a643a5081230f890c7aa6", hash = `0x${"a".repe
 const registry = new Interface(["function optIn() returns(address)",
   "event AssistMintExecuted(uint256 indexed nonce,address indexed owner,bytes32 indexed evidenceHash,address target,uint256 mintedTokenId,uint64 deadline)"]);
 let connected = false, active = false, minted = false, outcome = "reject", sends = 0, submitted;
+let chain = "0x8f";
 let sequence = 0;
 const pending = new Map(), errors = [];
 const send = (method, params = {}) => new Promise((resolve, reject) => {
@@ -29,7 +30,7 @@ const evaluate = async expression => {
 async function mock({ method, params = [] }) {
   if (method === "eth_accounts") return connected ? [owner] : [];
   if (method === "eth_requestAccounts") { connected = true; return [owner]; }
-  if (method === "eth_chainId") return "0x8f";
+  if (method === "eth_chainId") return chain;
   if (method === "eth_sendTransaction") {
     sends++; submitted = params[0];
     assert.equal(submitted.value, "0x0");
@@ -95,13 +96,23 @@ try {
   injection = await send("Page.addScriptToEvaluateOnNewDocument", { source: `
     let serial=0;const waiting=new Map();
     window.dyoorMockResolve=(id,reply)=>{const p=waiting.get(id);waiting.delete(id);if(reply.error)p.reject(Object.assign(new Error(reply.error.message),{code:reply.error.code}));else p.resolve(reply.result);};
-    window.ethereum={isMetaMask:true,on(){},removeListener(){},request(request){return new Promise((resolve,reject)=>{const id=++serial;waiting.set(id,{resolve,reject});window.dyoorMockWallet(JSON.stringify({id,request}));});}};
+    const listeners=new Map();window.dyoorMockEmit=(name)=>{for(const cb of listeners.get(name)||[])cb();};
+    window.ethereum={isMetaMask:true,on(name,cb){if(!listeners.has(name))listeners.set(name,new Set());listeners.get(name).add(cb);},removeListener(name,cb){listeners.get(name)?.delete(cb);},request(request){return new Promise((resolve,reject)=>{const id=++serial;waiting.set(id,{resolve,reject});window.dyoorMockWallet(JSON.stringify({id,request}));});}};
   ` });
   await send("Page.navigate", { url: `${origin}/droid-os/assist` });
   await waitFor("[...document.querySelectorAll('button')].some(b=>b.textContent==='Connect wallet'&&!b.disabled)");
   await screenshot("droid-assist-desktop", 1440, 1100);
   await screenshot("droid-assist-mobile", 390, 844);
   await click("Connect wallet");
+  await waitFor("document.body.innerText.includes('verified on-chain')");
+  await waitFor("document.body.innerText.includes('No network switch needed')");
+  assert.equal(await evaluate("[...document.querySelectorAll('button')].some(b=>b.textContent==='Switch to Monad')"), false);
+  chain = "0x1";
+  await evaluate("window.dyoorMockEmit('chainChanged')");
+  await waitFor("document.body.innerText.includes('provider reports Chain 1')");
+  assert(await evaluate("[...document.querySelectorAll('button')].some(b=>b.textContent==='Switch to Monad')"));
+  chain = "0x8f";
+  await evaluate("window.dispatchEvent(new Event('focus'))");
   await waitFor("document.body.innerText.includes('verified on-chain')");
   await click("Review activation");
   await waitFor("document.body.innerText.includes('SIMULATION PASSED')");
@@ -133,7 +144,7 @@ try {
   assert.equal(sends, 3);
   assert.equal(errors.length, 0, JSON.stringify(errors));
   console.log(JSON.stringify({ status: "PASS", realTransactions: 0, mockWalletRequests: sends,
-    verified: ["mobile/desktop overflow", "explicit consent", "read-only preparation", "wallet cancellation", "unknown response reload recovery", "mint receipt reconciliation"] }));
+    verified: ["mobile/desktop overflow", "conditional network switch", "chain-change and mobile-return refresh", "explicit consent", "read-only preparation", "wallet cancellation", "unknown response reload recovery", "mint receipt reconciliation"] }));
 } finally {
   clearTimeout(deadline);
   if (injection) await send("Page.removeScriptToEvaluateOnNewDocument", { identifier: injection.identifier });

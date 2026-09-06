@@ -22,6 +22,10 @@ Route: `/droid-os/assist`, gated by the existing **build-context-filtered** Droi
 
 The hosted route and layout were verified after the route-gate fix, with no hydration errors. Real Privy connection and owner-signed mainnet activation/mint remain **unverified and pending this domain configuration**. Mocked-wallet tests do not prove the external Privy integration works.
 
+Follow-up: the owner added preview #29; a subsequent public header check confirmed its origin is allowed. A real mouse click on the hosted Connect button opened the Privy wallet chooser, with no intercepted clicks or browser errors. The user reports connecting with Backpack on mobile. End-to-end mainnet activation/mint remains unverified.
+
+Network UI correction: the old Switch to Monad button was unconditional and did not establish that the wallet was on the wrong chain. It now appears only when the selected provider explicitly reports a different chain. The page displays the wallet name and observed chain, recognizes hexadecimal/decimal 143, and rechecks on provider chain/account changes and return-to-app focus/visibility. Refresh invalidates old prepared reviews. Unknown/mismatched networks continue to block financial preparation; no fallback provider or automatic switch was introduced.
+
 1. Connect the current owner of Droid #11; switch to Monad 143 if needed.
 2. Review activation. Inspect target, zero MON value and quoted gas ceiling. Explicitly acknowledge mainnet gas, then approve in the wallet.
 3. Wait for the canonical receipt and expected registry event. Two additional blocks are required before UI confirmation.
@@ -50,7 +54,7 @@ On-chain events durably record owner, account/action, nonce and preparation evid
 
 - 34 V2 Solidity unit tests, including two 256-run fuzz cases.
 - Six real-collection Monad-fork tests covering custody, ASSIST and delegated-authority counterexamples.
-- 35 read-only preparation and session tests cover code/owner mismatch, nonce, expiration, gas, unsupported fields, calldata suffixes, receipt spoofing, reorgs and the build-filtered preview gate.
+- 38 read-only preparation and session tests cover code/owner mismatch, nonce, expiration, gas, unsupported fields, calldata suffixes, receipt spoofing, reorgs, observed wallet-network diagnostics and the build-filtered preview gate.
 - Mocked-wallet browser tests passed desktop/mobile overflow checks, explicit consent, read-only preparation, cancellation, unknown-result recovery across reload and successful mint receipt reconciliation. Zero public transactions; no browser hydration errors in the clean build. Screenshots were visually reviewed at 1440px and 390px. Reproduce with a local preview on loopback port 3204, an isolated headless Chrome on 9224 and `node scripts/test-droid-assist-ui.mjs`.
 - Local fork rehearsal of deployment → activation → mint → owner withdrawal passed.
 - A second rehearsal started from the **actual deployed registry** at block 102522091 and passed local activation, mint and withdrawal. The pinned account address/runtime fixture comes from that rehearsal; no rehearsal transactions were broadcast publicly.

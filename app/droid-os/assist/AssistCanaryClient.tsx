@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { formatEther } from "ethers";
 import { useWalletService } from "@/providers/WalletServiceProvider";
+import { describeAssistNetwork } from "@/lib/droid-os/assist-network.mjs";
 import { ASSIST_DEPLOYMENT as manifest, ASSIST_SESSION_KEY, boundedAssistRpc, readAssistState,
   prepareAssistStep, validateAssistSubmission, reconcileAssistReceipt } from "@/lib/droid-os/assist-session.mjs";
 
@@ -15,6 +16,7 @@ const explorer = (hash: string) => `https://monadscan.com/tx/${hash}`;
 export function AssistCanaryClient() {
   const wallet = useWalletService();
   const [live, setLive] = useState<LiveState | null>(null);
+  const [network, setNetwork] = useState<ReturnType<typeof describeAssistNetwork> | null>(null);
   const [plan, setPlan] = useState<Plan | null>(null);
   const [pending, setPending] = useState<Pending | null>(null);
   const [busy, setBusy] = useState(false);
@@ -29,9 +31,16 @@ export function AssistCanaryClient() {
   const rpc = useCallback(async () => boundedAssistRpc(await getProvider()), [getProvider]);
   const refresh = useCallback(async () => {
     const generation = ++refreshGeneration.current;
-    setLive(null);
+    setLive(null); setNetwork(null); setPlan(null); setAccepted(false);
     if (!wallet.address) return;
-    try { const state = await readAssistState(await rpc()); if (generation === refreshGeneration.current) { setLive(state); setError(""); } }
+    try {
+      const readRpc = await rpc();
+      const observed = describeAssistNetwork(await readRpc("eth_chainId", []));
+      if (generation !== refreshGeneration.current) return;
+      setNetwork(observed);
+      const state = await readAssistState(readRpc);
+      if (generation === refreshGeneration.current) { setLive(state); setError(""); }
+    }
     catch (err) { if (generation === refreshGeneration.current) setError(message(err)); }
   }, [rpc, wallet.address]);
 
@@ -39,6 +48,29 @@ export function AssistCanaryClient() {
     const timer = setTimeout(() => { setPlan(null); setAccepted(false); void refresh(); }, 0);
     return () => { clearTimeout(timer); invalidateRefresh(); };
   }, [refresh, invalidateRefresh]);
+  useEffect(() => {
+    if (!wallet.address) return;
+    let disposed = false;
+    let detach: (() => void) | undefined;
+    const onChange = () => { void refresh(); };
+    const onVisible = () => { if (document.visibilityState === "visible") onChange(); };
+    window.addEventListener("focus", onChange);
+    document.addEventListener("visibilitychange", onVisible);
+    void getProvider().then(provider => {
+      if (disposed) return;
+      provider.on?.("chainChanged", onChange);
+      provider.on?.("accountsChanged", onChange);
+      detach = () => {
+        provider.removeListener?.("chainChanged", onChange);
+        provider.removeListener?.("accountsChanged", onChange);
+      };
+    }).catch(() => { /* The explicit refresh displays provider failures. */ });
+    return () => {
+      disposed = true; detach?.();
+      window.removeEventListener("focus", onChange);
+      document.removeEventListener("visibilitychange", onVisible);
+    };
+  }, [getProvider, refresh, wallet.address]);
   useEffect(() => {
     const restore = () => {
       try {
@@ -134,8 +166,9 @@ export function AssistCanaryClient() {
     <div className="assist-title"><p className="os-eyebrow">D.Y.O.O.R #11 / OWNER-APPROVED TEST</p><h1>One action.<br /><em>Your approval.</em></h1><p>A free test NFT, minted directly into your Droid’s isolated ASSIST wallet. No trading. No delegated access. No account prefunding required.</p></div>
     <aside className="assist-caution">This uses <strong>real mainnet gas</strong>. This canary is not independently audited or upgradeable to autonomy. It does not replace your existing wallet, change rerolls, or move your Season 2 NFT. Do not deposit valuable assets here.</aside>
     <section className="assist-connection" aria-label="Wallet connection"><div><h2>{wallet.address ? `${wallet.address.slice(0, 8)}…${wallet.address.slice(-6)}` : "Connect the owner wallet"}</h2><p>{live ? isOwner ? "Current owner of Droid #11 verified on-chain." : "This wallet is not the current owner of Droid #11." : "Connection and inspection do not request a signature."}</p></div>
-      {!wallet.address ? <button disabled={!wallet.ready || busy} onClick={() => void wallet.connect().catch(err => setError(message(err)))}>Connect wallet</button> : <><button className="assist-secondary" disabled={busy} onClick={() => void wallet.switchChain().then(refresh).catch(err => setError(message(err)))}>Switch to Monad</button><button className="assist-secondary" disabled={busy} onClick={() => void refresh()}>Refresh status</button></>}
+      {!wallet.address ? <button disabled={!wallet.ready || busy} onClick={() => void wallet.connect().catch(err => setError(message(err)))}>Connect wallet</button> : <>{network?.status === "OTHER" ? <button className="assist-secondary" disabled={busy} onClick={() => void wallet.switchChain().then(refresh).catch(err => setError(message(err)))}>Switch to Monad</button> : null}<button className="assist-secondary" disabled={busy} onClick={() => void refresh()}>Refresh status</button><button className="assist-secondary" disabled={busy} onClick={() => void wallet.disconnect().catch(err => setError(message(err)))}>Disconnect</button></>}
     </section>
+    {wallet.address ? <p role="status">{wallet.providerName || "Connected wallet"} · {network?.label || (error ? "Network unavailable" : "Checking connected network…")}{network?.status === "MONAD" ? " · No network switch needed." : ""}</p> : null}
     {!wallet.ready ? <p className="assist-caution" role="status">Wallet connection is still initializing. If this persists, check that this preview’s exact origin is allowed in Privy: Configuration → App settings → Domains. Do not disable domain restrictions. <a href="https://dashboard.privy.io/" target="_blank" rel="noreferrer">Open Privy dashboard ↗</a></p> : null}
     <div className="assist-steps"><section><span className="assist-step-number">01</span><h2>Activate your test wallet</h2><p>Opt in to a separate address for Droid #11. No NFT transfer, approval, deposit, or V1 migration is included.</p><span className="assist-state">{live ? live.active ? "ACTIVATED" : "OWNER OPT-IN REQUIRED" : "CONNECT TO VERIFY STATUS"}</span><button disabled={!isOwner || Boolean(live?.active) || busy || Boolean(pending)} onClick={() => void prepare("ACTIVATE")}>Review activation →</button></section>
       <section><span className="assist-step-number">02</span><h2>Mint the test badge</h2><p>Simulate one fixed, zero-price NFT mint. Your wallet then approves the exact transaction. Test collectible only; no Energy or financial reward.</p><span className="assist-state">{live?.minted ? "BADGE ALREADY MINTED" : "ONE BADGE PER ACCOUNT"}</span><button disabled={!isOwner || !live?.active || Boolean(live?.minted) || busy || Boolean(pending)} onClick={() => void prepare("MINT")}>Simulate & review mint →</button></section></div>
