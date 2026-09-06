@@ -1,6 +1,6 @@
 # Energy harvest investigation — 2026-09-06
 
-Status: preliminary diagnosis, not a production fix. User reports harvesting failures; affected wallet, page, error and transaction hash are not yet supplied.
+Status: preliminary diagnosis with an authorized, preview-only display fix. User reports harvesting failures; affected wallet, page, error and transaction hash are not yet supplied. A successful claim/credit for an affected user remains unverified.
 
 ## Read-only live evidence
 
@@ -23,7 +23,15 @@ Status: preliminary diagnosis, not a production fix. User reports harvesting fai
 - Obtain the affected public wallet, exact page, wallet app and error; if a transaction exists, inspect its receipt and `PointsClaimed`, then read `usedClaimTxHash` on the bank.
 - For a disabled button, distinguish real zero pending from unavailable data. Preserve successful canonical reads; represent unknown explicitly. Do not fabricate Energy or bypass transaction checks.
 - For confirmed-but-uncredited claims, inspect bank deduplication and operator health before any repair. Never blindly re-credit or ask users to claim repeatedly.
-- Keep pending-display fixes separate from accounting, settlement, Trait Lab debits and reroll authorization. No harvesting production code was modified in this investigation.
+- Keep pending-display fixes separate from accounting, settlement, Trait Lab debits and reroll authorization. No mainnet transaction or production deployment was performed in this investigation.
+
+## Authorized preview fix
+
+- Added a strict pending read for the GET display endpoint only. RPC errors/timeouts yield `pendingReadStatus: "unavailable"`, `pendingRaw: null`, `pendingEnergy: null`; a real zero is marked `ok`. Bank balances remain separately readable, and unavailable bank reads still return 503.
+- Ascension preserves its successful direct RPC read, including genuine zero and all 18 fractional digits. Only when that read fails can an API value marked explicitly `ok` supply the pending display. Legacy/unmarked values do not masquerade as verified fallback balances.
+- Unknown pending Energy displays `Unavailable`, with a retry explanation. Harvest is disabled while unknown or refreshing, and when the known amount is zero. Existing pre-submit pending read and wallet transaction flow remain unchanged.
+- Legacy `readPendingEnergyRaw` callers, synchronization/credit endpoints, bank accounting, Trait Lab, and ASSIST execution are untouched. This fixes a demonstrated false-zero path, not every possible harvest failure.
+- Added six regression test groups covering failures, timeouts, real zero, malformed values, direct-read precedence, API fallback, fractional precision, recovery, unknown state, and display wiring.
 
 ## Baseline tests
 
