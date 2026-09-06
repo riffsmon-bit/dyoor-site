@@ -17,6 +17,8 @@ const cases = [
   { path: '/ipfs/bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu/abyss-laser.png', status: 200, type: 'png' },
   { path: `/ipfs/bafybeidbaema3cr6n7sc3rglryevbtxziqrz3sk2d6equehsssziobcrru/${(1000).toString(16).padStart(64, '0')}`, status: 200, type: 'json' },
   { path: '/ipfs/bafybeiareb6zxaatwobhwca46uadexwrwlnp7sm4awnccp3lcdwulkz6ri/Droid/Purple.webp', status: 200, type: 'webp' },
+  { path: '/ipfs/QmShXqgZ1eLNGD11PHe4TZyu14T3iqxewp25AEycy252HU/1', status: 200, type: 'json' },
+  ...[1, 1111].map(id => ({ path: `/ipfs/QmTPskHN7uyZbiUKEYmQG9NRjaiELwTYwoko7QQrpaVmCB/${id}`, status: 200, type: 'png' })),
 ];
 let cursor = 0;
 let failures = 0;

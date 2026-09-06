@@ -32,6 +32,7 @@ image, public URLs, or Kubo's config. Required service variables:
 
 ```dotenv
 PORT=8080
+IPFS_SWARM_ANNOUNCE=/dns4/hayabusa.proxy.rlwy.net/tcp/26513
 AWS_REGION=auto
 AWS_ACCESS_KEY_ID=${{dyoor-ipfs-blocks.ACCESS_KEY_ID}}
 AWS_SECRET_ACCESS_KEY=${{dyoor-ipfs-blocks.SECRET_ACCESS_KEY}}
@@ -43,6 +44,12 @@ Set `PORT` explicitly: the public swarm TCP proxy must not cause Railway to
 select port 4001 for the HTTP health check. Configure `/healthz`, 120 seconds,
 one replica, no sleeping, and a 1 GB RAM / 1 vCPU service ceiling. Go's memory
 target is 600 MiB. These are resource ceilings, not a fixed-price billing cap.
+
+The public TCP proxy targets container port 4001. Announce its actual public
+hostname and port, not an unreachable container address, so external IPFS peers
+can retrieve the preserved CIDs. Update `IPFS_SWARM_ANNOUNCE` if the proxy changes.
+After a network-address change, re-announce the collection roots with
+`ipfs provide once CID` and verify peer connectivity from outside Railway.
 
 ## Deploy and import
 
@@ -63,6 +70,12 @@ After all 3,333 images are imported, recursively pin the image root and run
 verify the metadata, trait images, trait metadata, and bundled base-layer roots
 listed in `../dyoor-cids.txt`. Add new public roots to the Caddy allowlist before
 using them. Never add private Netlify stores to this manifest or public IPFS.
+
+The manifest also includes Season 1's 1,111 metadata documents and original
+images, obtained from the mainnet contract's existing `tokenURI` (without any
+contract transaction). Roots themselves are allowlisted for portable CAR
+exports as well as individual asset paths. Run `node scripts/check-ipfs-gateway.mjs`
+from the repository root for read-only HTTP/image/admin-isolation checks.
 
 ## Rerolls and recovery
 

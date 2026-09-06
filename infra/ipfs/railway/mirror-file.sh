@@ -13,7 +13,7 @@ case "$root" in
     ;;
   *) echo 'Unrecognized collection' >&2; exit 1 ;;
 esac
-case "$file" in *[!a-zA-Z0-9._-]*|'') echo 'Unsafe filename' >&2; exit 1 ;; esac
+case "$file" in .|..|*[!a-zA-Z0-9._-]*|'') echo 'Unsafe filename' >&2; exit 1 ;; esac
 mkdir -p "$IPFS_PATH/mirror-status/$root"
 marker="$IPFS_PATH/mirror-status/$root/$file"
 if [ -f "$marker" ] && [ "${DYOOR_VERIFY_EXISTING:-0}" != 1 ]; then
@@ -21,7 +21,11 @@ if [ -f "$marker" ] && [ "${DYOOR_VERIFY_EXISTING:-0}" != 1 ]; then
   # recursively pin and verify the entire root before traffic is switched.
   exit 0
 fi
-if [ -f "$marker" ] && curl -fsS --max-time 90 "http://127.0.0.1:8081/ipfs/$root/$file" -o /dev/null; then exit 0; fi
+# Bitswap may already have completed this file while other workers imported.
+if curl -fsS --max-time 90 "http://127.0.0.1:8081/ipfs/$root/$file" -o /dev/null 2>/dev/null; then
+  touch "$marker"
+  exit 0
+fi
 temporary=$(mktemp /tmp/dyoor-car.XXXXXX)
 trap 'rm -f "$temporary"' EXIT
 # Pinata serves regular PNGs faster than uncached per-file CAR traversal. A

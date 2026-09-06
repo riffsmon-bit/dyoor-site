@@ -5,3 +5,6 @@ bafybeigzwmixppsb5hff7hioos3j427l7esli742p6p6hvyoxz3jfv7oiu
 bafybeidbaema3cr6n7sc3rglryevbtxziqrz3sk2d6equehsssziobcrru
 # Category-aware locked Background/Droid layers bundled by the production renderer.
 bafybeiareb6zxaatwobhwca46uadexwrwlnp7sm4awnccp3lcdwulkz6ri
+# Season 1 roots read from the mainnet collection's tokenURI and metadata.
+QmShXqgZ1eLNGD11PHe4TZyu14T3iqxewp25AEycy252HU
+QmTPskHN7uyZbiUKEYmQG9NRjaiELwTYwoko7QQrpaVmCB

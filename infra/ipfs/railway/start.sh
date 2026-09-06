@@ -27,6 +27,10 @@ fi
 # Administration and the unfiltered gateway never listen publicly.
 ipfs config Addresses.API /ip4/127.0.0.1/tcp/5001
 ipfs config Addresses.Gateway /ip4/127.0.0.1/tcp/8081
+if [ -n "${IPFS_SWARM_ANNOUNCE:-}" ]; then
+  # Railway's TCP proxy uses a different public port from the container listener.
+  ipfs config --json Addresses.Announce "$(jq -cn --arg addr "$IPFS_SWARM_ANNOUNCE" '[$addr]')"
+fi
 ipfs config --json Gateway.NoFetch true
 ipfs config --json Gateway.ExposeRoutingAPI false
 ipfs config --json Gateway.NoDNSLink true
