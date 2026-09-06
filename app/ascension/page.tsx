@@ -10,6 +10,7 @@ import { MONAD_EXPLORER_URL } from "@/lib/monad";
 import { SWAP_CHAIN_ID_HEX, SWAP_MONAD_RPC } from "@/lib/swap";
 import { Alert, Button, EmptyState, LoadingSkeleton, PageShell, SectionHeader, StatCard } from "@/components/ui/DyoorUi";
 import { useWalletService } from "@/providers/WalletServiceProvider";
+import { hasPendingEnergy } from "@/lib/pending-energy";
 
 type Eip1193Provider = {
   request: (args: { method: string; params?: unknown[] }) => Promise<unknown>;
@@ -873,7 +874,9 @@ export default function AscensionPage() {
       } else {
         setActionStatus("Energy harvest confirmed. Refreshing state...");
       }
-      await ascension.refresh({ scanLogs: true });
+      // The exact receipt was synchronized above. Do not trigger a historical
+      // rescan/credit workflow merely to refresh the displayed balances.
+      await ascension.refresh();
     } catch (error) {
       setActionStatus(formatWalletError(error, "Harvest failed."));
     } finally {
@@ -1162,9 +1165,14 @@ export default function AscensionPage() {
               <Button variant="ghost" disabled={!selectedAscendedIds.length || working} onClick={() => void unstakeTokenIds(selectedAscendedIds)}>
                 Unstake Selected Ascended NFTs ({selectedAscendedIds.length})
               </Button>
-              <Button variant="ghost" disabled={working || Number(ascension.pendingEnergy) <= 0} onClick={() => void harvestEnergy()}>
+              <Button variant="ghost" disabled={working || ascension.energyLoading || !hasPendingEnergy(ascension.pendingEnergy)} onClick={() => void harvestEnergy()}>
                 Harvest Energy
               </Button>
+              {authenticated && ascension.pendingEnergy === "Unavailable" ? (
+                <p role="status" className="text-sm text-dyoor-muted">
+                  {ascension.energyLoading ? "Checking pending Energy…" : "Pending Energy is temporarily unavailable. Use Refresh Signal to retry; this does not mean your balance is zero."}
+                </p>
+              ) : null}
               <Button variant="ghost" disabled={!selected.size || working} onClick={() => setSelected(new Set())}>
                 Clear Selection
               </Button>

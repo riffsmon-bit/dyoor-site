@@ -1,12 +1,13 @@
 "use client";
 
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { getAddress, isAddress, parseAbiItem, type Address } from "viem";
+import { formatUnits, getAddress, isAddress, parseAbiItem, type Address } from "viem";
 import { ascensionStakingAbi, energyBankAbi, erc721EnumerableAbi } from "@/lib/contracts/abis";
 import { ascensionStakingContract, dyoorS1Contract, energyBankContract } from "@/lib/contracts/addresses";
 import { createMonadPublicClient, readContractWithFailover, readWithFailover } from "@/lib/rpc";
 import { fetchGoldskyStakedTokens } from "@/lib/ascension/goldsky";
 import { useWalletService } from "@/providers/WalletServiceProvider";
+import { resolvePendingEnergy } from "@/lib/pending-energy";
 
 const MAX_S1_SUPPLY = 1111;
 const DEFAULT_S1_START_BLOCK = 54_985_442n;
@@ -261,7 +262,8 @@ type EnergyRefreshOptions = {
 };
 
 type EnergyStatsResponse = {
-  pendingEnergy?: string;
+  pendingEnergy?: string | null;
+  pendingReadStatus?: "ok" | "unavailable";
   harvestedEnergy?: string;
   creditedEnergy?: string;
   incomingTransfersEnergy?: string;
@@ -660,7 +662,8 @@ async function fetchEnergy(wallet: Address, options: EnergyRefreshOptions = {}) 
       : fetch(`/api/energy/${wallet}`, { cache: "no-store" }),
   ]);
 
-  let pendingEnergy = pendingResult.status === "fulfilled" ? formatUnits18(pendingResult.value as bigint) : "0.00";
+  const directPending = pendingResult.status === "fulfilled" ? formatUnits(pendingResult.value as bigint, 18) : undefined;
+  let pendingEnergy = resolvePendingEnergy(directPending);
   const contractBankedEnergy = bankedResult.status === "fulfilled" ? formatUnits18(bankedResult.value as bigint) : "0.00";
   let bankedEnergy = contractBankedEnergy;
   let spendableEnergy = contractBankedEnergy;
@@ -673,7 +676,7 @@ async function fetchEnergy(wallet: Address, options: EnergyRefreshOptions = {}) 
     const response = statsResult.status === "fulfilled" ? statsResult.value : null;
     if (response?.ok) {
       const json = await response.json() as EnergyStatsResponse;
-      pendingEnergy = String(json.pendingEnergy || pendingEnergy);
+      pendingEnergy = resolvePendingEnergy(directPending, json);
       bankedEnergy = String(json.bankedEnergy || json.spendableEnergy || bankedEnergy);
       spendableEnergy = String(json.spendableEnergy || json.bankedEnergy || spendableEnergy);
       calculatedBankEnergy = String(json.calculatedBankEnergy || json.spendableEnergy || calculatedBankEnergy);
@@ -734,7 +737,7 @@ async function loadAscensionState(walletAddress: string): Promise<AscensionState
     ascendedNfts,
     ascendedCount: stakedDiscovery.count,
     totalControlled,
-    pendingEnergy: "0.00",
+    pendingEnergy: "Unavailable",
     bankedEnergy: "0.00",
     spendableEnergy: "0.00",
     calculatedBankEnergy: "0.00",
@@ -781,7 +784,7 @@ async function loadAscensionState(walletAddress: string): Promise<AscensionState
 async function loadAscensionEnergy(walletAddress: string, options: EnergyRefreshOptions = {}) {
   if (!isAddress(walletAddress)) return {
     walletAddress: "",
-    pendingEnergy: "0.00",
+    pendingEnergy: "Unavailable",
     bankedEnergy: "0.00",
     spendableEnergy: "0.00",
     calculatedBankEnergy: "0.00",
@@ -843,7 +846,7 @@ export function useAscension() {
     ascendedNfts: stateData?.ascendedNfts || [],
     ascendedCount: stateData?.ascendedCount || 0,
     totalControlled: stateData?.totalControlled || 0,
-    pendingEnergy: energyData?.pendingEnergy || stateData?.pendingEnergy || "0.00",
+    pendingEnergy: energyData?.pendingEnergy || "Unavailable",
     bankedEnergy: energyData?.bankedEnergy || stateData?.bankedEnergy || "0.00",
     spendableEnergy: energyData?.spendableEnergy || stateData?.spendableEnergy || "0.00",
     calculatedBankEnergy: energyData?.calculatedBankEnergy || stateData?.calculatedBankEnergy || "0.00",
