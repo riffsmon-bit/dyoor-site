@@ -8,6 +8,8 @@ import { AskError, emptyState, parseOperation, parseTraining, parseState } from 
 import { createAskService } from "../lib/droid-os/ask/service.ts";
 import { DroidIntelligenceOrchestrator, openAIProvider, parseReply } from "../lib/droid-os/ask/intelligence.ts";
 import { localAskStore, takeSlot, strictStorageFetch } from "../lib/droid-os/ask/storage.ts";
+import { assertAskOrigin } from "../lib/droid-os/ask/origin.ts";
+import { droidOsPreviewOrigin } from "../lib/droid-os/preview-config.mjs";
 
 const origin = "https://deploy-preview-29--dyoor.netlify.app";
 function memoryStore() {
@@ -154,4 +156,16 @@ test("storage HTTP failures cannot become successful conditional writes", async 
 test("oversized provider responses are rejected", async () => {
   const provider = openAIProvider({ key: "test", model: "test" }, async () => new Response("x".repeat(64001)));
   await assert.rejects(provider.chat({ tokenId: "11", state: emptyState(), message: "hi" }), /size limit/);
+});
+test("Netlify internal request hosts cannot reject the pinned preview origin or trust forwarded origins", () => {
+  const request = (value, extras = {}) => new Request("http://localhost:3000/api/droid-os/ask", { headers: { origin: value, "content-type": "application/json", ...extras } });
+  assert.equal(assertAskOrigin(request(origin), origin), origin);
+  assert.throws(() => assertAskOrigin(request("https://evil.example", { "x-forwarded-host": "evil.example" }), origin));
+  assert.throws(() => assertAskOrigin(request("http://localhost:3000"), origin));
+  assert.equal(assertAskOrigin(request("http://localhost:3000"), ""), "http://localhost:3000");
+  assert.throws(() => assertAskOrigin(new Request(origin, { headers: { origin, "content-type": "application/json" } }), ""));
+  const env = { DROID_OS_UI_PREVIEW: "true", CONTEXT: "deploy-preview", DEPLOY_PRIME_URL: origin };
+  assert.equal(droidOsPreviewOrigin(env), origin);
+  for (const DEPLOY_PRIME_URL of ["https://evil.example", `${origin}.evil.example`, `${origin}/other`, "http://deploy-preview-29--dyoor.netlify.app"]) assert.equal(droidOsPreviewOrigin({ ...env, DEPLOY_PRIME_URL }), "");
+  assert.equal(droidOsPreviewOrigin({ ...env, CONTEXT: "production" }), "");
 });

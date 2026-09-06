@@ -5,6 +5,7 @@ import { blobAskStore, localAskStore } from "@/lib/droid-os/ask/storage";
 import { createOwnerReader } from "@/lib/droid-os/ask/ownership";
 import { configuredIntelligence } from "@/lib/droid-os/ask/intelligence";
 import { createAskService } from "@/lib/droid-os/ask/service";
+import { assertAskOrigin } from "@/lib/droid-os/ask/origin";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
@@ -22,8 +23,7 @@ export async function GET() {
 export async function POST(request: Request) {
   try {
     gate();
-    const origin = request.headers.get("origin");
-    if (!origin || origin !== new URL(request.url).origin || !request.headers.get("content-type")?.startsWith("application/json")) throw new AskError("Same-origin JSON request required.", 403);
+    const origin = assertAskOrigin(request, process.env.DROID_OS_PREVIEW_ORIGIN || "");
     // Streaming limit applies even if Content-Length is absent or misleading.
     const reader = request.body?.getReader();
     if (!reader) throw new AskError("Missing request.");

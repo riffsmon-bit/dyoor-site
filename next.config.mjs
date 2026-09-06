@@ -1,5 +1,5 @@
 /** @type {import('next').NextConfig} */
-import { droidOsPreviewEnabled } from "./lib/droid-os/preview-config.mjs";
+import { droidOsPreviewEnabled, droidOsPreviewOrigin } from "./lib/droid-os/preview-config.mjs";
 
 const isDev = process.env.NODE_ENV !== "production";
 
@@ -57,7 +57,10 @@ const sharpNetlifyRuntime = [
 const nextConfig = {
   // Inline this non-secret, build-context-scoped UI flag for serverless routes.
   // Never expose process.env wholesale. Production/branch deploys stay off.
-  env: { DROID_OS_UI_PREVIEW: droidOsPreviewEnabled(process.env) ? "true" : "false" },
+  env: {
+    DROID_OS_UI_PREVIEW: droidOsPreviewEnabled(process.env) ? "true" : "false",
+    DROID_OS_PREVIEW_ORIGIN: droidOsPreviewOrigin(process.env),
+  },
   reactStrictMode: true,
   poweredByHeader: false,
   serverExternalPackages: ["web-push"],
