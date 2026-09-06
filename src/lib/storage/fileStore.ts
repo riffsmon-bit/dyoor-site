@@ -83,6 +83,13 @@ function createBlobStore(storeName: string): JsonStore {
 }
 
 export function createJsonStore(storeName: string): JsonStore {
-  if (process.env.NODE_ENV !== "production") return createFileStore(storeName);
-  return createBlobStore(storeName);
+  const netlifyRuntime = Boolean(
+    process.env.NETLIFY
+    || process.env.NETLIFY_DEV
+    || process.env.NETLIFY_BLOBS_CONTEXT
+    || process.env.DEPLOY_ID,
+  );
+  return process.env.NODE_ENV === "production" || netlifyRuntime
+    ? createBlobStore(storeName)
+    : createFileStore(storeName);
 }

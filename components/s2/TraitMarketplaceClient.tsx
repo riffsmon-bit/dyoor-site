@@ -15,6 +15,8 @@ import {
 } from "@/lib/s2-trait-marketplace-config";
 import { traitMarketplaceQuoteAuthorizationMessage } from "@/lib/s2-trait-marketplace-auth";
 import { getStorageItem, removeStorageItem, setStorageJson } from "@/lib/browser-storage";
+import { ipfsGatewayUrl } from "@/lib/ipfs-gateway";
+import { IpfsImage } from "@/components/ui/IpfsImage";
 import { describeEvmChain, isMonadMainnetChain, MONAD_MAINNET_CHAIN_ID } from "@/lib/monad";
 import { useWalletService } from "@/providers/WalletServiceProvider";
 
@@ -166,10 +168,7 @@ function normalizeAddress(value?: string) {
 function mediaUrl(uri?: string) {
   const value = String(uri || "").trim();
   if (!value) return "";
-  if (value.startsWith("ipfs://")) {
-    const gateway = (process.env.NEXT_PUBLIC_PINATA_GATEWAY_URL || "https://jade-efficient-beaver-697.mypinata.cloud").replace(/\/+$/, "");
-    return `${gateway}/ipfs/${value.slice(7)}`;
-  }
+  if (value.startsWith("ipfs://")) return ipfsGatewayUrl(value);
   if (value.startsWith("ar://")) return `https://arweave.net/${value.slice(5)}`;
   return value;
 }
@@ -773,7 +772,7 @@ export function TraitMarketplaceClient() {
                     </select>
                     <div className={`relative mt-4 aspect-square overflow-hidden rounded border bg-black/45 transition ${inlinePreviewIsCurrent ? "border-dyoor-cyan/70 shadow-[0_0_28px_rgba(57,255,226,.18)]" : "border-dyoor-purple/25"}`}>
                       {metadataLoading ? <div className="grid h-full place-items-center"><span className="text-xs font-black uppercase tracking-[0.15em] text-dyoor-cyan">Loading Droid</span></div> : targetDroidImage ? (
-                        <img className="h-full w-full object-cover" src={targetDroidImage} alt={inlinePreviewIsCurrent ? `${metadata?.name || `D.Y.O.O.R #${selectedTokenId}`} preview with ${previewListing?.value}` : metadata?.name || `D.Y.O.O.R #${selectedTokenId}`} />
+                        <IpfsImage className="h-full w-full object-cover" src={targetDroidImage} alt={inlinePreviewIsCurrent ? `${metadata?.name || `D.Y.O.O.R #${selectedTokenId}`} preview with ${previewListing?.value}` : metadata?.name || `D.Y.O.O.R #${selectedTokenId}`} />
                       ) : <div className="grid h-full place-items-center text-sm font-bold text-white/35">No image</div>}
                       {livePreviewLoading && previewListing && (
                         <div className="absolute inset-0 grid place-items-center bg-black/62 backdrop-blur-[2px]">
@@ -871,7 +870,7 @@ export function TraitMarketplaceClient() {
                   <article key={listing.listingId} className={`group overflow-hidden rounded border bg-white/[0.04] transition hover:-translate-y-0.5 hover:border-dyoor-cyan/45 hover:shadow-[0_18px_45px_rgba(57,255,226,.10)] ${selectedForPreview ? "border-dyoor-cyan/70 shadow-[0_0_30px_rgba(57,255,226,.13)]" : "border-dyoor-purple/25"}`}>
                     <button className="block w-full text-left" type="button" onClick={() => selectLivePreview(listing)} disabled={listing.soldOut || equipped} aria-label={`Preview ${listing.value} on selected Droid`}>
                       <div className="relative aspect-square overflow-hidden bg-[radial-gradient(circle_at_50%_45%,rgba(131,110,249,.26),transparent_55%),#070716] p-5">
-                        <img className="h-full w-full object-contain transition duration-300 group-hover:scale-[1.03]" src={mediaUrl(listing.image)} alt={`${listing.value} ${listing.traitType} trait`} loading="lazy" />
+                        <IpfsImage className="h-full w-full object-contain transition duration-300 group-hover:scale-[1.03]" src={mediaUrl(listing.image)} alt={`${listing.value} ${listing.traitType} trait`} loading="lazy" />
                         <span className={`absolute left-3 top-3 rounded border px-2 py-1 text-[0.62rem] font-black uppercase tracking-[0.12em] ${rarityStyles[listing.rarity]}`}>{listing.rarity}</span>
                         {selectedForPreview && !listing.soldOut && <span className="absolute right-3 top-3 rounded border border-dyoor-cyan/45 bg-black/75 px-2 py-1 text-[0.6rem] font-black uppercase tracking-[0.12em] text-dyoor-cyan">Selected</span>}
                         {listing.soldOut && <span className="absolute inset-0 grid place-items-center bg-black/72 text-sm font-black uppercase tracking-[0.16em] text-red-200">Sold Out</span>}
@@ -931,7 +930,7 @@ export function TraitMarketplaceClient() {
                     <div className="grid grid-cols-2 gap-3">
                       <figure>
                         <div className="aspect-square overflow-hidden rounded border border-white/12 bg-black/40">
-                          {previewBeforeImage ? <img className="h-full w-full object-cover" src={previewBeforeImage} alt="Droid before purchase" /> : null}
+                          {previewBeforeImage ? <IpfsImage className="h-full w-full object-cover" src={previewBeforeImage} alt="Droid before purchase" /> : null}
                         </div>
                         <figcaption className="mt-2 text-center text-[0.66rem] font-black uppercase tracking-[0.14em] text-white/35">Before</figcaption>
                       </figure>
@@ -945,7 +944,7 @@ export function TraitMarketplaceClient() {
                               </div>
                             </div>
                           ) : previewAfterImage ? (
-                            <img className="h-full w-full object-cover" src={previewAfterImage} alt="Droid after purchase" />
+                            <IpfsImage className="h-full w-full object-cover" src={previewAfterImage} alt="Droid after purchase" />
                           ) : (
                             <div className="grid h-full place-items-center px-5 text-center text-xs font-bold text-white/35">Preview unavailable</div>
                           )}
@@ -982,7 +981,7 @@ export function TraitMarketplaceClient() {
                 ) : (
                   <div className="grid gap-5 sm:grid-cols-[minmax(13rem,.7fr)_minmax(0,1fr)] sm:items-center">
                     <div className="aspect-square overflow-hidden rounded border border-dyoor-purple/30 bg-[radial-gradient(circle,rgba(131,110,249,.25),transparent_60%),#070716] p-6">
-                      <img className="h-full w-full object-contain" src={mediaUrl(checkoutListing.image)} alt={`${checkoutListing.value} trait`} />
+                      <IpfsImage className="h-full w-full object-contain" src={mediaUrl(checkoutListing.image)} alt={`${checkoutListing.value} trait`} />
                     </div>
                     <div>
                       <span className={`inline-flex rounded border px-2 py-1 text-[0.65rem] font-black uppercase tracking-[0.12em] ${rarityStyles[checkoutListing.rarity]}`}>{checkoutListing.rarity}</span>

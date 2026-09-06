@@ -26,7 +26,7 @@ type TraitItemMetadata = {
 const STORE_NAME = "dyoor-s2-metadata";
 const IMAGE_PREFIX = "trait-lab/images";
 const DEFAULT_RENDER_SIZE = 1024;
-const DEFAULT_SITE_URL = "https://dyoor.netlify.app";
+const DEFAULT_SITE_URL = "https://dyoor.fun";
 const DEFAULT_PINATA_GATEWAY = "https://jade-efficient-beaver-697.mypinata.cloud";
 export const RENDER_PIPELINE_VERSION = "trait-assets-v6";
 
@@ -155,7 +155,7 @@ async function existingLocalLayer(traitType: string, value: unknown) {
 }
 
 function gatewayUrl(cid: string, parts: string[]) {
-  const gateway = readEnv("DYOOR_S2_LAYER_GATEWAY", "NEXT_PUBLIC_PINATA_GATEWAY_URL", "PINATA_GATEWAY_URL") || DEFAULT_PINATA_GATEWAY;
+  const gateway = readEnv("IPFS_GATEWAY_URL", "NEXT_PUBLIC_IPFS_GATEWAY_URL", "DYOOR_S2_LAYER_GATEWAY", "NEXT_PUBLIC_PINATA_GATEWAY_URL", "PINATA_GATEWAY_URL") || DEFAULT_PINATA_GATEWAY;
   const cleanGateway = gateway.replace(/\/+$/, "");
   return `${cleanGateway}/ipfs/${cid}/${parts.map((part) => encodeURIComponent(part)).join("/")}`;
 }
@@ -166,7 +166,7 @@ function ipfsGatewayUrl(uri: string) {
   if (/^https?:\/\//i.test(raw)) return raw;
   if (!raw.startsWith("ipfs://")) return "";
 
-  const gateway = readEnv("NEXT_PUBLIC_PINATA_GATEWAY_URL", "PINATA_GATEWAY_URL", "DYOOR_S2_LAYER_GATEWAY") || DEFAULT_PINATA_GATEWAY;
+  const gateway = readEnv("IPFS_GATEWAY_URL", "NEXT_PUBLIC_IPFS_GATEWAY_URL", "NEXT_PUBLIC_PINATA_GATEWAY_URL", "PINATA_GATEWAY_URL", "DYOOR_S2_LAYER_GATEWAY") || DEFAULT_PINATA_GATEWAY;
   return `${gateway.replace(/\/+$/, "")}/ipfs/${raw.slice(7).replace(/^\/+/, "")}`;
 }
 

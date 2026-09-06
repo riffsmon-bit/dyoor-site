@@ -5,6 +5,7 @@ import {
   dyoorWorldClientIp,
   dyoorWorldErrorStatus,
   getDyoorWorldRewardStatus,
+  requireDyoorWorldEntitlement,
   requireDyoorWorldRequest,
 } from "@/lib/dyoor-world-server";
 
@@ -21,6 +22,7 @@ function json(status: number, body: Record<string, unknown>) {
 export async function GET(request: Request) {
   try {
     const { wallet } = await requireDyoorWorldRequest(request);
+    await requireDyoorWorldEntitlement(wallet, "season2");
     return json(200, {
       ok: true,
       status: await getDyoorWorldRewardStatus(wallet),
@@ -36,6 +38,7 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   try {
     const { wallet } = await requireDyoorWorldRequest(request);
+    await requireDyoorWorldEntitlement(wallet, "season2");
     assertDyoorWorldRateLimit(
       `world-reward:${wallet}:${dyoorWorldClientIp(request)}`,
       12,

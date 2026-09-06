@@ -11,6 +11,7 @@ import {
   switchProviderToMonadMainnet,
   type MonadEip1193Provider,
 } from "@/lib/monad";
+import { PRIVY_WALLET_LIST } from "@/lib/wallet-options";
 
 export type Eip1193Provider = MonadEip1193Provider;
 
@@ -329,7 +330,7 @@ function PrivyWalletServiceProvider({
     logout,
     ready: authReady,
   } = usePrivy();
-  const { wallet, ready: walletsReady } = useActivePrivyWallet();
+  const { setActiveWallet, wallet, ready: walletsReady } = useActivePrivyWallet();
   const [connectionError, setConnectionError] = useState("");
   const [connecting, setConnecting] = useState(false);
   const [suppressedAddress, setSuppressedAddress] = useState("");
@@ -343,7 +344,8 @@ function PrivyWalletServiceProvider({
       setConnecting(false);
       setConnectionError(walletConnectionError(caught));
     },
-    onSuccess: () => {
+    onSuccess: ({ wallet: connectedWallet }) => {
+      setActiveWallet(connectedWallet);
       setConnecting(false);
       setConnectionError("");
       setSuppressedAddress("");
@@ -400,7 +402,7 @@ function PrivyWalletServiceProvider({
       connectWallet({
         description: "Choose the wallet that holds your D.Y.O.O.R.",
         walletChainType: "ethereum-only",
-        walletList: ["detected_ethereum_wallets", "wallet_connect"],
+        walletList: PRIVY_WALLET_LIST,
       });
     } catch (caught) {
       const message = walletConnectionError(caught);

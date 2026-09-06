@@ -22,7 +22,9 @@ import { useRouter, useSearchParams } from "next/navigation";
 import {
   DYOOR_WORLD_CHANNELS,
   type DyoorWorldAvatar,
+  type DyoorWorldChannel,
   type DyoorWorldChannelId,
+  type DyoorWorldEntitlements,
   type DyoorWorldMessageView,
   type DyoorWorldProfile,
   parseWorldMessageLink,
@@ -47,6 +49,8 @@ import {
 import { DyoorWorldDirectMessages } from "@/components/dyoor-world/DyoorWorldDirectMessages";
 import { DyoorWorldNotifications } from "@/components/dyoor-world/DyoorWorldNotifications";
 import { useWalletService } from "@/providers/WalletServiceProvider";
+import { ipfsGatewayUrl } from "@/lib/ipfs-gateway";
+import { IpfsImage } from "@/components/ui/IpfsImage";
 
 type WorldConfig = {
   chainId: number;
@@ -58,6 +62,15 @@ type WorldConfig = {
   rewardsEnabled: boolean;
   salesBotEnabled: boolean;
   canPostAnnouncements: boolean;
+  s2FeaturesEnabled: boolean;
+  channels: DyoorWorldChannel[];
+  access: {
+    eligible: boolean;
+    entitlements: DyoorWorldEntitlements;
+    balances: Record<keyof DyoorWorldEntitlements, string | null>;
+    unavailable: Array<keyof DyoorWorldEntitlements>;
+    checkedAt: string;
+  };
 };
 
 type ProfileResponse = {
@@ -229,9 +242,7 @@ function monAmount(value: string, label: string) {
 function mediaUrl(uri?: string) {
   const value = String(uri || "").trim();
   if (!value) return "";
-  if (value.startsWith("ipfs://")) {
-    return `https://jade-efficient-beaver-697.mypinata.cloud/ipfs/${value.slice(7)}`;
-  }
+  if (value.startsWith("ipfs://")) return ipfsGatewayUrl(value);
   return value;
 }
 
@@ -409,16 +420,18 @@ function readableWorldTradeError(error: unknown) {
 
 function WorldChannelList({
   activeChannel,
+  channels,
   descriptions = false,
   onSelect,
 }: {
   activeChannel: DyoorWorldChannelId;
+  channels: readonly DyoorWorldChannel[];
   descriptions?: boolean;
   onSelect: (channelId: DyoorWorldChannelId) => void;
 }) {
   return (
     <div className="grid gap-2">
-      {DYOOR_WORLD_CHANNELS.map((channel) => {
+      {channels.map((channel) => {
         const active = channel.id === activeChannel;
         return (
           <button
@@ -643,11 +656,20 @@ export function DyoorWorldClient({ sessionWallet }: { sessionWallet: string }) {
     lastMessageId: "",
   });
   const messageHighlightTimerRef = useRef<number | null>(null);
-  const selectedChannel = useMemo(
-    () => DYOOR_WORLD_CHANNELS.find((channel) => channel.id === channelId)
-      || DYOOR_WORLD_CHANNELS[0],
-    [channelId],
+  const availableChannels = useMemo<readonly DyoorWorldChannel[]>(
+    () => config?.channels?.length
+      ? config.channels.filter((channel) => channel.id !== "hoodyoor")
+      : DYOOR_WORLD_CHANNELS.filter((channel) => channel.access === "any"),
+    [config],
   );
+  const selectedChannel = useMemo(
+    () => availableChannels.find((channel) => channel.id === channelId)
+      || availableChannels.find((channel) => channel.id === "world-lobby")
+      || availableChannels[0]
+      || DYOOR_WORLD_CHANNELS[0],
+    [availableChannels, channelId],
+  );
+  const isS2Holder = config?.access.entitlements.season2 === true;
   const selectedChannelCanPost = !selectedChannel.readOnly
     || (
       selectedChannel.id === "announcements"
@@ -662,7 +684,12 @@ export function DyoorWorldClient({ sessionWallet }: { sessionWallet: string }) {
     const linkedChannel = worldChannelFromTag(searchParams.get("channel"));
     const directWallet = normalizeAddress(searchParams.get("dm") || "");
     const timer = window.setTimeout(() => {
-      if (linkedChannel) setChannelId(linkedChannel);
+      if (
+        linkedChannel
+        && availableChannels.some((channel) => channel.id === linkedChannel)
+      ) {
+        setChannelId(linkedChannel);
+      }
       if (directWallet && directWallet !== normalizedSessionWallet) {
         setDirectMessageTarget({
           wallet: directWallet,
@@ -672,12 +699,12 @@ export function DyoorWorldClient({ sessionWallet }: { sessionWallet: string }) {
       }
     }, 0);
     return () => window.clearTimeout(timer);
-  }, [normalizedSessionWallet, searchParams]);
+  }, [availableChannels, normalizedSessionWallet, searchParams]);
   const channelTagSuggestions = useMemo(() => {
     if (!channelMention) return [];
-    return DYOOR_WORLD_CHANNELS.filter((channel) =>
+    return availableChannels.filter((channel) =>
       channel.label.startsWith(channelMention.query));
-  }, [channelMention]);
+  }, [availableChannels, channelMention]);
 
   const loadProfile = useCallback(async () => {
     const response = await fetch("/api/dyoor-world/profile", { cache: "no-store" });
@@ -756,9 +783,18 @@ export function DyoorWorldClient({ sessionWallet }: { sessionWallet: string }) {
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
-      void Promise.all([loadProfile(), loadRewards(), loadOwnedTokens()]).catch((caught) => {
-        setError(caught instanceof Error ? caught.message : "Could not load the World identity.");
-      });
+      void loadProfile()
+        .then(async (profileData) => {
+          if (profileData.config?.s2FeaturesEnabled) {
+            await Promise.all([loadRewards(), loadOwnedTokens()]);
+          } else {
+            setRewards(null);
+            setOwnedTokenIds([]);
+          }
+        })
+        .catch((caught) => {
+          setError(caught instanceof Error ? caught.message : "Could not load the World identity.");
+        });
     }, 0);
     return () => window.clearTimeout(timer);
   }, [loadOwnedTokens, loadProfile, loadRewards]);
@@ -786,7 +822,7 @@ export function DyoorWorldClient({ sessionWallet }: { sessionWallet: string }) {
 
   useEffect(() => {
     const validation = validateWorldLabel(label);
-    if (!config || profile || !validation.ok) return;
+    if (!config?.s2FeaturesEnabled || profile || !validation.ok) return;
     const controller = new AbortController();
     const timer = window.setTimeout(async () => {
       setCheckingName(true);
@@ -923,6 +959,10 @@ export function DyoorWorldClient({ sessionWallet }: { sessionWallet: string }) {
   }, [tipTarget]);
 
   function selectWorldChannel(nextChannel: DyoorWorldChannelId) {
+    if (!availableChannels.some((channel) => channel.id === nextChannel)) {
+      setError("That thread requires a different verified collection entitlement.");
+      return;
+    }
     if (nextChannel !== channelId) {
       messageRequestRef.current.controller?.abort();
       setMessages([]);
@@ -974,7 +1014,7 @@ export function DyoorWorldClient({ sessionWallet }: { sessionWallet: string }) {
 
   function insertWorldChannelTag(nextChannel: DyoorWorldChannelId) {
     if (!channelMention) return;
-    const channel = DYOOR_WORLD_CHANNELS.find((item) => item.id === nextChannel);
+    const channel = availableChannels.find((item) => item.id === nextChannel);
     if (!channel) return;
     const replacement = `#${channel.label} `;
     const nextDraft = (
@@ -1549,6 +1589,11 @@ export function DyoorWorldClient({ sessionWallet }: { sessionWallet: string }) {
   const currentNameAvailability = nameAvailability?.label === nameValidation.label
     ? nameAvailability
     : null;
+  const verifiedCollectionLabel = [
+    config?.access.entitlements.season1 ? "S1" : "",
+    config?.access.entitlements.ascended ? "Ascended" : "",
+    config?.access.entitlements.season2 ? "S2" : "",
+  ].filter(Boolean).join(" + ") || "Holder";
 
   return (
     <main className="mx-auto min-h-[100dvh] min-w-0 max-w-[1680px] overflow-x-clip px-0 py-0 sm:px-5 sm:py-6">
@@ -1597,6 +1642,7 @@ export function DyoorWorldClient({ sessionWallet }: { sessionWallet: string }) {
             <div className="mt-4">
               <WorldChannelList
                 activeChannel={channelId}
+                channels={availableChannels}
                 descriptions
                 onSelect={selectWorldChannel}
               />
@@ -1676,7 +1722,7 @@ export function DyoorWorldClient({ sessionWallet }: { sessionWallet: string }) {
               <span className="hidden min-[360px]:inline">Eject</span>
             </Link>
             <span className="hidden rounded-full border border-emerald-300/25 bg-emerald-300/10 px-3 py-1.5 text-[0.62rem] font-black uppercase tracking-[0.14em] text-emerald-200 sm:inline-flex">
-              S2 gate active
+              {verifiedCollectionLabel} verified
             </span>
             <Link className="btn-ghost hidden min-h-9 px-3 py-2 text-[0.66rem] lg:inline-flex" href="/">
               Eject
@@ -1713,13 +1759,14 @@ export function DyoorWorldClient({ sessionWallet }: { sessionWallet: string }) {
             <p className="px-2 py-2 text-[0.62rem] font-black uppercase tracking-[0.2em] text-white/35">World streams</p>
             <WorldChannelList
               activeChannel={channelId}
+              channels={availableChannels}
               descriptions
               onSelect={selectWorldChannel}
             />
             <div className="mt-4 rounded border border-dyoor-purple/20 bg-dyoor-purple/[0.07] p-4">
               <p className="text-[0.62rem] font-black uppercase tracking-[0.17em] text-dyoor-monad">Adapted from M3SH</p>
               <p className="mt-2 text-xs font-bold leading-5 text-white/42">
-                The node-and-stream model, rebuilt with verified holder access, S2 identity, and immutable system relays.
+                The node-and-stream model, rebuilt with live collection access, S2 identity, and immutable system relays.
               </p>
             </div>
           </aside>
@@ -2004,7 +2051,7 @@ export function DyoorWorldClient({ sessionWallet }: { sessionWallet: string }) {
                     <div className={`flex gap-3 ${isOwn ? "flex-row-reverse" : ""}`}>
                       <div className="world-message-avatar flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-white/10 bg-black/30">
                         {message.avatar?.imageUrl ? (
-                          <img alt={`S2 #${message.avatar.tokenId}`} className="h-full w-full object-cover" src={mediaUrl(message.avatar.imageUrl)} />
+                          <IpfsImage alt={`S2 #${message.avatar.tokenId}`} className="h-full w-full object-cover" src={mediaUrl(message.avatar.imageUrl)} />
                         ) : imageUrl ? (
                           <img alt="" className="h-full w-full object-cover" src={mediaUrl(imageUrl)} />
                         ) : (
@@ -2013,7 +2060,7 @@ export function DyoorWorldClient({ sessionWallet }: { sessionWallet: string }) {
                       </div>
                       <div className={`min-w-0 flex-1 ${isOwn ? "text-right" : ""}`}>
                         <div className={`flex flex-wrap items-baseline gap-2 ${isOwn ? "justify-end" : ""}`}>
-                          {isSystem || isOwn ? (
+                          {isSystem || isOwn || !isS2Holder ? (
                             <span className={`text-xs font-black ${isSystem ? "text-dyoor-monad" : "text-dyoor-cyan"}`}>
                               {message.author}
                             </span>
@@ -2294,7 +2341,7 @@ export function DyoorWorldClient({ sessionWallet }: { sessionWallet: string }) {
                     <>
                       {draft.length}/800 · HTTPS links become clickable · <span className="hidden md:inline">Enter publishes · Shift+Enter newline</span>
                     </>
-                  ) : (
+                  ) : isS2Holder ? (
                     <>
                       <span className="sm:hidden">
                         {draft.length}/800 · qualifying messages can earn {rewards?.chat.rewardEnergy || 5} Energy
@@ -2302,6 +2349,10 @@ export function DyoorWorldClient({ sessionWallet }: { sessionWallet: string }) {
                       <span className="hidden sm:inline">
                         {draft.length}/800 · type # to tag a thread · tap ↩ to reply · <span className="hidden md:inline">Enter sends · Shift+Enter newline · </span>meaningful text can earn {rewards?.chat.rewardEnergy || 5} Energy · media and stickers alone do not earn
                       </span>
+                    </>
+                  ) : (
+                    <>
+                      {draft.length}/800 · type # to tag an available thread · <span className="hidden md:inline">Enter sends · Shift+Enter newline</span>
                     </>
                   )}
                 </p>
@@ -2390,11 +2441,30 @@ export function DyoorWorldClient({ sessionWallet }: { sessionWallet: string }) {
                 </button>
               ) : null}
             </div>
+            <div className="mt-3 rounded border border-dyoor-cyan/20 bg-dyoor-cyan/[0.05] p-3">
+              <p className="text-[0.58rem] font-black uppercase tracking-[0.14em] text-dyoor-cyan">
+                Verified collection access
+              </p>
+              <div className="mt-2 flex flex-wrap gap-1.5">
+                {config?.access.entitlements.season1 ? (
+                  <span className="rounded-full border border-white/15 bg-white/[0.05] px-2 py-1 text-[0.55rem] font-black text-white/70">Season 1</span>
+                ) : null}
+                {config?.access.entitlements.ascended ? (
+                  <span className="rounded-full border border-amber-300/25 bg-amber-300/10 px-2 py-1 text-[0.55rem] font-black text-amber-200">Ascended</span>
+                ) : null}
+                {config?.access.entitlements.season2 ? (
+                  <span className="rounded-full border border-dyoor-cyan/30 bg-dyoor-cyan/10 px-2 py-1 text-[0.55rem] font-black text-dyoor-cyan">Season 2</span>
+                ) : null}
+              </div>
+              <p className="mt-2 text-[0.58rem] font-bold leading-4 text-white/32">
+                Your channel list is generated from current on-chain balances. Multi-collection holders unlock every matching private chat.
+              </p>
+            </div>
             <div className="mt-3 overflow-hidden rounded border border-dyoor-cyan/25 bg-gradient-to-br from-dyoor-cyan/[0.09] via-transparent to-dyoor-purple/[0.12]">
               <div className="flex items-center gap-3 p-3">
                 <div className="h-16 w-16 shrink-0 overflow-hidden rounded border border-dyoor-cyan/35 bg-black/35 shadow-[0_0_24px_rgba(76,255,229,.12)]">
                   {avatarPreview ? (
-                    <img alt="Selected World PFP" className="h-full w-full object-cover" src={avatarPreview} />
+                    <IpfsImage alt="Selected World PFP" className="h-full w-full object-cover" src={avatarPreview} />
                   ) : (
                     <DyoorWorldGlyph className="m-5 h-6 w-6 text-dyoor-cyan/50" />
                   )}
@@ -2405,6 +2475,7 @@ export function DyoorWorldClient({ sessionWallet }: { sessionWallet: string }) {
                   {avatarTokenId ? <p className="mt-1 text-[0.58rem] font-black text-dyoor-monad">S2 DROID #{avatarTokenId}</p> : null}
                 </div>
               </div>
+              {isS2Holder ? (
               <div className="border-t border-white/[0.06] p-3">
                 <label className="text-[0.58rem] font-black uppercase tracking-[0.12em] text-white/35" htmlFor="world-pfp">Choose owned S2 PFP</label>
                 <div className="mt-2 flex gap-2">
@@ -2426,9 +2497,14 @@ export function DyoorWorldClient({ sessionWallet }: { sessionWallet: string }) {
                   </button>
                 </div>
               </div>
+              ) : (
+                <div className="border-t border-white/[0.06] p-3 text-[0.58rem] font-bold leading-4 text-white/32">
+                  Season 2 holders can attach an S2 Droid PFP and claim a .dYOOR identity. Your verified collection chats are already active.
+                </div>
+              )}
             </div>
 
-            {config && !profile ? (
+            {config && isS2Holder && !profile ? (
               <form className="mt-4 rounded border border-dyoor-purple/25 bg-dyoor-purple/[0.06] p-4" onSubmit={claimName}>
                 <p className="text-sm font-black text-white">Create your .dYOOR name</p>
                 <p className="mt-2 text-xs font-bold leading-5 text-white/42">
@@ -2500,6 +2576,7 @@ export function DyoorWorldClient({ sessionWallet }: { sessionWallet: string }) {
 
             <DyoorWorldNotifications />
 
+            {isS2Holder ? (
             <div className="relative mt-4 overflow-hidden rounded-xl border border-dyoor-monad/35 bg-[radial-gradient(circle_at_15%_15%,rgba(57,255,226,.12),transparent_34%),radial-gradient(circle_at_90%_5%,rgba(255,79,227,.16),transparent_38%),linear-gradient(145deg,#171035,#08091c_58%,#062526)] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,.08),0_20px_55px_rgba(0,0,0,.35),0_0_36px_rgba(131,110,249,.12)]">
               <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(rgba(255,255,255,.025)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,.02)_1px,transparent_1px)] bg-[size:18px_18px] [mask-image:linear-gradient(to_bottom,black,transparent_80%)]" />
               <div className="relative flex items-start justify-between gap-3">
@@ -2581,6 +2658,16 @@ export function DyoorWorldClient({ sessionWallet }: { sessionWallet: string }) {
                 Completed trades: +{rewards?.trades.rewardEnergy || 100} each · {rewards?.trades.rewardedToday || 0}/{rewards?.trades.dailyCap || 1} today
               </p>
             </div>
+            ) : (
+              <div className="mt-4 rounded border border-dyoor-purple/25 bg-dyoor-purple/[0.06] p-4">
+                <p className="text-[0.62rem] font-black uppercase tracking-[0.16em] text-dyoor-monad">
+                  Holder node active
+                </p>
+                <p className="mt-2 text-xs font-bold leading-5 text-white/42">
+                  Your S1 or Ascended identity unlocks the shared World and its matching private chat. S2 identity, Energy rewards, MON tip rewards, Trait Lab, and atomic Droid trades remain secured to current Season 2 holders.
+                </p>
+              </div>
+            )}
 
             <div className="mt-4 rounded border border-white/[0.07] bg-white/[0.025] p-4">
               <p className="text-[0.62rem] font-black uppercase tracking-[0.16em] text-dyoor-monad">Safety model</p>

@@ -3,6 +3,14 @@
   publish = ".next"
   functions = "netlify/functions"
 
+[build.environment]
+  NODE_VERSION = "24"
+
+[context.deploy-preview.environment]
+  MONAD_READ_RPC_URLS = "https://rpc.monad.xyz,https://rpc2.monad.xyz,https://rpc3.monad.xyz,https://rpc-mainnet.monadinfra.com"
+  DYOOR_WORLD_RPC_TIMEOUT_MS = "4000"
+  DYOOR_S2_ERC721_ENUMERABLE = "false"
+
 [[plugins]]
   package = "@netlify/plugin-nextjs"
 
@@ -11,7 +19,11 @@
   included_files = [
     "data/quest-seed.json",
     "data/ascension-blueprints.json",
-    "data/ascension-blueprint-wallets.json"
+    "data/ascension-blueprint-wallets.json",
+    "!.env",
+    "!.env.*",
+    "!**/.env",
+    "!**/.env.*"
   ]
 
 [[headers]]

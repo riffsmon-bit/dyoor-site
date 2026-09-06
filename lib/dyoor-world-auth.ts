@@ -1,9 +1,11 @@
 import { createHmac, timingSafeEqual } from "node:crypto";
 import { ethers } from "ethers";
+import {
+  DYOOR_WORLD_CHAIN_ID,
+  DYOOR_WORLD_COLLECTIONS,
+} from "./dyoor-world.ts";
 
-const DYOOR_WORLD_CHAIN_ID = 143;
 const DYOOR_WORLD_SESSION_TTL_SECONDS = 12 * 60 * 60;
-const DYOOR_S2_MAINNET_CONTRACT = "0x349D8eb480c92cF75371fbA5C6344A4d11b9103A";
 
 function normalizeWorldWallet(value: unknown) {
   const wallet = String(value || "").trim().toLowerCase();
@@ -51,8 +53,11 @@ export function dyoorWorldChallengeMessage(input: Omit<DyoorWorldChallenge, "ver
     "D.Y.O.O.R World Holder Access",
     "Sign this message to enter the private holder world. This request does not create a transaction.",
     `Wallet: ${normalizeWorldWallet(input.wallet)}`,
-    `Chain ID: ${DYOOR_WORLD_CHAIN_ID}`,
-    `S2 Contract: ${DYOOR_S2_MAINNET_CONTRACT.toLowerCase()}`,
+    `Primary Chain ID: ${DYOOR_WORLD_CHAIN_ID}`,
+    "Accepted holder contracts:",
+    ...DYOOR_WORLD_COLLECTIONS.map((collection) => (
+      `${collection.label} (Chain ID ${collection.chainId}): ${collection.address}`
+    )),
     `Audience: ${input.audience}`,
     `Nonce: ${input.nonce}`,
     `Issued At: ${input.issuedAt}`,

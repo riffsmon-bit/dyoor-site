@@ -2,10 +2,12 @@ import {
   assertDyoorWorldRateLimit,
   dyoorWorldClientIp,
   dyoorWorldErrorStatus,
-  hasDyoorWorldAccess,
+  getDyoorWorldAccess,
 } from "@/lib/dyoor-world-server";
-import { normalizeWorldWallet } from "@/lib/dyoor-world";
-import { dyoorS2Contract } from "@/lib/contracts/addresses";
+import {
+  DYOOR_WORLD_COLLECTIONS,
+  normalizeWorldWallet,
+} from "@/lib/dyoor-world";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -26,12 +28,15 @@ export async function GET(request: Request) {
       30,
       60_000,
     );
+    const access = await getDyoorWorldAccess(wallet);
     return json(200, {
       ok: true,
-      eligible: await hasDyoorWorldAccess(wallet),
+      eligible: access.eligible,
       wallet,
-      contractAddress: dyoorS2Contract,
-      chainId: 143,
+      entitlements: access.entitlements,
+      balances: access.balances,
+      unavailable: access.unavailable,
+      collections: DYOOR_WORLD_COLLECTIONS,
     });
   } catch (error) {
     return json(dyoorWorldErrorStatus(error), {

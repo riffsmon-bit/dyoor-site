@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { DyoorWorldGlyph } from "@/components/dyoor-world/DyoorWorldDiscovery";
+import type { DyoorWorldEntitlements } from "@/lib/dyoor-world";
 import { useWalletService } from "@/providers/WalletServiceProvider";
 
 function normalizeAddress(value?: string) {
@@ -21,7 +22,11 @@ export function DyoorWorldGate() {
   const router = useRouter();
   const wallet = useWalletService();
   const address = normalizeAddress(wallet.address);
-  const [eligibility, setEligibility] = useState<{ wallet: string; eligible: boolean } | null>(null);
+  const [eligibility, setEligibility] = useState<{
+    wallet: string;
+    eligible: boolean;
+    entitlements: DyoorWorldEntitlements;
+  } | null>(null);
   const [working, setWorking] = useState(false);
   const [error, setError] = useState("");
   const eligible = eligibility?.wallet === address ? eligibility.eligible : null;
@@ -40,7 +45,16 @@ export function DyoorWorldGate() {
         );
         const data = await responseJson(response);
         if (active) {
-          setEligibility({ wallet: address, eligible: data?.eligible === true });
+          setEligibility({
+            wallet: address,
+            eligible: data?.eligible === true,
+            entitlements: {
+              season1: data?.entitlements?.season1 === true,
+              ascended: data?.entitlements?.ascended === true,
+              season2: data?.entitlements?.season2 === true,
+              hoodyoor: data?.entitlements?.hoodyoor === true,
+            },
+          });
           setError("");
         }
       } catch (caught) {
@@ -97,9 +111,9 @@ export function DyoorWorldGate() {
       ? "Preparing wallet connection"
       : "Connect holder wallet"
     : eligible === false
-      ? "S2 Droid required"
+      ? "Accepted NFT required"
       : eligible === null
-        ? "Scanning S2 ownership"
+        ? "Scanning holder contracts"
         : working
           ? "Awaiting holder signature"
           : "Authenticate and enter";
@@ -125,17 +139,24 @@ export function DyoorWorldGate() {
               <span className="absolute inset-2 animate-pulse rounded-full border border-dyoor-purple/45" />
               <DyoorWorldGlyph className="relative h-12 w-12" />
             </div>
-            <p className="eyebrow mt-7">Unlisted signal // S2 holders only</p>
+            <p className="eyebrow mt-7">Unlisted signal // verified holders only</p>
             <h1 className="heading-gradient mt-4 text-4xl sm:text-6xl">dYOOR World</h1>
             <p className="mt-5 max-w-lg text-sm font-bold leading-7 text-white/62 sm:text-base">
-              The holder-exclusive community layer for D.Y.O.O.R on Monad. Access
-              requires a read-only S2 ownership check and a one-time wallet signature.
-              Discord and Telegram remain the public onboarding path.
+              The secure community layer for the D.Y.O.O.R ecosystem. Access requires
+              current Season 1, Ascended, or Season 2 status plus a one-time
+              wallet signature. Discord remains the public onboarding path.
             </p>
+            {eligibility?.wallet === address && eligibility.eligible ? (
+              <div className="mt-5 flex flex-wrap justify-center gap-2">
+                {eligibility.entitlements.season1 ? <span className="rounded-full border border-white/15 bg-white/[0.05] px-3 py-1.5 text-[0.62rem] font-black text-white/70">Season 1 verified</span> : null}
+                {eligibility.entitlements.ascended ? <span className="rounded-full border border-amber-300/25 bg-amber-300/10 px-3 py-1.5 text-[0.62rem] font-black text-amber-200">Ascended verified</span> : null}
+                {eligibility.entitlements.season2 ? <span className="rounded-full border border-dyoor-cyan/30 bg-dyoor-cyan/10 px-3 py-1.5 text-[0.62rem] font-black text-dyoor-cyan">Season 2 verified</span> : null}
+              </div>
+            ) : null}
             <div className="mt-7 grid w-full gap-3 rounded border border-white/10 bg-black/30 p-4 text-left text-xs font-bold leading-6 text-white/55 sm:grid-cols-3">
-              <div><span className="block text-dyoor-cyan">01</span>Hold an active S2 Droid</div>
+              <div><span className="block text-dyoor-cyan">01</span>Qualify via S1, Ascension, or S2</div>
               <div><span className="block text-dyoor-cyan">02</span>Sign the holder challenge</div>
-              <div><span className="block text-dyoor-cyan">03</span>Enter the private World</div>
+              <div><span className="block text-dyoor-cyan">03</span>Unlock each matching chat</div>
             </div>
             <button
               className="btn-primary mt-7 w-full sm:w-auto sm:min-w-72"

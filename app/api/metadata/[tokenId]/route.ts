@@ -41,8 +41,13 @@ function metadataResponseOrigin(request: Request) {
   if (configured) return configured.replace(/\/+$/, "");
 
   const url = new URL(request.url);
-  if (url.hostname === "dyoor.xyz" || url.hostname.endsWith("--dyoor.netlify.app")) {
-    return "https://dyoor.netlify.app";
+  if (
+    url.hostname === "dyoor.xyz"
+    || url.hostname === "www.dyoor.xyz"
+    || url.hostname === "dyoor.netlify.app"
+    || url.hostname.endsWith("--dyoor.netlify.app")
+  ) {
+    return "https://dyoor.fun";
   }
   return url.origin;
 }

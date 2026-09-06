@@ -6,6 +6,7 @@ import {
   clearDyoorWorldAvatar,
   getDyoorWorldAvatar,
   getDyoorWorldProfile,
+  requireDyoorWorldEntitlement,
   requireDyoorWorldRequest,
   reserveDyoorWorldName,
   setDyoorWorldAvatar,
@@ -47,6 +48,7 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   try {
     const { wallet } = await requireDyoorWorldRequest(request);
+    await requireDyoorWorldEntitlement(wallet, "season2");
     assertDyoorWorldRateLimit(
       `profile:${wallet}:${dyoorWorldClientIp(request)}`,
       10,

@@ -1,16 +1,14 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
-import dyoorLogo from "@/assets/dyoor-logo.png";
 import { DyoorWorldDiscovery } from "@/components/dyoor-world/DyoorWorldDiscovery";
 import { WalletButton } from "@/components/wallet/WalletButton";
 import { useWalletService } from "@/providers/WalletServiceProvider";
 
 const navLinks = [
-  { href: "/#swap", label: "Swap" },
+  { href: "/droids", label: "Droids" },
   { href: "/ascension", label: "Ascension" },
   { href: "/reroll", label: "Reroll" },
   { href: "/marketplace", label: "Market" },
@@ -72,7 +70,6 @@ export function SiteNav() {
   }, [isStandaloneCampaign, isWorldApp, walletAddress]);
 
   const isActive = (href: string) => {
-    if (href === "/#swap") return pathname === "/";
     return pathname === href || pathname.startsWith(`${href}/`);
   };
 
@@ -82,24 +79,25 @@ export function SiteNav() {
   if (isWorldApp || isStandaloneCampaign) return null;
 
   return (
-    <header className="sticky top-0 z-[90] border-b border-dyoor-purple/25 bg-[#050513] shadow-[0_0_34px_rgba(131,110,249,.16)]">
+    <header className="site-header sticky top-0 z-[90] border-b border-white/[0.07]">
       <nav className="mx-auto flex min-h-20 max-w-7xl items-center justify-between gap-3 px-4 py-3 md:h-20 md:px-5 md:py-0">
         <Link className="group flex items-center gap-3" href="/" aria-label="DYOOR home">
-          <Image
-            src={dyoorLogo}
-            alt="DYOOR"
-            width={132}
-            height={62}
-            loading="eager"
-            className="h-12 w-28 object-contain drop-shadow-[0_0_18px_rgba(57,255,226,.22)] sm:w-32"
-          />
+          <span className="site-wordmark">DYØØR<span className="text-dyoor-cyan">.</span></span>
         </Link>
-        <div className="hidden items-center gap-5 text-xs font-black uppercase tracking-[0.15em] text-white/70 md:flex">
-          {links.map((link) => (
-            <Link className="transition hover:text-dyoor-cyan hover:drop-shadow-[0_0_10px_rgba(57,255,226,.55)]" href={link.href} key={link.href}>
-              {link.label}
-            </Link>
-          ))}
+        <div className="hidden items-center gap-1 text-sm font-semibold text-white/[0.64] md:flex">
+          {links.map((link) => {
+            const active = isActive(link.href);
+            return (
+              <Link
+                aria-current={active ? "page" : undefined}
+                className={`site-nav-link ${active ? "site-nav-link-active" : ""}`}
+                href={link.href}
+                key={link.href}
+              >
+                {link.label}
+              </Link>
+            );
+          })}
         </div>
         <div className="ml-auto flex items-center gap-2">
           <DyoorWorldDiscovery />

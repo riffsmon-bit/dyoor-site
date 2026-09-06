@@ -3,6 +3,7 @@ import {
   dyoorWorldClientIp,
   dyoorWorldErrorStatus,
   getDyoorWorldNameAvailability,
+  requireDyoorWorldEntitlement,
   requireDyoorWorldRequest,
 } from "@/lib/dyoor-world-server";
 
@@ -19,6 +20,7 @@ function json(status: number, body: Record<string, unknown>) {
 export async function GET(request: Request) {
   try {
     const { wallet } = await requireDyoorWorldRequest(request);
+    await requireDyoorWorldEntitlement(wallet, "season2");
     assertDyoorWorldRateLimit(
       `world-name-availability:${wallet}:${dyoorWorldClientIp(request)}`,
       45,

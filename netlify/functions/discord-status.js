@@ -1,58 +1,23 @@
-const COOKIE_NAME = process.env.VERIFY_SESSION_COOKIE || 'dyoor_verify_session';
+import { getUser } from "./_verify/linking.js";
+import { assertMethod, clearSessionCookie, json, safeHandlerError } from "./_verify/http.js";
+import { getSessionFromEvent } from "./_verify/session.js";
+import { publicUserStatus } from "./_verify/evaluator.js";
 
-function getCookie(event, name) {
-  const raw = event.headers?.cookie || event.headers?.Cookie || '';
-  const parts = raw.split(';').map((p) => p.trim());
-  for (const part of parts) {
-    const idx = part.indexOf('=');
-    if (idx === -1) continue;
-    const k = part.slice(0, idx).trim();
-    const v = part.slice(idx + 1).trim();
-    if (k === name) return decodeURIComponent(v);
-  }
-  return '';
-}
-
-exports.handler = async function (event) {
+export const handler = async (event) => {
   try {
-    const session = getCookie(event, COOKIE_NAME);
-
-    let discordUser = null;
-    if (session) {
-      try {
-        discordUser = JSON.parse(Buffer.from(session, 'base64url').toString('utf8'));
-      } catch (e) {
-        discordUser = null;
-      }
+    assertMethod(event, "GET");
+    const { session } = await getSessionFromEvent(event);
+    if (!session) {
+      return json(401, { ok: false, authenticated: false }, { "set-cookie": clearSessionCookie() });
     }
-
-    return {
-      statusCode: 200,
-      headers: {
-        'Content-Type': 'application/json; charset=utf-8',
-        'Cache-Control': 'no-store'
-      },
-      body: JSON.stringify({
-        ok: true,
-        backendReachable: true,
-        discordConnected: !!discordUser,
-        discordUser,
-        walletLinked: false,
-        roles: [],
-        sessionPresent: !!discordUser
-      })
-    };
+    const user = await getUser(session.discordUser.id);
+    return json(200, {
+      ok: true,
+      authenticated: true,
+      discordUser: session.discordUser,
+      status: publicUserStatus(user),
+    });
   } catch (error) {
-    return {
-      statusCode: 500,
-      headers: {
-        'Content-Type': 'application/json; charset=utf-8',
-        'Cache-Control': 'no-store'
-      },
-      body: JSON.stringify({
-        ok: false,
-        error: error?.message || 'discord-status failed'
-      })
-    };
+    return safeHandlerError(error, "Discord verification status is unavailable.");
   }
 };

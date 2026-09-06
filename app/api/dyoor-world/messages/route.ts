@@ -28,7 +28,7 @@ export async function GET(request: Request) {
     const channelId = new URL(request.url).searchParams.get("channel");
     return json(200, {
       ok: true,
-      messages: await listDyoorWorldMessages(channelId),
+      messages: await listDyoorWorldMessages(wallet, channelId),
     });
   } catch (error) {
     return json(dyoorWorldErrorStatus(error), {

@@ -3,6 +3,8 @@ import fs from "node:fs";
 import test from "node:test";
 import {
   DYOOR_WORLD_CHANNELS,
+  canAccessDyoorWorldChannel,
+  dyoorWorldChannelsForEntitlements,
   isWorldOwnerChannel,
   isWorldWritableChannel,
   normalizeDyoorWorldMessageReply,
@@ -130,6 +132,29 @@ test("verified streams are bot-only while the trade desk remains conversational"
   assert.equal(DYOOR_WORLD_CHANNELS.some((channel) => channel.id === "trade-desk"), true);
 });
 
+test("collection entitlements unlock only shared and matching World chats", () => {
+  const season1 = { season1: true, ascended: false, season2: false, hoodyoor: false };
+  const ascended = { season1: false, ascended: true, season2: false, hoodyoor: false };
+  const season2 = { season1: false, ascended: false, season2: true, hoodyoor: false };
+  const hoodyoor = { season1: false, ascended: false, season2: false, hoodyoor: true };
+  const all = { season1: true, ascended: true, season2: true, hoodyoor: true };
+
+  assert.equal(canAccessDyoorWorldChannel("world-lobby", season1), true);
+  assert.equal(canAccessDyoorWorldChannel("season-1", season1), true);
+  assert.equal(canAccessDyoorWorldChannel("season-1", ascended), true);
+  assert.equal(canAccessDyoorWorldChannel("season-2", season1), false);
+  assert.equal(canAccessDyoorWorldChannel("hoodyoor", season1), false);
+  assert.equal(canAccessDyoorWorldChannel("season-2", season2), true);
+  assert.equal(canAccessDyoorWorldChannel("trait-lab", season2), true);
+  assert.equal(canAccessDyoorWorldChannel("hoodyoor", hoodyoor), true);
+  assert.equal(canAccessDyoorWorldChannel("energy-grid", hoodyoor), false);
+  assert.equal(dyoorWorldChannelsForEntitlements(all).length, DYOOR_WORLD_CHANNELS.length);
+  assert.deepEqual(
+    dyoorWorldChannelsForEntitlements(hoodyoor).map((channel) => channel.id),
+    ["announcements", "world-lobby", "hoodyoor"],
+  );
+});
+
 test("owner announcements are server-authorized, non-rewarding, and support safe links", () => {
   assert.deepEqual(
     parseWorldMessageLink("https://x.com/dyoor_/status/123456789."),
@@ -150,7 +175,10 @@ test("owner announcements are server-authorized, non-rewarding, and support safe
   assert.match(server, /canPostDyoorWorldAnnouncements\(wallet\)/);
   assert.match(server, /Only the D\.Y\.O\.O\.R owner wallet can post announcements/);
   assert.match(server, /kind: ownerChannel \? "announcement" : "user"/);
-  assert.match(server, /ownerChannel\s*\?\s*Promise\.resolve\(null\)/);
+  assert.match(
+    server,
+    /ownerChannel \|\| !worldAccess\.entitlements\.season2[\s\S]*?\? Promise\.resolve\(null\)/,
+  );
   assert.match(server, /DYOOR_WORLD_OWNER_WALLET/);
   assert.match(server, /new ethers\.Contract\(dyoorS2Contract, OWNABLE_ABI/);
   assert.match(profileRoute, /dyoorWorldConfigForWallet\(wallet\)/);
@@ -280,7 +308,7 @@ test("World mobile side drawers and atomic trade desk stay streamlined", () => {
   assert.match(client, /Eject from dYOOR World to the main D\.Y\.O\.O\.R site/);
   assert.match(gate, /Standalone holder app/);
   assert.match(gate, /↗ Eject/);
-  assert.match(siteNav, /if \(isWorldApp\) return null/);
+  assert.match(siteNav, /if \(isWorldApp \|\| isStandaloneCampaign\) return null/);
   assert.match(siteFooter, /pathname\.startsWith\(\"\/dyoor-world\"\)/);
   assert.match(client, /hidden border-r .* lg:block/);
   assert.match(client, /function OwnedDroidPicker/);
@@ -414,8 +442,8 @@ test("the whitepaper positions dYOOR World as the holder home and social apps as
   assert.match(whitepaper, /owner-only announcements stream/);
   assert.match(whitepaper, /Discord \+ Telegram/);
   assert.match(whitepaper, /Public onboarding/);
-  assert.match(gate, /holder-exclusive community layer/);
-  assert.match(gate, /Discord and Telegram remain the public onboarding path/);
+  assert.match(gate, /secure community layer/);
+  assert.match(gate, /Discord remains the public onboarding path/);
   assert.match(footer, /Discord Onboarding/);
   assert.match(footer, /Telegram Onboarding/);
 });

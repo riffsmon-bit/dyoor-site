@@ -105,7 +105,7 @@ export async function GET(request: Request) {
               }}
             >
               <span>Shareable blueprint card</span>
-              <span style={{ color: "#5bffdf", marginTop: 8 }}>dyoor.netlify.app</span>
+              <span style={{ color: "#5bffdf", marginTop: 8 }}>dyoor.fun</span>
             </div>
           </div>
 

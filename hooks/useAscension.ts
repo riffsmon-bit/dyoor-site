@@ -126,7 +126,10 @@ function formatUnits18(raw: bigint) {
 }
 
 function configuredIpfsGateways() {
-  const configured = process.env.NEXT_PUBLIC_IPFS_GATEWAY || "";
+  const configured = process.env.NEXT_PUBLIC_IPFS_GATEWAY_URL
+    || process.env.NEXT_PUBLIC_IPFS_GATEWAY
+    || process.env.NEXT_PUBLIC_PINATA_GATEWAY_URL
+    || "";
   return [
     configured,
     "https://ipfs.io/ipfs/",

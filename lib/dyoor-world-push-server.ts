@@ -89,7 +89,7 @@ function envFlag(...names: string[]) {
 function vapidConfig() {
   const publicKey = readEnv("DYOOR_WORLD_VAPID_PUBLIC_KEY");
   const privateKey = readEnv("DYOOR_WORLD_VAPID_PRIVATE_KEY");
-  const subject = readEnv("DYOOR_WORLD_VAPID_SUBJECT") || "https://dyoor.netlify.app";
+  const subject = readEnv("DYOOR_WORLD_VAPID_SUBJECT") || "https://dyoor.fun";
   const enabled = envFlag("DYOOR_WORLD_PUSH_ENABLED");
   const configured = Boolean(
     enabled

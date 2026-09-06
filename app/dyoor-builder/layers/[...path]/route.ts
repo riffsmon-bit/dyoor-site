@@ -44,7 +44,7 @@ function slugFile(value: string) {
 }
 
 function gatewayBase() {
-  return (readEnv("NEXT_PUBLIC_PINATA_GATEWAY_URL", "PINATA_GATEWAY_URL") || DEFAULT_PINATA_GATEWAY).replace(/\/+$/, "");
+  return (readEnv("IPFS_GATEWAY_URL", "NEXT_PUBLIC_IPFS_GATEWAY_URL", "NEXT_PUBLIC_PINATA_GATEWAY_URL", "PINATA_GATEWAY_URL") || DEFAULT_PINATA_GATEWAY).replace(/\/+$/, "");
 }
 
 function ipfsGatewayUrl(uri: string) {

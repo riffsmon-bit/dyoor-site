@@ -19,6 +19,14 @@ const worldGate = fs.readFileSync(
   "components/dyoor-world/DyoorWorldGate.tsx",
   "utf8",
 );
+const activePrivyWallet = fs.readFileSync(
+  "hooks/useActivePrivyWallet.ts",
+  "utf8",
+);
+const walletOptions = fs.readFileSync(
+  "lib/wallet-options.ts",
+  "utf8",
+);
 
 test("mobile World navigation keeps DMs separate from the decorative glyph", () => {
   assert.match(
@@ -42,8 +50,9 @@ test("Privy is the primary wallet chooser when its app ID is configured", () => 
   );
   assert.match(
     walletService,
-    /walletList: \["detected_ethereum_wallets", "wallet_connect"\]/,
+    /walletList: PRIVY_WALLET_LIST/,
   );
+  assert.match(walletService, /setActiveWallet\(connectedWallet\)/);
   assert.match(
     walletService,
     /privyEnabled\s+\? <PrivyWalletServiceProvider>\{children\}<\/PrivyWalletServiceProvider>/,
@@ -74,10 +83,13 @@ test("standard mobile browsers get equal, service-free wallet app handoffs", () 
 });
 
 test("app provider mounts Privy without requiring a separate Reown project", () => {
-  assert.match(providers, /import \{ PrivyProvider, type WalletListEntry \} from "@privy-io\/react-auth"/);
+  assert.match(providers, /import \{ PrivyProvider \} from "@privy-io\/react-auth"/);
   assert.match(providers, /process\.env\.NEXT_PUBLIC_PRIVY_APP_ID/);
   assert.match(providers, /<PrivyProvider[\s\S]*appId=\{appId\}/);
-  assert.match(providers, /"detected_ethereum_wallets",\s+"wallet_connect"/);
+  assert.match(providers, /walletList: PRIVY_WALLET_LIST/);
+  assert.match(walletOptions, /"metamask"[\s\S]*"wallet_connect_qr"[\s\S]*"detected_ethereum_wallets"[\s\S]*"wallet_connect"/);
+  assert.doesNotMatch(activePrivyWallet, /\|\| wallets\[0\]/);
+  assert.match(activePrivyWallet, /wallets\.length === 1/);
   assert.match(providers, /<WalletServiceProvider privyEnabled=\{Boolean\(appId\)\}>/);
   assert.doesNotMatch(providers, /NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID|walletConnectProjectId/);
   assert.doesNotMatch(providers, /Reown|WalletConnect/);

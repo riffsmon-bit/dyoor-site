@@ -3,6 +3,7 @@ import {
   getRuntimeMetadataConfig,
   parseTokenId,
 } from "@/lib/dyoor-s2-metadata.js";
+import { ipfsGatewayUrl } from "@/lib/ipfs-gateway";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -13,9 +14,7 @@ type Context = {
 
 function publicImageUrl(value: unknown, origin: string) {
   const image = String(value || "").trim();
-  if (image.startsWith("ipfs://")) {
-    return `https://jade-efficient-beaver-697.mypinata.cloud/ipfs/${image.slice(7)}`;
-  }
+  if (image.startsWith("ipfs://")) return ipfsGatewayUrl(image);
   if (image.startsWith("/")) return `${origin}${image}`;
   try {
     const url = new URL(image);
