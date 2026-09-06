@@ -3,7 +3,6 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import { HoodYoorCollectionInfo } from "@/components/robinhood/HoodYoorCollectionInfo";
 import {
   normalizeRobinhoodGtdWallet,
   ROBINHOOD_GTD_CHAIN_ID,
@@ -39,7 +38,6 @@ function shortAddress(address: string) {
 function friendlyWalletError(error: unknown) {
   const message = error instanceof Error ? error.message : String(error || "");
   if (/rejected|denied|cancel|closed/i.test(message)) return "The signature request was cancelled. Your wallet was not submitted.";
-  if (/Netlify Blobs|siteID.*token/i.test(message)) return "GTD registration status is temporarily unavailable. Please try again shortly.";
   return message || "We could not confirm this wallet. Please try again.";
 }
 
@@ -59,19 +57,10 @@ function displayDate(value?: string) {
 export function RobinhoodGtdClient() {
   const wallet = useWalletService();
   const walletAddress = normalizeRobinhoodGtdWallet(wallet.address);
-  return (
-    <RobinhoodGtdSession
-      key={walletAddress || "disconnected"}
-      wallet={wallet}
-      walletAddress={walletAddress}
-    />
-  );
+  return <RobinhoodGtdSession key={walletAddress || "disconnected"} wallet={wallet} walletAddress={walletAddress} />;
 }
 
-function RobinhoodGtdSession({
-  wallet,
-  walletAddress,
-}: {
+function RobinhoodGtdSession({ wallet, walletAddress }: {
   wallet: ReturnType<typeof useWalletService>;
   walletAddress: string;
 }) {
@@ -191,15 +180,6 @@ function RobinhoodGtdSession({
             </span>
           </Link>
           <div className="flex shrink-0 items-center gap-2">
-            <a href="#collection" className="hidden rounded-full px-3 py-2 text-[0.62rem] font-black uppercase tracking-[0.12em] text-white/45 transition hover:text-[#c7ff00] md:block">
-              Collection
-            </a>
-            <a href="#contracts" className="hidden rounded-full px-3 py-2 text-[0.62rem] font-black uppercase tracking-[0.12em] text-white/45 transition hover:text-[#c7ff00] lg:block">
-              Contracts
-            </a>
-            <Link href="/robinhood/droids" className="rounded-full border border-[#c7ff00]/25 bg-[#c7ff00]/[0.06] px-3 py-2 text-[0.62rem] font-black uppercase tracking-[0.12em] text-[#c7ff00] transition hover:bg-[#c7ff00] hover:text-black">
-              Droid OS
-            </Link>
             <span className="hidden rounded-full border border-white/10 bg-white/[0.04] px-3 py-2 text-[0.62rem] font-black uppercase tracking-[0.14em] text-white/55 sm:block">
               Robinhood Chain
             </span>
@@ -221,70 +201,49 @@ function RobinhoodGtdSession({
         </div>
       </header>
 
-      <section className="relative overflow-hidden border-b border-[#c7ff00]/20">
-        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_78%_35%,rgba(199,255,0,.14),transparent_35%),linear-gradient(135deg,#070a06_0%,#070a06_55%,#10190b_100%)]" />
-        <div className="pointer-events-none absolute -right-32 top-8 h-96 w-96 rounded-full border border-[#c7ff00]/10 shadow-[0_0_140px_rgba(199,255,0,.08)]" />
-        <div className="relative z-10 mx-auto grid min-h-[44rem] max-w-7xl items-center gap-10 px-5 py-12 lg:grid-cols-[1.05fr_0.95fr] lg:py-16">
-          <div className="max-w-3xl">
-            <p className="inline-flex items-center gap-2 rounded-full border border-[#c7ff00]/30 bg-black/35 px-3 py-2 text-[0.65rem] font-black uppercase tracking-[0.18em] text-[#c7ff00] backdrop-blur-md">
+      <section className="relative min-h-[43rem] overflow-hidden border-b border-[#c7ff00]/20 sm:min-h-[36rem]">
+        <picture className="absolute inset-0 block h-full w-full">
+          <source media="(max-width: 639px)" srcSet="/assets/robinhood/hoodyoor-gtd-hero-mobile.png" />
+          {/* The campaign handoff supplies distinct art-direction crops, so a native picture is intentional here. */}
+          <img
+            src="/assets/robinhood/hoodyoor-gtd-hero-desktop.png"
+            alt="HoodYØØR collection artwork"
+            width={1942}
+            height={809}
+            fetchPriority="high"
+            className="h-full w-full object-cover object-center sm:object-right-center"
+          />
+        </picture>
+        <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(5,10,5,.88)_0%,rgba(5,10,5,.60)_45%,rgba(5,10,5,.10)_72%,rgba(5,10,5,.24)_100%)] sm:bg-[linear-gradient(90deg,rgba(5,10,5,.98)_0%,rgba(5,10,5,.88)_35%,rgba(5,10,5,.30)_61%,rgba(5,10,5,.04)_100%)]" />
+        <div className="absolute inset-x-0 bottom-0 h-48 bg-gradient-to-t from-[#070a06] via-[#070a06]/70 to-transparent" />
+        <div className="relative z-10 mx-auto flex min-h-[43rem] max-w-7xl items-start px-5 py-12 sm:min-h-[36rem] sm:items-center sm:py-16">
+          <div className="w-full max-w-2xl">
+            <p className="inline-flex items-center gap-2 rounded-full border border-[#c7ff00]/30 bg-black/45 px-3 py-2 text-[0.65rem] font-black uppercase tracking-[0.18em] text-[#c7ff00] backdrop-blur-md">
               <span className="h-1.5 w-1.5 rounded-full bg-[#c7ff00] shadow-[0_0_12px_#c7ff00]" />
-              Droid Account protocol · mainnet online
+              GTD wallet confirmation
             </p>
-            <h1 className="mt-6 max-w-3xl text-5xl font-black uppercase leading-[0.86] tracking-[-0.075em] text-white min-[380px]:text-6xl sm:text-6xl 2xl:text-7xl">
-              Droids don&apos;t<br />sit in wallets.<br />
-              <span className="text-[#c7ff00]">Droids have wallets.</span>
+            <h1 className="mt-5 max-w-xl text-4xl font-black uppercase leading-[0.88] tracking-[-0.07em] text-white drop-shadow-[0_8px_30px_rgba(0,0,0,.65)] min-[360px]:text-5xl sm:text-7xl md:text-8xl">
+              Your spot.<br />
+              <span className="text-[#c7ff00]">Your wallet.</span>
             </h1>
-            <p className="mt-6 max-w-2xl text-base font-semibold leading-7 text-white/58 sm:text-lg sm:leading-8">
-              HoodYØØR is a fully onchain collection of programmable pixel Droids on Robinhood Chain. Every eligible NFT now has its own deterministic smart account, controlled by whoever owns the Droid.
+            <p className="mt-6 max-w-xl text-base font-semibold leading-7 text-white/68 sm:text-lg sm:leading-8">
+              Confirm the EVM wallet you want on the HoodYØØR guaranteed list. One gasless signature is all it takes.
             </p>
-            <div className="mt-7 flex flex-wrap gap-3">
-              <Link href="/robinhood/droids" className="rounded-xl bg-[#c7ff00] px-5 py-3 text-xs font-black uppercase tracking-[0.11em] text-black transition hover:brightness-105">
-                Open Droid OS
-              </Link>
-              <a href="#collection" className="rounded-xl border border-white/15 bg-black/20 px-5 py-3 text-xs font-black uppercase tracking-[0.11em] text-white/70 transition hover:border-[#c7ff00]/40 hover:text-[#c7ff00]">
-                Explore HoodYØØR
-              </a>
-              <a href="#confirm-wallet" className="rounded-xl border border-[#c7ff00]/20 px-5 py-3 text-xs font-black uppercase tracking-[0.11em] text-[#c7ff00]/75 transition hover:border-[#c7ff00]/50">
-                Confirm GTD wallet
-              </a>
-            </div>
-            <div className="mt-8 grid max-w-2xl grid-cols-3 overflow-hidden rounded-2xl border border-[#c7ff00]/15 bg-black/25 backdrop-blur-md">
+            <div className="mt-7 hidden max-w-xl grid-cols-3 overflow-hidden rounded-2xl border border-[#c7ff00]/20 bg-black/35 backdrop-blur-md sm:grid">
               {[
-                ["3,333", "Fixed supply"],
-                ["Onchain", "Art + traits"],
+                ["3,333", "Total supply"],
+                ["On-chain", "Collection art"],
                 [String(ROBINHOOD_GTD_CHAIN_ID), "Chain ID"],
               ].map(([value, label], index) => (
-                <div className={`px-3 py-4 sm:px-4 ${index ? "border-l border-[#c7ff00]/12" : ""}`} key={label}>
-                  <p className="text-xs font-black uppercase text-white sm:text-sm">{value}</p>
-                  <p className="mt-1 text-[0.48rem] font-black uppercase tracking-[0.12em] text-[#c7ff00]/55 sm:text-[0.55rem]">{label}</p>
+                <div className={`px-4 py-3 ${index ? "border-l border-[#c7ff00]/15" : ""}`} key={label}>
+                  <p className="text-sm font-black uppercase text-white">{value}</p>
+                  <p className="mt-1 text-[0.55rem] font-black uppercase tracking-[0.14em] text-[#c7ff00]/65">{label}</p>
                 </div>
               ))}
             </div>
-          </div>
-
-          <div className="relative mx-auto w-full max-w-2xl lg:max-w-none">
-            <div className="grid grid-cols-2 gap-3 sm:gap-4">
-              {[
-                "/assets/robinhood/collection/hoodyoor-assignment-2054.png",
-                "/assets/robinhood/collection/hoodyoor-assignment-0420.png",
-                "/assets/robinhood/collection/hoodyoor-assignment-0001.png",
-                "/assets/robinhood/collection/hoodyoor-assignment-0777.png",
-              ].map((src, index) => (
-                <div className={`relative aspect-square overflow-hidden rounded-[1.25rem] border border-white/15 bg-[#11180d] shadow-[0_25px_70px_rgba(0,0,0,.35)] ${index % 2 ? "translate-y-5" : ""}`} key={src}>
-                  <Image
-                    src={src}
-                    alt="Exact HoodYØØR onchain collection render"
-                    fill
-                    priority={index === 0}
-                    sizes="(min-width: 1024px) 24vw, 46vw"
-                    className="object-cover [image-rendering:pixelated]"
-                  />
-                  <span className="absolute bottom-2 left-2 rounded-full border border-black/20 bg-black/55 px-2 py-1 text-[0.48rem] font-black uppercase tracking-[0.12em] text-white/65 backdrop-blur-sm">
-                    Frozen render
-                  </span>
-                </div>
-              ))}
-            </div>
+            <a className="mt-6 inline-flex items-center gap-2 text-xs font-black uppercase tracking-[0.15em] text-[#c7ff00]" href="#confirm-wallet">
+              Confirm below <span aria-hidden="true">↓</span>
+            </a>
           </div>
         </div>
       </section>
@@ -293,11 +252,11 @@ function RobinhoodGtdSession({
         <div className="grid overflow-hidden rounded-[1.75rem] border border-[#c7ff00]/25 bg-[#0c110b] shadow-[0_30px_100px_rgba(0,0,0,.65),0_0_55px_rgba(199,255,0,.08)] lg:grid-cols-[0.8fr_1.2fr]">
           <div className="relative hidden min-h-[38rem] overflow-hidden bg-[#c7ff00] lg:block">
             <Image
-              src="/assets/robinhood/collection/hoodyoor-assignment-1337.png"
-              alt="Exact HoodYØØR onchain assignment render"
+              src="/assets/robinhood/hoodyoor-robinhood-droid.png"
+              alt="HoodYØØR droid wearing Robinhood traits"
               fill
               sizes="(min-width: 1024px) 40vw, 0px"
-              className="object-cover object-center [image-rendering:pixelated]"
+              className="object-cover object-center"
             />
             <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/75 via-black/20 to-transparent p-7 pt-24">
               <p className="text-[0.62rem] font-black uppercase tracking-[0.2em] text-[#c7ff00]">Built fully on-chain</p>
@@ -427,13 +386,8 @@ function RobinhoodGtdSession({
           <p className="mx-auto mt-4 max-w-2xl text-sm font-semibold leading-7 text-white/45">
             Keep access to the confirmed wallet and follow official DYOOR updates for collection timing and mint instructions. We will never ask for your seed phrase or private key.
           </p>
-          <p className="mx-auto mt-3 max-w-2xl text-xs font-semibold leading-6 text-white/32">
-            Secondary transfers and new marketplace approvals remain locked until total minted supply reaches 1,667, including the 150-token owner reserve, unless the collection owner announces and executes the permanent early unlock.
-          </p>
         </div>
       </section>
-
-      <HoodYoorCollectionInfo />
 
       <footer className="relative z-10 border-t border-[#c7ff00]/12 bg-black/25">
         <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-3 px-5 py-7 text-center sm:flex-row sm:text-left">
