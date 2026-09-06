@@ -79,6 +79,17 @@ contract transaction). Roots themselves are allowlisted for portable CAR
 exports as well as individual asset paths. Run `node scripts/check-ipfs-gateway.mjs`
 from the repository root for read-only HTTP/image/admin-isolation checks.
 
+For full backups, prefer `ipfs dag export CID` from a completely pinned local
+mirror. A long HTTP CAR download can finish with status 200 yet be truncated by
+a streaming timeout. Neither HTTP success nor a checksum proves completeness.
+Restore the archives into a **new, empty, offline** Kubo repository, require
+successful `ipfs --offline dag import --pin-roots=true ...`, and verify every
+expected root there. Enable `Datastore.HashOnRead` in that recovery repository.
+Stop on any import error; never let a later successful command hide its exit
+status. `pin verify` output must say `ok` for every expected root, not merely
+return a successful process exit code. Verification against S3 is sequential
+and may take substantially longer than an individual-image smoke check.
+
 ## Rerolls and recovery
 
 IPFS stores immutable originals and layer assets. Live saved versions, Energy,
