@@ -112,6 +112,8 @@ test("hosted IPFS administration is private and backing-store credentials are no
   assert.match(caddy, /DYOOR assets only/);
   assert.match(start, /Datastore.HashOnRead true/);
   assert.match(start, /Addresses.Announce/);
+  assert.match(start, /Swarm.AddrFilters/);
+  assert.match(start, /100\.64\.0\.0\/ipcidr\/10/);
   for (const cid of fs.readFileSync("infra/ipfs/dyoor-cids.txt", "utf8").split(/\r?\n/).map(line => line.replace(/#.*/, "").trim()).filter(Boolean)) {
     assert.ok(caddy.includes(`/ipfs/${cid}/*`), `Missing gateway allowlist for ${cid}`);
   }

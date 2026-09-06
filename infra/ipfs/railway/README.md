@@ -50,6 +50,9 @@ target is 600 MiB. These are resource ceilings, not a fixed-price billing cap.
 The public TCP proxy targets container port 4001. Announce its actual public
 hostname and port, not an unreachable container address, so external IPFS peers
 can retrieve the preserved CIDs. Update `IPFS_SWARM_ANNOUNCE` if the proxy changes.
+Railway forwards TCP connections from `100.64.0.0/10`. Startup removes only that
+range from the server profile's swarm blocklist; all other private-address
+filters and all `NoAnnounce` rules remain. The admin API stays on loopback.
 After a network-address change, re-announce the collection roots with
 `ipfs provide once CID` and verify peer connectivity from outside Railway.
 
