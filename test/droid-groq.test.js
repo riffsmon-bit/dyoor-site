@@ -1,11 +1,20 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import { emptyState } from "../lib/droid-os/ask/schema.ts";
 import { configuredIntelligence, DroidIntelligenceOrchestrator } from "../lib/droid-os/ask/intelligence.ts";
 import { GROQ_MODEL, GROQ_REQUEST_BYTES, groqProvider, groqRequest } from "../lib/droid-os/ask/groq.ts";
 
 const input = () => ({ tokenId: "11", state: emptyState(), message: "Help me research free mints" });
 const valid = () => ({ model: GROQ_MODEL, choices: [{ finish_reason: "stop", message: { role: "assistant", content: JSON.stringify({ version: 1, intent: "RESEARCH_DRAFT", text: "Start by checking the mint contract." }) } }], usage: { prompt_tokens: 600, completion_tokens: 100 } });
+
+test("only non-secret AI selection is build-inlined; production cannot enable it", async () => {
+  const config = readFileSync(new URL("../next.config.mjs", import.meta.url), "utf8");
+  assert.doesNotMatch(config, /DROID_AI_(GROQ|OPENAI)_API_KEY/);
+  assert.match(config, /DROID_AI_ENABLED: droidOsPreviewEnabled\(process.env\) && process.env.DROID_AI_ENABLED === "true"/);
+  const source = readFileSync(new URL("../lib/droid-os/ask/intelligence.ts", import.meta.url), "utf8");
+  for (const key of ["DROID_AI_ENABLED", "DROID_AI_PROVIDER", "DROID_AI_MODEL"]) assert.ok(source.includes(`${key}: process.env.${key}`));
+});
 
 test("Groq config is explicit, model-pinned, disabled by default, with no paid fallback", async () => {
   const env = { DROID_AI_ENABLED: "true", DROID_AI_PROVIDER: "groq", DROID_AI_MODEL: GROQ_MODEL, DROID_AI_GROQ_API_KEY: "test-key", DROID_AI_OPENAI_API_KEY: "unused" };

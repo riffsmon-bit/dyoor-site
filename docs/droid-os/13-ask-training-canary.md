@@ -18,13 +18,13 @@ Server-only configuration, when the operator chooses to enable a provider test:
 
 | Variable | Purpose |
 | --- | --- |
-| `DROID_AI_PROVIDER` | Explicit `groq` for this canary; omitted retains legacy OpenAI selection, never automatic fallback |
+| `DROID_AI_PROVIDER` | Builds-only Deploy Previews: explicit `groq`; omitted retains legacy OpenAI selection, never automatic fallback |
 | `DROID_AI_GROQ_API_KEY` | Groq credential, Functions-only Deploy Previews secret |
 | `DROID_AI_OPENAI_API_KEY` | Dedicated restricted API-project credential, never `NEXT_PUBLIC_*` |
-| `DROID_AI_MODEL` | `openai/gpt-oss-20b` for Groq; other Groq models deny until separately reviewed |
-| `DROID_AI_ENABLED` | Must be exactly `true`; default disabled |
+| `DROID_AI_MODEL` | Builds-only Deploy Previews: `openai/gpt-oss-20b`; other Groq models deny until reviewed |
+| `DROID_AI_ENABLED` | Builds-only Deploy Previews: must be exactly `true`; default disabled; production build forces false |
 
-Scope these to deploy-preview functions, not production/build/client scopes. Do not paste credentials into chat or source control. Normal UX stays provider-neutral. The abstraction now has OpenAI and Groq adapters; Claude/xAI Grok/Bankr are not integrated. Groq (hosting) is not xAI Grok (model). Remain on Groq's Free plan; app code cannot ensure the operator has not upgraded the provider account. Do not enable paid fallback. Enable Zero Data Retention in Groq's dashboard before sharing private conversations; this setting cannot be inferred from a working API key and has not been verified here.
+Scope credentials to deploy-preview Functions only, never Builds or production. Non-secret selection/enable settings are Builds-only and inlined explicitly by Next; changes require a rebuild. Do not paste credentials into chat or source control. Normal UX stays provider-neutral. The abstraction now has OpenAI and Groq adapters; Claude/xAI Grok/Bankr are not integrated. Groq (hosting) is not xAI Grok (model). Remain on Groq's Free plan; app code cannot ensure the operator has not upgraded the provider account. Do not enable paid fallback. Enable Zero Data Retention in Groq's dashboard before sharing private conversations; this setting cannot be inferred from a working API key and has not been verified here.
 
 ### Groq free-tier boundary
 
@@ -69,6 +69,7 @@ An immutable STARTED attempt is recorded before a provider call and redacted usa
 
 - Groq addition: 22 ASK/provider tests passed, including shared cross-owner minute/day caps, bounded Unicode input, wrong-model/tool-call/refusal/truncation rejection and zero fallback calls. TypeScript and ESLint passed. Existing roster/UI (19), ASSIST (52), website (71) and Trait Lab (7) tests passed. Rendered fixture load/save/reload/chat passed at 1440/390/360px with no horizontal overflow; the 390px screen was visually inspected. These are mocked provider/UI checks, not a successful live Groq reply.
 - Local optimized webpack production build passed with existing optional Privy Stripe/Farcaster module warnings. No Groq endpoint or Groq secret environment-variable reference appeared in the browser JavaScript. The actual Groq secret is unavailable locally and was not part of that build or a value-based local secret scan.
+- First hosted upload hit Netlify legacy Lambda's 4KB environment limit. The three newly added, non-secret AI selection/enable variables were moved to Builds-only scope and explicitly inlined by Next, with production forced disabled. The Groq credential remains Functions-only and no existing runtime secret was removed or rescaled. An additional regression test checks this boundary (23 ASK/provider tests total).
 - ASK unit tests: closed schemas, owner save/reload with provider absent, wrong signature/origin/identity, expiry, concurrent replay, stale revisions, owner transfer/private-state separation, mocked A→B→A proof rejection, quotas, durable local store, strict provider config, malformed/refused/tool-call/incomplete output, oversized output, storage HTTP errors, no fake fallback or automatic paid retry.
 - Live read-only check: Droid 11, chain 143, owner `0xc7f55ce6a7df9a79cc4a643a5081230f890c7aa6`, block 102561073 / hash `0xc5f3cc3cf0615bbc47004ab587929a76347cf0ccd16199967cb3512bc0172f1f`; unchanged check passed. This is a timestamped observation, not ongoing authority.
 - `scripts/test-droid-ask-ui.mjs`: actual rendered components at 1440, 390 and 360 pixels; fixture load/save/reload/chat, hit-tested buttons, no horizontal overflow. Screenshots visually reviewed. Browser tests use explicit UI fixtures and perform **zero real wallet signatures, AI calls or production writes**; Backpack end-to-end testing still requires the owner.

@@ -49,7 +49,14 @@ export class DroidIntelligenceOrchestrator {
     return { ...result, reply: parseReply(result.reply) };
   }
 }
-export function configuredIntelligence(env: NodeJS.ProcessEnv = process.env) {
+export function configuredIntelligence(env: Record<string, string | undefined> = {
+  // Explicit references let Next inline only these non-secret build settings.
+  DROID_AI_ENABLED: process.env.DROID_AI_ENABLED,
+  DROID_AI_PROVIDER: process.env.DROID_AI_PROVIDER,
+  DROID_AI_MODEL: process.env.DROID_AI_MODEL,
+  DROID_AI_GROQ_API_KEY: process.env.DROID_AI_GROQ_API_KEY,
+  DROID_AI_OPENAI_API_KEY: process.env.DROID_AI_OPENAI_API_KEY,
+}) {
   const enabled = env.DROID_AI_ENABLED === "true";
   const provider = env.DROID_AI_PROVIDER || "openai"; // Preserve explicitly configured legacy OpenAI setups.
   const model = env.DROID_AI_MODEL || "";

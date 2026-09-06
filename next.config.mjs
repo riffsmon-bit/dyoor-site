@@ -61,6 +61,11 @@ const nextConfig = {
     DROID_OS_UI_PREVIEW: droidOsPreviewEnabled(process.env) ? "true" : "false",
     DROID_OS_PREVIEW_ORIGIN: droidOsPreviewOrigin(process.env),
     DROID_OS_LOCAL_MODE: droidOsPreviewEnabled(process.env) && !process.env.CONTEXT ? "true" : "false",
+    // Non-secret AI selection only. Keep these out of legacy Lambda's 4KB
+    // runtime environment budget. The provider credential is NEVER inlined.
+    DROID_AI_ENABLED: droidOsPreviewEnabled(process.env) && process.env.DROID_AI_ENABLED === "true" ? "true" : "false",
+    DROID_AI_PROVIDER: process.env.DROID_AI_PROVIDER || "",
+    DROID_AI_MODEL: process.env.DROID_AI_MODEL || "",
   },
   reactStrictMode: true,
   poweredByHeader: false,
