@@ -103,6 +103,10 @@
 .world-sidebar-note svg { flex: none; width: 16px; }
 .world-sidebar-note span { display: block; color: #8e8e9f; margin-top: 5px; }
 .world-conversation { height: 100%; min-height: 0; background: #0c0c12; }
+.world-conversation-trade { overflow-y: auto; }
+.world-conversation-trade > * { flex-shrink: 0; }
+.world-conversation-trade .world-trade-panel { flex: none; }
+.world-conversation-trade .world-trade-messages { flex: none; height: 28rem; }
 .world-channel-context { padding: 23px 28px 20px; border-color: var(--world-line); flex: none; }
 .world-channel-title { display: flex; gap: 10px; align-items: center; font-size: 22px; font-weight: 500; line-height: 1.35; letter-spacing: -.035em; margin-top: 6px; }
 .world-channel-title svg { color: #39ffe2; width: 21px; }
