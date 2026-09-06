@@ -18,6 +18,10 @@ Public launch constraints and the receipt are in `deployments/`. The fixed deplo
 
 Route: `/droid-os/assist`, gated by the existing **build-context-filtered** Droid OS preview switch. Netlify runtime functions need not expose build-only environment variables; the route uses the explicitly inlined constant from `next.config.mjs`, like the existing cockpit. Production/branch contexts cannot enable it. The main cockpit remains read-only.
 
+**Hosted wallet connection blocker observed at 2026-09-06 17:34 UTC:** Privy returned a `frame-ancestors` policy permitting preview #25, dyoor.fun, www.dyoor.fun and localhost:3200, but not preview #29. The browser blocked its embedded-wallet initialization document and the connect button remained unavailable. Add only `https://deploy-preview-29--dyoor.netlify.app` under Configuration → App settings → Domains → Allowed origins, preserving existing restrictions, then reload. No management credential is available in the local project; the dashboard owner must make this change. Do not disable the allowlist, use a broad hosting wildcard, bypass wallet warnings, or rotate keys. [Official configuration instructions](https://docs.privy.io/recipes/dashboard/allowed-domains).
+
+The hosted route and layout were verified after the route-gate fix, with no hydration errors. Real Privy connection and owner-signed mainnet activation/mint remain **unverified and pending this domain configuration**. Mocked-wallet tests do not prove the external Privy integration works.
+
 1. Connect the current owner of Droid #11; switch to Monad 143 if needed.
 2. Review activation. Inspect target, zero MON value and quoted gas ceiling. Explicitly acknowledge mainnet gas, then approve in the wallet.
 3. Wait for the canonical receipt and expected registry event. Two additional blocks are required before UI confirmation.
