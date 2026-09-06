@@ -8,12 +8,16 @@ type ArtworkState = { status: "loading" | "ready" | "error"; data?: LiveArtwork 
 
 export function useLiveArtwork() {
   const [artwork, setArtwork] = useState<Record<string, ArtworkState>>({});
+  const [refreshKey, setRefreshKey] = useState(0);
   const request = useRef<AbortController | null>(null);
   const refresh = useCallback(() => {
     request.current?.abort();
+    setArtwork(Object.fromEntries(PREVIEW_DROIDS.map(({ id }) => [id, { status: "loading" }])));
+    setRefreshKey(previous => previous + 1);
+  }, []);
+  useEffect(() => {
     const controller = new AbortController();
     request.current = controller;
-    setArtwork(Object.fromEntries(PREVIEW_DROIDS.map(({ id }) => [id, { status: "loading" }])));
     for (const { id } of PREVIEW_DROIDS) {
       void (async () => {
         try {
@@ -29,7 +33,7 @@ export function useLiveArtwork() {
         }
       })();
     }
-  }, []);
-  useEffect(() => { refresh(); return () => request.current?.abort(); }, [refresh]);
+    return () => controller.abort();
+  }, [refreshKey]);
   return { artwork, refresh };
 }
