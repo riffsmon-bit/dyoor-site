@@ -35,4 +35,14 @@ Status: preliminary diagnosis with an authorized, preview-only display fix. User
 
 ## Baseline tests
 
+## Confirmed recovery and production hotfix
+
+The user subsequently harvested. Claim `0x082f9ad4b86117452f20e1e967d564ee3d159a8edf79b910e256d25345d28d63` succeeded at block 102550638 for 57,134.393333333333333333 Energy, but the Alchemy-backed receipt RPC returned HTTP 429, preventing ledger/bank credit. This is a separate confirmed cause from the pending display defect described above.
+
+With explicit user authorization, the Energy-only PR #30 was tested and deployed as production commit `ed9cd27c5a29f74b56844a9216c29826521f6c95`. A private backup of all 115 Energy-store objects completed with zero errors. One recovery POST supplied only the verified wallet and original claim hash to the repaired production sync endpoint.
+
+Credit transaction `0x36d5a9d0d22873c1379cf96d529a78425990b0768664890f09f99517df2651c4` succeeded at block 102554708. Independent checks confirmed the exact EnergyCredited amount/user/claim hash, usedClaimTxHash=true, one matching durable ledger entry and stored harvest event, and the exact lifetime increase. The website showed 86,493.279999999999999998 harvested and 82,038.444062499999999989 spendable Energy after existing Trait Lab debits. Credit gas cost was 0.01632 MON. No second harvest was submitted. Other wallets have not been backfilled.
+
+### Earlier baseline test limitations
+
 The first direct Node run passed the four Trait Lab authorization tests and wallet parser test. Four Energy Bank contract tests could not start because the worktree lacked the compiled `DYOOREnergyBank` Hardhat artifact; this is a test prerequisite failure, not evidence of a live contract defect. A subsequent `npx hardhat compile` failed with HHE902 resolving `@droid-oz/token/ERC721/ERC721.sol` from the separate Foundry V2 subtree. The chained contract-test rerun therefore did not run. Do not alter frozen deployed canary source, dependencies or compiler settings merely to make this legacy suite pass; isolate the legacy build in follow-up work.
