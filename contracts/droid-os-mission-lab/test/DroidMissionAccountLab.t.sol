@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.24;
 import {DroidMissionAccountLab} from "../src/DroidMissionAccountLab.sol";
+import {DroidMissionAccountCoreLab} from "../src/DroidMissionAccountCoreLab.sol";
 import {EpochParentLab, MissionMintLab} from "../src/MissionFixtures.sol";
 
 interface Vm {
@@ -64,8 +65,8 @@ contract DroidMissionAccountLabTest {
         vm.deal(address(account), 50 ether);
     }
 
-    function limits() private view returns (DroidMissionAccountLab.Limits memory) {
-        return DroidMissionAccountLab.Limits(
+    function limits() private view returns (DroidMissionAccountCoreLab.Limits memory) {
+        return DroidMissionAccountCoreLab.Limits(
             RUNNER,
             uint64(block.timestamp),
             uint64(block.timestamp + 3 days),
@@ -77,7 +78,7 @@ contract DroidMissionAccountLabTest {
     }
 
     function launch() private {
-        DroidMissionAccountLab.Limits memory l = limits();
+        DroidMissionAccountCoreLab.Limits memory l = limits();
         uint256 nonce = account.actionNonce();
         uint256 epoch = parent.ownershipEpoch(11);
         vm.prank(A);
@@ -122,7 +123,7 @@ contract DroidMissionAccountLabTest {
     function testNonOwnerCannotLaunchEvenIfApprovedForNFT() public {
         vm.prank(A);
         parent.approve(RUNNER, 11);
-        DroidMissionAccountLab.Limits memory l = limits();
+        DroidMissionAccountCoreLab.Limits memory l = limits();
         vm.prank(RUNNER);
         vm.expectRevert();
         account.launch(l, 0, 1);
@@ -175,7 +176,7 @@ contract DroidMissionAccountLabTest {
     }
 
     function testNotYetValidDenied() public {
-        DroidMissionAccountLab.Limits memory l = limits();
+        DroidMissionAccountCoreLab.Limits memory l = limits();
         l.validAfter += 100;
         vm.prank(A);
         account.launch(l, 0, 1);
@@ -193,7 +194,7 @@ contract DroidMissionAccountLabTest {
 
     function testFuzzFreeMintCannotSpendReserve(uint96 balance) public {
         vm.deal(address(account), balance);
-        DroidMissionAccountLab.Limits memory l = limits();
+        DroidMissionAccountCoreLab.Limits memory l = limits();
         l.protectedReserveWei = balance;
         vm.prank(A);
         account.launch(l, 0, 1);
@@ -232,7 +233,7 @@ contract DroidMissionAccountLabTest {
     }
 
     function testTransferInvalidatesPreviouslyPreparedOwnerLaunch() public {
-        DroidMissionAccountLab.Limits memory l = limits();
+        DroidMissionAccountCoreLab.Limits memory l = limits();
         transfer(A, B);
         transfer(B, A);
         vm.prank(A);
@@ -313,7 +314,7 @@ contract DroidMissionAccountLabTest {
     }
 
     function testInvalidLimitsDenied() public {
-        DroidMissionAccountLab.Limits memory l = limits();
+        DroidMissionAccountCoreLab.Limits memory l = limits();
         l.maxActions = 0;
         vm.prank(A);
         vm.expectRevert();

@@ -2,6 +2,8 @@
 
 September 6, 2026. **Implemented locally; no public deployment, financial autonomy activation, new deposit address, or chat launch button.** The deployed ASSIST badge account and current ASK chat are unchanged.
 
+Follow-up: the user subsequently approved building the opt-in wrapper design. [Report 15](15-opt-in-control-receipt-lab.md) records the local implementation, real-collection fork findings and remaining production gates. This does not authorize a live NFT deposit or public deployment.
+
 ## Outcome and architecture boundary
 
 The isolated Anvil flow demonstrates an owner signing one bounded launch transaction, followed by a separate runner submitting a fixed free mint without another owner signature. The NFT arrives in the Droid account. Funding is owner → Droid, not a project custody wallet. The runner pays its own local transaction gas. Replay, cancellation, old ownership and ownership round trips deny further runner actions.

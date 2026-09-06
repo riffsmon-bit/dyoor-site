@@ -39,5 +39,6 @@ jobs:
       - run: npm run test:droid-v2
       - run: npm run test:droid-missions
       - run: npm run test:droid-mission-flow
+      - run: npm run test:droid-wrapper-flow
       - run: npm run test:droid-contract-flow
       - run: npm run build
