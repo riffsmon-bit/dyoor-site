@@ -32,6 +32,7 @@ import {
 import type { DroidAccountApiResponse } from "@/lib/droid-accounts/types";
 import { getStorageItem, removeStorageItem, setStorageJson } from "@/lib/browser-storage";
 import { ipfsGatewayUrl } from "@/lib/ipfs-gateway";
+import { formatEnergyDisplay } from "@/lib/energy-display";
 import { IpfsImage } from "@/components/ui/IpfsImage";
 import { useWalletService } from "@/providers/WalletServiceProvider";
 
@@ -755,6 +756,8 @@ export function TraitLabClient() {
   const [error, setError] = useState("");
   const selectedTokenIdRef = useRef("");
   const metadataRequestRef = useRef(0);
+  const energyRequestRef = useRef(0);
+  const energyWalletRef = useRef(walletAddress);
   const activeRestoreRequestRef = useRef(0);
 
   const selectedTraits = useMemo(() => traitMap(metadata), [metadata]);
@@ -888,21 +891,37 @@ export function TraitLabClient() {
   }, []);
 
   const loadEnergy = useCallback(async () => {
+    // A completed action may still hold the previous wallet's callback.
+    if (walletAddress !== energyWalletRef.current) return;
+    const requestId = ++energyRequestRef.current;
+    setEnergy(null);
     if (!walletAddress) {
-      setEnergy(null);
+      setEnergyLoading(false);
       return;
     }
     setEnergyLoading(true);
     try {
-      const response = await fetch(`/api/energy/${encodeURIComponent(walletAddress)}`, { cache: "no-store" });
+      const response = await fetch(`/api/energy/${encodeURIComponent(walletAddress)}`, {
+        cache: "no-store",
+        signal: AbortSignal.timeout(15_000),
+      });
       const data = await response.json().catch(() => ({})) as EnergyResponse;
-      if (!response.ok || data.ok === false) throw new Error(data.error || "Could not load Energy balance.");
-      setEnergy(data);
+      if (!response.ok || data.ok !== true || typeof data.spendableEnergy !== "string" || typeof data.spentEnergy !== "string") {
+        throw new Error(data.error || "Could not load Energy balance. Please retry.");
+      }
+      if (requestId === energyRequestRef.current) setEnergy(data);
     } catch (err) {
-      setEnergy({ ok: false, error: err instanceof Error ? err.message : "Could not load Energy balance." });
+      if (requestId === energyRequestRef.current) {
+        setEnergy({ ok: false, error: err instanceof Error && err.name !== "TimeoutError" ? err.message : "Energy balance request timed out. Please retry." });
+      }
     } finally {
-      setEnergyLoading(false);
+      if (requestId === energyRequestRef.current) setEnergyLoading(false);
     }
+  }, [walletAddress]);
+
+  useEffect(() => {
+    energyWalletRef.current = walletAddress;
+    return () => { energyRequestRef.current += 1; };
   }, [walletAddress]);
 
   const loadBurnedGallery = useCallback(async () => {
@@ -1699,11 +1718,20 @@ export function TraitLabClient() {
 
       <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
         <StatCard label="Wallet Connect Status" value={walletAddress ? shortAddress(walletAddress) : "Disconnected"} />
-        <StatCard label="Energy Balance" value={energyLoading ? "Loading" : energy?.spendableEnergy || "-"} />
-        <StatCard label="Spent Energy" value={energyLoading ? "Loading" : energy?.spentEnergy || "-"} />
+        <StatCard label="Energy Balance" value={energyLoading ? "Loading" : energy?.ok === false ? "Unavailable" : <span title={energy?.spendableEnergy}>{formatEnergyDisplay(energy?.spendableEnergy)}</span>} />
+        <StatCard label="Spent Energy" value={energyLoading ? "Loading" : energy?.ok === false ? "Unavailable" : <span title={energy?.spentEnergy}>{formatEnergyDisplay(energy?.spentEnergy)}</span>} />
         <StatCard label="Owned Droids" value={ownedLoading ? "Loading" : ownedTokenIds.length.toString()} />
         <StatCard label="Metadata Version" value={metadataLoading ? "Loading" : metadata ? metadataVersion(metadata) : "-"} />
       </section>
+
+      {walletAddress && energy?.ok === false ? (
+        <Alert tone="danger">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <span>{energy.error || "Energy balance is temporarily unavailable."} Your Energy has not been reset.</span>
+            <Button onClick={() => void loadEnergy()} disabled={energyLoading}>Retry Energy balance</Button>
+          </div>
+        </Alert>
+      ) : null}
 
       {energy?.energyBankSyncPending ? (
         <Alert tone="danger">

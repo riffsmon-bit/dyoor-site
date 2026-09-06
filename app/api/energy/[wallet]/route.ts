@@ -2,7 +2,9 @@ import { ethers } from "ethers";
 import { DEFAULT_ENERGY_BANK_CONTRACT } from "@/lib/contracts/addresses";
 import { effectiveEnergyBalance } from "@/lib/trait-lab-energy-accounting";
 import { getEnergyBalance } from "@/src/lib/storage/energyStore";
-import { energyRpcProvider, readPendingEnergyRaw } from "@/src/lib/energy/chain";
+import { readPendingEnergyRaw } from "@/src/lib/energy/chain";
+import { createMonadReadProvider } from "@/lib/monad-rpc";
+import { withReadTimeout } from "@/lib/read-timeout";
 import { getTraitLabEnergyDebitSummary } from "@/src/lib/storage/s2TraitLabStore";
 
 export const runtime = "nodejs";
@@ -45,9 +47,9 @@ function readEnv(...names: string[]) {
   return "";
 }
 
-async function readEnergyBankBalance(wallet: string) {
+async function readEnergyBankBalance(wallet: string, provider: ethers.Provider) {
   const address = ethers.getAddress(readEnv("ENERGY_BANK_ADDRESS", "NEXT_PUBLIC_ENERGY_BANK_ADDRESS") || DEFAULT_ENERGY_BANK_CONTRACT);
-  const bank = new ethers.Contract(address, ENERGY_BANK_ABI, energyRpcProvider());
+  const bank = new ethers.Contract(address, ENERGY_BANK_ABI, provider);
   const [spendableRaw, lifetimeRaw, spentRaw] = await Promise.all([
     bank.spendableEnergy(wallet),
     bank.lifetimeEnergy(wallet),
@@ -65,9 +67,12 @@ export async function GET(_request: Request, context: EnergyRouteContext) {
   const wallet = normalizeWallet(params.wallet);
   if (!wallet) return json(400, { ok: false, error: "Invalid wallet address." });
 
+  // This display endpoint must not depend on the legacy single-provider RPC
+  // used by indexing/settlement. Keep those workflows and accounting unchanged.
+  const provider = createMonadReadProvider();
   const [pendingRaw, bankBalance, traitLabDebits] = await Promise.all([
-    readPendingEnergyRaw(wallet).catch(() => 0n),
-    readEnergyBankBalance(wallet).catch(() => null),
+    withReadTimeout(readPendingEnergyRaw(wallet, provider), 4_000).catch(() => 0n),
+    withReadTimeout(readEnergyBankBalance(wallet, provider), 8_000).catch(() => null),
     getTraitLabEnergyDebitSummary(wallet),
   ]);
   const balance = await getEnergyBalance(wallet, pendingRaw.toString());
