@@ -630,7 +630,6 @@ function LayerPreview({ fallbackImage, metadata, title }: { fallbackImage?: stri
       {useFallbackImage || useLayerStack ? (
         <div className="relative h-full w-full overflow-hidden bg-black/35">
           {useFallbackImage ? (
-            // eslint-disable-next-line @next/next/no-img-element
             <IpfsImage
               alt={title}
               className="absolute inset-0 h-full w-full object-cover"
@@ -1806,7 +1805,6 @@ export function TraitLabClient() {
                     >
                       <div className="aspect-square bg-black/45">
                         {token.image ? (
-                          // eslint-disable-next-line @next/next/no-img-element
                           <IpfsImage alt={token.name} className="h-full w-full object-cover" src={token.image} />
                         ) : (
                           <div className="grid h-full place-items-center text-xs font-black uppercase tracking-[0.16em] text-white/35">No Image</div>
@@ -1834,7 +1832,6 @@ export function TraitLabClient() {
                   {metadataLoading ? (
                     <div className="grid h-full place-items-center p-4"><LoadingSkeleton lines={4} /></div>
                   ) : selectedImage ? (
-                    // eslint-disable-next-line @next/next/no-img-element
                     <IpfsImage alt={metadata?.name || "D.Y.O.O.R Droid"} className="h-full w-full object-cover" src={selectedImage} />
                   ) : (
                     <div className="grid h-full place-items-center text-sm font-black uppercase tracking-[0.18em] text-white/35">No Droid Selected</div>
@@ -2544,7 +2541,6 @@ export function TraitLabClient() {
                 >
                   <div className="relative aspect-square bg-black/50">
                     {item.image ? (
-                      // eslint-disable-next-line @next/next/no-img-element
                       <IpfsImage alt={item.name || `Burned D.Y.O.O.R #${item.tokenId}`} className="h-full w-full object-cover grayscale" src={mediaUrl(item.image)} />
                     ) : (
                       <div className="grid h-full place-items-center text-xs font-black uppercase tracking-[0.16em] text-white/35">No Image</div>
