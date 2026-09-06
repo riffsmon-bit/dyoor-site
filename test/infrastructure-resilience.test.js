@@ -111,3 +111,12 @@ test("hosted IPFS administration is private and backing-store credentials are no
   assert.doesNotMatch(caddy, /reverse_proxy.*5001/);
   assert.match(caddy, /DYOOR assets only/);
 });
+
+test("hosted block storage bounds connection reuse and request duration", () => {
+  const transport = fs.readFileSync("infra/ipfs/railway/transport.go", "utf8");
+  const docker = fs.readFileSync("infra/ipfs/railway/Dockerfile", "utf8");
+  assert.match(transport, /MaxConnsPerHost = 64/);
+  assert.match(transport, /MaxIdleConnsPerHost = 32/);
+  assert.match(transport, /Timeout: 60 \* time.Second/);
+  assert.match(docker, /WithHTTPClient\(dyoorS3HTTPClient\(\)\)/);
+});

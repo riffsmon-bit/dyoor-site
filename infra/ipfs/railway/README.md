@@ -22,6 +22,11 @@ and upstream requests maintainers; upgrades require import, restart, and
 retrieval tests, not just a successful build. No unpinned plugin binary is
 downloaded at startup.
 
+`transport.go` also bounds the shared S3 connection pool to 64 active / 32 idle
+connections per host, with request timeouts. This avoids exhausting outbound
+ports during bulk imports. Keep import concurrency at four files; checkpoints
+can resume interrupted jobs, but recursive pin verification is still mandatory.
+
 Secrets are Railway reference variables and are never copied into Git, the
 image, public URLs, or Kubo's config. Required service variables:
 

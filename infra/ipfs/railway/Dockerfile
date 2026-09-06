@@ -5,6 +5,8 @@ RUN git clone --depth 1 --branch v0.43.0 https://github.com/ipfs/kubo.git /src/k
     git -C /src/go-ds-s3 checkout e4823540f59b71ce7969213faed4608c237a7296
 # Railway's new buckets require virtual-hosted S3 URLs. Upstream forces path style.
 RUN sed -i 's/awsConfig.WithS3ForcePathStyle(true)/awsConfig.WithS3ForcePathStyle(false)/' /src/go-ds-s3/s3.go
+COPY transport.go /src/go-ds-s3/dyoor_transport.go
+RUN sed -i 's/awsConfig := aws.NewConfig()/awsConfig := aws.NewConfig().WithHTTPClient(dyoorS3HTTPClient())/' /src/go-ds-s3/s3.go
 WORKDIR /src/kubo
 COPY preload-s3.go /src/kubo/plugin/loader/preload-s3.go
 RUN go mod edit -replace github.com/ipfs/go-ds-s3=/src/go-ds-s3 && \
