@@ -28,6 +28,18 @@ const walletOptions = fs.readFileSync(
   "utf8",
 );
 
+test("mobile navigation is not confined by the header's backdrop filter", () => {
+  const css = fs.readFileSync("app/globals.css", "utf8");
+  const nav = fs.readFileSync("components/layout/SiteNav.tsx", "utf8");
+  const header = css.match(/\.site-header\s*\{([^}]+)\}/)?.[1];
+  const glass = css.match(/\.site-header::before\s*\{([^}]+)\}/)?.[1];
+  assert.ok(header && glass);
+  assert.doesNotMatch(header, /(?:backdrop-filter|transform|contain)\s*:/);
+  assert.match(glass, /backdrop-filter:\s*blur/);
+  assert.match(glass, /pointer-events:\s*none/);
+  assert.match(nav, /fixed inset-x-0 bottom-0 top-20/);
+});
+
 test("mobile World navigation keeps DMs separate from the decorative glyph", () => {
   assert.match(
     worldClient,
