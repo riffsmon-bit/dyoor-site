@@ -51,6 +51,8 @@ import { DyoorWorldNotifications } from "@/components/dyoor-world/DyoorWorldNoti
 import { useWalletService } from "@/providers/WalletServiceProvider";
 import { ipfsGatewayUrl } from "@/lib/ipfs-gateway";
 import { IpfsImage } from "@/components/ui/IpfsImage";
+import { WorldIcon } from "./WorldIcon";
+import { worldChannelPresentation } from "@/lib/world-channel-presentation";
 
 type WorldConfig = {
   chainId: number;
@@ -430,30 +432,36 @@ function WorldChannelList({
   onSelect: (channelId: DyoorWorldChannelId) => void;
 }) {
   return (
-    <div className="grid gap-2">
-      {channels.map((channel) => {
-        const active = channel.id === activeChannel;
+    <nav className="world-room-list" aria-label="World channels">
+      {["Community", "Holder rooms", "On-chain activity"].map((group) => {
+        const rooms = channels.filter((channel) => worldChannelPresentation(channel.id).group === group);
+        if (!rooms.length) return null;
         return (
-          <button
-            className={`min-w-0 rounded border px-3 py-3 text-left transition ${
-              active
-                ? "border-dyoor-cyan/55 bg-dyoor-cyan/10 text-dyoor-cyan"
-                : "border-white/[0.07] bg-white/[0.025] text-white/62 hover:border-dyoor-purple/45 hover:text-white"
-            }`}
-            key={channel.id}
-            onClick={() => onSelect(channel.id)}
-            type="button"
-          >
-            <span className="block truncate text-xs font-black"># {channel.label}</span>
-            {descriptions ? (
-              <span className="mt-1 block text-[0.64rem] font-bold leading-4 text-white/35">
-                {channel.description}
-              </span>
-            ) : null}
-          </button>
+          <div className="world-room-group" key={group}>
+            <p className="world-overline">{group}</p>
+            {rooms.map((channel) => {
+              const active = channel.id === activeChannel;
+              const presentation = worldChannelPresentation(channel.id);
+              return (
+                <button
+                  aria-current={active ? "page" : undefined}
+                  className={`world-room ${active ? "world-room-active" : ""}`}
+                  title={channel.description}
+                  key={channel.id}
+                  onClick={() => onSelect(channel.id)}
+                  type="button"
+                >
+                  <WorldIcon name={presentation.icon} />
+                  <span>{presentation.title}</span>
+                  {active ? <span className="world-room-indicator" aria-hidden="true" /> : null}
+                  {descriptions ? <span className="sr-only">{channel.description}</span> : null}
+                </button>
+              );
+            })}
+          </div>
         );
       })}
-    </div>
+    </nav>
   );
 }
 
@@ -569,7 +577,7 @@ function DyoorEnergyWheel({
           spinning ? "world-energy-wheel-spinning" : ""
         }`}
       />
-      <div className="absolute inset-[2.45rem] z-20 grid place-items-center rounded-full border border-white/20 bg-[radial-gradient(circle_at_35%_28%,#302c5a,#0a0b1e_58%,#05050d)] text-center shadow-[inset_0_1px_0_rgba(255,255,255,.16),0_0_22px_rgba(57,255,226,.22)]">
+      <div className="world-wheel-center absolute inset-[2.45rem] z-20 grid place-items-center rounded-full border border-white/20 text-center">
         <div>
           <span className="block text-[0.48rem] font-black uppercase tracking-[0.18em] text-dyoor-cyan/70">
             {spinning ? "Routing" : prize ? "Landed" : "Ready"}
@@ -935,17 +943,46 @@ export function DyoorWorldClient({ sessionWallet }: { sessionWallet: string }) {
 
   useEffect(() => {
     if (!mobileThreadsOpen && !mobileIdentityOpen) return;
+    const desktop = window.matchMedia("(min-width: 1024px)");
+    if (desktop.matches) return;
+    const panel = document.getElementById(mobileThreadsOpen ? "world-mobile-threads" : "world-mobile-identity");
+    const returnFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    const focusable = () => Array.from(panel?.querySelectorAll<HTMLElement>(
+      'button:not(:disabled), a[href], input:not(:disabled), select:not(:disabled), textarea:not(:disabled), summary, [tabindex="0"]',
+    ) || []).filter((element) => element.getClientRects().length > 0);
+    const focusFrame = window.requestAnimationFrame(() => (
+      panel?.querySelector<HTMLButtonElement>('button[aria-label^="Close"]') || focusable()[0]
+    )?.focus());
     const previousOverflow = document.body.style.overflow;
     document.body.style.overflow = "hidden";
     const closeOnEscape = (event: globalThis.KeyboardEvent) => {
+      if (event.key === "Tab") {
+        const items = focusable();
+        const first = items[0];
+        const last = items.at(-1);
+        if (!panel?.contains(document.activeElement) || (event.shiftKey ? document.activeElement === first : document.activeElement === last)) {
+          event.preventDefault();
+          (event.shiftKey ? last : first)?.focus();
+        }
+        return;
+      }
       if (event.key !== "Escape") return;
       setMobileThreadsOpen(false);
       setMobileIdentityOpen(false);
     };
+    const closeOnDesktop = () => {
+      if (!desktop.matches) return;
+      setMobileThreadsOpen(false);
+      setMobileIdentityOpen(false);
+    };
+    desktop.addEventListener("change", closeOnDesktop);
     document.addEventListener("keydown", closeOnEscape);
     return () => {
+      window.cancelAnimationFrame(focusFrame);
+      desktop.removeEventListener("change", closeOnDesktop);
       document.body.style.overflow = previousOverflow;
       document.removeEventListener("keydown", closeOnEscape);
+      returnFocus?.focus({ preventScroll: true });
     };
   }, [mobileIdentityOpen, mobileThreadsOpen]);
 
@@ -1596,7 +1633,7 @@ export function DyoorWorldClient({ sessionWallet }: { sessionWallet: string }) {
   ].filter(Boolean).join(" + ") || "Holder";
 
   return (
-    <main className="mx-auto min-h-[100dvh] min-w-0 max-w-[1680px] overflow-x-clip px-0 py-0 sm:px-5 sm:py-6">
+    <main className="world-workspace">
       <DyoorWorldDirectMessages
         initialTarget={directMessageTarget}
         onClose={() => setDirectMessagesOpen(false)}
@@ -1622,7 +1659,9 @@ export function DyoorWorldClient({ sessionWallet }: { sessionWallet: string }) {
           />
           <aside
             aria-label="dYOOR World threads"
-            className="world-drawer-left absolute inset-y-0 left-0 w-[min(86vw,22rem)] overflow-y-auto border-r border-dyoor-purple/35 bg-[#080918] p-4 shadow-[24px_0_70px_rgba(0,0,0,.55)]"
+            aria-modal="true"
+            role="dialog"
+            className="world-drawer-left world-thread-drawer absolute inset-y-0 left-0 w-[min(86vw,22rem)] overflow-y-auto border-r border-dyoor-purple/35 bg-[#080918] p-4 shadow-[24px_0_70px_rgba(0,0,0,.55)]"
             id="world-mobile-threads"
           >
             <div className="flex items-center justify-between gap-3 border-b border-white/10 pb-4">
@@ -1650,8 +1689,8 @@ export function DyoorWorldClient({ sessionWallet }: { sessionWallet: string }) {
           </aside>
         </div>
       ) : null}
-      <section className="min-w-0 overflow-hidden rounded-none border-x-0 border-b border-t-0 border-dyoor-purple/30 bg-[#070818]/90 shadow-[0_24px_80px_rgba(0,0,0,.38)] sm:rounded sm:border lg:backdrop-blur-xl">
-        <header className="sticky top-0 z-[90] flex min-h-16 items-center gap-2 border-b border-dyoor-purple/25 bg-[#080918]/95 px-3 py-3 shadow-[0_12px_32px_rgba(0,0,0,.25)] backdrop-blur-xl sm:gap-3 sm:px-5">
+      <section className="world-workspace-frame">
+        <header className="world-app-header sticky top-0 z-[90]">
           <button
             aria-controls="world-mobile-threads"
             aria-expanded={mobileThreadsOpen}
@@ -1675,8 +1714,8 @@ export function DyoorWorldClient({ sessionWallet }: { sessionWallet: string }) {
               <DyoorWorldGlyph className="h-6 w-6" />
             </div>
             <div className="min-w-0">
-              <p className="hidden text-[0.62rem] font-black uppercase tracking-[0.2em] text-dyoor-cyan sm:block">Private Monad node</p>
-              <h1 className="sr-only font-black uppercase text-white sm:not-sr-only sm:block sm:truncate sm:text-lg">dYOOR World</h1>
+              <p className="world-overline hidden sm:block">The holder clubhouse</p>
+              <h1 className="world-brand sr-only sm:not-sr-only">dYOOR World<span>.</span></h1>
             </div>
           </div>
           <div className="ml-auto flex items-center gap-2">
@@ -1691,8 +1730,8 @@ export function DyoorWorldClient({ sessionWallet }: { sessionWallet: string }) {
               }}
               type="button"
             >
-              <span aria-hidden="true">✉</span>
-              <span className="hidden sm:inline">DMs</span>
+              <WorldIcon name="mail" />
+              <span className="hidden sm:inline">Inbox</span>
               {directMessageUnread > 0 ? (
                 <span className="absolute -right-1.5 -top-1.5 min-w-4 rounded-full bg-fuchsia-400 px-1 py-0.5 text-[0.45rem] font-black leading-none text-black">
                   {Math.min(99, directMessageUnread)}
@@ -1710,7 +1749,7 @@ export function DyoorWorldClient({ sessionWallet }: { sessionWallet: string }) {
               }}
               type="button"
             >
-              <span aria-hidden="true">⚡</span>
+              <WorldIcon name="collection" />
               <span className="hidden min-[360px]:inline">Identity</span>
             </button>
             <Link
@@ -1719,13 +1758,13 @@ export function DyoorWorldClient({ sessionWallet }: { sessionWallet: string }) {
               href="/"
             >
               <span aria-hidden="true">↗</span>
-              <span className="hidden min-[360px]:inline">Eject</span>
+              <span className="hidden min-[360px]:inline">Site</span>
             </Link>
             <span className="hidden rounded-full border border-emerald-300/25 bg-emerald-300/10 px-3 py-1.5 text-[0.62rem] font-black uppercase tracking-[0.14em] text-emerald-200 sm:inline-flex">
               {verifiedCollectionLabel} verified
             </span>
             <Link className="btn-ghost hidden min-h-9 px-3 py-2 text-[0.66rem] lg:inline-flex" href="/">
-              Eject
+              DYOOR ↗
             </Link>
             <button className="btn-ghost hidden min-h-9 px-3 py-2 text-[0.66rem] lg:inline-flex" onClick={() => void exitWorld()} type="button">
               Sign out
@@ -1754,35 +1793,34 @@ export function DyoorWorldClient({ sessionWallet }: { sessionWallet: string }) {
           <div className="border-b border-dyoor-cyan/25 bg-dyoor-cyan/[0.07] px-4 py-3 text-sm font-bold text-dyoor-cyan">{notice}</div>
         ) : null}
 
-        <div className="grid min-h-0 min-w-0 lg:min-h-[760px] lg:grid-cols-[250px_minmax(0,1fr)_330px]">
-          <aside className="hidden border-r border-dyoor-purple/20 bg-black/20 p-3 lg:block">
-            <p className="px-2 py-2 text-[0.62rem] font-black uppercase tracking-[0.2em] text-white/35">World streams</p>
+        <div className="world-workspace-grid">
+          <aside className="world-sidebar hidden border-r lg:block">
+            <div className="world-sidebar-heading"><span className="world-overline">Your World</span><span className="world-room-count">{availableChannels.length} rooms</span></div>
             <WorldChannelList
               activeChannel={channelId}
               channels={availableChannels}
               descriptions
               onSelect={selectWorldChannel}
             />
-            <div className="mt-4 rounded border border-dyoor-purple/20 bg-dyoor-purple/[0.07] p-4">
-              <p className="text-[0.62rem] font-black uppercase tracking-[0.17em] text-dyoor-monad">Adapted from M3SH</p>
-              <p className="mt-2 text-xs font-bold leading-5 text-white/42">
-                The node-and-stream model, rebuilt with live collection access, S2 identity, and immutable system relays.
-              </p>
+            <div className="world-sidebar-note">
+              <WorldIcon name="shield" />
+              <p>A little more connected.<span>Your rooms follow your verified collections.</span></p>
             </div>
           </aside>
 
           <section
-            className={`flex min-w-0 max-w-full flex-col overflow-hidden lg:h-auto lg:min-h-[620px] ${
+            className={`world-conversation flex min-w-0 max-w-full flex-col overflow-hidden ${
               channelId === "trade-desk"
                 ? "h-auto min-h-0"
                 : "h-[calc(100dvh-4rem)] min-h-[30rem] sm:h-[calc(100dvh-7rem)]"
             }`}
           >
-            <div className="world-channel-context hidden border-b border-dyoor-purple/20 px-4 py-4 sm:block sm:px-5">
+            <div className="world-channel-context border-b">
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
-                  <p className="text-sm font-black text-white"># {selectedChannel.label}</p>
-                  <p className="mt-1 break-words text-xs font-bold text-white/38">{selectedChannel.description}</p>
+                  <p className="world-overline">{worldChannelPresentation(selectedChannel.id).group}</p>
+                  <h2 className="world-channel-title"><WorldIcon name={worldChannelPresentation(selectedChannel.id).icon} />{worldChannelPresentation(selectedChannel.id).title}</h2>
+                  <p className="world-channel-description">{selectedChannel.description}</p>
                 </div>
                 {selectedChannel.readOnly ? (
                   <span className="shrink-0 rounded-full border border-dyoor-monad/30 bg-dyoor-monad/10 px-2.5 py-1 text-[0.56rem] font-black uppercase tracking-[0.12em] text-dyoor-monad">
@@ -1796,10 +1834,12 @@ export function DyoorWorldClient({ sessionWallet }: { sessionWallet: string }) {
               </div>
             </div>
 
+            {channelId === "world-lobby" ? <div className="world-welcome-strip"><span className="world-status-dot" /><p>Good to have you here.<span> Pull up a seat. You’re among holders.</span></p><span aria-hidden="true">↗</span></div> : null}
+
             {channelId === "trade-desk" ? (
               <div className="min-w-0 max-w-full overflow-hidden border-b border-dyoor-purple/20 bg-gradient-to-r from-dyoor-purple/[0.08] to-dyoor-cyan/[0.05] p-3 sm:p-4">
                 {config?.tradeEscrowAddress ? (
-                  <div className="grid min-w-0 max-w-full gap-3 xl:grid-cols-2">
+                  <div className="world-trade-forms grid min-w-0 max-w-full gap-3 xl:grid-cols-2">
                     <form className="min-w-0 overflow-hidden rounded border border-dyoor-cyan/20 bg-black/25 p-3 sm:p-4" onSubmit={createTrade}>
                       <p className="text-[0.58rem] font-black uppercase tracking-[0.16em] text-dyoor-cyan">New atomic swap</p>
                       <h3 className="mt-1 text-lg font-black text-white">Choose the Droid you send</h3>
@@ -2014,14 +2054,14 @@ export function DyoorWorldClient({ sessionWallet }: { sessionWallet: string }) {
                         ? "No announcements yet"
                         : selectedChannel.readOnly
                           ? "Waiting for verified activity"
-                          : "No transmissions yet"}
+                          : "Room for a first hello"}
                     </p>
                     <p className="mt-2 text-xs font-bold text-white/35">
                       {selectedChannel.id === "announcements"
                         ? "The D.Y.O.O.R owner wallet will post the next official dispatch."
                         : selectedChannel.readOnly
                           ? "The World relay will post the next confirmed event automatically."
-                          : "Be the first holder to signal in this stream."}
+                          : "Start a conversation. Make yourself at home."}
                     </p>
                   </div>
                 </div>
@@ -2226,7 +2266,7 @@ export function DyoorWorldClient({ sessionWallet }: { sessionWallet: string }) {
             ) : null}
 
             {selectedChannelCanPost ? (
-              <form className="border-t border-dyoor-purple/20 bg-black/20 p-2.5 sm:p-4" onSubmit={sendMessage}>
+              <form className="world-composer border-t p-2.5 sm:p-4" onSubmit={sendMessage}>
                 {selectedChannel.id === "announcements" ? (
                   <div className="mb-2 rounded-lg border border-dyoor-monad/30 bg-gradient-to-r from-dyoor-monad/[0.13] to-dyoor-cyan/[0.06] px-3 py-2">
                     <p className="text-[0.58rem] font-black uppercase tracking-[0.12em] text-dyoor-monad">
@@ -2291,7 +2331,7 @@ export function DyoorWorldClient({ sessionWallet }: { sessionWallet: string }) {
                     ))}
                   </div>
                 ) : null}
-                <div className="flex items-center gap-2 rounded border border-dyoor-purple/25 bg-black/35 p-1.5 focus-within:border-dyoor-cyan/55 sm:p-2">
+                <div className="world-compose-field flex items-center gap-2 p-1.5 sm:p-2">
                   <textarea
                     aria-controls={channelTagSuggestions.length > 0
                       ? "world-channel-tag-suggestions"
@@ -2362,7 +2402,9 @@ export function DyoorWorldClient({ sessionWallet }: { sessionWallet: string }) {
 
           <aside
             aria-label="World identity and Daily Energy"
-            className={`fixed inset-y-0 right-0 z-[110] w-[min(92vw,24rem)] overflow-y-auto border-l border-dyoor-purple/35 bg-[#080918] p-4 shadow-[-24px_0_70px_rgba(0,0,0,.58)] transition-[transform,visibility] duration-300 ease-out ${
+            aria-modal={mobileIdentityOpen ? true : undefined}
+            role={mobileIdentityOpen ? "dialog" : undefined}
+            className={`world-sidepanel fixed inset-y-0 right-0 z-[110] w-[min(92vw,24rem)] overflow-y-auto border-l border-dyoor-purple/35 bg-[#080918] p-4 shadow-[-24px_0_70px_rgba(0,0,0,.58)] transition-transform duration-300 ease-out ${
               mobileIdentityOpen
                 ? "visible translate-x-0"
                 : "invisible translate-x-full pointer-events-none"
@@ -2390,8 +2432,8 @@ export function DyoorWorldClient({ sessionWallet }: { sessionWallet: string }) {
                 ×
               </button>
             </div>
-            <p className="text-[0.62rem] font-black uppercase tracking-[0.2em] text-white/35">World identity</p>
-            <div className="mt-3 rounded border border-white/10 bg-black/25 p-3">
+            <p className="world-overline">Your membership</p>
+            <div className="world-panel world-wallet-panel mt-3 p-3">
               <div className="flex items-start gap-3">
                 <span
                   aria-hidden="true"
@@ -2412,7 +2454,7 @@ export function DyoorWorldClient({ sessionWallet }: { sessionWallet: string }) {
                   <p className="mt-1 text-xs font-black text-white">{walletConnectionLabel}</p>
                   <p className="mt-1 text-[0.58rem] font-bold leading-4 text-white/35">
                     {walletAttached
-                      ? `${wallet.providerName || "Wallet"} is ready. Monad is requested only when an on-chain action starts.`
+                      ? `${wallet.providerName || "Wallet"} · Monad is requested for on-chain actions only.`
                       : walletMismatch
                         ? `${shortWorldWallet(connectedWallet)} does not match this holder session.`
                         : "Chat remains available, but names, tips, and trades need the authenticated holder wallet attached."}
@@ -2441,7 +2483,7 @@ export function DyoorWorldClient({ sessionWallet }: { sessionWallet: string }) {
                 </button>
               ) : null}
             </div>
-            <div className="mt-3 rounded border border-dyoor-cyan/20 bg-dyoor-cyan/[0.05] p-3">
+            <div className="world-panel world-access-panel mt-3 p-3">
               <p className="text-[0.58rem] font-black uppercase tracking-[0.14em] text-dyoor-cyan">
                 Verified collection access
               </p>
@@ -2456,11 +2498,9 @@ export function DyoorWorldClient({ sessionWallet }: { sessionWallet: string }) {
                   <span className="rounded-full border border-dyoor-cyan/30 bg-dyoor-cyan/10 px-2 py-1 text-[0.55rem] font-black text-dyoor-cyan">Season 2</span>
                 ) : null}
               </div>
-              <p className="mt-2 text-[0.58rem] font-bold leading-4 text-white/32">
-                Your channel list is generated from current on-chain balances. Multi-collection holders unlock every matching private chat.
-              </p>
+              <details className="world-access-explainer"><summary>About your access</summary><p>Your channel list is generated from current on-chain balances. Multi-collection holders unlock every matching private chat.</p></details>
             </div>
-            <div className="mt-3 overflow-hidden rounded border border-dyoor-cyan/25 bg-gradient-to-br from-dyoor-cyan/[0.09] via-transparent to-dyoor-purple/[0.12]">
+            <div className="world-panel world-member-card mt-3 overflow-hidden">
               <div className="flex items-center gap-3 p-3">
                 <div className="h-16 w-16 shrink-0 overflow-hidden rounded border border-dyoor-cyan/35 bg-black/35 shadow-[0_0_24px_rgba(76,255,229,.12)]">
                   {avatarPreview ? (
@@ -2505,7 +2545,7 @@ export function DyoorWorldClient({ sessionWallet }: { sessionWallet: string }) {
             </div>
 
             {config && isS2Holder && !profile ? (
-              <form className="mt-4 rounded border border-dyoor-purple/25 bg-dyoor-purple/[0.06] p-4" onSubmit={claimName}>
+              <form className="world-panel world-name-panel mt-4 p-4" onSubmit={claimName}>
                 <p className="text-sm font-black text-white">Create your .dYOOR name</p>
                 <p className="mt-2 text-xs font-bold leading-5 text-white/42">
                   {config?.registryMode === "monad"
@@ -2574,11 +2614,8 @@ export function DyoorWorldClient({ sessionWallet }: { sessionWallet: string }) {
               </form>
             ) : null}
 
-            <DyoorWorldNotifications />
-
             {isS2Holder ? (
-            <div className="relative mt-4 overflow-hidden rounded-xl border border-dyoor-monad/35 bg-[radial-gradient(circle_at_15%_15%,rgba(57,255,226,.12),transparent_34%),radial-gradient(circle_at_90%_5%,rgba(255,79,227,.16),transparent_38%),linear-gradient(145deg,#171035,#08091c_58%,#062526)] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,.08),0_20px_55px_rgba(0,0,0,.35),0_0_36px_rgba(131,110,249,.12)]">
-              <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(rgba(255,255,255,.025)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,.02)_1px,transparent_1px)] bg-[size:18px_18px] [mask-image:linear-gradient(to_bottom,black,transparent_80%)]" />
+            <div className="world-panel world-rewards-panel relative mt-4 overflow-hidden p-4">
               <div className="relative flex items-start justify-between gap-3">
                 <div>
                   <p className="text-[0.58rem] font-black uppercase tracking-[0.2em] text-dyoor-monad">Daily Energy wheel</p>
@@ -2588,7 +2625,7 @@ export function DyoorWorldClient({ sessionWallet }: { sessionWallet: string }) {
                   10–1,000
                 </span>
               </div>
-              <div className="relative mt-4 grid grid-cols-[9rem_minmax(0,1fr)] items-center gap-4">
+              <div className="world-wheel-summary relative mt-4 grid grid-cols-[9rem_minmax(0,1fr)] items-center gap-4">
                 <DyoorEnergyWheel
                   prize={rewards?.daily?.amountEnergy}
                   spinning={wheelSpinning}
@@ -2669,12 +2706,14 @@ export function DyoorWorldClient({ sessionWallet }: { sessionWallet: string }) {
               </div>
             )}
 
-            <div className="mt-4 rounded border border-white/[0.07] bg-white/[0.025] p-4">
-              <p className="text-[0.62rem] font-black uppercase tracking-[0.16em] text-dyoor-monad">Safety model</p>
+            <DyoorWorldNotifications />
+
+            <details className="world-safety-note mt-4 p-4">
+              <summary className="world-overline">A note on safety</summary>
               <p className="mt-2 text-xs font-bold leading-5 text-white/40">
                 Tips travel wallet-to-wallet. Trades settle atomically in a fee-free S2 escrow. Energy is earned only from meaningful messages, qualifying verified tips, and completed swaps. Sales, burn, and trade bots only verify and relay public events—no bot custody key exists.
               </p>
-            </div>
+            </details>
           </aside>
         </div>
       </section>

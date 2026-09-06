@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { DyoorWorldGlyph } from "@/components/dyoor-world/DyoorWorldDiscovery";
 import type { DyoorWorldEntitlements } from "@/lib/dyoor-world";
 import { useWalletService } from "@/providers/WalletServiceProvider";
+import { WorldIcon } from "./WorldIcon";
 
 function normalizeAddress(value?: string) {
   const wallet = String(value || "").toLowerCase();
@@ -119,33 +120,35 @@ export function DyoorWorldGate() {
           : "Authenticate and enter";
 
   return (
-    <>
-      <header className="sticky top-0 z-[90] flex min-h-16 items-center gap-3 border-b border-dyoor-purple/30 bg-[#080918]/95 px-4 py-3 shadow-[0_12px_32px_rgba(0,0,0,.3)] backdrop-blur-xl">
+    <div className="world-entry">
+      <header className="world-entry-header">
         <DyoorWorldGlyph className="h-8 w-8 text-dyoor-cyan" />
         <div className="mr-auto">
-          <p className="text-[0.55rem] font-black uppercase tracking-[0.18em] text-dyoor-cyan">Standalone holder app</p>
-          <p className="text-sm font-black uppercase text-white">dYOOR World</p>
+          <p className="world-overline">The holder clubhouse</p>
+          <p className="world-brand">dYOOR World<span>.</span></p>
         </div>
         <Link className="btn-ghost min-h-9 px-3 py-2 text-[0.62rem]" href="/">
-          ↗ Eject
+          Back to DYOOR ↗
         </Link>
       </header>
-      <main className="page-shell flex min-h-[calc(100dvh-4rem)] items-center justify-center">
-        <section className="glass-panel-strong relative w-full max-w-3xl overflow-hidden p-6 sm:p-10">
-          <div className="absolute -right-20 -top-20 h-64 w-64 rounded-full bg-dyoor-cyan/10 blur-3xl" />
-          <div className="absolute -bottom-28 -left-16 h-72 w-72 rounded-full bg-dyoor-purple/15 blur-3xl" />
-          <div className="relative mx-auto flex max-w-xl flex-col items-center text-center">
-            <div className="relative flex h-24 w-24 items-center justify-center rounded-full border border-dyoor-cyan/45 bg-black/35 text-dyoor-cyan shadow-[0_0_52px_rgba(57,255,226,.18)]">
-              <span className="absolute inset-2 animate-pulse rounded-full border border-dyoor-purple/45" />
-              <DyoorWorldGlyph className="relative h-12 w-12" />
-            </div>
-            <p className="eyebrow mt-7">Unlisted signal // verified holders only</p>
-            <h1 className="heading-gradient mt-4 text-4xl sm:text-6xl">dYOOR World</h1>
-            <p className="mt-5 max-w-lg text-sm font-bold leading-7 text-white/62 sm:text-base">
-              The secure community layer for the D.Y.O.O.R ecosystem. Access requires
-              current Season 1, Ascended, or Season 2 status plus a one-time
-              wallet signature. Discord remains the public onboarding path.
-            </p>
+      <main className="world-entry-main">
+        <section className="world-entry-intro">
+          <p className="world-overline"><span className="world-status-dot" /> A place for the people behind the Droids</p>
+          <h1>Your people.<br />Your corner<br />of the <em>World.</em></h1>
+          <p className="world-entry-copy">The conversations, connections, and next ideas that make DYOOR more than a collection. All in one holder-only home.</p>
+          <div className="world-entry-features">
+            <div><WorldIcon name="chat" /><span><strong>Find your room</strong><small>Shared conversations. Collection-specific spaces.</small></span></div>
+            <div><WorldIcon name="collection" /><span><strong>Make it yours</strong><small>Your Droid, your identity, your community.</small></span></div>
+            <div><WorldIcon name="energy" /><span><strong>Stay involved</strong><small>Discover the Trait Lab, Energy, and holder trades.</small></span></div>
+          </div>
+          <p className="world-entry-footnote">Built for DYOOR holders <span>·</span> Connected on Monad</p>
+        </section>
+        <section className="world-entry-pass" aria-labelledby="world-access-title">
+          <div className="world-orbit-art" aria-hidden="true"><i /><i /><i /><div><DyoorWorldGlyph className="h-16 w-16" /></div><span>YOUR WORLD, CONNECTED</span></div>
+          <div className="world-entry-pass-content">
+            <p className="world-overline">Your membership starts here</p>
+            <h2 id="world-access-title">Come on in.</h2>
+            <p className="world-entry-pass-copy">Connect a wallet holding Season 1, Ascended, or Season 2. We’ll find the rooms that belong to you.</p>
             {eligibility?.wallet === address && eligibility.eligible ? (
               <div className="mt-5 flex flex-wrap justify-center gap-2">
                 {eligibility.entitlements.season1 ? <span className="rounded-full border border-white/15 bg-white/[0.05] px-3 py-1.5 text-[0.62rem] font-black text-white/70">Season 1 verified</span> : null}
@@ -153,13 +156,9 @@ export function DyoorWorldGate() {
                 {eligibility.entitlements.season2 ? <span className="rounded-full border border-dyoor-cyan/30 bg-dyoor-cyan/10 px-3 py-1.5 text-[0.62rem] font-black text-dyoor-cyan">Season 2 verified</span> : null}
               </div>
             ) : null}
-            <div className="mt-7 grid w-full gap-3 rounded border border-white/10 bg-black/30 p-4 text-left text-xs font-bold leading-6 text-white/55 sm:grid-cols-3">
-              <div><span className="block text-dyoor-cyan">01</span>Qualify via S1, Ascension, or S2</div>
-              <div><span className="block text-dyoor-cyan">02</span>Sign the holder challenge</div>
-              <div><span className="block text-dyoor-cyan">03</span>Unlock each matching chat</div>
-            </div>
+            <ol className="world-access-steps"><li><span>01</span> Connect</li><li><span>02</span> Verify ownership</li><li><span>03</span> Enter World</li></ol>
             <button
-              className="btn-primary mt-7 w-full sm:w-auto sm:min-w-72"
+              className="world-enter-button"
               disabled={
                 working ||
                 wallet.status === "connecting" ||
@@ -168,19 +167,18 @@ export function DyoorWorldGate() {
               onClick={() => void enterWorld()}
               type="button"
             >
-              {buttonLabel}
+              {buttonLabel}<WorldIcon name="arrow" />
             </button>
             {error ? (
-              <p className="mt-4 w-full rounded border border-red-400/35 bg-red-400/10 px-4 py-3 text-sm font-bold text-red-100">
+              <p role="alert" className="world-entry-error">
                 {error}
               </p>
             ) : null}
-            <p className="mt-5 text-[0.68rem] font-black uppercase tracking-[0.14em] text-white/32">
-              Signing does not spend MON, Energy, approve a transaction, or require a network switch.
-            </p>
+            <p className="world-access-note"><WorldIcon name="shield" /><span>One holder signature. No gas, no MON or Energy spent, no transaction approval, and no network switch.</span></p>
           </div>
         </section>
       </main>
-    </>
+      <footer className="world-entry-footer"><span>A private home. A shared World.</span><span>New here? Discord remains our public onboarding path.</span></footer>
+    </div>
   );
 }

@@ -13,7 +13,7 @@
     "lint": "eslint app components hooks lib providers",
     "lint:next": "eslint app components hooks lib providers",
     "typecheck": "tsc --noEmit",
-    "test:website": "node --test test/infrastructure-resilience.test.js test/dyoor-domain-migration.test.js test/dyoor-world-social.test.js test/mobile-wallet-connect.test.js",
+    "test:website": "node --test test/infrastructure-resilience.test.js test/dyoor-domain-migration.test.js test/dyoor-world-social.test.js test/mobile-wallet-connect.test.js test/world-ui-polish.test.js",
     "ipfs:pin:dyoor": "node scripts/pin-dyoor-ipfs-cids.js",
     "ipfs:up": "docker compose --env-file infra/ipfs/.env -f infra/ipfs/compose.yaml up -d",
     "ipfs:status": "docker compose --env-file infra/ipfs/.env -f infra/ipfs/compose.yaml ps",

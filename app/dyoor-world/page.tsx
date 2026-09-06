@@ -4,6 +4,7 @@ import { DyoorWorldClient } from "@/components/dyoor-world/DyoorWorldClient";
 import { DyoorWorldGate } from "@/components/dyoor-world/DyoorWorldGate";
 import { DYOOR_WORLD_SESSION_COOKIE } from "@/lib/dyoor-world";
 import { authenticateDyoorWorldToken } from "@/lib/dyoor-world-server";
+import "./world.css";
 
 export const dynamic = "force-dynamic";
 
@@ -56,11 +57,9 @@ export const metadata: Metadata = {
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
-  maximumScale: 1,
-  userScalable: false,
   viewportFit: "cover",
   interactiveWidget: "resizes-content",
-  themeColor: "#080918",
+  themeColor: "#07070b",
 };
 
 export default async function DyoorWorldPage() {

@@ -164,7 +164,7 @@ export function DyoorWorldMediaComposer({
   }
 
   return (
-    <div className="mt-1.5">
+    <div className="world-media-composer mt-1.5">
       <div className="flex flex-wrap items-center gap-2">
         <button
           aria-pressed={mode === "upload"}
