@@ -17,6 +17,7 @@ const registry = new Interface(["function optIn() returns(address)",
   "event AssistMintExecuted(uint256 indexed nonce,address indexed owner,bytes32 indexed evidenceHash,address target,uint256 mintedTokenId,uint64 deadline)"]);
 let connected = false, active = false, minted = false, outcome = "reject", sends = 0, submitted;
 let chain = "0x8f";
+let accountReads = 0;
 let sequence = 0;
 const pending = new Map(), errors = [];
 const send = (method, params = {}) => new Promise((resolve, reject) => {
@@ -28,7 +29,7 @@ const evaluate = async expression => {
   return result.result.value;
 };
 async function mock({ method, params = [] }) {
-  if (method === "eth_accounts") return connected ? [owner] : [];
+  if (method === "eth_accounts") { accountReads++; return connected ? [owner] : []; }
   if (method === "eth_requestAccounts") { connected = true; return [owner]; }
   if (method === "eth_chainId") return chain;
   if (method === "eth_sendTransaction") {
@@ -101,6 +102,9 @@ try {
   ` });
   await send("Page.navigate", { url: `${origin}/droid-os/assist` });
   await waitFor("[...document.querySelectorAll('button')].some(b=>b.textContent==='Connect wallet'&&!b.disabled)");
+  // SSR can show an enabled button before hydration has installed its handler.
+  for (let i = 0; i < 120 && accountReads === 0; i++) await delay(250);
+  assert(accountReads > 0, "Wait for the wallet provider to mount before clicking");
   await screenshot("droid-assist-desktop", 1440, 1100);
   await screenshot("droid-assist-mobile", 390, 844);
   await click("Connect wallet");
