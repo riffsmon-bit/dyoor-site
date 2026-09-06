@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import test from "node:test";
+import { withReadTimeout } from "../lib/read-timeout.ts";
 import { fetchIpfsImageBuffer } from "../lib/ipfs-image-fetch.ts";
 import {
   configuredIpfsGateways,
@@ -46,6 +47,34 @@ test("Monad reads have multiple keyless providers and keep Alchemy last", () => 
   assert.ok(source.indexOf("...MONAD_PUBLIC_RPC_URLS") < source.indexOf("...keyed"));
   assert.match(source, /freeUrls = allUrls\.filter\(\(url\) => !\/alchemy\/i\.test\(url\)\)/);
   assert.match(source, /quorum: 1/);
+});
+
+test("Energy display reads use the keyless fallback pool and preserve authoritative accounting", () => {
+  const route = fs.readFileSync("app/api/energy/[wallet]/route.ts", "utf8");
+  assert.match(route, /const provider = createMonadReadProvider\(\)/);
+  assert.match(route, /readPendingEnergyRaw\(wallet, provider\)/);
+  assert.match(route, /withReadTimeout\(readEnergyBankBalance\(wallet, provider\), 8_000\)/);
+  assert.doesNotMatch(route, /energyRpcProvider/);
+  assert.match(route, /if \(!bankBalance\)\s*\{\s*return json\(503/);
+  assert.match(route, /serverSettledDebitRaw: traitLabDebits.debitRaw/);
+  assert.match(route, /spentRaw = effective.spentRaw/);
+});
+
+test("Energy remote-read deadlines reject hangs and preserve valid zero values", async () => {
+  assert.equal(await withReadTimeout(Promise.resolve(0n), 100), 0n);
+  await assert.rejects(withReadTimeout(Promise.reject(new Error("RPC failed")), 100), /RPC failed/);
+  await assert.rejects(withReadTimeout(new Promise(() => {}), 10), /temporarily unavailable/);
+});
+
+test("Energy display surfaces failures with retry and rejects stale wallet responses", () => {
+  const source = fs.readFileSync("components/s2/TraitLabClient.tsx", "utf8");
+  assert.match(source, /Retry Energy balance/);
+  assert.match(source, /energy\?\.ok === false \? "Unavailable"/);
+  assert.match(source, /energy\?\.spendableEnergy \?\? "-"/);
+  assert.match(source, /energy\?\.spentEnergy \?\? "-"/);
+  assert.match(source, /signal: AbortSignal.timeout\(15_000\)/);
+  assert.match(source, /requestId === energyRequestRef.current/);
+  assert.match(source, /typeof data.spendableEnergy !== "string"/);
 });
 
 test("World holder reads are bounded and IPFS admin is not publicly mapped", () => {

@@ -57,10 +57,9 @@ export async function assertMonadMainnet(provider: ethers.JsonRpcProvider) {
   }
 }
 
-export async function readPendingEnergyRaw(wallet: string) {
+export async function readPendingEnergyRaw(wallet: string, provider: ethers.Provider = energyRpcProvider()) {
   const normalized = normalizeAddress(wallet);
   if (!normalized) throw Object.assign(new Error("Invalid wallet address."), { status: 400 });
-  const provider = energyRpcProvider();
   const contract = new ethers.Contract(ascensionStakingAddress(), ASCENSION_ABI, provider);
   const value = await contract.pendingPoints(normalized).catch(() => 0n);
   return BigInt(value || 0);
