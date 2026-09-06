@@ -63,6 +63,18 @@ Commands: `npm run test:droid-assist`, `npm run test:droid-v2`, `npm run test:dr
 
 ## Explicit limits and remaining blockers
 
+### Owner-only badge withdrawal follow-up
+
+Read-only mainnet inspection confirmed the canary is activated and badge #1 belongs to the Droid account. The fixed test-badge contract had `totalMinted = 1` and `hasMinted(account) = true`. The preview now offers step 03, **Return the test badge**, using the existing account method; no new contract or role change is required.
+
+The builder accepts no asset/token/recipient input. It can prepare only `withdrawERC721(fixedBadge, currentOwner, 1)` on the pinned account, with zero attached MON. It independently verifies current canonical owner, contract code/bindings and badge custody, performs an exact `eth_call`, bounds the gas quote, and rechecks immediately before the owner wallet request. The review explicitly displays badge contract, ID and destination. Review state is discarded on a changed wallet/network, including a change while preparation was running.
+
+Receipt acceptance requires the exact submitted envelope, canonical confirmations, the account `Withdrawn` event (owner/asset/recipient/token ID/type/nonce), the badge `Transfer` event, and `ownerOf(1)` at the receipt block. Missing or unexpected evidence stays unresolved; it is never automatically retried. Current badge location is displayed separately from a verified withdrawal receipt.
+
+The existing withdrawal method does **not** take a nonce or deadline argument. Review expiration and observed action nonce are pre-submission checks, not on-chain expiry guarantees. Normal owner transaction authorization, transaction nonce, canonical ownership checks and NFT custody checks remain on-chain. The preparation hash is a local audit commitment; this withdrawal contract does not emit that hash or prove a simulation ran. No generic simulation state-diff coverage is claimed.
+
+Validation: 52 preparation/session tests pass, including 14 withdrawal-specific cases/groups. `node scripts/test-droid-assist-withdraw-flow.mjs` passed against the actually deployed account/badge on an isolated fork at block 102541084: non-owner rejected, exact prepared withdrawal executed locally, both audit/Transfer events verified, badge reached the owner, action nonce advanced, and repeat withdrawal failed. This script uses only local impersonation, never a key or public transaction. Mainnet withdrawal remains for the owner to approve in the preview.
+
 Do not deposit valuable assets. Burning the parent NFT or creating an ownership cycle can strand custody. This isolated immutable test wallet cannot later be upgraded into the final autonomous wallet. V1 assets remain untouched; migration would need a separate owner decision.
 
 There is no autonomous trading, DEX routing, third-party mint adapter, NFT sniping, AI authority, paid research, Energy earning/spending, or background executor. No new financial authority is derived from traits or Energy. The real collection's missing transfer-lifecycle epoch still blocks the specified delegated-grant revocation model; see report 10. Independent security review, durable preparation records and additional adversarial/integration testing are required before broader financial use.

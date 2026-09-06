@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { formatEther } from "ethers";
 import { useWalletService } from "@/providers/WalletServiceProvider";
 import { describeAssistNetwork } from "@/lib/droid-os/assist-network.mjs";
+import { AssistWithdrawalStep } from "./AssistWithdrawalStep";
 import { ASSIST_DEPLOYMENT as manifest, ASSIST_SESSION_KEY, boundedAssistRpc, readAssistState,
   prepareAssistStep, validateAssistSubmission, reconcileAssistReceipt } from "@/lib/droid-os/assist-session.mjs";
 
@@ -12,6 +13,8 @@ type LiveState = Awaited<ReturnType<typeof readAssistState>>;
 type Pending = { plan: Plan; hash?: string; state: "REQUESTED" | "SUBMITTED" | "UNKNOWN" };
 const message = (error: unknown) => error instanceof Error ? error.message : "Wallet request could not complete.";
 const explorer = (hash: string) => `https://monadscan.com/tx/${hash}`;
+const actionTitle = (kind: string) => kind === "ACTIVATE" ? "Create the isolated test account" : kind === "WITHDRAW_BADGE" ? "Return test badge #1 to your owner wallet" : "Mint one test badge into your Droid";
+const confirmedTitle = (kind: string) => kind === "ACTIVATE" ? "Canary account activated" : kind === "WITHDRAW_BADGE" ? "Test badge withdrawn to your owner wallet" : "Test badge minted into your Droid";
 
 export function AssistCanaryClient() {
   const wallet = useWalletService();
@@ -101,7 +104,7 @@ export function AssistCanaryClient() {
         localStorage.setItem(historyKey, JSON.stringify([...history.slice(-9), { ...pending, result }]));
         localStorage.removeItem(ASSIST_SESSION_KEY);
         setPending(null); setPlan(null);
-        setNotice(result.status === "CONFIRMED" ? `${pending.plan.kind === "ACTIVATE" ? "Canary account activated" : "Test badge minted into your Droid"}. Confirmed on Monad.` : "Transaction reverted. No success was recorded; refresh and prepare again.");
+        setNotice(result.status === "CONFIRMED" ? `${confirmedTitle(pending.plan.kind)}. Confirmed on Monad.` : "Transaction reverted. No success was recorded; refresh and prepare again.");
         setError(""); void refresh();
       } catch (err) { if (active) setError(`Awaiting verified reconciliation: ${message(err)} Do not submit a duplicate.`); }
       finally { running = false; }
@@ -110,11 +113,13 @@ export function AssistCanaryClient() {
     return () => { active = false; clearInterval(timer); };
   }, [pending, rpc, wallet.address, refresh]);
 
-  async function prepare(kind: "ACTIVATE" | "MINT") {
+  async function prepare(kind: "ACTIVATE" | "MINT" | "WITHDRAW_BADGE") {
+    const generation = refreshGeneration.current;
     setBusy(true); setError(""); setNotice(""); setPlan(null); setAccepted(false);
     try {
       if (localStorage.getItem(ASSIST_SESSION_KEY)) throw Error("Resolve the pending wallet request first.");
       const result = await prepareAssistStep(await rpc(), await wallet.getAddress(), kind);
+      if (generation !== refreshGeneration.current) throw Error("Wallet state changed during preparation. Review the action again.");
       setPlan(result);
     } catch (err) { setError(message(err)); }
     finally { setBusy(false); }
@@ -171,9 +176,9 @@ export function AssistCanaryClient() {
     {wallet.address ? <p role="status">{wallet.providerName || "Connected wallet"} · {network?.label || (error ? "Network unavailable" : "Checking connected network…")}{network?.status === "MONAD" ? " · No network switch needed." : ""}</p> : null}
     {!wallet.ready ? <p className="assist-caution" role="status">Wallet connection is still initializing. If this persists, check that this preview’s exact origin is allowed in Privy: Configuration → App settings → Domains. Do not disable domain restrictions. <a href="https://dashboard.privy.io/" target="_blank" rel="noreferrer">Open Privy dashboard ↗</a></p> : null}
     <div className="assist-steps"><section><span className="assist-step-number">01</span><h2>Activate your test wallet</h2><p>Opt in to a separate address for Droid #11. No NFT transfer, approval, deposit, or V1 migration is included.</p><span className="assist-state">{live ? live.active ? "ACTIVATED" : "OWNER OPT-IN REQUIRED" : "CONNECT TO VERIFY STATUS"}</span><button disabled={!isOwner || Boolean(live?.active) || busy || Boolean(pending)} onClick={() => void prepare("ACTIVATE")}>Review activation →</button></section>
-      <section><span className="assist-step-number">02</span><h2>Mint the test badge</h2><p>Simulate one fixed, zero-price NFT mint. Your wallet then approves the exact transaction. Test collectible only; no Energy or financial reward.</p><span className="assist-state">{live?.minted ? "BADGE ALREADY MINTED" : "ONE BADGE PER ACCOUNT"}</span><button disabled={!isOwner || !live?.active || Boolean(live?.minted) || busy || Boolean(pending)} onClick={() => void prepare("MINT")}>Simulate & review mint →</button></section></div>
+      <section><span className="assist-step-number">02</span><h2>Mint the test badge</h2><p>Simulate one fixed, zero-price NFT mint. Your wallet then approves the exact transaction. Test collectible only; no Energy or financial reward.</p><span className="assist-state">{live?.minted ? "BADGE ALREADY MINTED" : "ONE BADGE PER ACCOUNT"}</span><button disabled={!isOwner || !live?.active || Boolean(live?.minted) || busy || Boolean(pending)} onClick={() => void prepare("MINT")}>Simulate & review mint →</button></section><AssistWithdrawalStep badgeOwner={live?.testBadgeOwner} owner={live?.owner} minted={Boolean(live?.minted)} allowed={isOwner} busy={busy} pending={Boolean(pending)} onPrepare={() => void prepare("WITHDRAW_BADGE")} /></div>
     {busy && !pending ? <p role="status">Checking canonical ownership, code identity, and the exact transaction…</p> : null}
-    {plan && !pending ? <section className="assist-review" aria-label="Transaction review"><p className="os-eyebrow">SIMULATION PASSED / OWNER APPROVAL REQUIRED</p><h2>{plan.kind === "ACTIVATE" ? "Create the isolated test account" : "Mint one test badge into your Droid"}</h2><dl><dt>Network</dt><dd>Monad mainnet · 143</dd><dt>Transaction target</dt><dd>{plan.transaction.to}</dd><dt>MON sent</dt><dd>0 MON</dd><dt>Quoted gas ceiling</dt><dd>{formatEther(plan.maximumQuotedGasCostWei)} MON</dd><dt>Outcome</dt><dd>{plan.kind === "ACTIVATE" ? "Activate the new test wallet; move no assets" : "One test NFT held by the Droid account"}</dd></dl><p>Simulation is evidence, not a guarantee. The wallet’s final gas settings control the fee. Owner and transaction checks run again before the request.</p><label className="assist-consent"><input type="checkbox" checked={accepted} onChange={event => setAccepted(event.target.checked)} />I understand this is a mainnet test transaction with gas costs and no autonomous permissions.</label><div className="assist-review-actions"><button disabled={!accepted || busy} onClick={() => void confirm()}>Approve in my wallet →</button><button className="assist-secondary" disabled={busy} onClick={() => setPlan(null)}>Cancel review</button></div></section> : null}
+    {plan && !pending ? <section className="assist-review" aria-label="Transaction review"><p className="os-eyebrow">SIMULATION PASSED / OWNER APPROVAL REQUIRED</p><h2>{actionTitle(plan.kind)}</h2><dl><dt>Network</dt><dd>Monad mainnet · 143</dd><dt>Transaction target</dt><dd>{plan.transaction.to}</dd>{plan.kind === "WITHDRAW_BADGE" ? <><dt>Asset</dt><dd>Test badge #1 · {manifest.badge}</dd><dt>Recipient</dt><dd>{plan.transaction.from}</dd></> : null}<dt>MON sent</dt><dd>0 MON</dd><dt>Quoted gas ceiling</dt><dd>{formatEther(plan.maximumQuotedGasCostWei)} MON</dd><dt>Outcome</dt><dd>{plan.kind === "ACTIVATE" ? "Activate the new test wallet; move no assets" : plan.kind === "WITHDRAW_BADGE" ? "Only test badge #1 returns to the current owner wallet" : "One test NFT held by the Droid account"}</dd></dl><p>Simulation is evidence, not a guarantee. The wallet’s final gas settings control the fee. Owner and transaction checks run again before the request.</p><label className="assist-consent"><input type="checkbox" checked={accepted} onChange={event => setAccepted(event.target.checked)} />I understand this is a mainnet test transaction with gas costs and no autonomous permissions.</label><div className="assist-review-actions"><button disabled={!accepted || busy} onClick={() => void confirm()}>Approve in my wallet →</button><button className="assist-secondary" disabled={busy} onClick={() => setPlan(null)}>Cancel review</button></div></section> : null}
     {pending ? <section className="assist-review" aria-label="Pending transaction"><h2>{pending.hash ? "Waiting for a verified receipt" : "Resolve the wallet request"}</h2><p>No automatic resubmission. A reload preserves this pending record.</p>{pending.hash ? <a href={explorer(pending.hash)} target="_blank" rel="noreferrer">View transaction on Monadscan ↗</a> : <><p>Check your wallet. If it submitted a transaction, paste its hash to verify the exact action. If no transaction exists, resolve the wallet request before clearing this browser’s canary record.</p><label htmlFor="assist-recovery">Transaction hash</label><input id="assist-recovery" value={recoveryHash} onChange={event => setRecoveryHash(event.target.value.trim())} placeholder="0x…" /><button className="assist-secondary" disabled={!/^0x[\da-fA-F]{64}$/.test(recoveryHash)} onClick={recover}>Recover receipt</button></>}</section> : null}
     {notice ? <p className="assist-notice" role="status">{notice}</p> : null}{error || wallet.error ? <p className="assist-error" role="alert">{error || wallet.error}</p> : null}
     <footer className="assist-addresses"><h2>Inspect the boundaries</h2><dl><dt>Canary registry</dt><dd><a href={`https://monadscan.com/address/${manifest.registry}#code`} target="_blank" rel="noreferrer">{manifest.registry}</a></dd><dt>Test wallet {live ? live.active ? "" : "(not activated)" : "(status unverified)"}</dt><dd>{manifest.account}</dd><dt>Test NFT contract</dt><dd><a href={`https://monadscan.com/address/${manifest.badge}#code`} target="_blank" rel="noreferrer">{manifest.badge}</a></dd><dt>Existing wallet</dt><dd>Unchanged. No V1 assets are used in this test.</dd></dl><p>Funds can be stranded if the parent Droid is burned or sent into an ownership cycle. This test deliberately uses no wallet prefunding. No private key is requested by this page.</p></footer>

@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import { readFile, writeFile } from "node:fs/promises";
 import { Interface } from "ethers";
 import { ASSIST_ABI } from "../lib/droid-os/assist-canary.mjs";
+import { BADGE_WITHDRAW_ABI } from "../lib/droid-os/assist-withdraw.mjs";
 import { ASSIST_DEPLOYMENT as m } from "../lib/droid-os/assist-session.mjs";
 
 const origin = "http://127.0.0.1:3204";
@@ -17,6 +18,7 @@ const registry = new Interface(["function optIn() returns(address)",
   "event AssistMintExecuted(uint256 indexed nonce,address indexed owner,bytes32 indexed evidenceHash,address target,uint256 mintedTokenId,uint64 deadline)"]);
 let connected = false, active = false, minted = false, outcome = "reject", sends = 0, submitted;
 let chain = "0x8f";
+let withdrawn = false, submittedHash;
 let accountReads = 0;
 let sequence = 0;
 const pending = new Map(), errors = [];
@@ -37,7 +39,8 @@ async function mock({ method, params = [] }) {
     assert.equal(submitted.value, "0x0");
     assert.equal(submitted.chainId, "0x8f");
     if (outcome !== "confirmed") throw Object.assign(Error("MOCK wallet response"), { code: outcome === "reject" ? 4001 : -32603 });
-    return hash;
+    submittedHash = `0x${sends.toString(16).padStart(64, "0")}`;
+    return submittedHash;
   }
   if (method === "eth_getBlockByNumber") return { number: "0x64", hash, timestamp: `0x${Math.floor(Date.now() / 1000).toString(16)}` };
   if (method === "eth_getCode") {
@@ -50,17 +53,26 @@ async function mock({ method, params = [] }) {
   if (method === "eth_blockNumber") return "0x66";
   if (method === "eth_getTransactionByHash") return { ...submitted, input: submitted.data };
   if (method === "eth_getTransactionReceipt") {
+    if (submitted.data.startsWith(BADGE_WITHDRAW_ABI.getFunction("withdrawERC721").selector)) {
+      withdrawn = true;
+      const audit = BADGE_WITHDRAW_ABI.encodeEventLog(BADGE_WITHDRAW_ABI.getEvent("Withdrawn"), [1n, owner, m.badge, owner, 1n, 2]);
+      const transfer = BADGE_WITHDRAW_ABI.encodeEventLog(BADGE_WITHDRAW_ABI.getEvent("Transfer"), [m.account, owner, 1n]);
+      return { transactionHash: submittedHash, blockHash: hash, blockNumber: "0x64", status: "0x1",
+        logs: [{ address: m.account, ...audit }, { address: m.badge, ...transfer }] };
+    }
     const args = ASSIST_ABI.decodeFunctionData("mintCanary", submitted.data);
     const event = registry.encodeEventLog(registry.getEvent("AssistMintExecuted"), [args.expectedNonce, owner, args.evidenceHash, m.badge, 1n, args.deadline]);
     minted = true;
-    return { transactionHash: hash, blockHash: hash, blockNumber: "0x64", status: "0x1", logs: [{ address: m.account, ...event }] };
+    return { transactionHash: submittedHash, blockHash: hash, blockNumber: "0x64", status: "0x1", logs: [{ address: m.account, ...event }] };
   }
   assert.equal(method, "eth_call", `No external wallet/RPC method permitted: ${method}`);
   if (params[0].data === registry.encodeFunctionData("optIn")) return registry.encodeFunctionResult("optIn", [m.account]);
+  if (params[0].data.startsWith(BADGE_WITHDRAW_ABI.getFunction("withdrawERC721").selector)) return "0x";
   const parsed = ASSIST_ABI.parseTransaction({ data: params[0].data });
   const answers = { CHAIN_ID: 143n, TOKEN_ID: 11n, COLLECTION: m.collection, predictAccount: m.account,
     account: active ? m.account : `0x${"0".repeat(40)}`, badge: m.badge, tokenChainId: 143n, tokenId: 11n,
-    collection: m.collection, ownerOf: owner, currentOwner: owner, hasMinted: minted, actionNonce: minted ? 1n : 0n, mintCanary: 1n };
+    collection: m.collection, ownerOf: params[0].to.toLowerCase() === m.badge.toLowerCase() ? (withdrawn ? owner : m.account) : owner,
+    currentOwner: owner, hasMinted: minted, actionNonce: withdrawn ? 2n : minted ? 1n : 0n, mintCanary: 1n };
   return ASSIST_ABI.encodeFunctionResult(parsed.name, [answers[parsed.name]]);
 }
 ws.addEventListener("message", async event => {
@@ -146,9 +158,21 @@ try {
   await click("Approve in my wallet");
   await waitFor("document.body.innerText.includes('Test badge minted into your Droid. Confirmed')");
   assert.equal(sends, 3);
+  await waitFor("[...document.querySelectorAll('button')].some(b=>b.textContent.includes('Review badge withdrawal')&&!b.disabled)");
+  await click("Review badge withdrawal");
+  await waitFor("document.body.innerText.includes('Return test badge #1 to your owner wallet')");
+  assert(await evaluate(`document.querySelector('.assist-review').textContent.includes(${JSON.stringify(owner)})`));
+  await evaluate("document.querySelector('.assist-review').scrollIntoView()");
+  await screenshot("droid-assist-withdraw-mobile", 390, 844);
+  await evaluate("document.querySelector('input[type=checkbox]').click()");
+  await click("Approve in my wallet");
+  await waitFor("document.body.innerText.includes('Test badge withdrawn to your owner wallet. Confirmed')");
+  await waitFor("document.body.innerText.includes('TEST BADGE AT OWNER WALLET')");
+  assert(await evaluate("[...document.querySelectorAll('button')].find(b=>b.textContent.includes('Review badge withdrawal')).disabled"));
+  assert.equal(sends, 4);
   assert.equal(errors.length, 0, JSON.stringify(errors));
   console.log(JSON.stringify({ status: "PASS", realTransactions: 0, mockWalletRequests: sends,
-    verified: ["mobile/desktop overflow", "conditional network switch", "chain-change and mobile-return refresh", "explicit consent", "read-only preparation", "wallet cancellation", "unknown response reload recovery", "mint receipt reconciliation"] }));
+    verified: ["mobile/desktop overflow", "conditional network switch", "chain-change and mobile-return refresh", "explicit consent", "read-only preparation", "wallet cancellation", "unknown response reload recovery", "mint receipt reconciliation", "fixed-badge withdrawal review and receipt", "repeat withdrawal disabled"] }));
 } finally {
   clearTimeout(deadline);
   if (injection) await send("Page.removeScriptToEvaluateOnNewDocument", { identifier: injection.identifier });

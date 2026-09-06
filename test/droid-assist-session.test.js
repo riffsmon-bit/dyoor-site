@@ -4,6 +4,7 @@ import { readFileSync } from "node:fs";
 import { Interface, keccak256 } from "ethers";
 import { ASSIST_ABI } from "../lib/droid-os/assist-canary.mjs";
 import { describeAssistNetwork, requireAssistMonad } from "../lib/droid-os/assist-network.mjs";
+import { BADGE_WITHDRAW_ABI as withdrawalAbi } from "../lib/droid-os/assist-withdraw.mjs";
 import { ASSIST_DEPLOYMENT as m, boundedAssistRpc, readAssistState, prepareAssistStep, validateAssistSubmission, reconcileAssistReceipt } from "../lib/droid-os/assist-session.mjs";
 
 const owner = `0x${"a".repeat(40)}`, other = `0x${"b".repeat(40)}`, zero = `0x${"0".repeat(40)}`;
@@ -21,7 +22,7 @@ function fixture(o = {}) {
   const rpc = async (method, params) => {
     calls.push(method);
     if (method === "eth_chainId") return o.chain ?? "0x8f";
-    if (method === "eth_getBlockByNumber") return { number: "0x64", hash: o.reorg ? otherHash : hash, timestamp: `0x${now.toString(16)}` };
+    if (method === "eth_getBlockByNumber") return { number: "0x64", hash: o.reorg || (o.lateReorg && params[0] !== "latest") ? otherHash : hash, timestamp: `0x${(o.timestamp ?? now).toString(16)}` };
     if (method === "eth_getCode") {
       if (o.badCode) return "0x";
       if (params[0].toLowerCase() === m.collection.toLowerCase()) return season2;
@@ -35,10 +36,14 @@ function fixture(o = {}) {
     if (method === "eth_blockNumber") return o.height ?? "0x66";
     assert.equal(method, "eth_call");
     if (params[0].data === events.encodeFunctionData("optIn")) return events.encodeFunctionResult("optIn", [m.account]);
+    if (params[0].data.startsWith(withdrawalAbi.getFunction("withdrawERC721").selector)) {
+      if (o.simulationFailure) throw Error("Withdrawal reverted");
+      return o.simulationResult ?? "0x";
+    }
     const parsed = ASSIST_ABI.parseTransaction({ data: params[0].data });
     const answers = { CHAIN_ID: 143n, TOKEN_ID: 11n, COLLECTION: m.collection, predictAccount: m.account,
       account: o.active ? m.account : zero, badge: m.badge, tokenChainId: 143n, tokenId: 11n,
-      collection: m.collection, ownerOf: o.owner ?? owner, currentOwner: o.owner ?? owner,
+      collection: m.collection, ownerOf: params[0].to.toLowerCase() === m.badge.toLowerCase() ? (o.badgeOwner ?? m.account) : (o.owner ?? owner), currentOwner: o.owner ?? owner,
       hasMinted: o.minted ?? false, actionNonce: o.nonce ?? 0n, mintCanary: 1n };
     return ASSIST_ABI.encodeFunctionResult(parsed.name, [answers[parsed.name]]);
   };
@@ -159,4 +164,73 @@ test("unconfirmed, missing and reorged receipts stay pending; reverted receipts 
 test("unknown action kinds cannot be reconciled as a mint", async () => {
   const data = await receiptFixture("MINT"); data.pending.plan.kind = "SWAP";
   await assert.rejects(reconcileAssistReceipt(fixture(data).rpc, data.pending), /Unsupported/);
+});
+
+const withdrawalState = { active: true, minted: true, nonce: 1n };
+const prepareWithdrawal = overrides => prepareAssistStep(fixture({ ...withdrawalState, ...overrides }).rpc, owner, "WITHDRAW_BADGE");
+test("withdrawal prepares only badge #1 directly to the canonical owner with zero MON", async () => {
+  const plan = await prepareWithdrawal();
+  const args = withdrawalAbi.decodeFunctionData("withdrawERC721", plan.transaction.data);
+  assert.equal(args.asset, m.badge); assert.equal(args.recipient.toLowerCase(), owner); assert.equal(args.id, 1n);
+  assert.equal(plan.transaction.to, m.account); assert.equal(plan.transaction.value, "0x0");
+  assert.equal(plan.simulation.genericStateDiffAvailable, false);
+  assert.deepEqual(await validateAssistSubmission(fixture(withdrawalState).rpc, owner, plan), plan.transaction);
+});
+for (const [name, overrides] of [
+  ["old owner", { owner: other }], ["badge not held", { badgeOwner: other }], ["not minted", { minted: false }],
+  ["inactive", { active: false }], ["simulation revert", { simulationFailure: true }],
+  ["malformed result", { simulationResult: "0x1234" }], ["gas above cap", { gas: "0xffffff" }],
+  ["stale block", { timestamp: 1 }], ["reorg", { lateReorg: true }],
+]) test(`withdrawal denies ${name}`, async () => { await assert.rejects(prepareWithdrawal(overrides)); });
+test("withdrawal validation denies altered asset, recipient, token ID, suffix and transaction fields", async () => {
+  for (const args of [[m.collection, owner, 1], [m.badge, other, 1], [m.badge, owner, 2]]) {
+    const plan = await prepareWithdrawal(); plan.transaction.data = withdrawalAbi.encodeFunctionData("withdrawERC721", args);
+    plan.transactionDataHash = keccak256(plan.transaction.data);
+    await assert.rejects(validateAssistSubmission(fixture(withdrawalState).rpc, owner, plan));
+  }
+  const plan = await prepareWithdrawal(); plan.transaction.data += "00"; plan.transactionDataHash = keccak256(plan.transaction.data);
+  await assert.rejects(validateAssistSubmission(fixture(withdrawalState).rpc, owner, plan));
+  for (const modification of [{ authorizationList: [] }, { value: "0x1" }, { to: m.badge }, { chainId: "0x1" }]) {
+    const next = await prepareWithdrawal(); Object.assign(next.transaction, modification);
+    await assert.rejects(validateAssistSubmission(fixture(withdrawalState).rpc, owner, next));
+  }
+});
+test("withdrawal revalidates owner, custody, nonce, expiry and displayed destination", async () => {
+  const plan = await prepareWithdrawal();
+  for (const overrides of [{ owner: other }, { badgeOwner: owner }, { nonce: 2n }]) {
+    await assert.rejects(validateAssistSubmission(fixture({ ...withdrawalState, ...overrides }).rpc, owner, plan));
+  }
+  await assert.rejects(validateAssistSubmission(fixture(withdrawalState).rpc, owner, { ...plan, expiresAt: "1" }));
+  await assert.rejects(validateAssistSubmission(fixture(withdrawalState).rpc, owner, { ...plan, withdrawal: { ...plan.withdrawal, recipient: other } }));
+});
+async function withdrawalReceipt() {
+  const plan = await prepareWithdrawal();
+  const audit = withdrawalAbi.encodeEventLog(withdrawalAbi.getEvent("Withdrawn"), [1n, owner, m.badge, owner, 1n, 2]);
+  const transfer = withdrawalAbi.encodeEventLog(withdrawalAbi.getEvent("Transfer"), [m.account, owner, 1n]);
+  return { pending: { plan, hash }, tx: { ...plan.transaction, input: plan.transaction.data }, badgeOwner: owner,
+    receipt: { transactionHash: hash, blockHash: hash, blockNumber: "0x64", status: "0x1",
+      logs: [{ address: m.account, ...audit }, { address: m.badge, ...transfer }] } };
+}
+test("withdrawal receipt requires matching custody audit, badge Transfer and owner at receipt block", async () => {
+  const data = await withdrawalReceipt();
+  assert.equal((await reconcileAssistReceipt(fixture(data).rpc, data.pending)).withdrawnTokenId, "1");
+  for (const overrides of [{ badgeOwner: other }, { receipt: { ...data.receipt, logs: data.receipt.logs.slice(0, 1) } },
+    { receipt: { ...data.receipt, logs: data.receipt.logs.slice(1) } }]) {
+    await assert.rejects(reconcileAssistReceipt(fixture({ ...data, ...overrides }).rpc, data.pending));
+  }
+});
+test("withdrawal rejects spoofed audit fields and Transfer emitters/recipients", async () => {
+  const data = await withdrawalReceipt();
+  for (const args of [[2n, owner, m.badge, owner, 1n, 2], [1n, other, m.badge, owner, 1n, 2],
+    [1n, owner, m.collection, owner, 1n, 2], [1n, owner, m.badge, other, 1n, 2],
+    [1n, owner, m.badge, owner, 2n, 2], [1n, owner, m.badge, owner, 1n, 1]]) {
+    const event = withdrawalAbi.encodeEventLog(withdrawalAbi.getEvent("Withdrawn"), args);
+    await assert.rejects(reconcileAssistReceipt(fixture({ ...data, receipt: { ...data.receipt,
+      logs: [{ address: m.account, ...event }, data.receipt.logs[1]] } }).rpc, data.pending));
+  }
+  for (const args of [[m.account, other, 1n], [other, owner, 1n], [m.account, owner, 2n]]) {
+    const event = withdrawalAbi.encodeEventLog(withdrawalAbi.getEvent("Transfer"), args);
+    await assert.rejects(reconcileAssistReceipt(fixture({ ...data, receipt: { ...data.receipt,
+      logs: [data.receipt.logs[0], { address: m.badge, ...event }] } }).rpc, data.pending));
+  }
 });
