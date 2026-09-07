@@ -8,8 +8,9 @@ import { AbiCoder, Contract, ContractFactory, JsonRpcProvider, Wallet, NonceMana
 import { createLocalControlReader } from "../lib/droid-os/missions/local-authority.ts";
 import { prepareLocalMissionReview } from "../lib/droid-os/missions/local-review.ts";
 
-const wrappedFlow = process.argv[2] === "--wrapped";
-if (process.argv.length !== 2 && !(wrappedFlow && process.argv.length === 3)) throw Error("Only --wrapped is allowed; no external RPC endpoints");
+const swapFlow = process.argv[2] === "--swaps";
+const wrappedFlow = process.argv[2] === "--wrapped" || swapFlow;
+if (process.argv.length !== 2 && !(wrappedFlow && process.argv.length === 3)) throw Error("Only --wrapped or --swaps is allowed; no external RPC endpoints");
 const socket = net.createServer();
 await new Promise(resolve => socket.listen(0, "127.0.0.1", resolve));
 const port = socket.address().port;
@@ -53,9 +54,22 @@ try {
   const minter = await deploy("MissionFixtures", "MissionMintLab");
   const ownerAddress = await owner.getAddress(), runnerAddress = await runner.getAddress(), buyerAddress = await buyer.getAddress();
   await record("LOCAL mint parent fixture", parent.mint(ownerAddress, 11));
-  let wrapper, account;
+  let wrapper, account, swapToken, swapRouter;
+  let expectedNativeBalance = parseEther("50");
   if (wrappedFlow) {
-    wrapper = await deploy("DroidControlReceiptLab", "DroidControlReceiptLab", [await parent.getAddress(), await minter.getAddress()]);
+    const venue = ["0x" + "0".repeat(40), "0x" + "0".repeat(40), "0x" + "0".repeat(40),
+      "0x" + "0".repeat(64), "0x" + "0".repeat(64), "0x" + "0".repeat(64)];
+    if (swapFlow) {
+      swapToken = await deploy("DroidKuruSwapLab.t", "SwapTokenLab");
+      const market = await deploy("DroidKuruSwapLab.t", "SwapMarketLab");
+      const mockControl = await deploy("DroidKuruSwapLab.t", "SwapControlLab", [ownerAddress]);
+      swapRouter = await deploy("DroidKuruSwapLab.t", "SwapRouterLab", [await swapToken.getAddress(), await mockControl.getAddress(), await market.getAddress()]);
+      const addresses = [await swapRouter.getAddress(), await market.getAddress(), await swapToken.getAddress()];
+      for (let i = 0; i < 3; i++) { venue[i] = addresses[i]; venue[i + 3] = keccak256(await provider.getCode(addresses[i])); }
+      await record("LOCAL fund MOCK router liquidity", owner.sendTransaction({ to: addresses[0], value: parseEther("0.01") }));
+    }
+    wrapper = await deploy("DroidControlReceiptLab", "DroidControlReceiptLab", [await parent.getAddress(), await minter.getAddress(),
+      venue]);
     const intent = AbiCoder.defaultAbiCoder().encode(["bytes32"], [await wrapper.WRAP_INTENT()]);
     await record("LOCAL owner directly opts in with exact wrap intent; no operator approval", parent["safeTransferFrom(address,address,uint256,bytes)"](ownerAddress, await wrapper.getAddress(), 11, intent));
     const artifact = JSON.parse(await readFile(new URL("../contracts/droid-os-mission-lab/out/WrappedMissionAccountLab.sol/WrappedMissionAccountLab.json", import.meta.url), "utf8"));
@@ -67,6 +81,23 @@ try {
   const authority = wrapper || parent;
   const accountAddress = await account.getAddress();
   await record("LOCAL owner funds Droid directly", owner.sendTransaction({ to: accountAddress, value: parseEther("50") }));
+  if (swapFlow) {
+    await record("LOCAL owner configures canonical wallet swap reserve", account.configureSwapPolicy(parseEther("20"), 0, 1));
+    for (const [direction, amountIn, minimumOut] of [[0, parseEther("0.001"), 20n], [1, 10n, parseEther("0.0004")]]) {
+      const nonce = await account.actionNonce();
+      const block = await provider.getBlock("latest");
+      const request = [direction, amountIn, minimumOut, nonce, await wrapper.ownershipEpoch(11), block.timestamp + 60,
+        keccak256(toUtf8Bytes(`LOCAL MOCK swap simulation:${accountAddress}:${nonce}:${block.hash}`))];
+      await account.swap.staticCall(request);
+      await record(`LOCAL owner signs canonical ${direction === 0 ? "buy" : "sell"} against MOCK venue`, account.swap(request));
+      await assert.rejects(account.swap.staticCall(request));
+      assert.equal(await account.actionNonce(), nonce + 1n);
+    }
+    expectedNativeBalance -= parseEther("0.0006");
+    assert.equal(await provider.getBalance(accountAddress), expectedNativeBalance);
+    assert.equal(await swapToken.balanceOf(accountAddress), 10n);
+    assert.equal(await swapToken.allowance(accountAddress, await swapRouter.getAddress()), 0n);
+  }
   const timestamp = Number(BigInt((await provider.send("eth_getBlockByNumber", ["latest", false])).timestamp));
   const limits = { runner: runnerAddress, validAfter: timestamp, expiresAt: timestamp + 3600, maxActions: 3, maxActionsPerDay: 3,
     protectedReserveWei: parseEther("20"), missionHash: keccak256(toUtf8Bytes("LOCAL fixed free mint mission; no money spent")) };
@@ -110,7 +141,7 @@ try {
   assert.equal(await robot.executeFreeMint.staticCall(...first), 1n);
   await record("LOCAL runner executes simulated mint without another owner signature", robot.executeFreeMint(...first));
   assert.equal(await minter.ownerOf(1), accountAddress);
-  assert.equal(await provider.getBalance(accountAddress), parseEther("50"));
+  assert.equal(await provider.getBalance(accountAddress), expectedNativeBalance);
   await assert.rejects(robot.executeFreeMint.staticCall(...first)); // Replay denied.
   await record("LOCAL owner cancels mission", account.cancel());
   await assert.rejects(robot.executeFreeMint.staticCall(...await prepare()));
@@ -126,7 +157,7 @@ try {
     await assert.rejects(provider.call(preparedReview.transaction)); // Previously reviewed launch is stale.
   }
   await assert.rejects(robot.executeFreeMint.staticCall(...await prepare()));
-  assert.equal(await provider.getBalance(accountAddress), parseEther("50"));
+  assert.equal(await provider.getBalance(accountAddress), expectedNativeBalance);
   assert.equal(await minter.ownerOf(1), buyerAddress);
   const preservedDroidBalanceWei = String(await provider.getBalance(accountAddress));
   if (wrappedFlow) {
@@ -136,6 +167,11 @@ try {
     const exitArgs = [[], await account.actionNonce(), await wrapper.ownershipEpoch(11)];
     await account.exitToOwner.staticCall(...exitArgs);
     await record("LOCAL current owner atomically sweeps native balance and unwraps", account.exitToOwner(...exitArgs));
+    if (swapFlow) {
+      assert.equal(await swapToken.balanceOf(accountAddress), 0n);
+      assert.equal(await swapToken.balanceOf(ownerAddress), 10n);
+      assert.equal(await account.swapPolicyOwner(), "0x" + "0".repeat(40));
+    }
     assert.equal(await parent.ownerOf(11), ownerAddress);
     await assert.rejects(reader.current()); // Unwrapped state never grants mission authority.
     await assert.rejects(robot.executeFreeMint.staticCall(...await prepare()));
@@ -149,7 +185,7 @@ try {
   }
   console.log(JSON.stringify({ status: "PASS", chainId: 31337, environment: "DISPOSABLE_LOCAL_FIXTURES", realMonSpent: "0",
     publicDeployments: 0, aiCalls: 0, localTransactionCount: receipts.length, ownerLaunchTransactions: 2, runnerMintTransactions: 1,
-    wrappedFlow, preservedDroidBalanceWei, finalAccountBalanceWei: String(await provider.getBalance(accountAddress)),
+    wrappedFlow, swapFlow, preservedDroidBalanceWei, finalAccountBalanceWei: String(await provider.getBalance(accountAddress)),
     verifies: ["owner launch simulation and signed transaction", "separate runner transaction", "fixed-account mint simulation", "NFT custody", "reserve", "replay denial", "cancellation", "transfer and round-trip revocation", "current owner withdrawal"], receipts }, null, 2));
 } finally {
   clearTimeout(timeout); process.removeListener("SIGINT", stop); process.removeListener("SIGTERM", stop);

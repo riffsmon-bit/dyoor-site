@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import { Interface } from "ethers";
 import { readFileSync } from "node:fs";
 import { KURU_ROUTE, parseKuruIntent, buildKuruRoute, validateKuruRoute, minimumAfterSlippage, inspectKuruVenue, assertKuruImplementationBindings } from "../lib/droid-os/swaps/kuru-route.ts";
+import { kuruDependencyReadPlan, assertKuruDependencySnapshot, inspectKuruDependencies } from "../lib/droid-os/swaps/kuru-dependencies.ts";
 const intent = { version: 1, direction: "MON_TO_USDC", amountIn: "1000000000000000", minimumOut: "20" };
 const abi = new Interface(["function anyToAnySwap(address[],bool[],bool[],address,address,uint256,uint256) payable returns(uint256)"]);
 test("both fixed routes choose correct debit, credit, native value and direction", () => {
@@ -61,4 +62,27 @@ test("changed or unknown implementation slots fail even if proxy bytecode is unc
     assert.throws(() => assertKuruImplementationBindings(r, bad, u));
   }
   assert.throws(() => assertKuruImplementationBindings(r, m, KURU_ROUTE.routerImplementation));
+});
+test("every known dependency, admin, signer, pause and blacklist observation must match", () => {
+  const plan = kuruDependencyReadPlan(KURU_ROUTE);
+  const evidence = Object.fromEntries(plan.map(r => [r.key, r.expected]));
+  assert.equal(new Set(plan.map(r => r.key)).size, plan.length);
+  assertKuruDependencySnapshot(evidence, KURU_ROUTE);
+  for (const check of plan) {
+    assert.throws(() => assertKuruDependencySnapshot({ ...evidence, [check.key]: "0x" }, KURU_ROUTE));
+    const missing = { ...evidence }; delete missing[check.key];
+    assert.throws(() => assertKuruDependencySnapshot(missing, KURU_ROUTE));
+  }
+  assert.throws(() => assertKuruDependencySnapshot({ ...evidence, aiApproval: "true" }, KURU_ROUTE));
+});
+test("missing dependency bytecode or failed RPC is not skipped", async () => {
+  await assert.rejects(inspectKuruDependencies({ getCode: async () => "0x", getStorage: async () => "0x" }, 10, KURU_ROUTE), /Missing/);
+  await assert.rejects(inspectKuruDependencies({ getCode: async () => { throw Error("RPC unavailable"); }, getStorage: async () => "0x" }, 10, KURU_ROUTE), /RPC unavailable/);
+});
+test("market parameters use the independently decoded public snapshot, not copied hex word boundaries", () => {
+  const read = kuruDependencyReadPlan(KURU_ROUTE).find(r => r.key === "market.parameters");
+  const market = new Interface(["function getMarketParams() view returns(uint32,uint96,address,uint256,address,uint256,uint32,uint96,uint96,uint256,uint256)"]);
+  const values = market.decodeFunctionResult("getMarketParams", read.expected);
+  assert.equal(values[7], 2_000_000_000_000n);
+  assert.equal(values[8], 2_000_000_000_000_000_000n);
 });

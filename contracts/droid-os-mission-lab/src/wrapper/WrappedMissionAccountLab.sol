@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.24;
-import {DroidMissionAccountCoreLab} from "../DroidMissionAccountCoreLab.sol";
+import {DroidBoundedSwapCoreLab} from "../swap/DroidBoundedSwapCoreLab.sol";
+import {KuruMonUsdcAdapterLab as Adapter} from "../swap/KuruMonUsdcAdapterLab.sol";
 import {MissionMintLab} from "../MissionFixtures.sol";
 import {IERC20} from "@droid-oz/token/ERC20/IERC20.sol";
 import {SafeERC20} from "@droid-oz/token/ERC20/utils/SafeERC20.sol";
@@ -10,17 +11,16 @@ interface IWrapperControlLab {
     function controlOf(uint256 id) external view returns (address owner, uint256 epoch, bool wrapped);
     function accountFactory() external view returns (address);
     function completeAccountExit(uint256 id, address owner, uint256 expectedEpoch) external;
+    function swapVenue() external view returns (Adapter.Venue memory);
 }
 
 /// @dev Local-only child of the explicitly selected wrapper; not a final V2 deposit address.
-contract WrappedMissionAccountLab is DroidMissionAccountCoreLab {
+contract WrappedMissionAccountLab is DroidBoundedSwapCoreLab {
     using SafeERC20 for IERC20;
     IWrapperControlLab public immutable wrapper;
     bytes32 public immutable wrapperCodeHash;
 
-    constructor(IWrapperControlLab wrapper_, uint256 id, MissionMintLab minter_)
-        DroidMissionAccountCoreLab(id, minter_)
-    {
+    constructor(IWrapperControlLab wrapper_, uint256 id, MissionMintLab minter_) DroidBoundedSwapCoreLab(id, minter_) {
         if (address(wrapper_).code.length == 0 || wrapper_.accountFactory() != msg.sender) revert InvalidIdentity();
         wrapper = wrapper_;
         wrapperCodeHash = address(wrapper_).codehash;
@@ -42,6 +42,15 @@ contract WrappedMissionAccountLab is DroidMissionAccountCoreLab {
     function _requireMissionAuthority() internal view override {
         (,, bool wrapped) = _control();
         if (!wrapped) revert Denied();
+    }
+
+    function _swapVenue() internal view override returns (Adapter.Venue memory) {
+        return wrapper.swapVenue();
+    }
+
+    function knownAssetsEmpty() public view override returns (bool) {
+        address token = _swapVenue().usdc;
+        return super.knownAssetsEmpty() && (token == address(0) || IERC20(token).balanceOf(address(this)) == 0);
     }
 
     /// @notice Explicit owner recovery, never a runner capability. Fixed transfer
@@ -79,12 +88,21 @@ contract WrappedMissionAccountLab is DroidMissionAccountCoreLab {
                 || mintIds.length > 100
         ) revert Denied();
         grant.cancelled = true;
+        _cancelSwapPolicy();
         actionNonce++;
         emit MissionCancelled(missionId, owner);
         for (uint256 i; i < mintIds.length; ++i) {
             minter.safeTransferFrom(address(this), owner, mintIds[i]);
             if (minter.ownerOf(mintIds[i]) != owner) revert Denied();
             emit Withdrawn(owner, owner, address(minter), mintIds[i]);
+        }
+        address token = _swapVenue().usdc;
+        if (token != address(0)) {
+            uint256 tokenAmount = IERC20(token).balanceOf(address(this));
+            if (tokenAmount != 0) {
+                IERC20(token).safeTransfer(owner, tokenAmount);
+                emit Withdrawn(owner, owner, token, tokenAmount);
+            }
         }
         uint256 amount = address(this).balance;
         if (amount != 0) {

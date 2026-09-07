@@ -1,5 +1,7 @@
 # First real swap adapter — MON/USDC, local fork only
 
+Follow-up: [venue/security review and canonical-wallet integration](./18-venue-security-canonical-wallet.md) integrates this adapter into the local wrapper's actual account and expands dependency checks. This document records the earlier standalone-harness slice; it is not the latest deployment-readiness decision.
+
 September 6, 2026. The user's “yeah do that” was interpreted as building the real adapter before another disposable deployment. This slice builds and tests a narrowly scoped route; it does **not** authorize or perform a public deployment, real funding, wrapping, trading, key access or production activation.
 
 ## Implemented

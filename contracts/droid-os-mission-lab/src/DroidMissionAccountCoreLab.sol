@@ -26,6 +26,7 @@ abstract contract DroidMissionAccountCoreLab {
         bool cancelled;
     }
     MissionMintLab public immutable minter;
+    bytes32 public immutable minterCodeHash;
     uint256 public immutable tokenId;
     uint256 public missionId;
     uint256 public actionNonce;
@@ -60,6 +61,9 @@ abstract contract DroidMissionAccountCoreLab {
         if (block.chainid != 31337) revert LocalOnly();
         tokenId = tokenId_;
         minter = minter_;
+        // Verify the fixture exactly at construction, then pin its immutable hash.
+        // Avoid embedding its entire runtime in every account's runtime as well.
+        minterCodeHash = keccak256(type(MissionMintLab).runtimeCode);
         _checkLocalTarget();
     }
 
@@ -69,7 +73,7 @@ abstract contract DroidMissionAccountCoreLab {
 
     function _checkLocalTarget() internal view {
         if (block.chainid != 31337) revert LocalOnly();
-        if (address(minter).codehash != keccak256(type(MissionMintLab).runtimeCode)) revert InvalidIdentity();
+        if (address(minter).codehash != minterCodeHash) revert InvalidIdentity();
     }
     function _identity() internal view virtual returns (address owner, uint256 epoch);
     function _requireMissionAuthority() internal view virtual {}
@@ -179,7 +183,7 @@ abstract contract DroidMissionAccountCoreLab {
     }
 
     /// @dev Only proves the two supported lab assets empty, NOT arbitrary asset absence.
-    function knownAssetsEmpty() external view returns (bool) {
+    function knownAssetsEmpty() public view virtual returns (bool) {
         _checkLocalTarget();
         return address(this).balance == 0 && minter.balanceOf(address(this)) == 0;
     }

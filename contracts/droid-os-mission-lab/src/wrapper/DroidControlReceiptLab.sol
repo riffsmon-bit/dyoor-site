@@ -4,6 +4,7 @@ import {ERC721} from "@droid-oz/token/ERC721/ERC721.sol";
 import {MissionMintLab} from "../MissionFixtures.sol";
 import {WrappedMissionAccountLab, IWrapperControlLab} from "./WrappedMissionAccountLab.sol";
 import {WrappedAccountFactoryLab} from "./WrappedAccountFactoryLab.sol";
+import {KuruMonUsdcAdapterLab as Adapter} from "../swap/KuruMonUsdcAdapterLab.sol";
 
 interface IWrappedParentLab {
     function ownerOf(uint256 id) external view returns (address);
@@ -18,6 +19,7 @@ contract DroidControlReceiptLab is ERC721, IWrapperControlLab {
     bytes32 public immutable parentCodeHash;
     MissionMintLab public immutable minter;
     address public immutable accountFactory;
+    Adapter.Venue private approvedSwapVenue;
     mapping(uint256 => uint256) public ownershipEpoch;
     mapping(uint256 => bool) public isWrapped;
     mapping(uint256 => address) public accounts;
@@ -31,7 +33,7 @@ contract DroidControlReceiptLab is ERC721, IWrapperControlLab {
     event Unwrapped(uint256 indexed tokenId, address indexed owner, uint256 epoch);
     event AuthorityChanged(uint256 indexed tokenId, address indexed from, address indexed to, uint256 epoch);
 
-    constructor(IWrappedParentLab parent_, MissionMintLab minter_)
+    constructor(IWrappedParentLab parent_, MissionMintLab minter_, Adapter.Venue memory venue_)
         ERC721("LOCAL Droid Control Receipt", "DCTRL-LOCAL")
     {
         if (block.chainid != 31337) revert LocalOnly();
@@ -42,7 +44,20 @@ contract DroidControlReceiptLab is ERC721, IWrapperControlLab {
         parent = parent_;
         parentCodeHash = address(parent_).codehash;
         minter = minter_;
+        // Operator-selected LOCAL fixture/fork configuration, fixed for the wrapper's
+        // lifetime. No owner, runner, chat or admin method can replace this route.
+        if (venue_.router == address(0)) {
+            if (keccak256(abi.encode(venue_)) != keccak256(abi.encode(Adapter.disabledVenue()))) revert Denied();
+        } else {
+            Adapter.check(venue_);
+            if (venue_.usdc == address(parent_) || venue_.usdc == address(minter_)) revert Denied();
+        }
+        approvedSwapVenue = venue_;
         accountFactory = address(new WrappedAccountFactoryLab());
+    }
+
+    function swapVenue() external view returns (Adapter.Venue memory) {
+        return approvedSwapVenue;
     }
     modifier locked() {
         if (entered) revert Denied();

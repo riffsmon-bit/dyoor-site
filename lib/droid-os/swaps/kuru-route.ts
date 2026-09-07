@@ -1,4 +1,5 @@
 import { Interface, keccak256, type JsonRpcProvider } from "ethers";
+import { inspectKuruDependencies } from "./kuru-dependencies.ts";
 
 // Operator-reviewed route identity, not an AI-selected token, market or aggregator.
 export const KURU_ROUTE = Object.freeze({
@@ -75,9 +76,12 @@ export async function inspectKuruVenue(rpc: JsonRpcProvider) {
     rpc.call({ to: KURU_ROUTE.usdc, data: implementation.encodeFunctionData("implementation"), blockTag: tag }),
   ]);
   assertKuruImplementationBindings(routerSlot, marketSlot, String(implementation.decodeFunctionResult("implementation", usdcResult)[0]));
+  const dependencies = await inspectKuruDependencies(rpc, tag, KURU_ROUTE);
   if ((await rpc.getBlock(tag))?.hash !== block.hash) throw Error("Venue snapshot reorganized");
+  if (Date.now() / 1000 - block.timestamp > 30) throw Error("Venue snapshot expired during inspection");
   return { version: 1, status: "OBSERVED_IDENTITY_MATCH" as const, chainId: 143, block: tag, blockHash: block.hash,
     timestamp: block.timestamp, executionAllowed: false as const,
-    blockers: ["PROXY_UPGRADE_RACE_UNRESOLVED", "IMPLEMENTATION_SOURCE_REVIEW_PENDING", "DEPENDENCY_GRAPH_REVIEW_PENDING"],
-    route: KURU_ROUTE };
+    blockers: ["PROXY_UPGRADE_RACE_UNRESOLVED", "EXACT_KURU_IMPLEMENTATION_SOURCE_UNVERIFIED",
+      "TRANSITIVE_DEPENDENCY_REVIEW_INCOMPLETE", "ACCOUNT_SPECIFIC_SIMULATION_AND_AUTHORIZATION_NOT_CONNECTED"],
+    dependencies, route: KURU_ROUTE };
 }

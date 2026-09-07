@@ -36,9 +36,13 @@ library KuruMonUsdcAdapterLab {
     error InvalidVenue();
     error UnexpectedEffects();
 
+    /// @dev Explicit mint-only configuration for local regressions; never enables a swap.
+    function disabledVenue() internal pure returns (Venue memory venue) {}
+
     function check(Venue memory venue) internal view {
         if (
-            block.chainid != 31337 || venue.router.code.length == 0 || venue.market.code.length == 0
+            block.chainid != 31337 || venue.router == venue.market || venue.router == venue.usdc
+                || venue.market == venue.usdc || venue.router.code.length == 0 || venue.market.code.length == 0
                 || venue.usdc.code.length == 0 || venue.router.codehash != venue.routerHash
                 || venue.market.codehash != venue.marketHash || venue.usdc.codehash != venue.usdcHash
         ) revert InvalidVenue();

@@ -3,6 +3,7 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "test:droid-canonical-flow": "forge build --root contracts/droid-os-mission-lab && node scripts/test-droid-mission-flow.mjs --swaps",
     "test:droid-kuru": "node --test test/droid-kuru-route.test.js",
     "inspect:droid-kuru": "node scripts/inspect-droid-kuru.mjs",
     "test:droid-kuru:fork": "FOUNDRY_PROFILE=monad_fork forge test --root contracts/droid-os-mission-lab --match-contract MonadKuruSwapForkTest --fork-url https://rpc.monad.xyz --fork-block-number 102612438 -vv",

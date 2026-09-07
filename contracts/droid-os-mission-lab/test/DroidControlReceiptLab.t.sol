@@ -6,6 +6,7 @@ import {DroidMissionAccountCoreLab} from "../src/DroidMissionAccountCoreLab.sol"
 import {DroidControlReceiptLab, IWrappedParentLab} from "../src/wrapper/DroidControlReceiptLab.sol";
 import {WrappedMissionAccountLab} from "../src/wrapper/WrappedMissionAccountLab.sol";
 import {WrappedAccountFactoryLab} from "../src/wrapper/WrappedAccountFactoryLab.sol";
+import {KuruMonUsdcAdapterLab as Adapter} from "../src/swap/KuruMonUsdcAdapterLab.sol";
 
 interface WrapperVm {
     function chainId(uint256) external;
@@ -160,7 +161,7 @@ contract DroidControlReceiptLabTest {
         parent = new LegacyParentLab();
         minter = new MissionMintLab();
         parent.mint(A, 11);
-        wrapper = new DroidControlReceiptLab(IWrappedParentLab(address(parent)), minter);
+        wrapper = new DroidControlReceiptLab(IWrappedParentLab(address(parent)), minter, Adapter.disabledVenue());
     }
 
     function wrap() private {
@@ -452,7 +453,7 @@ contract DroidControlReceiptLabTest {
         wrap();
         vm.chainId(143);
         vm.expectRevert();
-        new DroidControlReceiptLab(IWrappedParentLab(address(parent)), minter);
+        new DroidControlReceiptLab(IWrappedParentLab(address(parent)), minter, Adapter.disabledVenue());
         vm.prank(A);
         vm.expectRevert();
         wrapper.unwrap(11);
@@ -500,7 +501,7 @@ contract DroidControlReceiptLabTest {
         require(address(wrapper).code.length <= 24576);
         require(wrapper.accountFactory().code.length <= 24576);
         require(address(account).code.length <= 24576);
-        require(type(DroidControlReceiptLab).creationCode.length + 64 <= 49152);
+        require(type(DroidControlReceiptLab).creationCode.length + 256 <= 49152);
         require(type(WrappedAccountFactoryLab).creationCode.length <= 49152);
         require(type(WrappedMissionAccountLab).creationCode.length + 96 <= 49152);
     }
