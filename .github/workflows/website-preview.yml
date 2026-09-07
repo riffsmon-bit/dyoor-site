@@ -43,5 +43,6 @@ jobs:
       - run: npm run test:droid-mission-flow
       - run: npm run test:droid-wrapper-flow
       - run: npm run test:droid-canonical-flow
+      - run: npm run test:droid-swap-canary
       - run: npm run test:droid-contract-flow
       - run: npm run build
