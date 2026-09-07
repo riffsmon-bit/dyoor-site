@@ -3,8 +3,9 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "test:droid-swap-canary": "forge test --root contracts/droid-os-swap-canary -vv && node --test test/droid-isolated-canary.test.js",
+    "test:droid-swap-canary": "forge test --root contracts/droid-os-swap-canary -vv && node --test test/droid-isolated-canary.test.js test/droid-canary-deployment.test.js",
     "test:droid-swap-canary:fork": "FOUNDRY_PROFILE=monad_fork forge test --root contracts/droid-os-swap-canary --fork-url https://rpc.monad.xyz --fork-block-number 102612438 -vv",
+    "test:droid-swap-canary:deployed-fork": "FOUNDRY_PROFILE=deployed_fork forge test --root contracts/droid-os-swap-canary --fork-url https://rpc.monad.xyz --fork-block-number 102641082 -vv",
     "preflight:droid-swap-canary": "forge build --root contracts/droid-os-swap-canary && node scripts/preflight-droid-swap-canary.mjs",
     "test:droid-canonical-flow": "forge build --root contracts/droid-os-mission-lab && node scripts/test-droid-mission-flow.mjs --swaps",
     "test:droid-kuru": "node --test test/droid-kuru-route.test.js",

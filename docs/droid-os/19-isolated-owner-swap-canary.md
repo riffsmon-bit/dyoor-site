@@ -1,9 +1,39 @@
 # Isolated owner-approved swap canary
 
-Status: **built and tested, not deployed, not wired to preview controls**. No mainnet
-transaction, owner key access, funding, delegation change or autonomous activation
-was performed for this work. The user requested faster live testing; this does not
-turn the unresolved venue findings into a completed security review.
+Status: **deployed, unfunded, not wired to preview swap controls**. After approving
+a 1 MON total deployment/testing budget, the owner authorized this isolated
+experiment. One fixed, zero-value CREATE transaction was signed using the existing
+deployment credential. No funding, swap, delegation change, NFT movement or
+autonomous activation was performed. The request for faster testing does not turn
+the unresolved venue findings into a completed security review.
+
+## Deployment receipt
+
+- Account: `0xac33a73b923ac2b711b5f2fbe175e2b63036f101`.
+- [Transaction](https://monadscan.com/tx/0xcd990bc62ddcb00da3c90dbf37b443750f3ecaa0a1906a6dc49f23fc13eacf88),
+  block **102641082**, canonical hash
+  `0x1f0a7263a2b59c2368053cd0d2198fd0444cf193751e9f3f8d528b0bdc55688d`.
+- Actual deployment fee **0.206602836 MON**; gas used 2,025,518 at 102 gwei.
+- Remaining approved experiment budget: **0.793397164 MON**. No test capital has
+  been transferred. Funding/trade/recovery fees must come out of this remainder.
+- Trading expiration timestamp: **1788836424**. Recovery is not subject to that expiry.
+- Trading expires **September 7 at 11:00:24 PM America/Detroit** (September 8,
+  03:00:24 UTC). This is a fixed experiment, not a permanent trading wallet.
+- Sourcify verification job `4acecc6d-91e7-48ba-895d-455223767ca9` returned
+  **exact_match**. Source matching is not an independent security audit.
+- Runtime, owner, collection/token bindings, zero phase/nonce and zero native
+  balance were checked after two-confirmation receipt acceptance.
+- Public manifest: `lib/droid-os/swaps/isolated-canary-deployment.json`.
+
+`scripts/deploy-droid-owner-swap-canary.mjs` defaults to read-only inspection and
+has a fixed owner, nonce 4602, creation address, artifact hash and **0.3 MON**
+deployment sub-limit. It signs only a type-0, zero-value creation with no target,
+authorization list or user/AI-supplied calldata. It rechecks the preflight after
+signing and before submission, emits the public transaction hash before sending,
+and refuses another deployment if the nonce changed or the address has code.
+Exceptions are redacted; no raw transaction or key is logged. **Do not rerun to
+create a replacement.** The source's predeployment notice is retained to preserve
+the byte-for-byte deployed artifact, not to contradict this receipt.
 
 ## Purpose and boundaries
 
@@ -95,9 +125,11 @@ estimated a 2,025,518 gas limit
 (including 20% headroom) at 102 gwei: **0.206602836 MON**. This is an expiring
 deployment estimate, not a spending authorization. Proposed test capital is
 **0.0011 MON**, transferred only after deployment verification. Funding, buy, sell
-and recovery transaction gas are additional. A numeric total owner budget has
-been requested and is still pending. Do not use the historical quote or nonce as
-a ready-to-broadcast transaction.
+and recovery transaction gas are additional. The numeric total owner budget was
+pending at the time of that estimate. Do not use the historical quote or nonce as
+a ready-to-broadcast transaction. This historical pending-budget status is now
+superseded by the explicit 1 MON approval and deployment receipt above; the
+read-only estimator deliberately remains incapable of authorizing execution.
 
 ## Verification
 
@@ -110,8 +142,16 @@ a ready-to-broadcast transaction.
   the sell. These are historical test observations, not current quotes.
 - Fork tests preserve original S2 ownership and the V1 account MON balance; test
   non-owner rejection, changed USDC implementation, and the unresolved Kuru race.
+- Two post-deployment fork tests at block **102641082** start from the actual
+  deployed account (not a replacement deployment). A local VM funds it, obtains
+  buy/sell quotes using snapshots, performs the fixed round trip with exact
+  minimums, clears allowances and recovers both supported assets. Original S2
+  ownership and V1 funds stay unchanged. The second test verifies non-owner denial.
+  These operations occurred only in fork state; mainnet remains unfunded/untraded.
 - Five JS preflight tests cover RPC quantities, owner-code classification, gas
   bounds, unknown artifacts and absence of broadcast/secret-loading interfaces.
+- Two additional deployment-envelope tests enforce the fixed creation identity,
+  zero value, nonce, gas sub-budget and prohibition of arbitrary calls/delegation.
 - Existing route/dependency, mission-review, ASK/provider, ASSIST, website/Energy/
   World regression suites pass. The workflow includes the new unit/preflight suite.
 - The 94 existing mission/canonical contract tests, 34 V2 contract tests and 13
@@ -124,11 +164,11 @@ Commands:
 ```sh
 npm run test:droid-swap-canary
 npm run test:droid-swap-canary:fork
+npm run test:droid-swap-canary:deployed-fork
 npm run preflight:droid-swap-canary
 ```
 
-Passing tests is not an audit or a production-safety claim. Next: explicit total
-budget, reviewed owner-signing deployment flow, verified deployed runtime and
-bindings, then preview-only simulated/reviewed actions and tiny owner-approved
-funding. Do not enable chat approvals, agents or broad autonomous trading as a
-side effect of deploying this experiment.
+Passing tests is not an audit or a production-safety claim. Next: preview-only
+simulated/reviewed actions, pending-request recovery, budget accounting and tiny
+owner-approved funding. Do not enable chat approvals, agents or broad autonomous
+trading as a side effect of deploying this experiment.

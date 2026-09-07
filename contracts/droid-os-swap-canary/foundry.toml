@@ -14,3 +14,6 @@ fuzz.runs = 256
 
 [profile.monad_fork]
 test = "fork-test"
+
+[profile.deployed_fork]
+test = "deployed-fork-test"

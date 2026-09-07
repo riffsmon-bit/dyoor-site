@@ -1,0 +1,22 @@
+{
+  "version": 1,
+  "chainId": 143,
+  "collection": "0x349d8eb480c92cf75371fba5c6344a4d11b9103a",
+  "tokenId": "11",
+  "account": "0xac33a73b923ac2b711b5f2fbe175e2b63036f101",
+  "runtimeHash": "0xe5308ebb7ebed94e968c33333844f68d550e0a322b48b48807310546df2b3ec2",
+  "creationHash": "0x8e8ec8f1666069eccffd381d7e92bcb98393be737a034f2becc985a5f3170291",
+  "transactionHash": "0xcd990bc62ddcb00da3c90dbf37b443750f3ecaa0a1906a6dc49f23fc13eacf88",
+  "deploymentBlock": 102641082,
+  "deploymentBlockHash": "0x1f0a7263a2b59c2368053cd0d2198fd0444cf193751e9f3f8d528b0bdc55688d",
+  "deployer": "0xc7f55ce6a7df9a79cc4a643a5081230f890c7aa6",
+  "deployerNonce": 4602,
+  "deploymentFeeWei": "206602836000000000",
+  "authorizedExperimentBudgetWei": "1000000000000000000",
+  "remainingBudgetAfterDeploymentWei": "793397164000000000",
+  "proposedTestCapitalWei": "1100000000000000",
+  "expiresAt": 1788836424,
+  "canonicalWallet": false,
+  "autonomousTradingEnabled": false,
+  "previewSwapControlsEnabled": false
+}
