@@ -17,3 +17,14 @@ test("no attached funds, calls, nonce replacement, authorization or higher gas b
     {gasPrice:300000000001n},{gasPrice:200000000000n}])
     assert.throws(()=>validateFixedDeployment({...tx(),...patch}));
 });
+test("post-deployment preflight reports the fixed account rather than estimating another CREATE",()=>{
+  const script=readFileSync(new URL("../scripts/preflight-droid-swap-canary.mjs",import.meta.url),"utf8");
+  assert.match(script,/ALREADY_DEPLOYED_NO_NEW_DEPLOYMENT_PREPARED/);
+  assert.match(script,/Recorded deployment missing or changed/);
+  assert.doesNotMatch(script,/prepareIsolatedCanaryDeployment|signTransaction|broadcastTransaction/);
+  const manifest=JSON.parse(readFileSync(new URL("../lib/droid-os/swaps/isolated-canary-deployment.json",import.meta.url)));
+  assert.equal(manifest.account,LAUNCH.address);
+  assert.equal(manifest.deployerNonce,LAUNCH.nonce);
+  assert.equal(BigInt(manifest.deploymentFeeWei)+BigInt(manifest.remainingBudgetAfterDeploymentWei),LAUNCH.totalBudgetWei);
+  assert.equal(manifest.autonomousTradingEnabled,false);
+});

@@ -104,13 +104,17 @@ Solidity 0.8.24, optimizer 200, Cancun, no via-IR:
 - Runtime: 6,937 bytes; hash `0xe5308ebb7ebed94e968c33333844f68d550e0a322b48b48807310546df2b3ec2`.
 - No constructor arguments or runtime immutable substitutions.
 - `lib/droid-os/swaps/isolated-canary-preflight.ts` rejects changed artifacts before RPC access.
-- `npm run preflight:droid-swap-canary` permits only explicit read RPC methods,
-  accepts no execution arguments, loads no keys or environment secrets, and cannot
-  broadcast. It checks the existing 47-observation venue snapshot, S2 bytecode,
+- The read-only deployment estimator permits only explicit reads and never
+  broadcasts. It checks the existing 47-observation venue snapshot, S2 bytecode,
   current owner, transaction nonce, simulated creation runtime, bounded gas and
   block freshness/reorganization. It returns an **unsigned** envelope and retains
   `deploymentAuthorized`, `broadcastEnabled`, `venueExecutionAllowed` and
   `autonomousTradingEnabled` as false.
+- After deployment, `npm run preflight:droid-swap-canary` is a fixed-address
+  deployed-state check: current owner, phase, action nonce, balance and expiry.
+  It loads no keys or environment secrets, accepts no execution arguments and
+  cannot broadcast. Missing or changed deployed code fails closed; it never
+  prepares a replacement at the owner's next nonce.
 
 Direct transaction origination recognizes empty-code EOAs and the exact 23-byte
 [EIP-7702 designator](https://eips.ethereum.org/EIPS/eip-7702#transaction-origination).
@@ -150,8 +154,9 @@ read-only estimator deliberately remains incapable of authorizing execution.
   These operations occurred only in fork state; mainnet remains unfunded/untraded.
 - Five JS preflight tests cover RPC quantities, owner-code classification, gas
   bounds, unknown artifacts and absence of broadcast/secret-loading interfaces.
-- Two additional deployment-envelope tests enforce the fixed creation identity,
-  zero value, nonce, gas sub-budget and prohibition of arbitrary calls/delegation.
+- Three additional deployment tests enforce the fixed creation identity, zero
+  value, nonce, gas sub-budget, prohibition of arbitrary calls/delegation and the
+  post-deployment preflight's refusal to prepare a replacement.
 - Existing route/dependency, mission-review, ASK/provider, ASSIST, website/Energy/
   World regression suites pass. The workflow includes the new unit/preflight suite.
 - The 94 existing mission/canonical contract tests, 34 V2 contract tests and 13
