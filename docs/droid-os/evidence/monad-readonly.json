@@ -1,0 +1,167 @@
+{
+  "observedAt": "2026-09-06T13:10:41.500Z",
+  "chainId": 143,
+  "block": 102477336,
+  "rpcUrls": [
+    "https://rpc.monad.xyz",
+    "https://monad-mainnet.drpc.org"
+  ],
+  "contracts": {
+    "season2": {
+      "address": "0x349d8eb480c92cf75371fba5c6344a4d11b9103a",
+      "codeBytes": 20852,
+      "runtimeHash": "0x2baa62e8fad053a2b59e10eb8dbfc9bbb8ef98c93a55a1114ff7776226ae15fd"
+    },
+    "season1": {
+      "address": "0x2c79c9e233fea4b4dcfe6561d9209dc292cd932f",
+      "codeBytes": 19658,
+      "runtimeHash": "0x69e7a7158f30acb817dc83a4e21af19a216c3a2ae57db423599ca82f321e3041"
+    },
+    "ascension": {
+      "address": "0xf9611226c1ccccca37951938d6f358d3d5106549",
+      "codeBytes": 4744,
+      "runtimeHash": "0x1fca908d425e96cbf014c61e88294dd6940bff545e6bc2f37829456a2562b295"
+    },
+    "energy": {
+      "address": "0x291a8cc0fca08ebd64a0e4d67b4455d24e9e6767",
+      "codeBytes": 6313,
+      "runtimeHash": "0x3a8ed2f78dfb1b9fe01db8177880d823a170c44a3caab49847e18322aac73026"
+    },
+    "canonicalRegistry": {
+      "address": "0x000000006551c19487814612e58fe06813775758",
+      "codeBytes": 571,
+      "runtimeHash": "0xda1d5b06e579f9e42e59b00fbc22939896ecb38dc8830d40de0a2508fecd6735"
+    },
+    "implementation": {
+      "address": "0x6281af8e25e9c20bdf44d42d46613c43433a9b29",
+      "codeBytes": 5214,
+      "runtimeHash": "0xfe2c0c018fe6705d33c117e0845661538979c20e83c909d7eb5f408a2a0198da"
+    },
+    "registry": {
+      "address": "0xc32b411e7dcabd85a9b25c6eadd87f0a3fe8ea1b",
+      "codeBytes": 2133,
+      "runtimeHash": "0x4a0f331d1028939055a9ec1f38c9e7706d3221cc690ae213c241c574eabb9fb4"
+    },
+    "worldNames": {
+      "address": "0xde073c0ea9052a51c7fc67be6fc311a1c0c00357",
+      "codeBytes": 9299,
+      "runtimeHash": "0x0a6f57b64751fd4efcb91b295b435be2b38df7a3b3ffa149f6ce1562271c62f8"
+    },
+    "worldEscrow": {
+      "address": "0xdea68bf8acfd96f174f93bd936a5dc3d2f010601",
+      "codeBytes": 4763,
+      "runtimeHash": "0xcb5ee750413f86973e437c12c4398c99429131e4538b1831922d889874a970cf"
+    },
+    "kuruRouter": {
+      "address": "0xd651346d7c789536ebf06dc72ae3c8502cd695cc",
+      "codeBytes": 141,
+      "runtimeHash": "0xb3fcfca704395c210e969b841f35fff7483f99721de8d65b219615dd5e03f43b"
+    },
+    "kuruMarket": {
+      "address": "0x065c9d28e428a0db40191a54d33d5b7c71a9c394",
+      "codeBytes": 141,
+      "runtimeHash": "0xb3fcfca704395c210e969b841f35fff7483f99721de8d65b219615dd5e03f43b"
+    }
+  },
+  "calls": {
+    "season2.owner": [
+      "0xC7f55cE6A7dF9A79cc4A643a5081230F890c7AA6"
+    ],
+    "season1.owner": [
+      "0xC7f55cE6A7dF9A79cc4A643a5081230F890c7AA6"
+    ],
+    "ascension.owner": [
+      "0xC7f55cE6A7dF9A79cc4A643a5081230F890c7AA6"
+    ],
+    "energy.owner": {
+      "error": "user-specified gas exceeds provider limit"
+    },
+    "implementation.owner": [
+      "0x0000000000000000000000000000000000000000"
+    ],
+    "worldNames.owner": [
+      "0xC7f55cE6A7dF9A79cc4A643a5081230F890c7AA6"
+    ],
+    "worldEscrow.owner": {
+      "error": "user-specified gas exceeds provider limit"
+    },
+    "season2.name": [
+      "D.Y.O.O.R"
+    ],
+    "season2.ownerOf11": [
+      "0xC7f55cE6A7dF9A79cc4A643a5081230F890c7AA6"
+    ],
+    "season2.tokenURI11": [
+      "https://dyoor.netlify.app/api/metadata/11"
+    ],
+    "season2.totalSupply": [
+      "1038"
+    ],
+    "registry.canonicalRegistry": [
+      "0x000000006551c19487814612e58FE06813775758"
+    ],
+    "registry.implementation": [
+      "0x6281AF8e25E9C20BdF44D42D46613C43433a9b29"
+    ],
+    "registry.tokenContract": [
+      "0x349D8eb480c92cF75371fbA5C6344A4d11b9103A"
+    ],
+    "registry.tokenChainId": [
+      "143"
+    ],
+    "registry.accountSalt": [
+      "0x0000000000000000000000000000000000000000000000000000000000000000"
+    ],
+    "registry.account11": [
+      "0x6B7E71B10EE63bbA4c460e80C7569EaF3Fb129Cd"
+    ],
+    "account11.owner": [
+      "0xC7f55cE6A7dF9A79cc4A643a5081230F890c7AA6"
+    ],
+    "account11.token": [
+      "143",
+      "0x349D8eb480c92cF75371fbA5C6344A4d11b9103A",
+      "11"
+    ],
+    "account11.state": [
+      "4"
+    ],
+    "account11.interface165": [
+      true
+    ],
+    "account11.validSigner": [
+      "0x523e3260"
+    ],
+    "account11.invalidSigner": [
+      "0x00000000"
+    ],
+    "canonical.account11": [
+      "0x6B7E71B10EE63bbA4c460e80C7569EaF3Fb129Cd"
+    ],
+    "energy.paused": [
+      false
+    ],
+    "energy.adminHas.DEFAULT_ADMIN_ROLE": [
+      true
+    ],
+    "energy.adminHas.PAUSER_ROLE": [
+      true
+    ],
+    "energy.adminHas.CREDIT_ROLE": [
+      true
+    ],
+    "energy.adminHas.SPENDER_ROLE": [
+      true
+    ],
+    "energy.adminHas.CREDIT_SIGNER_ROLE": [
+      true
+    ]
+  },
+  "account11": {
+    "address": "0x6B7E71B10EE63bbA4c460e80C7569EaF3Fb129Cd",
+    "codeBytes": 173,
+    "runtimeHash": "0x986687419c562adf9e972777470fd30506a9323f3a0ae2376b52e4f7d6c28fe8",
+    "balanceWei": "10000000000000000",
+    "embeddedImplementation": "0x6281af8e25e9c20bdf44d42d46613c43433a9b29"
+  }
+}

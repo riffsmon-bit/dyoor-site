@@ -24,7 +24,7 @@ function normalizeAddress(address?: string) {
 export function SiteNav() {
   const pathname = usePathname();
   const isWorldApp = pathname.startsWith("/dyoor-world");
-  const isStandaloneCampaign = pathname.startsWith("/robinhood");
+  const isStandaloneCampaign = pathname.startsWith("/robinhood") || pathname.startsWith("/droid-os");
   const walletService = useWalletService();
   const walletAddress = normalizeAddress(walletService.address);
   const [menuOpen, setMenuOpen] = useState(false);

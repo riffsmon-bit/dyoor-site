@@ -7,6 +7,7 @@
   NODE_VERSION = "24"
 
 [context.deploy-preview.environment]
+  DROID_OS_UI_PREVIEW = "true"
   MONAD_READ_RPC_URLS = "https://rpc.monad.xyz,https://rpc2.monad.xyz,https://rpc3.monad.xyz,https://rpc-mainnet.monadinfra.com"
   DYOOR_WORLD_RPC_TIMEOUT_MS = "4000"
   DYOOR_S2_ERC721_ENUMERABLE = "false"
