@@ -48,8 +48,8 @@ The pinned Monad fork uses block **102588530**, exact Season 2 runtime hash `0x2
 ## Exit and asset safety
 
 - Only current receipt owner may unwrap. NFT-approved operators and the runner cannot unwrap, withdraw, cancel or launch as the owner.
-- Unwrap is denied until **native balance and the fixed test-mint NFT balance** are zero. This is explicitly not proof that all conceivable ERC20/NFT/ERC1155 assets are absent. Arbitrary assets and their recovery are not implemented by this free-mint lab; do not deposit them.
-- The separate drain-then-unwrap sequence can be griefed by third-party dust deposits. A dedicated regression reproduces this limitation. A bounded atomic asset-recovery/exit design is required before production; fail-closed refusal is not a complete exit guarantee.
+- Direct `unwrap` is denied until **native balance and the fixed test-mint NFT balance** are zero. This is explicitly not proof that all conceivable ERC20/NFT/ERC1155 assets are absent. The follow-up in [report 16](./16-atomic-exit-and-local-mission-review.md) adds owner-only typed ERC20/ERC721 recovery, not generic asset execution.
+- The initial separate drain-then-unwrap sequence could be griefed by native dust deposits. Report 16 adds `exitToOwner`: recover the specified fixed-minter NFTs, sweep all native balance (including front-run dust), and return the original atomically. Unsupported assets, missing NFT IDs, rejecting receivers and unsolicited NFT spam remain limitations; this is not a universal exit guarantee.
 - Unwrap burns the receipt and returns the original atomically. Original-receiver failure restores receipt and custody. Authority reads/actions during deposit/unwrap callbacks fail closed.
 - Parent burn cannot be invoked by the receipt holder while wrapped, and the wrapper has no parent-burn, approval or arbitrary-call method. Once unwrapped, raw owner can burn; later/unsupported deposits can still be stranded. That is not claimed solved.
 - Receipt transfers into the wrapper or any known child account are rejected. Unknown external contracts, cross-system custody cycles and incompatible receivers require further production review.
@@ -71,6 +71,8 @@ The pinned Monad fork uses block **102588530**, exact Season 2 runtime hash `0x2
 Receipt-aware production services were **not** switched to an unreviewed wrapper address. No operator roles, signing keys, secrets, domains, reroll metadata, Energy records, collection settings or original account balances were changed. Do not enable real deposits until the compatibility and recovery gates are met.
 
 ## Testing
+
+The counts below describe the initial wrapper slice. See report 16 for the follow-up implementation and verification results.
 
 ```sh
 npm run test:droid-missions          # original core + wrapper unit/fuzz tests

@@ -3,6 +3,7 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "test:droid-mission-review": "node --test test/droid-local-mission-review.test.js",
     "test:droid-missions": "forge test --root contracts/droid-os-mission-lab -vv",
     "test:droid-wrapper-flow": "forge build --root contracts/droid-os-mission-lab && node scripts/test-droid-mission-flow.mjs --wrapped",
     "test:droid-wrapper:fork": "FOUNDRY_PROFILE=monad_fork forge test --root contracts/droid-os-mission-lab --fork-url https://rpc.monad.xyz --fork-block-number 102588530 -vv",

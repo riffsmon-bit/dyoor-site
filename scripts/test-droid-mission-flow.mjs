@@ -5,6 +5,8 @@ import { spawn } from "node:child_process";
 import { readFile } from "node:fs/promises";
 import net from "node:net";
 import { AbiCoder, Contract, ContractFactory, JsonRpcProvider, Wallet, NonceManager, keccak256, toUtf8Bytes, parseEther } from "ethers";
+import { createLocalControlReader } from "../lib/droid-os/missions/local-authority.ts";
+import { prepareLocalMissionReview } from "../lib/droid-os/missions/local-review.ts";
 
 const wrappedFlow = process.argv[2] === "--wrapped";
 if (process.argv.length !== 2 && !(wrappedFlow && process.argv.length === 3)) throw Error("Only --wrapped is allowed; no external RPC endpoints");
@@ -69,8 +71,32 @@ try {
   const limits = { runner: runnerAddress, validAfter: timestamp, expiresAt: timestamp + 3600, maxActions: 3, maxActionsPerDay: 3,
     protectedReserveWei: parseEther("20"), missionHash: keccak256(toUtf8Bytes("LOCAL fixed free mint mission; no money spent")) };
   const epoch = await authority.ownershipEpoch(11), launchNonce = await account.actionNonce();
-  await account.launch.staticCall(limits, launchNonce, epoch);
-  await record("LOCAL owner signs bounded mission launch", account.launch(limits, launchNonce, epoch));
+  let reader, manifest, firstAuthority, preparedReview;
+  if (wrappedFlow) {
+    // Trust only this harness's just-deployed artifacts, never user/chat supplied contracts.
+    manifest = { version: 1, chainId: 31337, tokenId: "11", parent: await parent.getAddress(), wrapper: await wrapper.getAddress(),
+      factory: await wrapper.accountFactory(), account: accountAddress, minter: await minter.getAddress() };
+    for (const key of ["parent", "wrapper", "factory", "account", "minter"]) manifest[`${key}Hash`] = keccak256(await provider.getCode(manifest[key]));
+    reader = createLocalControlReader(provider, manifest);
+    firstAuthority = await reader.current();
+    assert.equal(firstAuthority.owner, ownerAddress.toLowerCase());
+    const draft = { version: 1, capability: "FREE_FIXTURE_MINT", runner: runnerAddress, validAfter: timestamp,
+      expiresAt: timestamp + 3600, maxActions: 3, maxActionsPerDay: 3, protectedReserveWei: parseEther("20").toString() };
+    for (const key of ["parent", "wrapper", "factory", "account", "minter"]) {
+      const invalid = { ...manifest, [`${key}Hash`]: "0x" + "00".repeat(32) };
+      await assert.rejects(createLocalControlReader(provider, invalid).current());
+    }
+    await assert.rejects(prepareLocalMissionReview(provider, manifest, buyerAddress, draft));
+    preparedReview = await prepareLocalMissionReview(provider, manifest, ownerAddress, draft);
+    assert.equal(preparedReview.status, "OWNER_TRANSACTION_REQUIRED");
+    assert.equal(preparedReview.executionEnabled, false);
+    assert.equal(await account.missionId(), 0n); // Preparing/simulating never launched it.
+    await record("LOCAL owner signs exact receipt-verified simulated mission review", owner.sendTransaction(preparedReview.transaction));
+    await assert.rejects(reader.unchanged(firstAuthority)); // Nonce changed on launch.
+  } else {
+    await account.launch.staticCall(limits, launchNonce, epoch);
+    await record("LOCAL owner signs bounded mission launch", account.launch(limits, launchNonce, epoch));
+  }
   const robot = account.connect(runner);
   async function prepare() {
     const id = await account.missionId(), nonce = await account.actionNonce();
@@ -89,24 +115,34 @@ try {
   await record("LOCAL owner cancels mission", account.cancel());
   await assert.rejects(robot.executeFreeMint.staticCall(...await prepare()));
   await record("LOCAL owner explicitly relaunches", account.launch(limits, await account.actionNonce(), epoch));
+  const beforeTransfer = reader ? await reader.current() : null;
   await record(`LOCAL ${wrappedFlow ? "receipt" : "parent"} transfer A to B`, authority.transferFrom(ownerAddress, buyerAddress, 11));
   await assert.rejects(robot.executeFreeMint.staticCall(...await prepare()));
   await assert.rejects(account.withdrawNative.staticCall(ownerAddress, 1));
   await record("LOCAL new owner withdraws minted NFT", account.connect(buyer).withdrawMint(buyerAddress, 1));
   await record(`LOCAL ${wrappedFlow ? "receipt" : "parent"} transfer B to A`, authority.connect(buyer).transferFrom(buyerAddress, ownerAddress, 11));
+  if (reader) {
+    await assert.rejects(reader.unchanged(beforeTransfer)); // Same address, different epoch.
+    await assert.rejects(provider.call(preparedReview.transaction)); // Previously reviewed launch is stale.
+  }
   await assert.rejects(robot.executeFreeMint.staticCall(...await prepare()));
   assert.equal(await provider.getBalance(accountAddress), parseEther("50"));
   assert.equal(await minter.ownerOf(1), buyerAddress);
   const preservedDroidBalanceWei = String(await provider.getBalance(accountAddress));
   if (wrappedFlow) {
     await assert.rejects(wrapper.unwrap.staticCall(11)); // Funded unwrap fails closed for supported assets.
-    await record("LOCAL current owner recovers all test native funds", account.withdrawNative(ownerAddress, parseEther("50")));
-    await record("LOCAL current owner unwraps", wrapper.unwrap(11));
+    // Third-party dust arrives before owner exit; ALL native balance is swept atomically.
+    await record("LOCAL third party deposits one wei before exit", buyer.sendTransaction({ to: accountAddress, value: 1n }));
+    const exitArgs = [[], await account.actionNonce(), await wrapper.ownershipEpoch(11)];
+    await account.exitToOwner.staticCall(...exitArgs);
+    await record("LOCAL current owner atomically sweeps native balance and unwraps", account.exitToOwner(...exitArgs));
     assert.equal(await parent.ownerOf(11), ownerAddress);
+    await assert.rejects(reader.current()); // Unwrapped state never grants mission authority.
     await assert.rejects(robot.executeFreeMint.staticCall(...await prepare()));
     const intent = AbiCoder.defaultAbiCoder().encode(["bytes32"], [await wrapper.WRAP_INTENT()]);
     await record("LOCAL owner rewraps without a new wallet", parent["safeTransferFrom(address,address,uint256,bytes)"](ownerAddress, await wrapper.getAddress(), 11, intent));
     assert.equal(await wrapper.accounts(11), accountAddress);
+    await assert.rejects(reader.unchanged(beforeTransfer));
     await assert.rejects(robot.executeFreeMint.staticCall(...await prepare()));
     await record("LOCAL owner restores original NFT custody", wrapper.unwrap(11));
     assert.equal(await parent.ownerOf(11), ownerAddress);

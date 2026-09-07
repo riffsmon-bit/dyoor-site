@@ -73,8 +73,11 @@ contract MonadWrapperForkTest {
         vm.prank(B); wrapper.transferFrom(B, owner, 11);
         vm.prank(RUNNER); vm.expectRevert(); account.executeFreeMint(1, 2, uint64(block.timestamp + 60), bytes32(uint256(1)));
         vm.prank(owner); vm.expectRevert(); wrapper.unwrap(11);
-        vm.prank(owner); account.withdrawMint(owner, 1);
-        vm.prank(owner); wrapper.unwrap(11);
+        // Atomic supported-asset recovery + original return, including native dust.
+        vm.deal(address(account), 1);
+        uint256[] memory ids = new uint256[](1); ids[0] = 1;
+        vm.prank(owner); account.exitToOwner(ids, 2, 3);
+        require(minter.ownerOf(1) == owner && address(account).balance == 0);
         require(parent.ownerOf(11) == owner && !wrapper.isWrapped(11));
         vm.prank(owner); parent.safeTransferFrom(owner, address(wrapper), 11, intent);
         address sameAccount = wrapper.accounts(11); require(sameAccount == address(account));

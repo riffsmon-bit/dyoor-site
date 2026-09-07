@@ -83,6 +83,67 @@ contract WrapperCallbackProbe {
     }
 }
 
+contract RecoveryTokenLab {
+    mapping(address => uint256) public balanceOf;
+    bool public fail;
+    DroidControlReceiptLab public callbackWrapper;
+
+    function setCallback(DroidControlReceiptLab w) external {
+        callbackWrapper = w;
+    }
+
+    function mint(address to, uint256 amount) external {
+        balanceOf[to] += amount;
+    }
+
+    function setFail(bool value) external {
+        fail = value;
+    }
+
+    function transfer(address to, uint256 amount) external returns (bool) {
+        if (fail) return false;
+        if (address(callbackWrapper) != address(0)) {
+            address owner = callbackWrapper.ownerOf(11);
+            callbackWrapper.transferFrom(owner, owner, 11);
+        }
+        balanceOf[msg.sender] -= amount;
+        balanceOf[to] += amount;
+        return true;
+    }
+}
+
+contract ExitReceiverLab {
+    DroidControlReceiptLab public wrapper;
+    address public parent;
+    uint256 public mode;
+    bool public reentered;
+
+    constructor(DroidControlReceiptLab w, address p) {
+        wrapper = w;
+        parent = p;
+    }
+
+    function configure(uint256 m) external {
+        mode = m;
+    }
+
+    receive() external payable {
+        if (mode == 1) revert();
+        if (mode == 2) wrapper.transferFrom(address(this), address(this), 11);
+        if (mode == 4) {
+            (bool ok,) = payable(msg.sender).call{value: 1}("");
+            require(ok);
+        }
+        (reentered,) = msg.sender.call(abi.encodeCall(WrappedMissionAccountLab.exitToOwner, (new uint256[](0), 0, 0)));
+    }
+
+    function onERC721Received(address, address, uint256, bytes calldata) external view returns (bytes4) {
+        if (mode == 3 && msg.sender == parent) revert();
+        if (mode == 5 && msg.sender == address(wrapper.minter())) revert();
+        return this.onERC721Received.selector;
+    }
+}
+
 contract DroidControlReceiptLabTest {
     WrapperVm private constant vm = WrapperVm(address(uint160(uint256(keccak256("hevm cheat code")))));
     address private constant A = address(0xA11CE);
@@ -439,9 +500,12 @@ contract DroidControlReceiptLabTest {
         require(address(wrapper).code.length <= 24576);
         require(wrapper.accountFactory().code.length <= 24576);
         require(address(account).code.length <= 24576);
+        require(type(DroidControlReceiptLab).creationCode.length + 64 <= 49152);
+        require(type(WrappedAccountFactoryLab).creationCode.length <= 49152);
+        require(type(WrappedMissionAccountLab).creationCode.length + 96 <= 49152);
     }
 
-    function testDustDepositCanBlockSeparateExitDocumentedReleaseBlocker() public {
+    function testAtomicExitSweepsFrontRunDustAndReturnsOriginal() public {
         wrap();
         vm.deal(B, 1);
         vm.prank(B);
@@ -451,7 +515,187 @@ contract DroidControlReceiptLabTest {
         vm.expectRevert();
         wrapper.unwrap(11);
         require(parent.ownerOf(11) == address(wrapper));
-        // Production needs bounded atomic recovery/exit; repeated third-party dust
-        // can grief a separate drain-then-unwrap sequence. No safety claim here.
+        uint256 beforeBalance = A.balance;
+        vm.prank(A);
+        account.exitToOwner(new uint256[](0), 0, 1);
+        require(parent.ownerOf(11) == A && !wrapper.isWrapped(11));
+        require(A.balance == beforeBalance + 1 && address(account).balance == 0);
+        require(wrapper.ownershipEpoch(11) == 2 && account.actionNonce() == 1);
+    }
+
+    function testAtomicExitRecoversMintsCancelsAndPreservesAccountOnRewrap() public {
+        wrap();
+        launch(A);
+        execute(false);
+        uint256[] memory ids = new uint256[](1);
+        ids[0] = 1;
+        vm.deal(address(account), 5 ether);
+        uint256 nonce = account.actionNonce();
+        vm.prank(A);
+        account.exitToOwner(ids, nonce, 1);
+        require(minter.ownerOf(1) == A && parent.ownerOf(11) == A);
+        require(address(account).balance == 0);
+        execute(true);
+        address previous = address(account);
+        wrap();
+        require(address(account) == previous && wrapper.ownershipEpoch(11) == 3);
+        execute(true);
+        vm.prank(A);
+        vm.expectRevert();
+        account.exitToOwner(new uint256[](0), nonce, 1);
+    }
+
+    function testAtomicExitRejectsStaleNonceEpochRunnerAndOperator() public {
+        wrap();
+        launch(A);
+        vm.prank(A);
+        wrapper.approve(B, 11);
+        vm.prank(B);
+        vm.expectRevert();
+        account.exitToOwner(new uint256[](0), 1, 1);
+        vm.prank(RUNNER);
+        vm.expectRevert();
+        account.exitToOwner(new uint256[](0), 1, 1);
+        vm.prank(A);
+        vm.expectRevert();
+        account.exitToOwner(new uint256[](0), 0, 1);
+        transfer(A, B);
+        transfer(B, A);
+        vm.prank(A);
+        vm.expectRevert();
+        account.exitToOwner(new uint256[](0), 1, 1);
+        vm.prank(A);
+        vm.expectRevert();
+        wrapper.completeAccountExit(11, A, 3);
+        vm.prank(RUNNER);
+        vm.expectRevert();
+        wrapper.completeAccountExit(11, RUNNER, 3);
+        vm.prank(A);
+        account.exitToOwner(new uint256[](0), 1, 3);
+    }
+
+    function testAtomicExitMissingOrDuplicateMintRevertsAllRecovery() public {
+        wrap();
+        launch(A);
+        execute(false);
+        execute(false);
+        vm.deal(address(account), 1 ether);
+        uint256 nonce = account.actionNonce();
+        uint256[] memory ids = new uint256[](1);
+        ids[0] = 1;
+        vm.prank(A);
+        vm.expectRevert();
+        account.exitToOwner(ids, nonce, 1);
+        require(minter.ownerOf(1) == address(account) && address(account).balance == 1 ether);
+        ids = new uint256[](2);
+        ids[0] = 1;
+        ids[1] = 1;
+        vm.prank(A);
+        vm.expectRevert();
+        account.exitToOwner(ids, nonce, 1);
+        require(account.actionNonce() == nonce && wrapper.ownershipEpoch(11) == 1);
+    }
+
+    function testAtomicExitNativeReentrancyBlocked() public {
+        ExitReceiverLab receiver = new ExitReceiverLab(wrapper, address(parent));
+        wrap();
+        transfer(A, address(receiver));
+        vm.deal(address(account), 1 ether);
+        vm.prank(address(receiver));
+        account.exitToOwner(new uint256[](0), 0, 2);
+        require(!receiver.reentered() && parent.ownerOf(11) == address(receiver));
+    }
+
+    function testFuzzAtomicExitCallbackFailureRollsBackEverything(uint8 rawMode) public {
+        uint256 mode = uint256(rawMode) % 5 + 1;
+        ExitReceiverLab receiver = new ExitReceiverLab(wrapper, address(parent));
+        wrap();
+        transfer(A, address(receiver));
+        launch(address(receiver));
+        execute(false);
+        receiver.configure(mode);
+        vm.deal(address(account), 1 ether);
+        uint256[] memory ids = new uint256[](1);
+        ids[0] = 1;
+        vm.prank(address(receiver));
+        vm.expectRevert();
+        account.exitToOwner(ids, 2, 2);
+        require(parent.ownerOf(11) == address(wrapper) && wrapper.ownerOf(11) == address(receiver));
+        require(wrapper.ownershipEpoch(11) == 2 && account.actionNonce() == 2);
+        require(minter.ownerOf(1) == address(account) && address(account).balance == 1 ether);
+        execute(false); // Failed exit did not silently cancel the live grant.
+    }
+
+    function testExplicitERC20RecoveryOnlyCurrentOwnerAndFalseReturnDenied() public {
+        wrap();
+        RecoveryTokenLab token = new RecoveryTokenLab();
+        token.mint(address(account), 100);
+        vm.prank(RUNNER);
+        vm.expectRevert();
+        account.recoverERC20(address(token), RUNNER, 100);
+        transfer(A, B);
+        vm.prank(A);
+        vm.expectRevert();
+        account.recoverERC20(address(token), A, 100);
+        token.setFail(true);
+        vm.prank(B);
+        vm.expectRevert();
+        account.recoverERC20(address(token), B, 100);
+        require(account.actionNonce() == 0);
+        token.setFail(false);
+        vm.prank(B);
+        account.recoverERC20(address(token), B, 100);
+        require(token.balanceOf(B) == 100 && token.balanceOf(address(account)) == 0);
+    }
+
+    function testUnsafeNFTRecoveryAndPostUnwrapRecoveryFollowCurrentOwner() public {
+        wrap();
+        LegacyParentLab other = new LegacyParentLab();
+        other.mint(address(account), 99);
+        vm.prank(RUNNER);
+        vm.expectRevert();
+        account.recoverERC721(address(other), RUNNER, 99);
+        vm.prank(A);
+        account.exitToOwner(new uint256[](0), 0, 1);
+        // Unknown assets are NOT claimed absent on exit. The same account remains
+        // recoverable by the fresh raw owner, provided the original still exists.
+        vm.prank(A);
+        parent.transferFrom(A, B, 11);
+        vm.prank(A);
+        vm.expectRevert();
+        account.recoverERC721(address(other), A, 99);
+        vm.prank(B);
+        account.recoverERC721(address(other), B, 99);
+        require(other.ownerOf(99) == B);
+    }
+
+    function testMaliciousRecoveryTokenCannotChangeAuthorityDuringWithdrawal() public {
+        wrap();
+        RecoveryTokenLab token = new RecoveryTokenLab();
+        token.mint(address(account), 100);
+        token.setCallback(wrapper);
+        vm.prank(A);
+        wrapper.approve(address(token), 11);
+        vm.prank(A);
+        vm.expectRevert();
+        account.recoverERC20(address(token), A, 100);
+        require(token.balanceOf(address(account)) == 100 && token.balanceOf(A) == 0);
+        require(wrapper.ownershipEpoch(11) == 1 && account.actionNonce() == 0);
+    }
+
+    function testRecoveryRejectsNonContractsAndInvalidRecipients() public {
+        wrap();
+        vm.prank(A);
+        vm.expectRevert();
+        account.recoverERC20(B, A, 1);
+        vm.prank(A);
+        vm.expectRevert();
+        account.recoverERC721(address(wrapper), A, 11);
+        vm.prank(A);
+        vm.expectRevert();
+        account.recoverERC20(address(minter), address(account), 1);
+        vm.prank(A);
+        vm.expectRevert();
+        account.recoverERC721(address(minter), address(0), 1);
     }
 }

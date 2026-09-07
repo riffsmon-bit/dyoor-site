@@ -78,15 +78,27 @@ contract DroidControlReceiptLab is ERC721, IWrapperControlLab {
     /// assets first. Unknown ERC20/unsafe NFT deposits are NOT proved absent.
     function unwrap(uint256 id) external locked {
         _identity();
+        _returnOriginal(id, msg.sender);
+    }
+
+    /// @dev Only this Droid's fixed account may complete its owner-authenticated
+    /// atomic exit. No operator/runner/admin recipient selection is accepted.
+    function completeAccountExit(uint256 id, address owner, uint256 expectedEpoch) external locked {
+        _identity();
+        if (msg.sender != accounts[id] || expectedEpoch != ownershipEpoch[id]) revert Denied();
+        _returnOriginal(id, owner);
+    }
+
+    function _returnOriginal(uint256 id, address owner) private {
         if (
-            !isWrapped[id] || ownerOf(id) != msg.sender || parent.ownerOf(id) != address(this)
+            !isWrapped[id] || ownerOf(id) != owner || parent.ownerOf(id) != address(this)
                 || !WrappedMissionAccountLab(payable(accounts[id])).knownAssetsEmpty()
         ) revert Denied();
         isWrapped[id] = false;
         _burn(id);
-        parent.safeTransferFrom(address(this), msg.sender, id);
-        if (parent.ownerOf(id) != msg.sender) revert Denied();
-        emit Unwrapped(id, msg.sender, ownershipEpoch[id]);
+        parent.safeTransferFrom(address(this), owner, id);
+        if (parent.ownerOf(id) != owner) revert Denied();
+        emit Unwrapped(id, owner, ownershipEpoch[id]);
     }
 
     function controlOf(uint256 id) external view returns (address owner, uint256 epoch, bool wrapped) {
