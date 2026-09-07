@@ -1,0 +1,54 @@
+{
+  "version": 1,
+  "scope": "READ_ONLY_OBSERVATION_AND_LOCAL_FORK",
+  "chainId": 143,
+  "forkBlock": 102612438,
+  "forkBlockHash": "0xffdc716a08e6dd5d79c0d94fe484f3419042686a280a635fb7791ac68618aadf",
+  "freshInspectionBlock": 102614840,
+  "freshInspectionBlockHash": "0xe2a56e437ce355c7ebfa97e6858b3b6498751e60da3d34fbced17946781381c9",
+  "router": {
+    "address": "0xd651346d7c789536ebf06dc72ae3c8502cd695cc",
+    "runtimeHash": "0xb3fcfca704395c210e969b841f35fff7483f99721de8d65b219615dd5e03f43b",
+    "implementation": "0xf1635175914acf4db170395d524323225e1f1a04",
+    "implementationRuntimeHash": "0xee2c47d70994c70feea9e7ae98ce9810e0f1893f377b7d949f2b6ec6f0cc53dc",
+    "observedOwner": "0x8b736dce2071783fd9db0a423dad17cc8ed5788b",
+    "implementationGetter": "UNAVAILABLE",
+    "sourcifyV2AllFields": "HTTP_404_NO_MATCH"
+  },
+  "market": {
+    "address": "0x065c9d28e428a0db40191a54d33d5b7c71a9c394",
+    "runtimeHash": "0xb3fcfca704395c210e969b841f35fff7483f99721de8d65b219615dd5e03f43b",
+    "implementation": "0x5e3446c600524be453bbcefd46a9e4c9be8899a0",
+    "implementationRuntimeHash": "0x6576ced90ca537c9aa058ea4a54ab5edd802ab78b834168b21fcc6d9ac392c0c",
+    "implementationGetter": "UNAVAILABLE",
+    "sourcifyV2AllFields": "HTTP_404_NO_MATCH"
+  },
+  "usdc": {
+    "address": "0x754704bc059f8c67012fed69bc8a327a5aafb603",
+    "runtimeHash": "0xbb3557cf62a26950fb58073e6ce8e130af371e5aa13e5584856a1ce2ca47dc89",
+    "implementation": "0xbd520ea8cbb4f81b62aff3c3ffe7affd69800b6d",
+    "implementationRuntimeHash": "0xe96489833045c42bacced6259e6a6372290706ed665e79457aa2fe4d46bc3559",
+    "observedOwner": "0xf62c8e636d61840ec9f8c3ab518aa65306af26e0"
+  },
+  "additionalTraceDependenciesNotCertified": [
+    "0x2a68ba1833cdf93fa9da1eebd7f46242ad8e90c5",
+    "0x351525073afa933720329756716fcf7d741e7ff0"
+  ],
+  "forkRoundTrip": {
+    "nativeInputWei": "1000000000000000",
+    "usdcReceivedAtomic": "27",
+    "usdcSoldAtomic": "27",
+    "nativeOutputWei": "998114600000000",
+    "finalRouterAllowance": "0",
+    "realMonSpent": "0"
+  },
+  "executionAllowed": false,
+  "blockers": ["PROXY_UPGRADE_RACE_UNRESOLVED", "IMPLEMENTATION_SOURCE_REVIEW_PENDING", "DEPENDENCY_GRAPH_REVIEW_PENDING", "CANONICAL_WALLET_INTEGRATION_PENDING"],
+  "sources": [
+    "https://rpc.monad.xyz",
+    "https://docs.kuru.io/contracts/Contract-addresses",
+    "https://docs.kuru.io/contracts/Router",
+    "https://sourcify.dev/server/v2/contract/143/0xf1635175914acf4db170395d524323225e1f1a04?fields=all",
+    "https://sourcify.dev/server/v2/contract/143/0x5e3446c600524be453bbcefd46a9e4c9be8899a0?fields=all"
+  ]
+}

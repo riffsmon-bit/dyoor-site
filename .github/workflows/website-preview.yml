@@ -29,6 +29,7 @@ jobs:
       - run: npm run test:droid-os-ui
       - run: npm run test:droid-ask
       - run: npm run test:droid-mission-review
+      - run: npm run test:droid-kuru
       - run: npm run test:droid-assist
       - run: npm run test:droid-lab-server
       - run: node --test test/dyoor-world-security.test.js test/trait-lab-reroll-regression.test.js
