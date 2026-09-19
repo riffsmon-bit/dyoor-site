@@ -1,6 +1,7 @@
 import {
   buildTokenMetadataAsync,
   getRuntimeMetadataConfig,
+  METADATA_UNAVAILABLE_ERROR,
   parseTokenId,
 } from "@/lib/dyoor-s2-metadata.js";
 
@@ -29,6 +30,18 @@ export async function GET(_request: Request, context: MetadataRouteContext) {
 
   const tokenId = Number(parsed.tokenId);
   const result = await buildTokenMetadataAsync(tokenId, config);
+  if (!result.authoritative) {
+    return jsonResponse({
+      error: METADATA_UNAVAILABLE_ERROR,
+      code: "METADATA_UNAVAILABLE",
+      tokenId,
+    }, {
+      status: 503,
+      headers: {
+        "Cache-Control": "no-store",
+      },
+    });
+  }
   const metadata = normalizeMetadataUrls(result.metadata, requestOrigin);
 
   return jsonResponse(metadata, {
