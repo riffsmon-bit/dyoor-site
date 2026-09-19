@@ -1,5 +1,6 @@
 import crypto from "node:crypto";
 import { ethers } from "ethers";
+import { createMonadReadProvider } from "@/lib/monad-rpc";
 import traitCatalogJson from "@/data/dyoor-s2-trait-catalog.json";
 import traitItemMetadataJson from "@/data/dyoor-s2-trait-item-metadata.json";
 import { DEFAULT_TREASURY_WALLET, dyoorS2Contract, energyBankContract } from "@/lib/contracts/addresses";
@@ -46,6 +47,7 @@ import {
   buildTokenMetadataAsync,
   getRuntimeMetadataConfig,
   getRuntimeTraitOverrides,
+  METADATA_UNAVAILABLE_ERROR,
   mergeMetadata,
   parseTokenId,
   saveRuntimeTraitOverride,
@@ -311,7 +313,7 @@ function firstUsableRpc(names: string[], mainnet: boolean) {
 
 function configuredS2RpcUrl() {
   return firstUsableRpc(
-    ["ALCHEMY_MONAD_RPC_URL", "DYOOR_S2_RPC_URL", "MONAD_RPC_URL", "NEXT_PUBLIC_MONAD_RPC_URL", "NEXT_PUBLIC_DYOOR_S2_RPC_URL", "RPC_URL"],
+    ["DYOOR_S2_RPC_URL", "MONAD_RPC_URL", "NEXT_PUBLIC_DYOOR_S2_RPC_URL", "RPC_URL", "ALCHEMY_MONAD_RPC_URL", "NEXT_PUBLIC_MONAD_RPC_URL"],
     true,
   ) || DEFAULT_MONAD_MAINNET_RPC_URL;
 }
@@ -366,6 +368,11 @@ function alchemyTransferLookupEnabled() {
   if (/^(1|true|yes|on)$/i.test(configured)) return true;
   if (/^(0|false|no|off)$/i.test(configured)) return false;
   return false;
+}
+
+function enumerableOwnershipEnabled() {
+  const configured = readEnv("DYOOR_S2_ERC721_ENUMERABLE", "NEXT_PUBLIC_DYOOR_S2_ERC721_ENUMERABLE");
+  return /^(1|true|yes|on)$/i.test(configured);
 }
 
 function parsePositiveInt(value: string, fallback: number) {
@@ -762,6 +769,12 @@ function renderFailureMessage(renderedImage: TraitLabImageRenderResult) {
     : [];
   const suffix = missingLayers.length ? ` Missing layer assets: ${missingLayers.join(", ")}.` : "";
   return `Trait image composition failed, so metadata was not changed. Refresh the token and try again.${suffix}`;
+}
+
+function assertAuthoritativeMetadata(result: { authoritative?: boolean }) {
+  if (!result.authoritative) {
+    throw Object.assign(new Error(METADATA_UNAVAILABLE_ERROR), { status: 503, code: "METADATA_UNAVAILABLE" });
+  }
 }
 
 export function traitMapFromMetadata(metadata: MetadataJson) {
@@ -1392,12 +1405,29 @@ function supplyDeltasForPayload(payload: PreviewPayload) {
   return supplyDeltasForPatch(payload.previousAttributes || { [payload.traitType]: payload.previousValue }, payload.proposedAttributes);
 }
 
+let readProvider: ethers.FallbackProvider | null = null;
+let transferProvider: ethers.JsonRpcProvider | null = null;
+
 function provider() {
   const rpcUrl = configuredS2RpcUrl();
   if (!rpcUrl) {
     throw Object.assign(new Error("DYOOR_S2_RPC_URL or MONAD_RPC_URL is required before Trait Lab can verify ownership."), { status: 500 });
   }
-  return new ethers.JsonRpcProvider(rpcUrl, configuredS2ChainId());
+  if (!readProvider) readProvider = createMonadReadProvider();
+  return readProvider;
+}
+
+function alchemyProvider() {
+  const rpcUrl = readEnv("ALCHEMY_MONAD_RPC_URL", "NEXT_PUBLIC_MONAD_RPC_URL");
+  if (!isAlchemyLikeUrl(rpcUrl)) {
+    throw new Error("Alchemy transfer lookup is enabled without an Alchemy RPC URL.");
+  }
+  if (!transferProvider) {
+    transferProvider = new ethers.JsonRpcProvider(rpcUrl, configuredS2ChainId(), {
+      staticNetwork: true,
+    });
+  }
+  return transferProvider;
 }
 
 function logProvider() {
@@ -1812,7 +1842,7 @@ async function verifyCandidateTokenIds(
 
 async function ownedTokensFromAlchemyTransfers(contract: ethers.Contract, wallet: string, balance: number) {
   if (!alchemyTransferLookupEnabled()) return [];
-  const rpcProvider = provider();
+  const rpcProvider = alchemyProvider();
   const baseParams = {
     fromBlock: hexQuantity(DEFAULT_S2_DEPLOYMENT_BLOCK),
     toBlock: "latest",
@@ -2080,7 +2110,9 @@ export async function ownedS2TokenIds(wallet: string, maxSupply: number) {
     return Array.from(tokenIds).sort((a, b) => Number(a) - Number(b));
   }
 
-  if (Number.isFinite(balance) && balance > 0) {
+  // Production S2 is not ERC-721 Enumerable; only probe tokenOfOwnerByIndex
+  // for an explicitly configured replacement contract that implements it.
+  if (Number.isFinite(balance) && balance > 0 && enumerableOwnershipEnabled()) {
     try {
       for (const tokenId of await ownedTokensFromEnumerable(contract, wallet, balance)) tokenIds.add(tokenId);
       if (done()) {
@@ -2660,7 +2692,9 @@ export async function createTraitLabPreview(input: Record<string, unknown>) {
     const currentRollPointer = await assertTraitLabTokenIsNotFinalizing(String(tokenId));
     const replacedRollId = currentRollPointer.activeRollId || "";
 
-    const { metadata } = await buildTokenMetadataAsync(tokenId, config);
+    const metadataResult = await buildTokenMetadataAsync(tokenId, config);
+    assertAuthoritativeMetadata(metadataResult);
+    const { metadata } = metadataResult;
   const currentOverride = await getRuntimeTraitOverrides(tokenId);
   assertTokenCooldownComplete(currentOverride);
   const traits = traitMapFromMetadata(metadata as MetadataJson);
@@ -3035,6 +3069,13 @@ export async function confirmTraitLabPreview(input: Record<string, unknown>) {
   let failureStage: TraitLabRollRecord["failureStage"] = "confirm";
 
   try {
+  const config = await getRuntimeMetadataConfig();
+  const tokenId = parseInputTokenId(payload.tokenId, config.maxSupply);
+  await verifyS2TokenOwner(tokenId, wallet, config.maxSupply);
+
+  const metadataResult = await buildTokenMetadataAsync(tokenId, config);
+  assertAuthoritativeMetadata(metadataResult);
+  const { metadata } = metadataResult;
   paidRoll = await ensureTraitLabRollCharged(paidRoll, payload);
   await saveTraitLabRoll({
     ...paidRoll,
@@ -3042,11 +3083,6 @@ export async function confirmTraitLabPreview(input: Record<string, unknown>) {
     confirmingAt: new Date().toISOString(),
     recoveryRequired: false,
   });
-  const config = await getRuntimeMetadataConfig();
-  const tokenId = parseInputTokenId(payload.tokenId, config.maxSupply);
-  await verifyS2TokenOwner(tokenId, wallet, config.maxSupply);
-
-  const { metadata } = await buildTokenMetadataAsync(tokenId, config);
   const currentTraits = traitMapFromMetadata(metadata as MetadataJson);
   const patchAlreadyApplied = proposedPatchAlreadyApplied(currentTraits, payload);
   const currentMetadataVersion = metadataVersion(metadata as MetadataJson);
