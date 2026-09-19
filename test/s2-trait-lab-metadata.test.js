@@ -204,6 +204,30 @@ test("dedicated S2 metadata source takes precedence over generic IPFS gateway", 
   }
 });
 
+test("generic gateway falls back to immutable S2 source when no dedicated source is configured", async () => {
+  const originalFetch = globalThis.fetch;
+  const requests = [];
+  globalThis.fetch = async (url) => {
+    requests.push(String(url));
+    if (String(url).startsWith("https://generic.example")) return new Response("missing", { status: 404 });
+    return new Response(JSON.stringify({
+      attributes: [
+        { trait_type: "Background", value: "Grey" },
+        { trait_type: "Droid", value: "Green" },
+        { trait_type: "Eyes", value: "Okay" },
+        { trait_type: "Mouth", value: "Joint Mouth" },
+      ],
+    }), { status: 200, headers: { "content-type": "application/json" } });
+  };
+  try {
+    const result = await getRemoteBaseMetadata(12, { IPFS_GATEWAY_URL: "https://generic.example" });
+    assert.match(result.source, /jade-efficient-beaver-697\.mypinata\.cloud/);
+    assert.ok(requests.some((url) => url.startsWith("https://generic.example")));
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
 test("metadata authority fails closed when base metadata is only synthetic fallback", () => {
   assert.equal(metadataIsAuthoritative(buildFallbackMetadata(11), false), false);
   assert.equal(metadataIsAuthoritative({
