@@ -17,9 +17,12 @@ function GatewayImage({ src, onError, onLoad, alt, ...props }: Props) {
   const current = sources[index];
 
   useEffect(() => {
-    // Lazy images should not exhaust retries before they enter the viewport.
-    if (loaded || props.loading === "lazy" || index >= sources.length - 1) return;
-    const timer = window.setTimeout(() => setIndex((value) => value + 1), 12000);
+    // A gateway can accept the request and then stall (the self-hosted gateway
+    // does this while a CID is not pinned). Keep the immutable public fallback
+    // available instead of leaving the card blank indefinitely. The browser's
+    // own lazy-loading still controls when the request starts.
+    if (loaded || index >= sources.length - 1) return;
+    const timer = window.setTimeout(() => setIndex((value) => value + 1), 3500);
     return () => window.clearTimeout(timer);
   }, [index, loaded, props.loading, sources.length]);
 
