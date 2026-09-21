@@ -67,7 +67,7 @@ test("Privy is the primary wallet chooser when its app ID is configured", () => 
   assert.match(walletService, /setActiveWallet\(connectedWallet\)/);
   assert.match(
     walletService,
-    /privyEnabled\s+\? <PrivyWalletServiceProvider>\{children\}<\/PrivyWalletServiceProvider>/,
+    /privyEnabled && !privyTimedOut\s+\? <PrivyWalletServiceProvider>\{children\}<\/PrivyWalletServiceProvider>/,
   );
 });
 
