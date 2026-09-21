@@ -616,7 +616,18 @@ export function WalletServiceProvider({
   children: ReactNode;
   privyEnabled: boolean;
 }) {
-  return privyEnabled
+  const [privyTimedOut, setPrivyTimedOut] = useState(false);
+
+  useEffect(() => {
+    if (!privyEnabled) return;
+    // Privy can remain unready when its dashboard origin allowlist or SDK
+    // bootstrap is unavailable. Keep the site usable with an injected wallet
+    // instead of leaving every wallet action permanently stuck on Loading.
+    const timer = window.setTimeout(() => setPrivyTimedOut(true), 8_000);
+    return () => window.clearTimeout(timer);
+  }, [privyEnabled]);
+
+  return privyEnabled && !privyTimedOut
     ? <PrivyWalletServiceProvider>{children}</PrivyWalletServiceProvider>
     : <UniversalWalletServiceProvider>{children}</UniversalWalletServiceProvider>;
 }
