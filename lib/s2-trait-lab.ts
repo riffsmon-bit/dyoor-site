@@ -47,6 +47,7 @@ import {
   buildTokenMetadataAsync,
   getRuntimeMetadataConfig,
   getRuntimeTraitOverrides,
+  METADATA_UNAVAILABLE_ERROR,
   mergeMetadata,
   parseTokenId,
   saveRuntimeTraitOverride,
@@ -768,6 +769,12 @@ function renderFailureMessage(renderedImage: TraitLabImageRenderResult) {
     : [];
   const suffix = missingLayers.length ? ` Missing layer assets: ${missingLayers.join(", ")}.` : "";
   return `Trait image composition failed, so metadata was not changed. Refresh the token and try again.${suffix}`;
+}
+
+function assertAuthoritativeMetadata(result: { authoritative?: boolean }) {
+  if (!result.authoritative) {
+    throw Object.assign(new Error(METADATA_UNAVAILABLE_ERROR), { status: 503, code: "METADATA_UNAVAILABLE" });
+  }
 }
 
 export function traitMapFromMetadata(metadata: MetadataJson) {
@@ -2685,7 +2692,9 @@ export async function createTraitLabPreview(input: Record<string, unknown>) {
     const currentRollPointer = await assertTraitLabTokenIsNotFinalizing(String(tokenId));
     const replacedRollId = currentRollPointer.activeRollId || "";
 
-    const { metadata } = await buildTokenMetadataAsync(tokenId, config);
+    const metadataResult = await buildTokenMetadataAsync(tokenId, config);
+    assertAuthoritativeMetadata(metadataResult);
+    const { metadata } = metadataResult;
   const currentOverride = await getRuntimeTraitOverrides(tokenId);
   assertTokenCooldownComplete(currentOverride);
   const traits = traitMapFromMetadata(metadata as MetadataJson);
@@ -3060,6 +3069,13 @@ export async function confirmTraitLabPreview(input: Record<string, unknown>) {
   let failureStage: TraitLabRollRecord["failureStage"] = "confirm";
 
   try {
+  const config = await getRuntimeMetadataConfig();
+  const tokenId = parseInputTokenId(payload.tokenId, config.maxSupply);
+  await verifyS2TokenOwner(tokenId, wallet, config.maxSupply);
+
+  const metadataResult = await buildTokenMetadataAsync(tokenId, config);
+  assertAuthoritativeMetadata(metadataResult);
+  const { metadata } = metadataResult;
   paidRoll = await ensureTraitLabRollCharged(paidRoll, payload);
   await saveTraitLabRoll({
     ...paidRoll,
@@ -3067,11 +3083,6 @@ export async function confirmTraitLabPreview(input: Record<string, unknown>) {
     confirmingAt: new Date().toISOString(),
     recoveryRequired: false,
   });
-  const config = await getRuntimeMetadataConfig();
-  const tokenId = parseInputTokenId(payload.tokenId, config.maxSupply);
-  await verifyS2TokenOwner(tokenId, wallet, config.maxSupply);
-
-  const { metadata } = await buildTokenMetadataAsync(tokenId, config);
   const currentTraits = traitMapFromMetadata(metadata as MetadataJson);
   const patchAlreadyApplied = proposedPatchAlreadyApplied(currentTraits, payload);
   const currentMetadataVersion = metadataVersion(metadata as MetadataJson);
