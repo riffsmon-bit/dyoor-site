@@ -11,6 +11,7 @@ const navLinks = [
   { href: "/droids", label: "Droids" },
   { href: "/ascension", label: "Ascension" },
   { href: "/reroll", label: "Reroll" },
+  { href: "/monad/burn", label: "Burn" },
   { href: "/marketplace", label: "Market" },
   { href: "/whitepaper", label: "Whitepaper" },
 ];
