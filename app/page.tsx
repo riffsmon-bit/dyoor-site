@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { S2SupplyStat } from "@/components/s2/S2SupplyStat";
-import { S2_POST_BURN_SUPPLY_CAP } from "@/lib/s2-supply";
 
 const productLinks = [
   { index: "01", title: "Ascension", copy: "Move Season 1 Droids into the protocol and generate Energy.", href: "/ascension" },
@@ -30,7 +29,7 @@ export default function HomePage() {
               Droids that<br />change onchain.
             </h1>
             <p className="mt-7 max-w-xl text-base leading-8 text-white/60 sm:text-lg">
-              D.Y.O.O.R is a dynamic NFT system where Energy powers visible trait evolution,
+              D.Y.O.O.R is a deflationary dynamic NFT system where Energy powers visible trait evolution,
               recycling returns resources, and every burn permanently contracts supply.
             </p>
             <div className="mt-8 flex flex-wrap gap-3">
@@ -45,8 +44,8 @@ export default function HomePage() {
         <div className="mt-12 grid overflow-hidden rounded-2xl border border-white/[0.08] bg-white/[0.025] sm:grid-cols-3 lg:mt-16">
           <S2SupplyStat className="p-5 sm:border-r sm:border-white/[0.08]" />
           <div className="border-t border-white/[0.08] p-5 sm:border-r sm:border-t-0">
-            <p className="text-2xl font-semibold tracking-[-0.03em] text-white">{S2_POST_BURN_SUPPLY_CAP.toLocaleString("en-US")}</p>
-            <p className="mt-2 text-xs text-white/[0.44]">Long-term live supply target</p>
+            <p className="text-2xl font-semibold tracking-[-0.03em] text-white">Open</p>
+            <p className="mt-2 text-xs text-white/[0.44]">No application burn cap</p>
           </div>
           <div className="border-t border-white/[0.08] p-5 sm:border-t-0">
             <p className="text-2xl font-semibold tracking-[-0.03em] text-white">Dynamic</p>

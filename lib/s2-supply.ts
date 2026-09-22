@@ -1,5 +1,4 @@
 export const S2_ISSUED_SUPPLY_FALLBACK = 1096;
-export const S2_POST_BURN_SUPPLY_CAP = 555;
 
 export type S2SupplySource = "chain" | "burn-records" | "fallback";
 

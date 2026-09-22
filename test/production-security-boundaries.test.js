@@ -19,7 +19,6 @@ import {
   resolveS2ChainSupply,
   resolveS2RecordedBurnSupply,
   S2_ISSUED_SUPPLY_FALLBACK,
-  S2_POST_BURN_SUPPLY_CAP,
 } from "../lib/s2-supply.ts";
 import { runtimeTraitOverrideKey } from "../lib/dyoor-s2-metadata.js";
 
@@ -212,7 +211,6 @@ test("public metadata GET source contains no repair writes or marketplace refres
 });
 
 test("S2 live supply is issued supply minus permanent burns", () => {
-  assert.equal(S2_POST_BURN_SUPPLY_CAP, 555);
   assert.deepEqual(resolveS2ChainSupply(1065n, 1096n), {
     issuedSupply: 1096,
     currentSupply: 1065,
@@ -235,7 +233,7 @@ test("public product copy contains no revenue-sharing references", () => {
   }
   const homeSource = fs.readFileSync("app/page.tsx", "utf8");
   assert.match(homeSource, /S2SupplyStat/);
-  assert.match(homeSource, /Droid Burn Cap/);
+  assert.match(homeSource, /No application burn cap/);
   assert.doesNotMatch(homeSource, /Ascended S1 Allocation/);
   assert.match(homeSource, /deflationary dynamic NFT/i);
   assert.match(homeSource, /Energy Flywheel/i);
