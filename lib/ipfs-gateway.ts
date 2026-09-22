@@ -11,12 +11,15 @@ function cleanGateway(value: string) {
 
 export function configuredIpfsGateways() {
   const configured = [
+    // This gateway is currently the verified source for the collection's
+    // immutable artwork. Keep it ahead of experimental/self-hosted gateways
+    // until those CIDs are fully pinned and independently checked.
+    ...PUBLIC_IPFS_GATEWAYS,
     process.env.NEXT_PUBLIC_IPFS_GATEWAY_URL || "",
     process.env.NEXT_PUBLIC_IPFS_GATEWAY || "",
     process.env.NEXT_PUBLIC_PINATA_GATEWAY_URL || "",
     typeof window === "undefined" ? process.env.IPFS_GATEWAY_URL || "" : "",
     typeof window === "undefined" ? process.env.PINATA_GATEWAY_URL || "" : "",
-    ...PUBLIC_IPFS_GATEWAYS,
   ].map(cleanGateway).filter((value) => /^https:\/\//i.test(value));
 
   return Array.from(new Set(configured));
