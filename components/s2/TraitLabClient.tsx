@@ -2007,7 +2007,7 @@ export function TraitLabClient() {
                 </div>
 
                 {droidBurnEnabled ? (
-                  <div className="mt-4 rounded border border-red-400/35 bg-red-500/10 p-4">
+                  <div id="burn-droid" className="mt-4 rounded border border-red-400/35 bg-red-500/10 p-4">
                     <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(15rem,0.6fr)] xl:items-end">
                       <div>
                         <p className="eyebrow text-red-100">Permanent Burn</p>

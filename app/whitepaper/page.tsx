@@ -21,7 +21,6 @@ import {
   S2_TRAIT_LAB_RECYCLE_REWARDS,
   S2_TRAIT_LAB_REROLL_ALL_COST,
 } from "@/lib/s2-trait-lab-config";
-import { S2_POST_BURN_SUPPLY_CAP } from "@/lib/s2-supply";
 
 const TREASURY_ADDRESS = "0x4D540f7D0Eb841c839334655C9f88313D750c6d5";
 const S1_ENERGY_PER_DAY = 24;
@@ -37,7 +36,7 @@ const worldWheelOdds = DYOOR_WORLD_DAILY_REWARD_TABLE.map((entry, index) => {
 
 const callouts = [
   [INITIAL_S2_SUPPLY.toLocaleString("en-US"), "Season 2 Droids issued before burns"],
-  [S2_POST_BURN_SUPPLY_CAP.toLocaleString("en-US"), "Target final live supply"],
+  ["Open", "No application burn cap"],
   [String(S1_ENERGY_PER_DAY), "Energy per Ascended S1 each day"],
   [`${WORLD_WHEEL_MIN}–${WORLD_WHEEL_MAX.toLocaleString("en-US")}`, "Daily World wheel range"],
   ["Gasless", "Trait Lab Energy settlement"],
@@ -498,7 +497,7 @@ export default function WhitepaperPage() {
             <SectionHeading
               eyebrow="Deflationary Supply"
               title="Burned Means Gone"
-              copy={`Season 2 issued ${INITIAL_S2_SUPPLY.toLocaleString("en-US")} Droids and targets a final live supply of ${S2_POST_BURN_SUPPLY_CAP.toLocaleString("en-US")}. Every successful on-chain burn moves the collection one step toward that cap.`}
+              copy={`Season 2 issued ${INITIAL_S2_SUPPLY.toLocaleString("en-US")} Droids. Every successful on-chain burn permanently reduces live supply; the application does not impose a burn cap.`}
             />
             <div className="grid gap-4 sm:grid-cols-[0.8fr_1.2fr] sm:items-start">
               <div className="rounded border border-dyoor-cyan/20 bg-dyoor-cyan/[0.07] p-4">
