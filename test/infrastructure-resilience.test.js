@@ -9,14 +9,14 @@ import {
   ipfsGatewayUrls,
 } from "../lib/ipfs-gateway.ts";
 
-test("the DYOOR gateway is preferred without changing the canonical IPFS URI", () => {
+test("the verified artwork gateway is preferred without changing the canonical IPFS URI", () => {
   const previous = process.env.NEXT_PUBLIC_IPFS_GATEWAY_URL;
   process.env.NEXT_PUBLIC_IPFS_GATEWAY_URL = "https://ipfs.dyoor.fun/";
   try {
-    assert.equal(configuredIpfsGateways()[0], "https://ipfs.dyoor.fun");
+    assert.equal(configuredIpfsGateways()[0], "https://jade-efficient-beaver-697.mypinata.cloud");
     assert.deepEqual(
       ipfsGatewayUrls("ipfs://bafytest/1.png").slice(0, 1),
-      ["https://ipfs.dyoor.fun/ipfs/bafytest/1.png"],
+      ["https://jade-efficient-beaver-697.mypinata.cloud/ipfs/bafytest/1.png"],
     );
   } finally {
     if (previous === undefined) delete process.env.NEXT_PUBLIC_IPFS_GATEWAY_URL;
@@ -29,7 +29,7 @@ test("IPFS URLs normalize gateway suffixes and preserve reroll render URLs", () 
   process.env.NEXT_PUBLIC_IPFS_GATEWAY_URL = "https://ipfs.dyoor.fun/ipfs/";
   try {
     const urls = ipfsGatewayUrls("ipfs://bafytest/3.png");
-    assert.equal(urls[0], "https://ipfs.dyoor.fun/ipfs/bafytest/3.png");
+    assert.equal(urls[0], "https://jade-efficient-beaver-697.mypinata.cloud/ipfs/bafytest/3.png");
     assert.ok(urls.includes("https://jade-efficient-beaver-697.mypinata.cloud/ipfs/bafytest/3.png"));
     assert.deepEqual(ipfsGatewayUrls(urls[0]), urls);
     assert.deepEqual(ipfsGatewayUrls("/api/s2/trait-lab/render/new-version"), ["/api/s2/trait-lab/render/new-version"]);
@@ -123,7 +123,7 @@ test("server-side reroll layers retry failed gateways and bound each request", a
   };
   try {
     assert.deepEqual(await fetchIpfsImageBuffer("ipfs://bafytest/layer.png"), Buffer.from([1, 2, 3]));
-    assert.equal(calls[0], "https://ipfs.dyoor.fun/ipfs/bafytest/layer.png");
+    assert.equal(calls[0], "https://jade-efficient-beaver-697.mypinata.cloud/ipfs/bafytest/layer.png");
     assert.equal(calls.length, 2);
   } finally {
     globalThis.fetch = originalFetch;
