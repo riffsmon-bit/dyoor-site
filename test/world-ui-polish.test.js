@@ -54,3 +54,29 @@ test("World entrance retains holder signatures and makes no new auth bypass", ()
   assert.match(gate, /\/api\/dyoor-world\/session/);
   assert.match(gate, /no transaction approval, and no network switch/);
 });
+
+test("World trade controls cannot be compressed by the message panel", () => {
+  const client = fs.readFileSync("components/dyoor-world/DyoorWorldClient.tsx", "utf8");
+  const css = fs.readFileSync("app/dyoor-world/world.css", "utf8");
+  assert.match(client, /world-conversation-trade h-auto/);
+  assert.match(client, /className="world-trade-panel/);
+  assert.match(css, /\.world-conversation-trade > \* \{ flex-shrink: 0; \}/);
+  assert.match(css, /\.world-conversation-trade \.world-trade-panel \{ flex: none; \}/);
+  assert.match(css, /\.world-conversation-trade \.world-trade-messages \{ flex: none; height: 28rem; \}/);
+});
+
+test("World polling preserves an in-flight load and provides bounded recovery", () => {
+  const client = fs.readFileSync("components/dyoor-world/DyoorWorldClient.tsx", "utf8");
+  const start = client.indexOf("const loadMessages = useCallback");
+  const end = client.indexOf("const scrollToLatestMessage", start);
+  const loader = client.slice(start, end);
+  assert.match(loader, /if \(silent && messageRequestRef\.current\.controller\) return;/);
+  assert.ok(loader.indexOf("if (silent &&") < loader.indexOf("controller?.abort()"));
+  assert.match(loader, /20_000/);
+  assert.match(loader, /isDyoorWorldAbortError\(caught\) && !timedOut/);
+  assert.match(loader, /window\.clearTimeout\(timeout\)/);
+  assert.match(loader, /setLoadingMessages\(false\)/);
+  assert.doesNotMatch(loader, /setError\(/);
+  assert.match(client, /Retry messages/);
+  assert.match(client, /messageRequestRef\.current\.sequence \+= 1/);
+});

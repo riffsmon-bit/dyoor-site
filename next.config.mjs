@@ -1,4 +1,6 @@
 /** @type {import('next').NextConfig} */
+import { droidOsPreviewEnabled, droidOsPreviewOrigin } from "./lib/droid-os/preview-config.mjs";
+
 const isDev = process.env.NODE_ENV !== "production";
 
 const csp = [
@@ -53,6 +55,18 @@ const sharpNetlifyRuntime = [
 ];
 
 const nextConfig = {
+  // Inline this non-secret, build-context-scoped UI flag for serverless routes.
+  // Never expose process.env wholesale. Production/branch deploys stay off.
+  env: {
+    DROID_OS_UI_PREVIEW: droidOsPreviewEnabled(process.env) ? "true" : "false",
+    DROID_OS_PREVIEW_ORIGIN: droidOsPreviewOrigin(process.env),
+    DROID_OS_LOCAL_MODE: droidOsPreviewEnabled(process.env) && !process.env.CONTEXT ? "true" : "false",
+    // Non-secret AI selection only. Keep these out of legacy Lambda's 4KB
+    // runtime environment budget. The provider credential is NEVER inlined.
+    DROID_AI_ENABLED: droidOsPreviewEnabled(process.env) && process.env.DROID_AI_ENABLED === "true" ? "true" : "false",
+    DROID_AI_PROVIDER: process.env.DROID_AI_PROVIDER || "",
+    DROID_AI_MODEL: process.env.DROID_AI_MODEL || "",
+  },
   reactStrictMode: true,
   poweredByHeader: false,
   serverExternalPackages: ["web-push"],

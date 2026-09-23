@@ -28,6 +28,7 @@ import {
   MONAD_USDC_ADDRESS,
 } from "@/lib/droid-trading/constants";
 import { MONAD_MAINNET_CHAIN_ID } from "@/lib/monad";
+import { minimumAfterSlippage } from "@/lib/droid-os/swaps/kuru-route";
 
 const NATIVE = "0x0000000000000000000000000000000000000000";
 const routerInterface = new Interface([
@@ -118,9 +119,7 @@ export async function quoteMonadDroidTradingCanary(input: {
   const [expectedAmountOut] = routerInterface.decodeFunctionResult("anyToAnySwap", result);
   const expectedOutput = BigInt(expectedAmountOut);
   if (expectedOutput <= 0n) throw new Error("The approved MON/USDC route returned no output.");
-  let minimumAmountOut = expectedOutput
-    * BigInt(10_000 - selectedSlippageBps) / 10_000n;
-  if (minimumAmountOut === 0n) minimumAmountOut = 1n;
+  const minimumAmountOut = BigInt(minimumAfterSlippage(expectedOutput.toString(), selectedSlippageBps));
 
   const ownerTradingEnabled = Boolean(
     config.ownerTradingAddress

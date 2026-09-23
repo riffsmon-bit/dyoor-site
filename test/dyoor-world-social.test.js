@@ -316,7 +316,7 @@ test("World mobile side drawers and atomic trade desk stay streamlined", () => {
   assert.match(client, /Choose the Droid you send/);
   assert.match(client, /Accept atomic swap/);
   assert.match(client, /BigInt\(trade\.monRequestedWei \|\| "0"\)/);
-  assert.match(client, /channelId === "trade-desk"\s*\?\s*"h-auto min-h-0"/);
+  assert.match(client, /channelId === "trade-desk"\s*\?\s*"world-conversation-trade h-auto min-h-0"/);
   assert.match(client, /min-w-0 max-w-full overflow-hidden border-b/);
   assert.match(client, /snap-x snap-mandatory/);
   assert.match(client, /min-\[380px\]:grid-cols-2/);

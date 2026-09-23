@@ -13,7 +13,7 @@ const socials = [
 
 export function SiteFooter() {
   const pathname = usePathname();
-  if (pathname.startsWith("/dyoor-world") || pathname.startsWith("/robinhood")) return null;
+  if (pathname.startsWith("/dyoor-world") || pathname.startsWith("/robinhood") || pathname.startsWith("/droid-os")) return null;
 
   return (
     <footer className="border-t border-white/[0.07] bg-[#07070b]/90">

@@ -1,0 +1,16 @@
+{
+  "version": 1,
+  "scope": "OWNER_APPROVED_ASSIST_CANARY_REGISTRY_AND_TEST_BADGE_ONLY",
+  "chainId": 143,
+  "deployer": "0xC7f55cE6A7dF9A79cc4A643a5081230F890c7AA6",
+  "nonce": 4596,
+  "predictedRegistry": "0x7918438f0E03C759cc3898543958a844FB63ce43",
+  "creationBytecodeHash": "0xf40b239a2484d850c32c72cdd70f67a7be36670c25cd8a93da1363bc34385346",
+  "maximumGasLimit": "5000000",
+  "maximumDeploymentFeeWei": "600000000000000000",
+  "valueWei": "0",
+  "autonomyEnabled": false,
+  "fundAccounts": false,
+  "moveExistingAssets": false,
+  "independentSecurityAudit": false
+}

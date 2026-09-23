@@ -619,6 +619,7 @@ export function DyoorWorldClient({ sessionWallet }: { sessionWallet: string }) {
   const [composerAttachment, setComposerAttachment] = useState<DyoorWorldMessageAttachment | null>(null);
   const [replyingTo, setReplyingTo] = useState<DyoorWorldMessageView | null>(null);
   const [loadingMessages, setLoadingMessages] = useState(true);
+  const [messageLoadError, setMessageLoadError] = useState("");
   const [sending, setSending] = useState(false);
   const [claiming, setClaiming] = useState(false);
   const [savingAvatar, setSavingAvatar] = useState(false);
@@ -745,11 +746,22 @@ export function DyoorWorldClient({ sessionWallet }: { sessionWallet: string }) {
   }, [normalizedSessionWallet]);
 
   const loadMessages = useCallback(async (silent = false) => {
+    // Polling must not abort a slower initial load (or another poll).
+    if (silent && messageRequestRef.current.controller) return;
     const sequence = messageRequestRef.current.sequence + 1;
     messageRequestRef.current.controller?.abort();
     const controller = new AbortController();
     messageRequestRef.current = { sequence, controller };
-    if (!silent) setLoadingMessages(true);
+    let timedOut = false;
+    const timeout = window.setTimeout(() => {
+      timedOut = true;
+      controller.abort();
+    }, 20_000);
+    if (!silent) {
+      setLoadingMessages(true);
+      setMessageLoadError("");
+      setMessages([]);
+    }
     try {
       const response = await fetch(
         `/api/dyoor-world/messages?channel=${encodeURIComponent(channelId)}`,
@@ -760,19 +772,22 @@ export function DyoorWorldClient({ sessionWallet }: { sessionWallet: string }) {
       }>(response);
       if (messageRequestRef.current.sequence !== sequence) return;
       setMessages(Array.isArray(data.messages) ? data.messages : []);
-      setError("");
+      setMessageLoadError("");
     } catch (caught) {
       if (
-        isDyoorWorldAbortError(caught)
+        (isDyoorWorldAbortError(caught) && !timedOut)
         || messageRequestRef.current.sequence !== sequence
       ) {
         return;
       }
-      setError(caught instanceof Error ? caught.message : "Could not load World messages.");
+      setMessageLoadError(timedOut
+        ? "Messages are taking too long to load. Try again."
+        : caught instanceof Error ? caught.message : "Could not load World messages.");
     } finally {
+      window.clearTimeout(timeout);
       if (messageRequestRef.current.sequence === sequence) {
         messageRequestRef.current.controller = null;
-        if (!silent) setLoadingMessages(false);
+        setLoadingMessages(false);
       }
     }
   }, [channelId]);
@@ -875,6 +890,9 @@ export function DyoorWorldClient({ sessionWallet }: { sessionWallet: string }) {
       window.clearTimeout(initialTimer);
       window.clearInterval(timer);
       messageRequestRef.current.controller?.abort();
+      // Invalidate callbacks even before the next channel's request starts.
+      messageRequestRef.current.sequence += 1;
+      messageRequestRef.current.controller = null;
     };
   }, [loadMessages]);
 
@@ -1811,7 +1829,7 @@ export function DyoorWorldClient({ sessionWallet }: { sessionWallet: string }) {
           <section
             className={`world-conversation flex min-w-0 max-w-full flex-col overflow-hidden ${
               channelId === "trade-desk"
-                ? "h-auto min-h-0"
+                ? "world-conversation-trade h-auto min-h-0"
                 : "h-[calc(100dvh-4rem)] min-h-[30rem] sm:h-[calc(100dvh-7rem)]"
             }`}
           >
@@ -1837,7 +1855,7 @@ export function DyoorWorldClient({ sessionWallet }: { sessionWallet: string }) {
             {channelId === "world-lobby" ? <div className="world-welcome-strip"><span className="world-status-dot" /><p>Good to have you here.<span> Pull up a seat. You’re among holders.</span></p><span aria-hidden="true">↗</span></div> : null}
 
             {channelId === "trade-desk" ? (
-              <div className="min-w-0 max-w-full overflow-hidden border-b border-dyoor-purple/20 bg-gradient-to-r from-dyoor-purple/[0.08] to-dyoor-cyan/[0.05] p-3 sm:p-4">
+              <div className="world-trade-panel min-w-0 max-w-full overflow-hidden border-b border-dyoor-purple/20 bg-gradient-to-r from-dyoor-purple/[0.08] to-dyoor-cyan/[0.05] p-3 sm:p-4">
                 {config?.tradeEscrowAddress ? (
                   <div className="world-trade-forms grid min-w-0 max-w-full gap-3 xl:grid-cols-2">
                     <form className="min-w-0 overflow-hidden rounded border border-dyoor-cyan/20 bg-black/25 p-3 sm:p-4" onSubmit={createTrade}>
@@ -2033,7 +2051,7 @@ export function DyoorWorldClient({ sessionWallet }: { sessionWallet: string }) {
 
             <div
               className={`relative min-h-0 flex-1 ${
-                channelId === "trade-desk" ? "min-h-[28rem]" : ""
+                channelId === "trade-desk" ? "world-trade-messages min-h-[28rem]" : ""
               }`}
             >
               <div
@@ -2041,11 +2059,19 @@ export function DyoorWorldClient({ sessionWallet }: { sessionWallet: string }) {
                 onScroll={handleMessageListScroll}
                 ref={messageListRef}
               >
+              {messageLoadError ? (
+                <div role="alert" className="rounded border border-yellow-300/20 bg-yellow-300/[0.06] p-4 text-sm text-yellow-100">
+                  <p>{messageLoadError}</p>
+                  <button className="btn-secondary mt-3 min-h-11 px-4" type="button" onClick={() => void loadMessages()}>
+                    Retry messages
+                  </button>
+                </div>
+              ) : null}
               {loadingMessages ? (
                 <div className="space-y-3">
                   {[0, 1, 2].map((index) => <div className="skeleton-line h-16" key={index} />)}
                 </div>
-              ) : messages.length === 0 ? (
+              ) : messages.length === 0 && messageLoadError ? null : messages.length === 0 ? (
                 <div className="flex min-h-80 items-center justify-center text-center">
                   <div>
                     <DyoorWorldGlyph className="mx-auto h-10 w-10 text-dyoor-purple" />
